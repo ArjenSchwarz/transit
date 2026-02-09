@@ -6,7 +6,7 @@ struct FilterPopoverView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(projects, id: \.id) { project in
+            ForEach(projects) { (project: Project) in
                 Button {
                     if selectedProjectIDs.contains(project.id) {
                         selectedProjectIDs.remove(project.id)
@@ -21,7 +21,7 @@ struct FilterPopoverView: View {
                         Spacer()
                         if selectedProjectIDs.contains(project.id) {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(.accent)
+                                .foregroundStyle(.tint)
                         }
                     }
                     .contentShape(Rectangle())

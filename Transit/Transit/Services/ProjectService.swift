@@ -14,10 +14,10 @@ enum ProjectLookupError: Error {
 @MainActor @Observable
 final class ProjectService {
 
-    private let modelContext: ModelContext
+    let context: ModelContext
 
     init(modelContext: ModelContext) {
-        self.modelContext = modelContext
+        self.context = modelContext
     }
 
     // MARK: - Creation
@@ -26,7 +26,7 @@ final class ProjectService {
     @discardableResult
     func createProject(name: String, description: String, gitRepo: String?, colorHex: String) -> Project {
         let project = Project(name: name, description: description, gitRepo: gitRepo, colorHex: colorHex)
-        modelContext.insert(project)
+        context.insert(project)
         return project
     }
 
@@ -44,7 +44,7 @@ final class ProjectService {
             let descriptor = FetchDescriptor<Project>(
                 predicate: #Predicate { $0.id == id }
             )
-            guard let project = try? modelContext.fetch(descriptor).first else {
+            guard let project = try? context.fetch(descriptor).first else {
                 return .failure(.notFound(hint: "No project with ID \(id.uuidString)"))
             }
             return .success(project)
@@ -56,7 +56,7 @@ final class ProjectService {
             // arbitrary case-insensitive equality. Fetch all and filter in memory
             // for exact case-insensitive match (project count is small).
             let descriptor = FetchDescriptor<Project>()
-            let allProjects = (try? modelContext.fetch(descriptor)) ?? []
+            let allProjects = (try? context.fetch(descriptor)) ?? []
             let matches = allProjects.filter {
                 $0.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
             }
