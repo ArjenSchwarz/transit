@@ -86,10 +86,10 @@ struct DashboardView: View {
                 }
             }
             .sheet(isPresented: $showAddTask) {
-                Text("Add Task Sheet")
+                AddTaskSheet()
             }
             .sheet(item: $selectedTask) { task in
-                Text("Task Detail: \(task.name)")
+                TaskDetailView(task: task)
             }
         }
     }
