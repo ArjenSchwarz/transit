@@ -6,7 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- TaskDetailView now shows Abandon button for Done tasks (was hidden because `isTerminal` excluded both Done and Abandoned; spec [req 4.5] requires abandon from any status including Done)
+
 ### Added
+
+- Implementation explanation document (`specs/transit-v1/implementation.md`) with beginner/intermediate/expert level explanations, requirement traceability, and completeness assessment
 
 - UI tests (12 tests) covering navigation flows (settings push, back chevron), sheet presentation (add task, task detail, filter popover), empty states (dashboard, settings), default segment selection, filter badge updates, and abandoned task visibility
 - Integration tests (12 tests) verifying end-to-end flows: intent-created tasks appear in dashboard columns, status updates via intent move tasks between columns, query intent returns filtered results, display ID counter increments across creates, and query response field validation
