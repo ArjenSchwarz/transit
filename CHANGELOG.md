@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `DashboardView` with GeometryReader-based adaptive layout switching (single column vs kanban), column filtering/sorting, project filter, toolbar, and global empty state
+- `TaskCardView` with `.glassEffect()`, project colour border, display ID, type badge, strikethrough for abandoned tasks, and `.draggable()` support
+- `ColumnView` with header (name + count), done/abandoned separator, per-column empty state, and `.dropDestination()` for drag-and-drop
+- `KanbanBoardView` multi-column horizontal scrolling board with paging and initial scroll target for iPhone landscape
+- `SingleColumnView` with segmented control (short labels, task counts, default Active segment)
+- `FilterPopoverView` with multi-select project checkboxes and Clear action
+- Drag-and-drop between columns applying `DashboardColumn.primaryStatus` via `TaskService`
+- Dashboard column filtering unit tests (10 tests: 48-hour cutoff, handoff sorting, done-before-abandoned, project filter, nil project exclusion)
+- Drag-and-drop status mapping unit tests (10 tests: base status per column, Done not Abandoned, backward drag, completionDate handling)
+- Agent notes for dashboard view architecture
+
 - `StatusEngine` struct with `initializeNewTask` and `applyTransition` for centralised status transition logic with completionDate/lastStatusChangeDate side effects
 - `DisplayIDAllocator` with CloudKit counter-based sequential ID allocation, optimistic locking, retry logic, and provisional ID fallback for offline support
 - `TaskService` (`@MainActor @Observable`) for task creation, status updates, abandon, restore, and display ID lookup
