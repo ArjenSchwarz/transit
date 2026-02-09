@@ -21,7 +21,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Xcode project with multiplatform SwiftUI target (iOS 26, macOS 26), CloudKit entitlements, and background modes
 - Makefile with build, test, lint, device deployment, and clean targets
 - Testing strategy in CLAUDE.md (test-quick during development, full suite before pushing)
+- Project directory structure matching design doc: Models/, Services/, Views/ (Dashboard, TaskDetail, AddTask, Settings, Shared), Intents/, Extensions/
+- Minimal TransitApp entry point with NavigationStack and DashboardView as root
+- SwiftLint configuration excluding DerivedData auto-generated files
+- Agent notes documenting project structure and build workflow
 
 ### Changed
 
 - Swift language version set to 6.0 across all targets for strict concurrency checking
+
+### Removed
+
+- Xcode template files (Item.swift, ContentView.swift) replaced with Transit-specific scaffolding

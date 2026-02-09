@@ -1,16 +1,9 @@
-//
-//  TransitTests.swift
-//  TransitTests
-//
-//  Created by Arjen Schwarz on 9/2/2026.
-//
-
 import Testing
+@testable import Transit
 
 struct TransitTests {
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    @Test func appLaunches() async throws {
+        // Placeholder — verifies the test target links against the app module.
     }
-
 }
