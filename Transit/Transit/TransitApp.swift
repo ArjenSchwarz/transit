@@ -13,17 +13,28 @@ struct TransitApp: App {
     private let syncManager: SyncManager
     private let connectivityMonitor: ConnectivityMonitor
 
+    private static var isUITesting: Bool {
+        ProcessInfo.processInfo.arguments.contains("--uitesting")
+    }
+
     init() {
         let syncManager = SyncManager()
         self.syncManager = syncManager
 
         let schema = Schema([Project.self, TransitTask.self])
-        let config = syncManager.makeModelConfiguration(schema: schema)
+        let config: ModelConfiguration
+        if Self.isUITesting {
+            config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+        } else {
+            config = syncManager.makeModelConfiguration(schema: schema)
+        }
         // swiftlint:disable:next force_try
         let container = try! ModelContainer(for: schema, configurations: [config])
         self.container = container
 
-        syncManager.initializeCloudKitSchemaIfNeeded(container: container)
+        if !Self.isUITesting {
+            syncManager.initializeCloudKitSchemaIfNeeded(container: container)
+        }
 
         let context = ModelContext(container)
         let allocator = DisplayIDAllocator(container: CKContainer.default())
@@ -68,8 +79,32 @@ struct TransitApp: App {
             .environment(projectService)
             .environment(syncManager)
             .environment(connectivityMonitor)
+            .task { seedUITestDataIfNeeded() }
         }
         .modelContainer(container)
+    }
+
+    // MARK: - UI Test Support
+
+    private func seedUITestDataIfNeeded() {
+        guard ProcessInfo.processInfo.arguments.contains("--uitesting-seed-data") else { return }
+        let project = projectService.createProject(
+            name: "Test Project", description: "UI test project", gitRepo: nil, colorHex: "#FF5733"
+        )
+        let task = TransitTask(
+            name: "Sample Task", description: "A test task", type: .feature,
+            project: project, displayID: .permanent(1)
+        )
+        StatusEngine.initializeNewTask(task)
+        container.mainContext.insert(task)
+
+        let abandonedTask = TransitTask(
+            name: "Abandoned Task", description: nil, type: .chore,
+            project: project, displayID: .permanent(2)
+        )
+        StatusEngine.initializeNewTask(abandonedTask)
+        StatusEngine.applyTransition(task: abandonedTask, to: .abandoned)
+        container.mainContext.insert(abandonedTask)
     }
 }
 
