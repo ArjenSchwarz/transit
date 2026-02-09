@@ -8,6 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `StatusEngine` struct with `initializeNewTask` and `applyTransition` for centralised status transition logic with completionDate/lastStatusChangeDate side effects
+- `DisplayIDAllocator` with CloudKit counter-based sequential ID allocation, optimistic locking, retry logic, and provisional ID fallback for offline support
+- `TaskService` (`@MainActor @Observable`) for task creation, status updates, abandon, restore, and display ID lookup
+- `ProjectService` (`@MainActor @Observable`) for project creation, case-insensitive name lookup with ambiguity detection, and active task counting
+- `ProjectLookupError` enum (notFound, ambiguous, noIdentifier) for project resolution errors
+- `IntentError` enum with 6 error codes (TASK_NOT_FOUND, PROJECT_NOT_FOUND, AMBIGUOUS_PROJECT, INVALID_STATUS, INVALID_TYPE, INVALID_INPUT) and JSON encoding via JSONSerialization
+- `EmptyStateView` reusable component using `ContentUnavailableView`
+- `ProjectColorDot` view (12x12 rounded square with project colour)
+- `TypeBadge` capsule-shaped tinted badge for task type display
+- `MetadataSection` view with read/edit modes for key-value metadata pairs
+- `TaskType.tintColor` computed property with distinct colours per type
+- `TestModelContainer` shared singleton for SwiftData test isolation with `cloudKitDatabase: .none`
+- StatusEngine unit tests (12 tests including property-based transition invariants)
+- DisplayIDAllocator tests (5 tests for provisional IDs and promotion sort order)
+- TaskService tests (9 tests covering creation, status changes, abandon/restore, and lookups)
+- ProjectService tests (10 tests covering creation, find by ID/name, ambiguity, and active count)
+- IntentError tests (12 tests covering error codes, JSON structure, and special character escaping)
+- Agent notes for services layer, shared components, SwiftData test container pattern, and test imports
+
 - `TaskStatus` enum with column mapping, handoff detection, terminal state checks, and short labels for iPhone segmented control
 - `DashboardColumn` enum with display names and primary status mapping for drag-and-drop
 - `TaskType` enum (bug, feature, chore, research, documentation)
