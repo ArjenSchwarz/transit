@@ -13,11 +13,36 @@ Transit is a native Apple task tracker (iOS 26 / iPadOS 26 / macOS 26) for a sin
 - **App Intents** framework for CLI/automation integration via Shortcuts
 - Liquid Glass design language throughout (`.glassEffect()`, `.materialBackground()`)
 
-## Build & Development
+## Build and Test Commands
 
-No Xcode project exists yet. When the project is created:
-- Use Xcode or `xcodebuild` for building
-- If a `Makefile` is added, its commands take precedence for all development tooling
+Use the Makefile for all development tasks:
+
+```bash
+make build        # Build for both iOS and macOS
+make build-ios    # Build for iOS Simulator only
+make build-macos  # Build for macOS only
+make test-quick   # Run unit tests on macOS (fast, no simulator)
+make test         # Run full test suite on iOS Simulator
+make test-ui      # Run UI tests only
+make lint         # Run SwiftLint
+make lint-fix     # Run SwiftLint with auto-fix
+make clean        # Clean build artifacts
+```
+
+To run a single test class or method:
+```bash
+xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -only-testing:TransitTests/StatusEngineTests test
+```
+
+## Testing Strategy
+
+### When to Run Which Tests
+
+- **During development**: Use `make test-quick` — runs unit tests on macOS without the simulator, fast feedback loop
+- **Before pushing (pre-push-review)**: Use `make test` and `make test-ui` — runs the full test suite on iOS Simulator
+- **For commits**: No tests required — lint only (`make lint`)
 
 ## Architecture Overview
 

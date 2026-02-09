@@ -18,3 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Implementation task list (50 tasks across 3 work streams and 10 phases) with dependencies and requirement traceability
 - Prerequisites document for Xcode project setup and CloudKit configuration
 - Agent notes on technical constraints (SwiftData+CloudKit, Liquid Glass, drag-and-drop, adaptive layout)
+- Xcode project with multiplatform SwiftUI target (iOS 26, macOS 26), CloudKit entitlements, and background modes
+- Makefile with build, test, lint, device deployment, and clean targets
+- Testing strategy in CLAUDE.md (test-quick during development, full suite before pushing)
+
+### Changed
+
+- Swift language version set to 6.0 across all targets for strict concurrency checking
