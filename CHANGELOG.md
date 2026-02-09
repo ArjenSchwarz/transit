@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- UI tests (12 tests) covering navigation flows (settings push, back chevron), sheet presentation (add task, task detail, filter popover), empty states (dashboard, settings), default segment selection, filter badge updates, and abandoned task visibility
+- Integration tests (12 tests) verifying end-to-end flows: intent-created tasks appear in dashboard columns, status updates via intent move tasks between columns, query intent returns filtered results, display ID counter increments across creates, and query response field validation
+- UI test infrastructure: `--uitesting` launch argument for in-memory SwiftData storage, `--uitesting-seed-data` for test data seeding with sample tasks (including abandoned task)
+
 - `DashboardView` with GeometryReader-based adaptive layout switching (single column vs kanban), column filtering/sorting, project filter, toolbar, and global empty state
 - `TaskCardView` with `.glassEffect()`, project colour border, display ID, type badge, strikethrough for abandoned tasks, and `.draggable()` support
 - `ColumnView` with header (name + count), done/abandoned separator, per-column empty state, and `.dropDestination()` for drag-and-drop
