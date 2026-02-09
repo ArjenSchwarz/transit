@@ -8,6 +8,7 @@ struct DashboardView: View {
     @State private var selectedColumn: DashboardColumn = .inProgress // [req 13.3]
     @State private var selectedTask: TransitTask?
     @State private var showFilter = false
+    @State private var showAddTask = false
     @Environment(TaskService.self) private var taskService
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -53,13 +54,16 @@ struct DashboardView: View {
                 addButton
             }
             ToolbarItem(placement: .secondaryAction) {
-                NavigationLink(value: "settings") {
+                NavigationLink(value: NavigationDestination.settings) {
                     Label("Settings", systemImage: "gear")
                 }
             }
         }
         .sheet(item: $selectedTask) { task in
-            Text("Task: \(task.name)") // Placeholder — TaskDetailView comes in a later phase
+            TaskDetailView(task: task)
+        }
+        .sheet(isPresented: $showAddTask) {
+            AddTaskSheet()
         }
     }
 
@@ -85,7 +89,7 @@ struct DashboardView: View {
 
     private var addButton: some View {
         Button {
-            // AddTaskSheet comes in a later phase
+            showAddTask = true
         } label: {
             Label("Add Task", systemImage: "plus")
         }
@@ -149,7 +153,7 @@ struct DashboardView: View {
             }
             .sorted { lhs, rhs in
                 // Done before abandoned in terminal column [req 5.5]
-                if lhs.status == .abandoned != (rhs.status == .abandoned) {
+                if (lhs.status == .abandoned) != (rhs.status == .abandoned) {
                     return rhs.status == .abandoned
                 }
                 // Handoff tasks first within their column [req 5.3, 5.4]
@@ -162,7 +166,3 @@ struct DashboardView: View {
         }
     }
 }
-
-// MARK: - Identifiable for sheet presentation
-
-extension TransitTask: @retroactive Identifiable {}
