@@ -58,3 +58,22 @@
 - Manual `CKRecordZoneSubscription` only needed for the counter record or if finer sync control is desired.
 - SwiftData uses zone `com.apple.coredata.cloudkit.zone`.
 - Push notifications do not work on Simulator — test on physical devices.
+
+## SwiftData Test Container
+
+Creating multiple `ModelContainer` instances for the same schema in one process causes `loadIssueModelContainer` errors. The app's CloudKit entitlements trigger auto-discovery of `@Model` types at test host launch, conflicting with test containers.
+
+**Solution**: Use a shared `TestModelContainer` singleton that creates one container with:
+1. An explicit `Schema([Project.self, TransitTask.self])`
+2. A named `ModelConfiguration` with `cloudKitDatabase: .none`
+3. `isStoredInMemoryOnly: true`
+
+All three are required. Without `cloudKitDatabase: .none`, it conflicts with the CloudKit-enabled default store. Without the explicit `Schema`, the `cloudKitDatabase: .none` parameter crashes.
+
+Each test gets a fresh `ModelContext` via `TestModelContainer.newContext()` for isolation.
+
+Test files that use SwiftData need `@Suite(.serialized)` to avoid concurrent access issues.
+
+## Test File Imports
+
+With `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, test files must explicitly `import Foundation` to use `Date`, `UUID`, `JSONSerialization`, etc. These aren't automatically available in the test target even though the app module imports them.
