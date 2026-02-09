@@ -69,7 +69,8 @@ struct TaskDetailView: View {
                     taskService.restore(task: task)
                     dismiss()
                 }
-            } else if !task.status.isTerminal {
+            } else {
+                // Abandon from any status including Done [req 4.5]
                 Button("Abandon", role: .destructive) {
                     taskService.abandon(task: task)
                     dismiss()
