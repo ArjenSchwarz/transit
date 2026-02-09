@@ -4,24 +4,24 @@ These tasks must be completed by the user before or during implementation.
 
 ## Before Starting
 
-- [ ] Create a new Xcode project with a multiplatform SwiftUI app target (iOS/iPadOS/macOS) named "Transit"
+- [x] Create a new Xcode project with a multiplatform SwiftUI app target (iOS/iPadOS/macOS) named "Transit"
   - Set deployment targets to iOS 26, iPadOS 26, macOS 26
   - Use SwiftUI app lifecycle (`@main` struct)
   - Bundle identifier: choose your reverse-domain identifier (e.g., `com.example.transit`)
   - Set the product name to "Transit"
 
-- [ ] Enable iCloud capability in the Xcode project
+- [x] Enable iCloud capability in the Xcode project
   - Add the "iCloud" capability to the target
   - Check "CloudKit" under iCloud Services
   - Create or select an iCloud container (e.g., `iCloud.com.example.transit`)
 
-- [ ] Enable Background Modes capability (for CloudKit push notifications)
+- [x] Enable Background Modes capability (for CloudKit push notifications)
   - Add "Background Modes" capability
   - Check "Remote notifications"
 
 ## During Implementation
 
-- [ ] Before task 13 (DisplayIDAllocator): Verify the CloudKit container is accessible
+- [x] Before task 13 (DisplayIDAllocator): Verify the CloudKit container is accessible
   - Open CloudKit Dashboard and confirm the container exists
   - The `DisplayIDCounter` record type will be auto-created in the development environment on first write
 
