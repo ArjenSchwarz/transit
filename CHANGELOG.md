@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Settings UI: SettingsView with Projects section (color swatch, name, active task count, add button) and General section (About, iCloud Sync toggle), ProjectEditView for creating and editing projects with color picker
 - Task management UI: AddTaskSheet for creating tasks with validation, TaskDetailView for viewing task details with Abandon/Restore actions, TaskEditView for editing all task fields including status and metadata
 - Dashboard UI components: TaskCardView with glass effect and project color border, ColumnView with header and done/abandoned separator, KanbanBoardView for multi-column layout, SingleColumnView with segmented control, FilterPopoverView for project filtering, and DashboardView with adaptive layout switching
 - Drag-and-drop support between columns with status mapping and completionDate handling

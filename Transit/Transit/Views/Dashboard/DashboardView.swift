@@ -79,7 +79,7 @@ struct DashboardView: View {
 
                 ToolbarItem(placement: .primaryAction) {
                     NavigationLink {
-                        Text("Settings")
+                        SettingsView()
                     } label: {
                         Label("Settings", systemImage: "gearshape")
                     }
