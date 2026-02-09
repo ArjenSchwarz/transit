@@ -43,6 +43,15 @@
 - Use `@Environment(\.verticalSizeClass)` to detect landscape on iPhone.
 - `ViewThatFits` is for content adaptation, not structural layout changes.
 
+## Swift 6 Default MainActor Isolation
+
+- Project uses `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` — every type is `@MainActor` by default.
+- `@Model` classes are NOT automatically `@MainActor` — they follow standard isolation rules.
+- Color extensions using `UIColor`/`NSColor` become `@MainActor` isolated. Use `Color.resolve(in: EnvironmentValues())` to extract RGB components without platform-specific types.
+- `Codable` conformance on enums causes `@MainActor` isolation (because `Encoder`/`Decoder` are main-actor-isolated). Avoid `Codable` on pure data enums unless needed — use `Sendable` + `Equatable` instead.
+- Test structs need `@MainActor` annotation to access main-actor-isolated types from the app module.
+- `@Model` classes should take raw stored types (e.g., `colorHex: String`) in their init, not SwiftUI types like `Color`. Convert at the view layer.
+
 ## CloudKit Sync
 
 - SwiftData handles sync automatically for Project/Task models.
