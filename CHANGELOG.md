@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Dashboard UI components: TaskCardView with glass effect and project color border, ColumnView with header and done/abandoned separator, KanbanBoardView for multi-column layout, SingleColumnView with segmented control, FilterPopoverView for project filtering, and DashboardView with adaptive layout switching
+- Drag-and-drop support between columns with status mapping and completionDate handling
+- Unit tests for dashboard column filtering, 48-hour cutoff, sorting logic, project filter, and drag-and-drop status transitions
 - Design document (v0.3 draft) covering data model, UI specs, App Intents schemas, platform layouts, and decision log
 - Interactive React-based UI mockup for layout and interaction reference
 - CLAUDE.md with project architecture overview for Claude Code
