@@ -103,22 +103,22 @@ references:
 
 ## UI - Shared Components
 
-- [ ] 19. Implement EmptyStateView (reusable empty state messaging) <!-- id:gn0obg5 -->
+- [x] 19. Implement EmptyStateView (reusable empty state messaging) <!-- id:gn0obg5 -->
   - Blocked-by: gn0obfn (Initialize Xcode project structure and test targets)
   - Stream: 2
   - Requirements: [20.1](requirements.md#20.1), [20.2](requirements.md#20.2), [20.4](requirements.md#20.4)
 
-- [ ] 20. Implement ProjectColorDot (rounded square with project color) <!-- id:gn0obg6 -->
+- [x] 20. Implement ProjectColorDot (rounded square with project color) <!-- id:gn0obg6 -->
   - Blocked-by: gn0obfn (Initialize Xcode project structure and test targets)
   - Stream: 2
   - Requirements: [6.2](requirements.md#6.2), [12.3](requirements.md#12.3)
 
-- [ ] 21. Implement TypeBadge (tinted badge for task type) <!-- id:gn0obg7 -->
+- [x] 21. Implement TypeBadge (tinted badge for task type) <!-- id:gn0obg7 -->
   - Blocked-by: gn0obfq (Implement TaskType enum)
   - Stream: 2
   - Requirements: [6.1](requirements.md#6.1)
 
-- [ ] 22. Implement MetadataSection (key-value display and edit) <!-- id:gn0obg8 -->
+- [x] 22. Implement MetadataSection (key-value display and edit) <!-- id:gn0obg8 -->
   - Blocked-by: gn0obfn (Initialize Xcode project structure and test targets)
   - Stream: 2
   - Requirements: [11.1](requirements.md#11.1), [11.8](requirements.md#11.8)

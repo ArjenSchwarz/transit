@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Reusable shared UI components under `Views/Shared`: `EmptyStateView`, `ProjectColorDot`, `TypeBadge`, and `MetadataSection` to support consistent empty-state messaging, project color indicators, task type badges, and metadata display/edit flows
+- Unit tests for shared component behavior covering task-type badge label/tint mapping and metadata draft normalization/materialization logic
 - Domain service implementations for `StatusEngine`, `DisplayIDAllocator`, `TaskService`, and `ProjectService` covering task lifecycle transitions, display ID allocation/retry, project lookup, and active task counting
 - New unit test coverage for domain services with in-memory SwiftData test support, including property-based status transition invariants and allocator conflict/promotion scenarios
 - Dashboard scaffolding entry point with a dedicated `DashboardView` under the new `Views/Dashboard` structure to establish the base app module layout
