@@ -6,6 +6,8 @@ struct ColumnView: View {
     let onTaskTap: (TransitTask) -> Void
     var onDrop: ((String) -> Bool)? // UUID string of dropped task
 
+    @State private var isDropTargeted = false
+
     var body: some View {
         VStack(spacing: 0) {
             // Header with name and count [req 5.9]
@@ -45,9 +47,20 @@ struct ColumnView: View {
                 }
             }
         }
+        .contentShape(.rect)
+        .background {
+            if isDropTargeted {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.tint.opacity(0.1))
+            }
+        }
         .dropDestination(for: String.self) { items, _ in
             guard let uuidString = items.first else { return false }
             return onDrop?(uuidString) ?? false
+        } isTargeted: { targeted in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isDropTargeted = targeted
+            }
         }
     }
 

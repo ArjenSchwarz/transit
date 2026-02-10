@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Drag-and-drop on iPhone now works for all columns (was only accepting drops on Planning and Done)
+- `ColumnView` missing `.contentShape(.rect)` caused drop targets to not cover full column frame when containing Spacers or ScrollViews
+- `KanbanBoardView` scroll behaviour changed from `.paging` to `.viewAligned` with `.scrollTargetLayout()` for column-by-column auto-scroll during drag operations
+- `SingleColumnView` segmented control now accepts drops via ZStack overlay with per-segment drop targets, enabling cross-column drag on iPhone portrait
+- Added `isTargeted` visual feedback (tint highlight) to column drop targets
+- Added parameterized regression test verifying drops succeed for all 5 dashboard columns
+
 ### Added
 
 - `IntentDescription` with category and result labels for all three App Intents (CreateTask, UpdateStatus, QueryTasks), visible in the Shortcuts gallery

@@ -27,8 +27,9 @@ struct KanbanBoardView: View {
                             .id(column)
                         }
                     }
+                    .scrollTargetLayout()
                 }
-                .scrollTargetBehavior(.paging)
+                .scrollTargetBehavior(.viewAligned)
                 .onAppear {
                     if let target = initialScrollTarget {
                         proxy.scrollTo(target, anchor: .leading)
