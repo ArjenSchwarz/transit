@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Dashboard now keeps the kanban board layout active in normal runtime even when only one column fits on screen, preserving cross-column drag-and-drop by retaining all column drop targets while keeping single-column mode only for forced UI-test runs
 - Added root SwiftLint configuration to lint only source/tests and exclude generated `DerivedData` artifacts from strict pre-push checks
 - Refactored `TransitAppRuntime` UI-test board seeding into reusable seed helpers while preserving deterministic fixture values
 - Replaced `TransitTests` integration fixture tuple return value with a dedicated `IntegrationFixture` type to satisfy lint tuple-size limits

@@ -44,9 +44,10 @@ struct DashboardView: View {
             let columnCount = forceSingleColumnForUITests
             ? 1
             : (isPhoneLandscape ? min(rawColumnCount, 3) : rawColumnCount)
+            let shouldUseSingleColumnLayout = forceSingleColumnForUITests
 
             Group {
-                if columnCount == 1 {
+                if shouldUseSingleColumnLayout {
                     SingleColumnView(
                         columns: filteredColumns,
                         selectedColumn: $selectedColumn,
