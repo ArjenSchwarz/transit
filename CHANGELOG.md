@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Hardened `TransitApp` model-container bootstrap for test and offline scenarios by using an in-memory store when running under XCTest and falling back to local SwiftData storage when CloudKit-backed initialization fails
 - Extended the app view structure with a dedicated `Views/Settings` module and wired settings/project edit flows to existing `ProjectService` and SwiftData persistence patterns
 - Dashboard interaction flow now opens task details from card taps, presents Add Task from the toolbar with no-project guidance, and uses adaptive modal presentation for add/detail sheets
 - App bootstrap now initializes and injects shared SwiftData container-backed `TaskService` and `ProjectService` dependencies for runtime view actions

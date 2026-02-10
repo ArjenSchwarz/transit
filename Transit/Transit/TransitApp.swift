@@ -12,18 +12,13 @@ struct TransitApp: App {
             Project.self,
             TransitTask.self
         ])
-        let configuration = ModelConfiguration(cloudKitDatabase: .private("iCloud.me.nore.ig.Transit"))
-        do {
-            let container = try ModelContainer(for: schema, configurations: [configuration])
-            modelContainer = container
+        let container = Self.makeModelContainer(schema: schema)
+        modelContainer = container
 
-            let context = ModelContext(container)
-            let displayIDAllocator = DisplayIDAllocator()
-            taskService = TaskService(modelContext: context, displayIDAllocator: displayIDAllocator)
-            projectService = ProjectService(modelContext: context)
-        } catch {
-            fatalError("Failed to initialize model container: \(error)")
-        }
+        let context = ModelContext(container)
+        let displayIDAllocator = DisplayIDAllocator()
+        taskService = TaskService(modelContext: context, displayIDAllocator: displayIDAllocator)
+        projectService = ProjectService(modelContext: context)
     }
 
     var body: some Scene {
@@ -33,5 +28,30 @@ struct TransitApp: App {
                 .environment(projectService)
         }
         .modelContainer(modelContainer)
+    }
+
+    private static func makeModelContainer(schema: Schema) -> ModelContainer {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+            guard let container = try? ModelContainer(for: schema, configurations: [configuration]) else {
+                fatalError("Failed to initialize in-memory model container for tests")
+            }
+            return container
+        }
+
+        let cloudKitConfiguration = ModelConfiguration(
+            cloudKitDatabase: .private("iCloud.me.nore.ig.Transit")
+        )
+
+        if let container = try? ModelContainer(for: schema, configurations: [cloudKitConfiguration]) {
+            return container
+        }
+
+        // Fall back to local storage if CloudKit container setup fails.
+        let localConfiguration = ModelConfiguration()
+        guard let container = try? ModelContainer(for: schema, configurations: [localConfiguration]) else {
+            fatalError("Failed to initialize model container")
+        }
+        return container
     }
 }
