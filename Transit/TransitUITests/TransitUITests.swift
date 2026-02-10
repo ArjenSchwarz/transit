@@ -8,11 +8,12 @@ final class TransitUITests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func launchApp(seedData: Bool = false) -> XCUIApplication {
+    private func launchApp(scenario: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["--uitesting"]
-        if seedData {
-            app.launchArguments.append("--uitesting-seed-data")
+        if let scenario {
+            app.launchEnvironment["TRANSIT_UI_TEST_SCENARIO"] = scenario
+        } else {
+            app.launchEnvironment["TRANSIT_UI_TEST_SCENARIO"] = "empty"
         }
         app.launch()
         return app
@@ -34,7 +35,7 @@ final class TransitUITests: XCTestCase {
         let app = launchApp()
 
         // Navigate to settings [req 12.1]
-        let settingsButton = app.buttons["Settings"]
+        let settingsButton = app.buttons["dashboard.settingsButton"]
         XCTAssertTrue(settingsButton.waitForExistence(timeout: 5))
         settingsButton.tap()
 
@@ -49,7 +50,7 @@ final class TransitUITests: XCTestCase {
     func testTappingGearPushesSettingsView() throws {
         let app = launchApp()
 
-        let settingsButton = app.buttons["Settings"]
+        let settingsButton = app.buttons["dashboard.settingsButton"]
         XCTAssertTrue(settingsButton.waitForExistence(timeout: 5))
         settingsButton.tap()
 
@@ -62,7 +63,7 @@ final class TransitUITests: XCTestCase {
     func testSettingsHasBackChevron() throws {
         let app = launchApp()
 
-        app.buttons["Settings"].tap()
+        app.buttons["dashboard.settingsButton"].tap()
 
         // [req 12.2] Chevron-only back button (no label text)
         let backButton = app.navigationBars["Settings"].buttons.element(boundBy: 0)
@@ -79,7 +80,7 @@ final class TransitUITests: XCTestCase {
         let app = launchApp()
 
         // [req 10.1] Tapping + opens the add task sheet
-        let addButton = app.buttons["Add Task"]
+        let addButton = app.buttons["dashboard.addButton"]
         XCTAssertTrue(addButton.waitForExistence(timeout: 5))
         addButton.tap()
 
@@ -92,7 +93,7 @@ final class TransitUITests: XCTestCase {
     func testAddTaskWithNoProjectsShowsEmptyMessage() throws {
         let app = launchApp()
 
-        app.buttons["Add Task"].tap()
+        app.buttons["dashboard.addButton"].tap()
 
         // [req 10.7, 20.3] No projects exist → shows message directing to Settings
         let message = app.staticTexts["No projects yet. Create one in Settings."]
@@ -101,15 +102,15 @@ final class TransitUITests: XCTestCase {
 
     @MainActor
     func testTappingFilterButtonShowsPopover() throws {
-        let app = launchApp(seedData: true)
+        let app = launchApp(scenario: "board")
 
         // [req 9.1] Tapping filter shows popover
-        let filterButton = app.buttons["Filter"]
+        let filterButton = app.buttons["dashboard.filterButton"]
         XCTAssertTrue(filterButton.waitForExistence(timeout: 5))
         filterButton.tap()
 
-        // Popover should contain the seeded project name
-        let projectLabel = app.staticTexts["Test Project"]
+        // Popover should contain a seeded project name
+        let projectLabel = app.staticTexts["Alpha"]
         XCTAssertTrue(projectLabel.waitForExistence(timeout: 5))
     }
 
@@ -117,10 +118,10 @@ final class TransitUITests: XCTestCase {
 
     @MainActor
     func testTappingTaskCardOpensDetailSheet() throws {
-        let app = launchApp(seedData: true)
+        let app = launchApp(scenario: "board")
 
         // Wait for seeded task to appear
-        let taskCard = app.staticTexts["Sample Task"]
+        let taskCard = app.staticTexts["Ship Active"]
         XCTAssertTrue(taskCard.waitForExistence(timeout: 5))
         taskCard.tap()
 
@@ -151,15 +152,15 @@ final class TransitUITests: XCTestCase {
 
     @MainActor
     func testFilterBadgeUpdatesWhenProjectSelected() throws {
-        let app = launchApp(seedData: true)
+        let app = launchApp(scenario: "board")
 
-        // Initially no filter badge — button label is "Filter"
-        let filterButton = app.buttons["Filter"]
+        // Initially no filter badge
+        let filterButton = app.buttons["dashboard.filterButton"]
         XCTAssertTrue(filterButton.waitForExistence(timeout: 5))
         filterButton.tap()
 
         // Select the project in the popover
-        let projectRow = app.staticTexts["Test Project"]
+        let projectRow = app.staticTexts["Alpha"]
         XCTAssertTrue(projectRow.waitForExistence(timeout: 5))
         projectRow.tap()
 
@@ -177,7 +178,7 @@ final class TransitUITests: XCTestCase {
 
     @MainActor
     func testAbandonedTaskCardIsVisible() throws {
-        let app = launchApp(seedData: true)
+        let app = launchApp(scenario: "board")
 
         // Navigate to the Done/Abandoned column if on iPhone (segmented control)
         let segmentedControl = app.segmentedControls.firstMatch
@@ -192,7 +193,7 @@ final class TransitUITests: XCTestCase {
 
         // [req 5.7] Abandoned task should be present (rendered at 50% opacity)
         // XCUITest cannot directly verify opacity, but we verify the task card exists
-        let abandonedTask = app.staticTexts["Abandoned Task"]
+        let abandonedTask = app.staticTexts["Old Abandoned"]
         XCTAssertTrue(abandonedTask.waitForExistence(timeout: 5))
     }
 }

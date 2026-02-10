@@ -38,12 +38,19 @@ struct UpdateStatusIntent: AppIntent {
             return IntentError.invalidStatus(hint: "Unknown status: \(statusString)").json
         }
 
-        guard let task = taskService.findByDisplayID(displayId) else {
+        let task: TransitTask
+        do {
+            task = try taskService.findByDisplayID(displayId)
+        } catch {
             return IntentError.taskNotFound(hint: "No task with displayId \(displayId)").json
         }
 
         let previousStatus = task.statusRawValue
-        taskService.updateStatus(task: task, to: newStatus)
+        do {
+            try taskService.updateStatus(task: task, to: newStatus)
+        } catch {
+            return IntentError.invalidInput(hint: "Status update failed").json
+        }
 
         return IntentHelpers.encodeJSON([
             "displayId": displayId,

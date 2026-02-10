@@ -1,4 +1,3 @@
-import CloudKit
 import Foundation
 import SwiftData
 import Testing
@@ -19,7 +18,8 @@ struct IntentDashboardIntegrationTests {
 
     private func makeServices() throws -> Services {
         let context = try TestModelContainer.newContext()
-        let allocator = DisplayIDAllocator(container: CKContainer.default())
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
         return Services(
             task: TaskService(modelContext: context, displayIDAllocator: allocator),
             project: ProjectService(modelContext: context),
@@ -62,7 +62,7 @@ struct IntentDashboardIntegrationTests {
         #expect(tasks.count == 1)
         #expect(tasks[0].name == "Intent Task")
 
-        let columns = DashboardView.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
+        let columns = DashboardLogic.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
         #expect((columns[.idea] ?? []).count == 1)
         #expect((columns[.idea] ?? [])[0].name == "Intent Task")
     }
@@ -86,7 +86,7 @@ struct IntentDashboardIntegrationTests {
         )
 
         let tasks = try allTasks(in: svc.context)
-        let columns = DashboardView.buildFilteredColumns(
+        let columns = DashboardLogic.buildFilteredColumns(
             allTasks: tasks, selectedProjectIDs: [project.id]
         )
         #expect((columns[.idea] ?? []).count == 1)
@@ -109,7 +109,7 @@ struct IntentDashboardIntegrationTests {
         let displayId = createParsed["displayId"]
 
         var tasks = try allTasks(in: svc.context)
-        var columns = DashboardView.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
+        var columns = DashboardLogic.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
         #expect((columns[.idea] ?? []).count == 1)
 
         // Update status via intent
@@ -123,7 +123,7 @@ struct IntentDashboardIntegrationTests {
 
         // Verify task moved columns
         tasks = try allTasks(in: svc.context)
-        columns = DashboardView.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
+        columns = DashboardLogic.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
         #expect((columns[.idea] ?? []).count == 0)
         #expect((columns[.inProgress] ?? []).count == 1)
     }
@@ -149,7 +149,7 @@ struct IntentDashboardIntegrationTests {
         let tasks = try allTasks(in: svc.context)
         #expect(tasks[0].completionDate != nil)
 
-        let columns = DashboardView.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
+        let columns = DashboardLogic.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
         #expect((columns[.doneAbandoned] ?? []).count == 1)
     }
 
@@ -171,7 +171,7 @@ struct IntentDashboardIntegrationTests {
         let tasks = try allTasks(in: svc.context)
         #expect(tasks.count == 5)
 
-        let columns = DashboardView.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
+        let columns = DashboardLogic.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
         #expect((columns[.idea] ?? []).count == 5)
     }
 }

@@ -20,6 +20,13 @@ struct DashboardView: View {
         verticalSizeClass == .compact
     }
 
+    private var filteredColumns: [DashboardColumn: [TransitTask]] {
+        DashboardLogic.buildFilteredColumns(
+            allTasks: allTasks,
+            selectedProjectIDs: selectedProjectIDs
+        )
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let rawColumnCount = max(1, Int(geometry.size.width / Self.columnMinWidth))
@@ -57,6 +64,7 @@ struct DashboardView: View {
                 NavigationLink(value: NavigationDestination.settings) {
                     Label("Settings", systemImage: "gear")
                 }
+                .accessibilityIdentifier("dashboard.settingsButton")
             }
         }
         .sheet(item: $selectedTask) { task in
@@ -79,6 +87,8 @@ struct DashboardView: View {
                 Label("Filter (\(selectedProjectIDs.count))", systemImage: "line.3.horizontal.decrease.circle.fill")
             }
         }
+        .accessibilityIdentifier("dashboard.filterButton")
+        .accessibilityValue("\(selectedProjectIDs.count)")
         .popover(isPresented: $showFilter) {
             FilterPopoverView(
                 projects: projects,
@@ -93,6 +103,7 @@ struct DashboardView: View {
         } label: {
             Label("Add Task", systemImage: "plus")
         }
+        .accessibilityIdentifier("dashboard.addButton")
     }
 
     // MARK: - Drag and Drop
@@ -103,22 +114,21 @@ struct DashboardView: View {
               let task = allTasks.first(where: { $0.id == uuid }) else {
             return false
         }
-        let targetStatus = column.primaryStatus // [req 7.2, 7.4] — Done/Abandoned maps to .done
-        taskService.updateStatus(task: task, to: targetStatus)
-        return true
+        do {
+            try DashboardLogic.applyDrop(task: task, to: column, using: taskService)
+            return true
+        } catch {
+            return false
+        }
     }
+}
 
-    // MARK: - Column Filtering & Sorting
+// MARK: - Dashboard Logic (pure, testable)
 
-    /// Tasks grouped by column, filtered by project selection, with sorting applied.
-    var filteredColumns: [DashboardColumn: [TransitTask]] {
-        Self.buildFilteredColumns(
-            allTasks: allTasks,
-            selectedProjectIDs: selectedProjectIDs
-        )
-    }
+enum DashboardLogic {
 
-    /// Testable, static column builder.
+    /// Testable column builder: groups tasks by column, applies project filter,
+    /// 48-hour cutoff for terminal tasks, and sorting rules.
     static func buildFilteredColumns(
         allTasks: [TransitTask],
         selectedProjectIDs: Set<UUID>,
@@ -164,5 +174,15 @@ struct DashboardView: View {
                 return lhs.lastStatusChangeDate > rhs.lastStatusChangeDate
             }
         }
+    }
+
+    /// Applies a drag-drop status change via the task service.
+    @MainActor
+    static func applyDrop(
+        task: TransitTask,
+        to column: DashboardColumn,
+        using service: TaskService
+    ) throws {
+        try service.updateStatus(task: task, to: column.primaryStatus)
     }
 }

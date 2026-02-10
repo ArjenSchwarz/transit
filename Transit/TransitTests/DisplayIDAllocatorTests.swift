@@ -1,4 +1,3 @@
-import CloudKit
 import Foundation
 import Testing
 @testable import Transit
@@ -9,24 +8,63 @@ struct DisplayIDAllocatorTests {
     // MARK: - provisionalID
 
     @Test func provisionalIDReturnsProvisional() {
-        let allocator = DisplayIDAllocator(container: .default())
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
         let result = allocator.provisionalID()
 
         #expect(result == .provisional)
     }
 
     @Test func provisionalIDFormatsAsBullet() {
-        let allocator = DisplayIDAllocator(container: .default())
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
         let result = allocator.provisionalID()
 
         #expect(result.formatted == "T-\u{2022}")
     }
 
+    // MARK: - allocateNextID with InMemoryCounterStore
+
+    @Test func allocateNextIDReturnsSequentialIDs() async throws {
+        let store = InMemoryCounterStore(initialNextDisplayID: 1)
+        let allocator = DisplayIDAllocator(store: store)
+
+        let first = try await allocator.allocateNextID()
+        let second = try await allocator.allocateNextID()
+        let third = try await allocator.allocateNextID()
+
+        #expect(first == 1)
+        #expect(second == 2)
+        #expect(third == 3)
+    }
+
+    @Test func allocateNextIDRetriesOnConflict() async throws {
+        let store = InMemoryCounterStore(initialNextDisplayID: 10)
+        await store.enqueueSaveOutcomes([.conflict, .success])
+        let allocator = DisplayIDAllocator(store: store)
+
+        let id = try await allocator.allocateNextID()
+        #expect(id == 10)
+
+        let attempts = await store.saveAttemptCount
+        #expect(attempts == 2) // first was conflict, second succeeded
+    }
+
+    @Test func allocateNextIDThrowsAfterMaxRetries() async throws {
+        let store = InMemoryCounterStore(initialNextDisplayID: 1)
+        // Queue more conflicts than the retry limit
+        await store.enqueueSaveOutcomes(
+            Array(repeating: .conflict, count: 5)
+        )
+        let allocator = DisplayIDAllocator(store: store, retryLimit: 3)
+
+        await #expect(throws: DisplayIDAllocator.Error.retriesExhausted) {
+            try await allocator.allocateNextID()
+        }
+    }
+
     // MARK: - Promotion sort order (conceptual)
 
-    /// Tasks with earlier creationDate should be promoted first. This test
-    /// verifies that the sort descriptor used by promoteProvisionalTasks
-    /// would place older tasks before newer ones.
     @Test func promotionSortOrderIsCreationDateAscending() {
         let project = Project(name: "P", description: "Test", gitRepo: nil, colorHex: "#000000")
 
@@ -42,7 +80,6 @@ struct DisplayIDAllocatorTests {
         #expect(tasks.last?.name == "Second")
     }
 
-    /// Tasks that already have a permanent ID should not be considered provisional.
     @Test func taskWithPermanentIDIsNotProvisional() {
         let project = Project(name: "P", description: "Test", gitRepo: nil, colorHex: "#000000")
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .permanent(42))

@@ -8,6 +8,17 @@ struct TaskCardView: View {
         return Color(hex: hex)
     }
 
+    private var isAbandoned: Bool {
+        task.status == .abandoned
+    }
+
+    private var accessibilityID: String {
+        if let displayID = task.permanentDisplayId {
+            return "dashboard.taskCard.\(displayID)"
+        }
+        return "dashboard.taskCard.provisional"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             // Project name (secondary)
@@ -20,7 +31,7 @@ struct TaskCardView: View {
                 Text(task.name)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .strikethrough(task.status == .abandoned)
+                    .strikethrough(isAbandoned)
 
                 Spacer()
 
@@ -31,8 +42,20 @@ struct TaskCardView: View {
                     )
             }
 
-            // Type badge
-            TypeBadge(type: task.type)
+            // Badges row
+            HStack(spacing: 6) {
+                if task.status.isHandoff {
+                    Label("Handoff", systemImage: "exclamationmark.circle.fill")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.orange.opacity(0.15), in: Capsule())
+                }
+
+                TypeBadge(type: task.type)
+            }
         }
         .padding(10)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -41,7 +64,8 @@ struct TaskCardView: View {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(projectColor, lineWidth: 1.5)
         )
-        .opacity(task.status == .abandoned ? 0.5 : 1.0)
+        .opacity(isAbandoned ? 0.5 : 1.0)
         .draggable(task.id.uuidString) // [req 7.1]
+        .accessibilityIdentifier(accessibilityID)
     }
 }

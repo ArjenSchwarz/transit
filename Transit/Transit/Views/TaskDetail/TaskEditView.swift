@@ -111,7 +111,7 @@ struct TaskEditView: View {
 
         // Status change goes through TaskService for side effects
         if selectedStatus != task.status {
-            taskService.updateStatus(task: task, to: selectedStatus)
+            try? taskService.updateStatus(task: task, to: selectedStatus)
         }
 
         dismiss()

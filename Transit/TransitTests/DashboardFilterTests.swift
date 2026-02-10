@@ -37,7 +37,7 @@ struct DashboardFilterTests {
         let oldTask = makeTask(name: "Old", status: .done, project: project, completionDate: oldDate)
         let recentTask = makeTask(name: "Recent", status: .done, project: project, completionDate: recentDate)
 
-        let columns = DashboardView.buildFilteredColumns(
+        let columns = DashboardLogic.buildFilteredColumns(
             allTasks: [oldTask, recentTask],
             selectedProjectIDs: [],
             now: now
@@ -53,7 +53,7 @@ struct DashboardFilterTests {
         let now = Date(timeIntervalSince1970: 200_000)
         let task = makeTask(status: .done, project: project, completionDate: nil)
 
-        let columns = DashboardView.buildFilteredColumns(
+        let columns = DashboardLogic.buildFilteredColumns(
             allTasks: [task],
             selectedProjectIDs: [],
             now: now
@@ -76,7 +76,7 @@ struct DashboardFilterTests {
             lastStatusChange: now.addingTimeInterval(-100) // older but handoff
         )
 
-        let columns = DashboardView.buildFilteredColumns(
+        let columns = DashboardLogic.buildFilteredColumns(
             allTasks: [specTask, handoffTask],
             selectedProjectIDs: [],
             now: now
@@ -106,7 +106,7 @@ struct DashboardFilterTests {
             completionDate: now
         )
 
-        let columns = DashboardView.buildFilteredColumns(
+        let columns = DashboardLogic.buildFilteredColumns(
             allTasks: [abandonedTask, doneTask],
             selectedProjectIDs: [],
             now: now
@@ -125,7 +125,7 @@ struct DashboardFilterTests {
         let older = makeTask(name: "Older", status: .idea, project: project, lastStatusChange: olderDate)
         let newer = makeTask(name: "Newer", status: .idea, project: project, lastStatusChange: now)
 
-        let columns = DashboardView.buildFilteredColumns(
+        let columns = DashboardLogic.buildFilteredColumns(
             allTasks: [older, newer],
             selectedProjectIDs: [],
             now: now
@@ -145,7 +145,7 @@ struct DashboardFilterTests {
         let taskA = makeTask(name: "Task A", status: .idea, project: projectA)
         let taskB = makeTask(name: "Task B", status: .idea, project: projectB)
 
-        let columns = DashboardView.buildFilteredColumns(
+        let columns = DashboardLogic.buildFilteredColumns(
             allTasks: [taskA, taskB],
             selectedProjectIDs: [projectA.id],
             now: .now
@@ -162,7 +162,7 @@ struct DashboardFilterTests {
         let taskA = makeTask(name: "Task A", status: .idea, project: projectA)
         let taskB = makeTask(name: "Task B", status: .idea, project: projectB)
 
-        let columns = DashboardView.buildFilteredColumns(
+        let columns = DashboardLogic.buildFilteredColumns(
             allTasks: [taskA, taskB],
             selectedProjectIDs: [],
             now: .now
@@ -178,7 +178,7 @@ struct DashboardFilterTests {
         let orphanTask = TransitTask(name: "Orphan", type: .feature, project: project, displayID: .provisional)
         orphanTask.project = nil
 
-        let columns = DashboardView.buildFilteredColumns(
+        let columns = DashboardLogic.buildFilteredColumns(
             allTasks: [taskWithProject, orphanTask],
             selectedProjectIDs: [],
             now: .now
@@ -199,7 +199,7 @@ struct DashboardFilterTests {
             name: "ReadyForImpl", status: .readyForImplementation, project: project, lastStatusChange: now
         )
 
-        let columns = DashboardView.buildFilteredColumns(
+        let columns = DashboardLogic.buildFilteredColumns(
             allTasks: [specTask, handoffTask],
             selectedProjectIDs: [],
             now: now
@@ -211,7 +211,7 @@ struct DashboardFilterTests {
     // MARK: - All columns exist even when empty
 
     @Test func allColumnsExistEvenWhenEmpty() {
-        let columns = DashboardView.buildFilteredColumns(
+        let columns = DashboardLogic.buildFilteredColumns(
             allTasks: [],
             selectedProjectIDs: [],
             now: .now

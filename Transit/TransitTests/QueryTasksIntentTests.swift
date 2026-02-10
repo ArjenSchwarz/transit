@@ -1,4 +1,3 @@
-import CloudKit
 import Foundation
 import SwiftData
 import Testing
@@ -17,7 +16,8 @@ struct QueryTasksIntentTests {
 
     private func makeServices() throws -> Services {
         let context = try TestModelContainer.newContext()
-        let allocator = DisplayIDAllocator(container: CKContainer.default())
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
         return Services(
             task: TaskService(modelContext: context, displayIDAllocator: allocator),
             project: ProjectService(modelContext: context),

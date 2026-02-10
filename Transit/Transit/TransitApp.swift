@@ -13,8 +13,8 @@ struct TransitApp: App {
     private let syncManager: SyncManager
     private let connectivityMonitor: ConnectivityMonitor
 
-    private static var isUITesting: Bool {
-        ProcessInfo.processInfo.arguments.contains("--uitesting")
+    private static var uiTestScenario: UITestScenario? {
+        UITestScenario(rawValue: ProcessInfo.processInfo.environment["TRANSIT_UI_TEST_SCENARIO"] ?? "")
     }
 
     init() {
@@ -23,7 +23,7 @@ struct TransitApp: App {
 
         let schema = Schema([Project.self, TransitTask.self])
         let config: ModelConfiguration
-        if Self.isUITesting {
+        if Self.uiTestScenario != nil {
             config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         } else {
             config = syncManager.makeModelConfiguration(schema: schema)
@@ -32,12 +32,12 @@ struct TransitApp: App {
         let container = try! ModelContainer(for: schema, configurations: [config])
         self.container = container
 
-        if !Self.isUITesting {
+        if Self.uiTestScenario == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
 
         let context = ModelContext(container)
-        let allocator = DisplayIDAllocator(container: CKContainer.default())
+        let allocator = DisplayIDAllocator()
         self.displayIDAllocator = allocator
 
         let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
@@ -87,25 +87,68 @@ struct TransitApp: App {
     // MARK: - UI Test Support
 
     private func seedUITestDataIfNeeded() {
-        guard ProcessInfo.processInfo.arguments.contains("--uitesting-seed-data") else { return }
-        let project = projectService.createProject(
-            name: "Test Project", description: "UI test project", gitRepo: nil, colorHex: "#FF5733"
-        )
-        let task = TransitTask(
-            name: "Sample Task", description: "A test task", type: .feature,
-            project: project, displayID: .permanent(1)
-        )
-        StatusEngine.initializeNewTask(task)
-        container.mainContext.insert(task)
-
-        let abandonedTask = TransitTask(
-            name: "Abandoned Task", description: nil, type: .chore,
-            project: project, displayID: .permanent(2)
-        )
-        StatusEngine.initializeNewTask(abandonedTask)
-        StatusEngine.applyTransition(task: abandonedTask, to: .abandoned)
-        container.mainContext.insert(abandonedTask)
+        guard let scenario = Self.uiTestScenario else { return }
+        switch scenario {
+        case .empty:
+            return
+        case .board:
+            seedBoardScenario()
+        }
     }
+
+    private func seedBoardScenario() {
+        let now = Date()
+        let ctx = container.mainContext
+
+        let alpha = Project(
+            name: "Alpha", description: "Primary project", gitRepo: nil, colorHex: "#0A84FF"
+        )
+        let beta = Project(
+            name: "Beta", description: "Secondary project", gitRepo: nil, colorHex: "#30D158"
+        )
+        ctx.insert(alpha)
+        ctx.insert(beta)
+
+        let shipActive = TransitTask(
+            name: "Ship Active", description: nil, type: .feature, project: alpha, displayID: .permanent(1)
+        )
+        shipActive.creationDate = now.addingTimeInterval(-120)
+        shipActive.lastStatusChangeDate = now.addingTimeInterval(-60)
+        shipActive.statusRawValue = TaskStatus.inProgress.rawValue
+        ctx.insert(shipActive)
+
+        let backlogIdea = TransitTask(
+            name: "Backlog Idea", description: nil, type: .research, project: alpha, displayID: .permanent(2)
+        )
+        backlogIdea.creationDate = now.addingTimeInterval(-560)
+        backlogIdea.lastStatusChangeDate = now.addingTimeInterval(-500)
+        backlogIdea.statusRawValue = TaskStatus.idea.rawValue
+        ctx.insert(backlogIdea)
+
+        let oldAbandoned = TransitTask(
+            name: "Old Abandoned", description: nil, type: .chore, project: alpha, displayID: .permanent(3)
+        )
+        oldAbandoned.creationDate = now.addingTimeInterval(-360)
+        oldAbandoned.lastStatusChangeDate = now.addingTimeInterval(-300)
+        oldAbandoned.statusRawValue = TaskStatus.abandoned.rawValue
+        oldAbandoned.completionDate = now.addingTimeInterval(-300)
+        ctx.insert(oldAbandoned)
+
+        let betaReview = TransitTask(
+            name: "Beta Review", description: nil, type: .bug, project: beta, displayID: .permanent(4)
+        )
+        betaReview.creationDate = now.addingTimeInterval(-260)
+        betaReview.lastStatusChangeDate = now.addingTimeInterval(-200)
+        betaReview.statusRawValue = TaskStatus.readyForReview.rawValue
+        ctx.insert(betaReview)
+    }
+}
+
+// MARK: - UI Test Scenarios
+
+private enum UITestScenario: String {
+    case empty
+    case board
 }
 
 // MARK: - Scene Phase Tracking

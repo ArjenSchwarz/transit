@@ -1,4 +1,3 @@
-import CloudKit
 import SwiftData
 import Testing
 @testable import Transit
@@ -10,7 +9,8 @@ struct TaskServiceTests {
 
     private func makeService() throws -> (TaskService, ModelContext) {
         let context = try TestModelContainer.newContext()
-        let allocator = DisplayIDAllocator(container: CKContainer.default())
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
         let service = TaskService(modelContext: context, displayIDAllocator: allocator)
         return (service, context)
     }
@@ -51,8 +51,7 @@ struct TaskServiceTests {
             project: project
         )
 
-        // In a test environment without CloudKit, this will fall back to provisional.
-        // Either outcome is valid — the important thing is a display ID is assigned.
+        // InMemoryCounterStore always succeeds, so we get a permanent ID.
         let hasDisplayID = task.displayID == .provisional || task.permanentDisplayId != nil
         #expect(hasDisplayID)
     }
@@ -87,6 +86,24 @@ struct TaskServiceTests {
         #expect(task.metadata["git.branch"] == "feature/test")
     }
 
+    @Test func createTaskTrimsAndValidatesName() async throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+
+        // Whitespace-only name should throw
+        await #expect(throws: TaskService.Error.invalidName) {
+            try await service.createTask(
+                name: "   ", description: nil, type: .feature, project: project
+            )
+        }
+
+        // Valid name with leading/trailing whitespace should be trimmed
+        let task = try await service.createTask(
+            name: "  Trimmed Name  ", description: nil, type: .feature, project: project
+        )
+        #expect(task.name == "Trimmed Name")
+    }
+
     // MARK: - updateStatus
 
     @Test func updateStatusChangesStatusAndAppliesSideEffects() async throws {
@@ -94,11 +111,11 @@ struct TaskServiceTests {
         let project = makeProject(in: context)
         let task = try await service.createTask(name: "Task", description: nil, type: .feature, project: project)
 
-        service.updateStatus(task: task, to: .planning)
+        try service.updateStatus(task: task, to: .planning)
         #expect(task.status == .planning)
         #expect(task.completionDate == nil)
 
-        service.updateStatus(task: task, to: .done)
+        try service.updateStatus(task: task, to: .done)
         #expect(task.status == .done)
         #expect(task.completionDate != nil)
     }
@@ -110,7 +127,7 @@ struct TaskServiceTests {
         let project = makeProject(in: context)
         let task = try await service.createTask(name: "Task", description: nil, type: .feature, project: project)
 
-        service.abandon(task: task)
+        try service.abandon(task: task)
 
         #expect(task.status == .abandoned)
         #expect(task.completionDate != nil)
@@ -123,12 +140,22 @@ struct TaskServiceTests {
         let project = makeProject(in: context)
         let task = try await service.createTask(name: "Task", description: nil, type: .feature, project: project)
 
-        service.abandon(task: task)
+        try service.abandon(task: task)
         #expect(task.completionDate != nil)
 
-        service.restore(task: task)
+        try service.restore(task: task)
         #expect(task.status == .idea)
         #expect(task.completionDate == nil)
+    }
+
+    @Test func restoreNonAbandonedTaskThrows() async throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+        let task = try await service.createTask(name: "Task", description: nil, type: .feature, project: project)
+
+        #expect(throws: TaskService.Error.restoreRequiresAbandonedTask) {
+            try service.restore(task: task)
+        }
     }
 
     // MARK: - findByDisplayID
@@ -141,14 +168,15 @@ struct TaskServiceTests {
         StatusEngine.initializeNewTask(task)
         context.insert(task)
 
-        let found = service.findByDisplayID(99)
-        #expect(found?.name == "Findable")
+        let found = try service.findByDisplayID(99)
+        #expect(found.name == "Findable")
     }
 
-    @Test func findByDisplayIDReturnsNilForNonExistentID() throws {
+    @Test func findByDisplayIDThrowsForNonExistentID() throws {
         let (service, _) = try makeService()
 
-        let found = service.findByDisplayID(999)
-        #expect(found == nil)
+        #expect(throws: TaskService.Error.taskNotFound) {
+            try service.findByDisplayID(999)
+        }
     }
 }
