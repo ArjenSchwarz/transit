@@ -5,6 +5,7 @@
 //  Tests for drag-and-drop status mapping and completionDate handling.
 //
 
+import CloudKit
 import Foundation
 import SwiftData
 import SwiftUI
@@ -15,8 +16,8 @@ import Testing
 struct DragDropTests {
     @Test("Drag to Done/Abandoned column sets status to Done")
     func testDragToDoneAbandonedSetsDone() throws {
-        let context = makeTestContext()
-        let taskService = TaskService(modelContext: context)
+        let (context, allocator) = makeTestContext()
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let project = Project(name: "Test", description: "", gitRepo: nil, color: .red)
         context.insert(project)
 
@@ -30,8 +31,8 @@ struct DragDropTests {
 
     @Test("Drag to non-terminal column uses primaryStatus")
     func testDragToNonTerminalUsesPrimaryStatus() throws {
-        let context = makeTestContext()
-        let taskService = TaskService(modelContext: context)
+        let (context, allocator) = makeTestContext()
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let project = Project(name: "Test", description: "", gitRepo: nil, color: .red)
         context.insert(project)
 
@@ -45,8 +46,8 @@ struct DragDropTests {
 
     @Test("Backward drag is allowed")
     func testBackwardDragAllowed() throws {
-        let context = makeTestContext()
-        let taskService = TaskService(modelContext: context)
+        let (context, allocator) = makeTestContext()
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let project = Project(name: "Test", description: "", gitRepo: nil, color: .red)
         context.insert(project)
 
@@ -59,8 +60,8 @@ struct DragDropTests {
 
     @Test("Drag from Done clears completionDate")
     func testDragFromDoneClearsCompletionDate() throws {
-        let context = makeTestContext()
-        let taskService = TaskService(modelContext: context)
+        let (context, allocator) = makeTestContext()
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let project = Project(name: "Test", description: "", gitRepo: nil, color: .red)
         context.insert(project)
 
@@ -75,8 +76,8 @@ struct DragDropTests {
 
     @Test("Drag from Abandoned clears completionDate")
     func testDragFromAbandonedClearsCompletionDate() throws {
-        let context = makeTestContext()
-        let taskService = TaskService(modelContext: context)
+        let (context, allocator) = makeTestContext()
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let project = Project(name: "Test", description: "", gitRepo: nil, color: .red)
         context.insert(project)
 
@@ -100,12 +101,14 @@ struct DragDropTests {
 
     // MARK: - Test Helpers
 
-    private func makeTestContext() -> ModelContext {
+    private func makeTestContext() -> (ModelContext, DisplayIDAllocator) {
         let schema = Schema([Project.self, TransitTask.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         // swiftlint:disable:next force_try
         let container = try! ModelContainer(for: schema, configurations: config)
-        return ModelContext(container)
+        let context = ModelContext(container)
+        let allocator = DisplayIDAllocator(container: CKContainer(identifier: "iCloud.test"))
+        return (context, allocator)
     }
 
     private func makeTestTask(

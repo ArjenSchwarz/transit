@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- App Intents foundation: IntentError enum with JSON encoding for structured error responses (TASK_NOT_FOUND, PROJECT_NOT_FOUND, AMBIGUOUS_PROJECT, INVALID_STATUS, INVALID_TYPE, INVALID_INPUT)
+- CreateTaskIntent for CLI/Shortcuts task creation with JSON input parsing, project resolution (by UUID or name), type validation, and task creation in Idea status
+- TransitServices singleton for sharing TaskService and ProjectService instances with App Intents
+- ProjectService.findProjectForIntent method for intent-specific project lookup with Result<Project, IntentError> return type
+- IntentError comprehensive test suite covering all error codes, JSON structure validation, and special character escaping
 - App integration: TransitApp entry point with CloudKit-enabled ModelContainer, service instantiation and environment injection, connectivity monitoring with NWPathMonitor, provisional task promotion triggers (app launch, foreground, connectivity restore)
 - Settings UI: SettingsView with Projects section (color swatch, name, active task count, add button) and General section (About, iCloud Sync toggle), ProjectEditView for creating and editing projects with color picker
 - Task management UI: AddTaskSheet for creating tasks with validation, TaskDetailView for viewing task details with Abandon/Restore actions, TaskEditView for editing all task fields including status and metadata

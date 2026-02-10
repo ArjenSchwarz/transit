@@ -43,10 +43,10 @@ struct TransitApp: App {
             self.projectService = projectSvc
             self.displayIDAllocator = allocator
 
-            // TODO: Register services for App Intents @Dependency resolution
-            // This will be implemented in the App Intents phase
-            // AppDependencyManager.shared.add(dependency: taskSvc)
-            // AppDependencyManager.shared.add(dependency: projectSvc)
+            // Register services for App Intents access
+            Task { @MainActor in
+                TransitServices.shared.services = (taskService: taskSvc, projectService: projectSvc)
+            }
         } catch {
             fatalError("Failed to initialize ModelContainer: \(error)")
         }

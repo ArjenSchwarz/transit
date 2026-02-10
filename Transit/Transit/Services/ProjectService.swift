@@ -54,6 +54,34 @@ final class ProjectService {
         }
     }
 
+    /// Find project by UUID or name for intent lookups.
+    /// Name matching is case-insensitive with leading/trailing whitespace trimmed.
+    /// If multiple projects match the name, returns AMBIGUOUS_PROJECT.
+    func findProjectForIntent(id: UUID?, name: String?) throws -> Result<Project, IntentError> {
+        if let id {
+            // UUID lookup — exact match
+            let predicate = #Predicate<Project> { $0.id == id }
+            let descriptor = FetchDescriptor(predicate: predicate)
+            guard let project = try modelContext.fetch(descriptor).first else {
+                return .failure(.projectNotFound(hint: "No project with id \(id.uuidString)"))
+            }
+            return .success(project)
+        } else if let name {
+            let trimmed = name.trimmingCharacters(in: .whitespaces)
+            // Fetch all projects and filter in-memory for case-insensitive match
+            let all = try modelContext.fetch(FetchDescriptor<Project>())
+            let matches = all.filter { $0.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame }
+            switch matches.count {
+            case 0: return .failure(.projectNotFound(hint: "No project named '\(trimmed)'"))
+            case 1: return .success(matches[0])
+            default: return .failure(.ambiguousProject(
+                hint: "\(matches.count) projects match '\(trimmed)'. Use projectId instead."
+            ))
+            }
+        }
+        return .failure(.invalidInput(hint: "Provide either projectId or project name"))
+    }
+
     /// Count of non-terminal tasks for a project.
     func activeTaskCount(for project: Project) -> Int {
         (project.tasks ?? []).filter { !$0.status.isTerminal }.count
