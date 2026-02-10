@@ -113,13 +113,16 @@ struct TransitTests {
 }
 
 @MainActor
-private func makeIntegrationFixture() throws -> (
-    context: ModelContext,
-    alpha: Project,
-    beta: Project,
-    taskService: TaskService,
-    projectService: ProjectService
-) {
+private struct IntegrationFixture {
+    let context: ModelContext
+    let alpha: Project
+    let beta: Project
+    let taskService: TaskService
+    let projectService: ProjectService
+}
+
+@MainActor
+private func makeIntegrationFixture() throws -> IntegrationFixture {
     let container = try makeInMemoryModelContainer()
     let context = ModelContext(container)
     let projectService = ProjectService(modelContext: context)
@@ -129,7 +132,13 @@ private func makeIntegrationFixture() throws -> (
         modelContext: context,
         displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore(initialNextDisplayID: 1))
     )
-    return (context, alpha, beta, taskService, projectService)
+    return IntegrationFixture(
+        context: context,
+        alpha: alpha,
+        beta: beta,
+        taskService: taskService,
+        projectService: projectService
+    )
 }
 
 private func taskID(from json: String) throws -> String {

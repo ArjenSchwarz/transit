@@ -46,6 +46,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Added root SwiftLint configuration to lint only source/tests and exclude generated `DerivedData` artifacts from strict pre-push checks
+- Refactored `TransitAppRuntime` UI-test board seeding into reusable seed helpers while preserving deterministic fixture values
+- Replaced `TransitTests` integration fixture tuple return value with a dedicated `IntegrationFixture` type to satisfy lint tuple-size limits
 - `TransitAppRuntime` now recognizes UI-test launch scenarios and provisions in-memory model containers plus seeded board fixtures for stable UI automation runs
 - Dashboard/add/settings/detail views now expose targeted accessibility identifiers used by UI tests for deterministic interaction and assertions
 - `TaskService` now exposes its `ModelContext` to enable intent query predicates to execute through the existing service dependency path

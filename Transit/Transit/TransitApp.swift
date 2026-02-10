@@ -180,15 +180,14 @@ final class TransitAppRuntime: ObservableObject {
 
     private func seedBoardScenario() {
         let now = Date()
-
-        let alpha = Project(
-            id: UUID(uuidString: "11111111-1111-1111-1111-111111111111") ?? UUID(),
+        let alpha = makeUITestProject(
+            id: "11111111-1111-1111-1111-111111111111",
             name: "Alpha",
             description: "Primary",
             colorHex: "#0A84FF"
         )
-        let beta = Project(
-            id: UUID(uuidString: "22222222-2222-2222-2222-222222222222") ?? UUID(),
+        let beta = makeUITestProject(
+            id: "22222222-2222-2222-2222-222222222222",
             name: "Beta",
             description: "Secondary",
             colorHex: "#30D158"
@@ -197,59 +196,10 @@ final class TransitAppRuntime: ObservableObject {
         modelContext.insert(alpha)
         modelContext.insert(beta)
 
-        let activeTask = TransitTask(
-            id: UUID(uuidString: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") ?? UUID(),
-            permanentDisplayId: 1,
-            name: "Ship Active",
-            description: "In progress task",
-            status: .inProgress,
-            type: .feature,
-            creationDate: now.addingTimeInterval(-120),
-            lastStatusChangeDate: now.addingTimeInterval(-60),
-            project: alpha
-        )
-
-        let ideaTask = TransitTask(
-            id: UUID(uuidString: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb") ?? UUID(),
-            permanentDisplayId: 2,
-            name: "Backlog Idea",
-            description: "Idea task",
-            status: .idea,
-            type: .research,
-            creationDate: now.addingTimeInterval(-600),
-            lastStatusChangeDate: now.addingTimeInterval(-500),
-            project: alpha
-        )
-
-        let abandonedTask = TransitTask(
-            id: UUID(uuidString: "cccccccc-cccc-cccc-cccc-cccccccccccc") ?? UUID(),
-            permanentDisplayId: 3,
-            name: "Old Abandoned",
-            description: "Abandoned task",
-            status: .abandoned,
-            type: .chore,
-            creationDate: now.addingTimeInterval(-400),
-            lastStatusChangeDate: now.addingTimeInterval(-300),
-            completionDate: now.addingTimeInterval(-300),
-            project: alpha
-        )
-
-        let betaTask = TransitTask(
-            id: UUID(uuidString: "dddddddd-dddd-dddd-dddd-dddddddddddd") ?? UUID(),
-            permanentDisplayId: 4,
-            name: "Beta Review",
-            description: "Ready for review",
-            status: .readyForReview,
-            type: .bug,
-            creationDate: now.addingTimeInterval(-240),
-            lastStatusChangeDate: now.addingTimeInterval(-200),
-            project: beta
-        )
-
-        modelContext.insert(activeTask)
-        modelContext.insert(ideaTask)
-        modelContext.insert(abandonedTask)
-        modelContext.insert(betaTask)
+        let taskSeeds = makeBoardUITestTaskSeeds(alpha: alpha, beta: beta)
+        taskSeeds
+            .map { makeUITestTask(from: $0, now: now) }
+            .forEach(modelContext.insert)
 
         try? modelContext.save()
     }
@@ -300,6 +250,96 @@ final class TransitAppRuntime: ObservableObject {
         try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory.appendingPathComponent("Transit.store")
     }
+}
+
+private struct UITestTaskSeed {
+    let id: String
+    let displayID: Int
+    let name: String
+    let description: String
+    let status: TaskStatus
+    let type: TaskType
+    let creationOffset: TimeInterval
+    let statusChangeOffset: TimeInterval
+    let completionOffset: TimeInterval?
+    let project: Project
+}
+
+private func makeUITestProject(id: String, name: String, description: String, colorHex: String) -> Project {
+    Project(
+        id: UUID(uuidString: id) ?? UUID(),
+        name: name,
+        description: description,
+        colorHex: colorHex
+    )
+}
+
+private func makeUITestTask(from seed: UITestTaskSeed, now: Date) -> TransitTask {
+    TransitTask(
+        id: UUID(uuidString: seed.id) ?? UUID(),
+        permanentDisplayId: seed.displayID,
+        name: seed.name,
+        description: seed.description,
+        status: seed.status,
+        type: seed.type,
+        creationDate: now.addingTimeInterval(seed.creationOffset),
+        lastStatusChangeDate: now.addingTimeInterval(seed.statusChangeOffset),
+        completionDate: seed.completionOffset.map { now.addingTimeInterval($0) },
+        project: seed.project
+    )
+}
+
+private func makeBoardUITestTaskSeeds(alpha: Project, beta: Project) -> [UITestTaskSeed] {
+    [
+        UITestTaskSeed(
+            id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            displayID: 1,
+            name: "Ship Active",
+            description: "In progress task",
+            status: .inProgress,
+            type: .feature,
+            creationOffset: -120,
+            statusChangeOffset: -60,
+            completionOffset: nil,
+            project: alpha
+        ),
+        UITestTaskSeed(
+            id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            displayID: 2,
+            name: "Backlog Idea",
+            description: "Idea task",
+            status: .idea,
+            type: .research,
+            creationOffset: -600,
+            statusChangeOffset: -500,
+            completionOffset: nil,
+            project: alpha
+        ),
+        UITestTaskSeed(
+            id: "cccccccc-cccc-cccc-cccc-cccccccccccc",
+            displayID: 3,
+            name: "Old Abandoned",
+            description: "Abandoned task",
+            status: .abandoned,
+            type: .chore,
+            creationOffset: -400,
+            statusChangeOffset: -300,
+            completionOffset: -300,
+            project: alpha
+        ),
+        UITestTaskSeed(
+            id: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+            displayID: 4,
+            name: "Beta Review",
+            description: "Ready for review",
+            status: .readyForReview,
+            type: .bug,
+            creationOffset: -240,
+            statusChangeOffset: -200,
+            completionOffset: nil,
+            project: beta
+        )
+    ]
 }
 
 private enum UITestScenario: String {
