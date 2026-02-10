@@ -22,9 +22,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Xcode project with multiplatform SwiftUI target (iOS 26, macOS 26), CloudKit entitlements, and background modes
 - Makefile with build, test, lint, device deployment, and clean targets
 - Testing strategy in CLAUDE.md (test-quick during development, full suite before pushing)
+- Core data model primitives for Transit domain state: `TaskStatus`, `DashboardColumn`, `TaskType`, and `DisplayID`
+- SwiftData model definitions for `Project` and `TransitTask` with CloudKit-compatible storage fields and optional relationships
+- `Color` hex serialization helpers and `Date` helper for 48-hour window checks used by dashboard terminal-task filtering
+- Unit test coverage for status/column behavior and display ID formatting
 
 ### Changed
 
 - Replaced template SwiftData sample app code with Transit-specific startup flow and minimal smoke tests for unit and UI targets
 - Restricted all targets to iOS/iPadOS/macOS supported platforms (removed visionOS/xr platform settings) to align with V1 scope
 - Swift language version set to 6.0 across all targets for strict concurrency checking
+- Updated model helper implementations to work with Swift 6 default main-actor isolation while keeping enum/value helpers callable from nonisolated test and domain contexts
