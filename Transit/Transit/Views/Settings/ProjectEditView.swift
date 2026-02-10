@@ -40,12 +40,15 @@ struct ProjectEditView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .navigationBarBackButtonHidden(isEditing)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.left")
+                }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") { save() }
+                Button("Save", systemImage: "checkmark") { save() }
                     .disabled(!canSave)
             }
         }

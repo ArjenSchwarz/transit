@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Toolbar buttons in AddTaskSheet, TaskEditView, ProjectEditView, and TaskDetailView now use iOS 26 Liquid Glass styling: chevron.left icon for cancel/dismiss, checkmark icon with automatic `.glassProminent` for save/confirm actions
+- ProjectEditView hides the system back button when editing (pushed navigation) to avoid duplicate chevrons
+- TaskEditView status picker now shows human-readable display names instead of slugified raw values (e.g. "Ready for Implementation" instead of "ready-for-implementation")
+
+### Added
+
+- `TaskStatus.displayName` computed property with human-readable names for all statuses
+
 ### Fixed
 
 - Saving a task edit now dismisses both the edit and detail sheets simultaneously, returning directly to the dashboard instead of briefly showing the detail view
