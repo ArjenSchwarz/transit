@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TaskDetailView: View {
     let task: TransitTask
+    var dismissAll: () -> Void
     @Environment(TaskService.self) private var taskService
     @Environment(\.dismiss) private var dismiss
     @State private var showEdit = false
@@ -27,7 +28,7 @@ struct TaskDetailView: View {
                 }
             }
             .sheet(isPresented: $showEdit) {
-                TaskEditView(task: task)
+                TaskEditView(task: task, dismissAll: dismissAll)
             }
         }
         .presentationDetents([.medium, .large])

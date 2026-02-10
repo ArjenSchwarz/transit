@@ -68,7 +68,7 @@ struct DashboardView: View {
             }
         }
         .sheet(item: $selectedTask) { task in
-            TaskDetailView(task: task)
+            TaskDetailView(task: task, dismissAll: { selectedTask = nil })
         }
         .sheet(isPresented: $showAddTask) {
             AddTaskSheet()

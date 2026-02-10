@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Saving a task edit now dismisses both the edit and detail sheets simultaneously, returning directly to the dashboard instead of briefly showing the detail view
 - Drag-and-drop on iPhone now works for all columns (was only accepting drops on Planning and Done)
 - `ColumnView` missing `.contentShape(.rect)` caused drop targets to not cover full column frame when containing Spacers or ScrollViews
 - `KanbanBoardView` scroll behaviour changed from `.paging` to `.viewAligned` with `.scrollTargetLayout()` for column-by-column auto-scroll during drag operations
