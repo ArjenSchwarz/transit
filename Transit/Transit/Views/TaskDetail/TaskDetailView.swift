@@ -66,13 +66,13 @@ struct TaskDetailView: View {
         Section {
             if task.status == .abandoned {
                 Button("Restore to Idea") {
-                    taskService.restore(task: task)
+                    try? taskService.restore(task: task)
                     dismiss()
                 }
             } else {
                 // Abandon from any status including Done [req 4.5]
                 Button("Abandon", role: .destructive) {
-                    taskService.abandon(task: task)
+                    try? taskService.abandon(task: task)
                     dismiss()
                 }
             }

@@ -1,4 +1,3 @@
-import CloudKit
 import Foundation
 import SwiftData
 import Testing
@@ -11,7 +10,8 @@ struct UpdateStatusIntentTests {
 
     private func makeService() throws -> (TaskService, ModelContext) {
         let context = try TestModelContainer.newContext()
-        let allocator = DisplayIDAllocator(container: CKContainer.default())
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
         let service = TaskService(modelContext: context, displayIDAllocator: allocator)
         return (service, context)
     }

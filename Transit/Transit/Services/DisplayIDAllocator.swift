@@ -7,26 +7,36 @@ import SwiftData
 @Observable
 final class DisplayIDAllocator: @unchecked Sendable {
 
-    private let container: CKContainer
-    private let database: CKDatabase
-
-    private static let counterRecordType = "DisplayIDCounter"
-    private static let counterRecordID = "global-counter"
-    private static let nextDisplayIdKey = "nextDisplayId"
-    private static let zoneName = "com.apple.coredata.cloudkit.zone"
-    private static let maxRetries = 5
-
-    private var zoneID: CKRecordZone.ID {
-        CKRecordZone.ID(zoneName: Self.zoneName, ownerName: CKCurrentUserDefaultName)
+    /// Snapshot of the counter state used for optimistic locking.
+    struct CounterSnapshot {
+        let nextDisplayID: Int
+        let changeTag: String?
     }
 
-    private var recordID: CKRecord.ID {
-        CKRecord.ID(recordName: Self.counterRecordID, zoneID: zoneID)
+    enum Error: Swift.Error, Equatable {
+        case conflict
+        case retriesExhausted
     }
 
-    init(container: CKContainer) {
-        self.container = container
-        self.database = container.privateCloudDatabase
+    /// Abstracts the counter persistence so tests can inject an in-memory store.
+    protocol CounterStore {
+        func loadCounter() async throws -> CounterSnapshot
+        func saveCounter(nextDisplayID: Int, expectedChangeTag: String?) async throws
+    }
+
+    private let store: CounterStore
+    private let retryLimit: Int
+
+    init(store: CounterStore, retryLimit: Int = 5) {
+        self.store = store
+        self.retryLimit = max(1, retryLimit)
+    }
+
+    convenience init(container: CKContainer = .default(), retryLimit: Int = 5) {
+        self.init(
+            store: CloudKitCounterStore(database: container.privateCloudDatabase),
+            retryLimit: retryLimit
+        )
     }
 
     // MARK: - Public API
@@ -36,24 +46,28 @@ final class DisplayIDAllocator: @unchecked Sendable {
         .provisional
     }
 
-    /// Allocates the next sequential display ID from CloudKit. Retries on
-    /// conflict up to `maxRetries` times.
-    ///
-    /// - Throws: `CKError` if allocation fails after all retries.
-    /// - Returns: The allocated integer ID.
+    /// Allocates the next sequential display ID. Retries on conflict up to
+    /// `retryLimit` times.
     func allocateNextID() async throws -> Int {
-        for attempt in 0..<Self.maxRetries {
+        var attempt = 0
+        while attempt < retryLimit {
+            attempt += 1
+
+            let snapshot = try await store.loadCounter()
+            let allocatedID = snapshot.nextDisplayID
+
             do {
-                return try await attemptAllocation()
-            } catch let error as CKError where error.code == .serverRecordChanged {
-                if attempt == Self.maxRetries - 1 {
-                    throw error
-                }
-                // Retry — the next attempt will fetch the latest server record.
+                try await store.saveCounter(
+                    nextDisplayID: allocatedID + 1,
+                    expectedChangeTag: snapshot.changeTag
+                )
+                return allocatedID
+            } catch let error as Error where error == .conflict {
+                continue
             }
         }
-        // Unreachable, but satisfies the compiler.
-        throw CKError(.internalError)
+
+        throw Error.retriesExhausted
     }
 
     /// Finds tasks with provisional display IDs (permanentDisplayId == nil),
@@ -72,42 +86,76 @@ final class DisplayIDAllocator: @unchecked Sendable {
             do {
                 let newID = try await allocateNextID()
                 task.permanentDisplayId = newID
+                try context.save()
             } catch {
                 // Stop promoting on first failure — remaining tasks keep provisional IDs.
                 break
             }
         }
     }
+}
 
-    // MARK: - Private
+// MARK: - CloudKit Implementation
 
-    private func attemptAllocation() async throws -> Int {
-        let existingRecord: CKRecord?
+private final class CloudKitCounterStore: DisplayIDAllocator.CounterStore {
+    private static let counterRecordType = "DisplayIDCounter"
+    private static let counterField = "nextDisplayId"
+    private static let zoneID = CKRecordZone.ID(
+        zoneName: "com.apple.coredata.cloudkit.zone",
+        ownerName: CKCurrentUserDefaultName
+    )
+    private static let counterRecordID = CKRecord.ID(
+        recordName: "global-counter",
+        zoneID: zoneID
+    )
 
+    private let database: CKDatabase
+
+    init(database: CKDatabase) {
+        self.database = database
+    }
+
+    func loadCounter() async throws -> DisplayIDAllocator.CounterSnapshot {
         do {
-            existingRecord = try await database.record(for: recordID)
+            let record = try await database.record(for: Self.counterRecordID)
+            let nextID = Self.extractNextDisplayID(from: record)
+            return DisplayIDAllocator.CounterSnapshot(
+                nextDisplayID: nextID,
+                changeTag: record.recordChangeTag
+            )
         } catch let error as CKError where error.code == .unknownItem {
-            existingRecord = nil
-        }
-
-        if let record = existingRecord {
-            let currentNext = record[Self.nextDisplayIdKey] as? Int ?? 1
-            record[Self.nextDisplayIdKey] = currentNext + 1
-            try await saveWithOptimisticLocking(record)
-            return currentNext
-        } else {
-            // First allocation: create the counter, return 1.
-            let record = CKRecord(recordType: Self.counterRecordType, recordID: recordID)
-            record[Self.nextDisplayIdKey] = 2
-            try await database.save(record)
-            return 1
+            return DisplayIDAllocator.CounterSnapshot(nextDisplayID: 1, changeTag: nil)
         }
     }
 
-    private func saveWithOptimisticLocking(_ record: CKRecord) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let operation = CKModifyRecordsOperation(recordsToSave: [record])
+    func saveCounter(nextDisplayID: Int, expectedChangeTag: String?) async throws {
+        let record: CKRecord
+        if let expectedChangeTag {
+            let fetchedRecord = try await database.record(for: Self.counterRecordID)
+            guard fetchedRecord.recordChangeTag == expectedChangeTag else {
+                throw DisplayIDAllocator.Error.conflict
+            }
+            record = fetchedRecord
+        } else {
+            record = CKRecord(recordType: Self.counterRecordType, recordID: Self.counterRecordID)
+        }
+        record[Self.counterField] = NSNumber(value: nextDisplayID)
+
+        do {
+            try await modify(recordsToSave: [record])
+        } catch let error as CKError where error.code == .serverRecordChanged {
+            throw DisplayIDAllocator.Error.conflict
+        }
+    }
+
+    private func modify(recordsToSave: [CKRecord]) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Swift.Error>) in
+            let operation = CKModifyRecordsOperation(
+                recordsToSave: recordsToSave,
+                recordIDsToDelete: nil
+            )
             operation.savePolicy = .ifServerRecordUnchanged
+            operation.isAtomic = true
             operation.modifyRecordsResultBlock = { result in
                 switch result {
                 case .success:
@@ -118,5 +166,15 @@ final class DisplayIDAllocator: @unchecked Sendable {
             }
             database.add(operation)
         }
+    }
+
+    private static func extractNextDisplayID(from record: CKRecord) -> Int {
+        if let number = record[counterField] as? NSNumber {
+            return max(1, number.intValue)
+        }
+        if let value = record[counterField] as? Int {
+            return max(1, value)
+        }
+        return 1
     }
 }

@@ -6,6 +6,13 @@ import SwiftData
 @MainActor @Observable
 final class TaskService {
 
+    enum Error: Swift.Error, Equatable {
+        case invalidName
+        case taskNotFound
+        case duplicateDisplayID
+        case restoreRequiresAbandonedTask
+    }
+
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
 
@@ -26,6 +33,11 @@ final class TaskService {
         project: Project,
         metadata: [String: String]? = nil
     ) async throws -> TransitTask {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            throw Error.invalidName
+        }
+
         let displayID: DisplayID
         do {
             let id = try await displayIDAllocator.allocateNextID()
@@ -35,7 +47,7 @@ final class TaskService {
         }
 
         let task = TransitTask(
-            name: name,
+            name: trimmedName,
             description: description,
             type: type,
             project: project,
@@ -45,33 +57,48 @@ final class TaskService {
         StatusEngine.initializeNewTask(task)
 
         modelContext.insert(task)
+        try modelContext.save()
         return task
     }
 
     // MARK: - Status Changes
 
     /// Transitions a task to a new status via StatusEngine.
-    func updateStatus(task: TransitTask, to newStatus: TaskStatus) {
+    func updateStatus(task: TransitTask, to newStatus: TaskStatus) throws {
         StatusEngine.applyTransition(task: task, to: newStatus)
+        try modelContext.save()
     }
 
     /// Moves a task to `.abandoned` status.
-    func abandon(task: TransitTask) {
+    func abandon(task: TransitTask) throws {
         StatusEngine.applyTransition(task: task, to: .abandoned)
+        try modelContext.save()
     }
 
-    /// Restores an abandoned or done task back to `.idea` status.
-    func restore(task: TransitTask) {
+    /// Restores an abandoned task back to `.idea` status.
+    func restore(task: TransitTask) throws {
+        guard task.status == .abandoned else {
+            throw Error.restoreRequiresAbandonedTask
+        }
         StatusEngine.applyTransition(task: task, to: .idea)
+        try modelContext.save()
     }
 
     // MARK: - Lookup
 
-    /// Finds a task by its permanent display ID.
-    func findByDisplayID(_ displayId: Int) -> TransitTask? {
+    /// Finds a task by its permanent display ID. Throws on not-found or duplicates.
+    func findByDisplayID(_ displayId: Int) throws -> TransitTask {
         let descriptor = FetchDescriptor<TransitTask>(
             predicate: #Predicate { $0.permanentDisplayId == displayId }
         )
-        return try? modelContext.fetch(descriptor).first
+        let tasks = try modelContext.fetch(descriptor)
+
+        guard let first = tasks.first else {
+            throw Error.taskNotFound
+        }
+        guard tasks.count == 1 else {
+            throw Error.duplicateDisplayID
+        }
+        return first
     }
 }
