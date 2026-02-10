@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Newly created projects now appear immediately in the settings list and project picker instead of waiting 10-30 seconds for SwiftData's background auto-save
+
 ### Changed
 
 - Settings button moved from overflow menu (`.secondaryAction`) to always-visible toolbar placement (`.primaryAction`) with `ToolbarSpacer` separating it from filter/add buttons into its own Liquid Glass pill on macOS/iPad

@@ -27,6 +27,7 @@ final class ProjectService {
     func createProject(name: String, description: String, gitRepo: String?, colorHex: String) -> Project {
         let project = Project(name: name, description: description, gitRepo: gitRepo, colorHex: colorHex)
         context.insert(project)
+        try? context.save()
         return project
     }
 
