@@ -201,7 +201,7 @@ references:
 
 ## App Integration
 
-- [ ] 37. Implement TransitApp entry point (ModelContainer with CloudKit, service instantiation, environment injection, AppDependencyManager registration) <!-- id:gn0obgn -->
+- [x] 37. Implement TransitApp entry point (ModelContainer with CloudKit, service instantiation, environment injection, AppDependencyManager registration) <!-- id:gn0obgn -->
   - Blocked-by: gn0obg1 (Implement TaskService (createTask, updateStatus, abandon, restore, findByDisplayID)), abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, abandon, restore, gn0obg3 (Implement ProjectService (createProject, findProject with case-insensitive matching, activeTaskCount)), gn0obfz (Implement DisplayIDAllocator with CloudKit counter, optimistic locking, provisional IDs, and per-task promotion)
   - Stream: 1
   - Requirements: [15.1](requirements.md#15.1), [15.2](requirements.md#15.2)
@@ -216,7 +216,7 @@ references:
   - Stream: 1
   - Requirements: [3.5](requirements.md#3.5), [15.5](requirements.md#15.5)
 
-- [ ] 40. Implement CloudKit sync toggle (cloudKitContainerOptions nil/restore, persistent history delta sync on re-enable) <!-- id:gn0obgq -->
+- [x] 40. Implement CloudKit sync toggle (cloudKitContainerOptions nil/restore, persistent history delta sync on re-enable) <!-- id:gn0obgq -->
   - Blocked-by: gn0obgn (Implement TransitApp entry point (ModelContainer with CloudKit, service instantiation, environment injection, AppDependencyManager registration)), service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service, service
   - Stream: 1
   - Requirements: [12.7](requirements.md#12.7), [12.9](requirements.md#12.9), [15.4](requirements.md#15.4)

@@ -51,6 +51,7 @@ final class TransitAppRuntime: ObservableObject {
     @Published private(set) var containerGeneration = UUID()
 
     private let schema = Schema([Project.self, TransitTask.self])
+    private let storeURL = TransitAppRuntime.persistentStoreURL()
     private let monitorQueue = DispatchQueue(label: "me.nore.ig.Transit.network-monitor")
     private var cloudSyncEnabled: Bool
     private var modelContext: ModelContext
@@ -62,7 +63,11 @@ final class TransitAppRuntime: ObservableObject {
     init(initialSyncEnabled: Bool) {
         cloudSyncEnabled = initialSyncEnabled
 
-        let container = Self.makeModelContainer(schema: schema, syncEnabled: initialSyncEnabled)
+        let container = Self.makeModelContainer(
+            schema: schema,
+            syncEnabled: initialSyncEnabled,
+            storeURL: storeURL
+        )
         modelContainer = container
 
         let context = ModelContext(container)
@@ -117,7 +122,14 @@ final class TransitAppRuntime: ObservableObject {
         guard cloudSyncEnabled != isEnabled else { return }
         cloudSyncEnabled = isEnabled
 
-        let container = Self.makeModelContainer(schema: schema, syncEnabled: isEnabled)
+        // SwiftData does not expose runtime mutation of cloudKitContainerOptions.
+        // Re-opening the same store with CloudKit enabled/disabled is the equivalent
+        // nil/restore behavior and preserves persistent history for delta sync.
+        let container = Self.makeModelContainer(
+            schema: schema,
+            syncEnabled: isEnabled,
+            storeURL: storeURL
+        )
         let context = ModelContext(container)
         let allocator = DisplayIDAllocator()
         let task = TaskService(modelContext: context, displayIDAllocator: allocator)
@@ -148,7 +160,11 @@ final class TransitAppRuntime: ObservableObject {
 #endif
     }
 
-    private static func makeModelContainer(schema: Schema, syncEnabled: Bool) -> ModelContainer {
+    private static func makeModelContainer(
+        schema: Schema,
+        syncEnabled: Bool,
+        storeURL: URL
+    ) -> ModelContainer {
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
             guard let container = try? ModelContainer(for: schema, configurations: [configuration]) else {
@@ -159,6 +175,7 @@ final class TransitAppRuntime: ObservableObject {
 
         if syncEnabled {
             let cloudKitConfiguration = ModelConfiguration(
+                url: storeURL,
                 cloudKitDatabase: .private("iCloud.me.nore.ig.Transit")
             )
 
@@ -167,10 +184,23 @@ final class TransitAppRuntime: ObservableObject {
             }
         }
 
-        let localConfiguration = ModelConfiguration()
+        let localConfiguration = ModelConfiguration(url: storeURL)
         guard let container = try? ModelContainer(for: schema, configurations: [localConfiguration]) else {
             fatalError("Failed to initialize model container")
         }
         return container
+    }
+
+    static func persistentStoreURL(fileManager: FileManager = .default) -> URL {
+        let appSupport = (try? fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )) ?? fileManager.temporaryDirectory
+
+        let directory = appSupport.appendingPathComponent("Transit", isDirectory: true)
+        try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent("Transit.store")
     }
 }
