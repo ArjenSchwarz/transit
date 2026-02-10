@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Settings experience with a new `SettingsView` that provides grouped `Projects` and `General` sections, including project rows with color initial swatches and active task counts, an add-project entry point, app version display, and iCloud sync toggle state
+- New `ProjectEditView` for creating and editing projects with validated name/description fields, optional git repository URL input, and color picker selection
 - `AddTaskSheet` with project picker, task name/description/type inputs, required-name validation, and platform-adaptive sheet behavior for iPhone versus iPad/macOS
 - `TaskDetailView` with read-only rendering of display ID, type badge, status, project, description, metadata, lifecycle dates, plus Abandon/Restore actions and in-place edit entry
 - `TaskEditView` with editable name, description, type, project assignment, status picker, and metadata key-value editing wired to status-transition side effects
@@ -39,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Extended the app view structure with a dedicated `Views/Settings` module and wired settings/project edit flows to existing `ProjectService` and SwiftData persistence patterns
 - Dashboard interaction flow now opens task details from card taps, presents Add Task from the toolbar with no-project guidance, and uses adaptive modal presentation for add/detail sheets
 - App bootstrap now initializes and injects shared SwiftData container-backed `TaskService` and `ProjectService` dependencies for runtime view actions
 - Replaced placeholder dashboard root content with adaptive layout switching, per-column/global empty states, and toolbar filter controls wired to dashboard filtering logic
