@@ -8,7 +8,7 @@ references:
 
 ## Pre-work
 
-- [ ] 1. Initialize Xcode project structure and test targets <!-- id:gn0obfn -->
+- [x] 1. Initialize Xcode project structure and test targets <!-- id:gn0obfn -->
   - Stream: 1
   - Requirements: [14.1](requirements.md#14.1)
 
