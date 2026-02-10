@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- End-to-end testing: UI tests for navigation flows (settings, add task, filter), sheet presentation, empty states, and visual states
+- Integration tests verifying cross-layer functionality: intent-created tasks visible in queries, status updates reflected across layers, filter queries return correct results, display ID counter increments, and completionDate updates on status transitions
 - UpdateStatusIntent for CLI/Shortcuts status updates with JSON input parsing, displayId lookup, status validation, and transition via TaskService
 - QueryTasksIntent for CLI/Shortcuts task queries with optional filters (status, projectId, type), SwiftData predicate building, and JSON array response
 - TaskService.queryTasks method for filtered task queries from intents
