@@ -3,6 +3,7 @@ import SwiftUI
 
 struct TaskEditView: View {
     let task: TransitTask
+    var dismissAll: () -> Void
     @Environment(TaskService.self) private var taskService
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -117,6 +118,6 @@ struct TaskEditView: View {
             try? modelContext.save()
         }
 
-        dismiss()
+        dismissAll()
     }
 }
