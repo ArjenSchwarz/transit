@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Add explicit `modelContext.save()` in `TaskEditView` and `ProjectEditView` after direct property mutations to prevent data loss on app termination before SwiftData auto-save
 - TaskDetailView now shows Abandon button for Done tasks (was hidden because `isTerminal` excluded both Done and Abandoned; spec [req 4.5] requires abandon from any status including Done)
 
 ### Added
