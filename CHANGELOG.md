@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Domain service implementations for `StatusEngine`, `DisplayIDAllocator`, `TaskService`, and `ProjectService` covering task lifecycle transitions, display ID allocation/retry, project lookup, and active task counting
+- New unit test coverage for domain services with in-memory SwiftData test support, including property-based status transition invariants and allocator conflict/promotion scenarios
 - Dashboard scaffolding entry point with a dedicated `DashboardView` under the new `Views/Dashboard` structure to establish the base app module layout
 - Design document (v0.3 draft) covering data model, UI specs, App Intents schemas, platform layouts, and decision log
 - Interactive React-based UI mockup for layout and interaction reference
@@ -29,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Updated `Color.hexString` conversion to match the current SDK `getRed` API behavior during platform color extraction
 - Replaced template SwiftData sample app code with Transit-specific startup flow and minimal smoke tests for unit and UI targets
 - Restricted all targets to iOS/iPadOS/macOS supported platforms (removed visionOS/xr platform settings) to align with V1 scope
 - Swift language version set to 6.0 across all targets for strict concurrency checking

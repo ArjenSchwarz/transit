@@ -39,9 +39,7 @@ extension Color {
         var blue: CGFloat = 0
         var alpha: CGFloat = 0
 
-        guard converted.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
-            return "000000"
-        }
+        converted.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
 
         let redInt = Int((red * 255.0).rounded())
         let greenInt = Int((green * 255.0).rounded())
