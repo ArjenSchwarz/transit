@@ -3,6 +3,7 @@ import SwiftUI
 struct ProjectEditView: View {
     let project: Project?
     @Environment(ProjectService.self) private var projectService
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
     @State private var name: String = ""
@@ -69,6 +70,7 @@ struct ProjectEditView: View {
             project.projectDescription = trimmedDesc
             project.gitRepo = trimmedRepo.isEmpty ? nil : trimmedRepo
             project.colorHex = color.hexString
+            try? modelContext.save()
         } else {
             projectService.createProject(
                 name: trimmedName,

@@ -4,6 +4,7 @@ import SwiftUI
 struct TaskEditView: View {
     let task: TransitTask
     @Environment(TaskService.self) private var taskService
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query private var projects: [Project]
 
@@ -109,9 +110,11 @@ struct TaskEditView: View {
             task.project = projects.first { $0.id == newProjectID }
         }
 
-        // Status change goes through TaskService for side effects
+        // Status change goes through TaskService for side effects (which saves internally)
         if selectedStatus != task.status {
             try? taskService.updateStatus(task: task, to: selectedStatus)
+        } else {
+            try? modelContext.save()
         }
 
         dismiss()
