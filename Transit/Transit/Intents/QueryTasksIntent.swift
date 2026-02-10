@@ -6,9 +6,24 @@ import SwiftData
 /// in Shortcuts. [req 18.1-18.5]
 struct QueryTasksIntent: AppIntent {
     nonisolated(unsafe) static var title: LocalizedStringResource = "Transit: Query Tasks"
+
+    nonisolated(unsafe) static var description = IntentDescription(
+        "Search and filter tasks. Pass an empty string or {} to return all tasks.",
+        categoryName: "Tasks",
+        resultValueName: "Tasks JSON"
+    )
+
     nonisolated(unsafe) static var openAppWhenRun: Bool = true
 
-    @Parameter(title: "Input")
+    @Parameter(
+        title: "Input JSON",
+        description: """
+        JSON object with optional filters: "status" (idea | planning | spec | ready-for-implementation | \
+        in-progress | ready-for-review | done | abandoned), "type" (bug | feature | chore | research | \
+        documentation), "projectId" (UUID). All filters are optional. \
+        Example: {"status": "in-progress"} or {} for all tasks.
+        """
+    )
     var input: String
 
     @Dependency
