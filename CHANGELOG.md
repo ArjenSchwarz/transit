@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Dashboard kanban UI implementation with new `TaskCardView`, `ColumnView`, `KanbanBoardView`, `SingleColumnView`, `FilterPopoverView`, and transferable `TaskDragPayload` components
+- Dashboard drag-and-drop support for status transitions between columns using UUID payload transfer and `TaskService` updates
+- Dashboard logic unit tests covering column filtering, terminal 48-hour cutoff behavior, sort precedence (handoff-first and done-before-abandoned), project filtering, and drop-to-status mapping rules
 - Reusable shared UI components under `Views/Shared`: `EmptyStateView`, `ProjectColorDot`, `TypeBadge`, and `MetadataSection` to support consistent empty-state messaging, project color indicators, task type badges, and metadata display/edit flows
 - Unit tests for shared component behavior covering task-type badge label/tint mapping and metadata draft normalization/materialization logic
 - Domain service implementations for `StatusEngine`, `DisplayIDAllocator`, `TaskService`, and `ProjectService` covering task lifecycle transitions, display ID allocation/retry, project lookup, and active task counting
@@ -33,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Replaced placeholder dashboard root content with adaptive layout switching, per-column/global empty states, and toolbar filter controls wired to dashboard filtering logic
 - Updated `Color.hexString` conversion to match the current SDK `getRed` API behavior during platform color extraction
 - Replaced template SwiftData sample app code with Transit-specific startup flow and minimal smoke tests for unit and UI targets
 - Restricted all targets to iOS/iPadOS/macOS supported platforms (removed visionOS/xr platform settings) to align with V1 scope
