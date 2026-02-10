@@ -3,45 +3,53 @@ import SwiftUI
 struct FilterPopoverView: View {
     let projects: [Project]
     @Binding var selectedProjectIDs: Set<UUID>
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(projects) { (project: Project) in
-                Button {
-                    if selectedProjectIDs.contains(project.id) {
-                        selectedProjectIDs.remove(project.id)
-                    } else {
-                        selectedProjectIDs.insert(project.id)
-                    }
-                } label: {
-                    HStack {
-                        ProjectColorDot(color: Color(hex: project.colorHex))
-                        Text(project.name)
-                            .foregroundStyle(.primary)
-                        Spacer()
+        NavigationStack {
+            List {
+                ForEach(projects) { (project: Project) in
+                    Button {
                         if selectedProjectIDs.contains(project.id) {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(.tint)
+                            selectedProjectIDs.remove(project.id)
+                        } else {
+                            selectedProjectIDs.insert(project.id)
                         }
+                    } label: {
+                        HStack {
+                            ProjectColorDot(color: Color(hex: project.colorHex))
+                            Text(project.name)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if selectedProjectIDs.contains(project.id) {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                        .contentShape(Rectangle())
                     }
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-            }
 
-            if !selectedProjectIDs.isEmpty {
-                Divider()
-                Button("Clear", role: .destructive) {
-                    selectedProjectIDs.removeAll()
+                if !selectedProjectIDs.isEmpty {
+                    Button("Clear", role: .destructive) {
+                        selectedProjectIDs.removeAll()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .navigationTitle("Filter")
+            .toolbarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done", systemImage: "checkmark") {
+                        dismiss()
+                    }
+                }
             }
         }
         .frame(minWidth: 200)
-        .padding(.vertical, 8)
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 }
