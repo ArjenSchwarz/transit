@@ -28,15 +28,22 @@
 - Empty state via `EmptyStateView` when no tasks
 - Done/Abandoned column: separator divider before first abandoned task
 - `onDrop: ((String) -> Bool)?` callback for drag-and-drop
+- `.contentShape(.rect)` required for reliable drop hit-testing (Spacers/ScrollViews don't cover full frame without it)
+- `isDropTargeted` state with tint background provides visual feedback during drag hover
 
 ### KanbanBoardView
-- Horizontal `ScrollView` with paging
+- Horizontal `ScrollView` with `.viewAligned` scroll target behavior
+- `.scrollTargetLayout()` on HStack for per-column snap alignment
 - Column width = available width / visible count
 - `initialScrollTarget` for iPhone landscape (scrolls to Planning)
+- Note: `.paging` was removed — it jumps full viewport width and breaks drag-and-drop auto-scroll
 
 ### SingleColumnView
-- Segmented control (`Picker(.segmented)`) with short labels and counts
+- Native segmented control (`Picker(.segmented)`) with short labels and counts
 - Default segment: `.inProgress` ("Active")
+- ZStack overlay on picker: invisible drop targets per segment enable cross-column drag-and-drop
+- Picker has `.allowsHitTesting(false)`; overlay handles both taps and drops
+- When drag hovers over a segment, `selectedColumn` switches to preview the target column
 
 ### FilterPopoverView
 - Lists all projects with color dot, name, checkmark
@@ -51,6 +58,13 @@ Implemented in `DashboardView.buildFilteredColumns()`:
 
 ## Drag-and-Drop
 - TaskCardView is `.draggable()` with UUID string
-- ColumnView has `.dropDestination(for: String.self)`
+- ColumnView has `.dropDestination(for: String.self)` with `.contentShape(.rect)` for full-frame hit testing
 - Drop resolves UUID → task → applies `column.primaryStatus` via TaskService
 - Done/Abandoned column always assigns `.done` (never `.abandoned` via drag)
+- SingleColumnView: segmented control segments are drop targets via ZStack overlay
+- KanbanBoardView: `.viewAligned` scroll behavior enables column-by-column auto-scroll during drag
+
+### Gotchas
+- Always use `.contentShape(.rect)` on views with `.dropDestination` that contain Spacers or ScrollViews
+- Avoid `.scrollTargetBehavior(.paging)` with drag-and-drop — use `.viewAligned` instead
+- On iPhone portrait, cross-column drag requires the segmented control overlay (no other visible drop targets)

@@ -96,4 +96,17 @@ struct DragDropStatusTests {
         #expect(DashboardColumn.inProgress.primaryStatus == .inProgress)
         #expect(DashboardColumn.doneAbandoned.primaryStatus == .done)
     }
+
+    // MARK: - Regression: drop accepted for every column from every source status
+
+    @Test(
+        "Drop succeeds for all column targets regardless of source status",
+        arguments: DashboardColumn.allCases
+    )
+    func dropAcceptedForAllColumns(targetColumn: DashboardColumn) {
+        // Start from inProgress so the task is in a mid-workflow state
+        let task = makeTask(status: .inProgress)
+        simulateDrop(task: task, to: targetColumn)
+        #expect(task.status == targetColumn.primaryStatus)
+    }
 }
