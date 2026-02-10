@@ -4,11 +4,11 @@ import SwiftUI
 
 @Model
 final class Project {
-    var id: UUID
-    var name: String
-    var projectDescription: String
+    var id: UUID = UUID()
+    var name: String = ""
+    var projectDescription: String = ""
     var gitRepo: String?
-    var colorHex: String
+    var colorHex: String = "#007AFF"
 
     @Relationship(deleteRule: .nullify, inverse: \TransitTask.project)
     var tasks: [TransitTask]?

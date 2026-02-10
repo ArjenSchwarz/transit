@@ -41,6 +41,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Reworked app bootstrap into a runtime-managed entry point that owns `ModelContainer`, service instantiation, dependency injection, and App Intents dependency registration, while wrapping the dashboard in a root `NavigationStack`
+- Added CloudKit sync mode reconfiguration driven by the `syncEnabled` setting so toggling iCloud sync rebuilds app services/container and triggers provisional display ID promotion when sync is re-enabled
+- Added app-level promotion triggers for provisional display IDs on launch, foreground activation, and connectivity restoration via `NWPathMonitor`
+- Updated dashboard toolbar navigation so the settings button now pushes `SettingsView` on the app navigation stack while preserving existing add/detail sheet and filter popover presentation flows
+- Updated SwiftData models (`Project`, `TransitTask`) with explicit default values required for CloudKit-backed store initialization to prevent startup crashes during app/test host bootstrapping
 - Hardened `TransitApp` model-container bootstrap for test and offline scenarios by using an in-memory store when running under XCTest and falling back to local SwiftData storage when CloudKit-backed initialization fails
 - Extended the app view structure with a dedicated `Views/Settings` module and wired settings/project edit flows to existing `ProjectService` and SwiftData persistence patterns
 - Dashboard interaction flow now opens task details from card taps, presents Add Task from the toolbar with no-project guidance, and uses adaptive modal presentation for add/detail sheets

@@ -3,14 +3,14 @@ import SwiftData
 
 @Model
 final class TransitTask {
-    var id: UUID
+    var id: UUID = UUID()
     var permanentDisplayId: Int?
-    var name: String
+    var name: String = ""
     var taskDescription: String?
-    var statusRawValue: String
-    var typeRawValue: String
-    var creationDate: Date
-    var lastStatusChangeDate: Date
+    var statusRawValue: String = TaskStatus.idea.rawValue
+    var typeRawValue: String = TaskType.feature.rawValue
+    var creationDate: Date = Date()
+    var lastStatusChangeDate: Date = Date()
     var completionDate: Date?
     var metadataJSON: String?
 

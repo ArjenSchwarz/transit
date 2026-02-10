@@ -5,7 +5,7 @@ import SwiftUI
 
 @MainActor
 @Observable
-final class ProjectService {
+final class ProjectService: @unchecked Sendable {
     enum Error: Swift.Error, Equatable {
         case invalidName
         case invalidDescription

@@ -128,7 +128,8 @@ struct DashboardView: View {
 
     @ViewBuilder
     private var settingsButton: some View {
-        Button {
+        NavigationLink {
+            SettingsView()
         } label: {
             Image(systemName: "gearshape")
         }

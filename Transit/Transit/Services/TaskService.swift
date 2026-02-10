@@ -4,7 +4,7 @@ import SwiftData
 
 @MainActor
 @Observable
-final class TaskService {
+final class TaskService: @unchecked Sendable {
     enum Error: Swift.Error, Equatable {
         case invalidName
         case missingProject
