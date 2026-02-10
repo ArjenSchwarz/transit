@@ -1,6 +1,8 @@
+import AppIntents
 import CloudKit
 import Foundation
 import SwiftData
+import SwiftUI
 import Testing
 @testable import Transit
 
@@ -47,10 +49,13 @@ struct IntegrationTests {
         let createIntent = CreateTaskIntent()
         createIntent.input = createInput
         let createResult = try await createIntent.perform()
-        let createResponse = createResult.value
+        let createResponse = try #require(createResult.value)
 
         // Verify task was created
-        let createData = try #require(createResponse.data(using: .utf8))
+        guard let createData = createResponse.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let createJSON = try #require(JSONSerialization.jsonObject(with: createData) as? [String: Any])
         #expect(createJSON["error"] == nil)
 
@@ -58,10 +63,13 @@ struct IntegrationTests {
         let queryIntent = QueryTasksIntent()
         queryIntent.input = "{}"
         let queryResult = try await queryIntent.perform()
-        let queryResponse = queryResult.value
+        let queryResponse = try #require(queryResult.value)
 
         // Verify task appears in query results
-        let queryData = try #require(queryResponse.data(using: .utf8))
+        guard let queryData = queryResponse.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let tasks = try #require(JSONSerialization.jsonObject(with: queryData) as? [[String: Any]])
 
         #expect(tasks.count == 1)
@@ -105,9 +113,12 @@ struct IntegrationTests {
         let queryIntent = QueryTasksIntent()
         queryIntent.input = "{}"
         let queryResult = try await queryIntent.perform()
-        let queryResponse = queryResult.value
+        let queryResponse = try #require(queryResult.value)
 
-        let queryData = try #require(queryResponse.data(using: .utf8))
+        guard let queryData = queryResponse.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let tasks = try #require(JSONSerialization.jsonObject(with: queryData) as? [[String: Any]])
 
         #expect(tasks.count == 1)
@@ -189,7 +200,11 @@ struct IntegrationTests {
         }
         """
         let result = try await intent.perform()
-        let data = try #require(result.value.data(using: .utf8))
+        let response = try #require(result.value)
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return []
+        }
         return try #require(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
     }
 
@@ -201,7 +216,11 @@ struct IntegrationTests {
         }
         """
         let result = try await intent.perform()
-        let data = try #require(result.value.data(using: .utf8))
+        let response = try #require(result.value)
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return []
+        }
         return try #require(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
     }
 
@@ -213,7 +232,11 @@ struct IntegrationTests {
         }
         """
         let result = try await intent.perform()
-        let data = try #require(result.value.data(using: .utf8))
+        let response = try #require(result.value)
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return []
+        }
         return try #require(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
     }
 

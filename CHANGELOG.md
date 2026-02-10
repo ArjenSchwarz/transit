@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Intent test error handling improved with explicit nil checks and Issue.record for better test failure diagnostics
+
 ### Added
 
 - End-to-end testing: UI tests for navigation flows (settings, add task, filter), sheet presentation, empty states, and visual states

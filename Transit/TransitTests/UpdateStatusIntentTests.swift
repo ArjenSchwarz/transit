@@ -1,6 +1,8 @@
+import AppIntents
 import CloudKit
 import Foundation
 import SwiftData
+import SwiftUI
 import Testing
 @testable import Transit
 
@@ -55,9 +57,12 @@ struct UpdateStatusIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(json["displayId"] as? Int == 42)
@@ -84,9 +89,12 @@ struct UpdateStatusIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(json["error"] as? String == "TASK_NOT_FOUND")
@@ -123,9 +131,12 @@ struct UpdateStatusIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(json["error"] as? String == "INVALID_STATUS")
@@ -163,9 +174,12 @@ struct UpdateStatusIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         // Verify all required fields are present

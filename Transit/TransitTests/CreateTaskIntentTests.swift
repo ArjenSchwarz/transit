@@ -1,6 +1,8 @@
+import AppIntents
 import CloudKit
 import Foundation
 import SwiftData
+import SwiftUI
 import Testing
 @testable import Transit
 
@@ -48,10 +50,13 @@ struct CreateTaskIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
         // Verify response is valid JSON
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(json["taskId"] != nil)
@@ -82,9 +87,12 @@ struct CreateTaskIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(json["error"] as? String == "INVALID_INPUT")
@@ -112,9 +120,12 @@ struct CreateTaskIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(json["error"] as? String == "INVALID_TYPE")
@@ -146,9 +157,12 @@ struct CreateTaskIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(json["error"] as? String == "AMBIGUOUS_PROJECT")
@@ -181,10 +195,13 @@ struct CreateTaskIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
         // Should succeed and use project1 (projectId takes precedence)
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(json["error"] == nil)
@@ -212,9 +229,12 @@ struct CreateTaskIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(json["error"] as? String == "PROJECT_NOT_FOUND")
@@ -231,9 +251,12 @@ struct CreateTaskIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(json["error"] as? String == "INVALID_INPUT")

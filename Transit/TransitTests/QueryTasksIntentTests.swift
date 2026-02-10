@@ -1,6 +1,8 @@
+import AppIntents
 import CloudKit
 import Foundation
 import SwiftData
+import SwiftUI
 import Testing
 @testable import Transit
 
@@ -52,9 +54,12 @@ struct QueryTasksIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
 
         #expect(json.count == 3)
@@ -102,9 +107,12 @@ struct QueryTasksIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
 
         #expect(json.count == 1)
@@ -154,9 +162,12 @@ struct QueryTasksIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
 
         #expect(json.count == 1)
@@ -180,9 +191,12 @@ struct QueryTasksIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(json["error"] as? String == "PROJECT_NOT_FOUND")
@@ -215,9 +229,12 @@ struct QueryTasksIntentTests {
         intent.input = input
 
         let result = try await intent.perform()
-        let response = result.value
+        let response = try #require(result.value)
 
-        let data = try #require(response.data(using: .utf8))
+        guard let data = response.data(using: .utf8) else {
+            Issue.record("Failed to convert response to data")
+            return
+        }
         let json = try #require(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
 
         #expect(json.count == 1)
