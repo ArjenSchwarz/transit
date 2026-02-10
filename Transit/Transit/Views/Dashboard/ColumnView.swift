@@ -4,6 +4,7 @@ struct ColumnView: View {
     let column: DashboardColumn
     let tasks: [TransitTask]
     let onDropTask: (_ taskID: UUID, _ column: DashboardColumn) -> Bool
+    let onSelectTask: (_ task: TransitTask) -> Void
 
     private var firstAbandonedIndex: Int? {
         guard column == .doneAbandoned else {
@@ -56,7 +57,9 @@ struct ColumnView: View {
                                     }
                             }
 
-                            TaskCardView(task: task)
+                            TaskCardView(task: task) {
+                                onSelectTask(task)
+                            }
                         }
                     }
                     .padding(.vertical, 2)

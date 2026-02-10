@@ -5,6 +5,7 @@ struct KanbanBoardView: View {
     let visibleCount: Int
     let initialScrollTarget: DashboardColumn?
     let onDropTask: (_ taskID: UUID, _ column: DashboardColumn) -> Bool
+    let onSelectTask: (_ task: TransitTask) -> Void
 
     private var columnWidth: CGFloat {
         let boundedVisibleCount = max(1, min(5, visibleCount))
@@ -19,7 +20,8 @@ struct KanbanBoardView: View {
                         ColumnView(
                             column: column,
                             tasks: columns[column] ?? [],
-                            onDropTask: onDropTask
+                            onDropTask: onDropTask,
+                            onSelectTask: onSelectTask
                         )
                         .frame(width: max(240, columnWidth))
                         .id(column)

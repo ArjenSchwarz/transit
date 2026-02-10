@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TaskCardView: View {
     let task: TransitTask
+    let onSelect: () -> Void
 
     private var projectName: String {
         task.project?.name ?? "Unknown Project"
@@ -63,6 +64,8 @@ struct TaskCardView: View {
                 .stroke(projectBorderColor, lineWidth: 1.5)
         }
         .opacity(isAbandoned ? 0.5 : 1)
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .onTapGesture(perform: onSelect)
         .draggable(TaskDragPayload(taskID: task.id))
     }
 }

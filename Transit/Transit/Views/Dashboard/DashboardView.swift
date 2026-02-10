@@ -5,6 +5,7 @@ struct DashboardView: View {
     private static let columnMinWidth: CGFloat = 260
 
     @Environment(TaskService.self) private var taskService
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     @Query(sort: [SortDescriptor(\TransitTask.lastStatusChangeDate, order: .reverse)])
@@ -16,6 +17,9 @@ struct DashboardView: View {
     @State private var selectedColumn: DashboardColumn = .inProgress
     @State private var selectedProjectIDs: Set<UUID> = []
     @State private var isFilterPopoverPresented = false
+    @State private var isAddTaskSheetPresented = false
+    @State private var selectedTask: TransitTask?
+    @State private var isMissingProjectAlertPresented = false
 
     private var isPhoneLandscape: Bool {
         verticalSizeClass == .compact
@@ -39,14 +43,16 @@ struct DashboardView: View {
                     SingleColumnView(
                         columns: filteredColumns,
                         selectedColumn: $selectedColumn,
-                        onDropTask: handleDroppedTask
+                        onDropTask: handleDroppedTask,
+                        onSelectTask: handleTaskSelection
                     )
                 } else {
                     KanbanBoardView(
                         columns: filteredColumns,
                         visibleCount: min(columnCount, DashboardColumn.allCases.count),
                         initialScrollTarget: isPhoneLandscape ? .planning : nil,
-                        onDropTask: handleDroppedTask
+                        onDropTask: handleDroppedTask,
+                        onSelectTask: handleTaskSelection
                     )
                 }
             }
@@ -63,6 +69,8 @@ struct DashboardView: View {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 filterButton
                 addButton
+            }
+            ToolbarItemGroup(placement: .topBarTrailing) {
                 settingsButton
             }
             #else
@@ -72,6 +80,17 @@ struct DashboardView: View {
                 settingsButton
             }
             #endif
+        }
+        .alert("Create a Project First", isPresented: $isMissingProjectAlertPresented) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Create a project in Settings before adding tasks.")
+        }
+        .sheet(isPresented: $isAddTaskSheetPresented) {
+            addTaskSheetContent
+        }
+        .sheet(isPresented: selectedTaskPresented) {
+            selectedTaskSheetContent
         }
     }
 
@@ -97,6 +116,11 @@ struct DashboardView: View {
     @ViewBuilder
     private var addButton: some View {
         Button {
+            if allProjects.isEmpty {
+                isMissingProjectAlertPresented = true
+            } else {
+                isAddTaskSheetPresented = true
+            }
         } label: {
             Image(systemName: "plus")
         }
@@ -125,6 +149,45 @@ struct DashboardView: View {
             return true
         } catch {
             return false
+        }
+    }
+
+    private func handleTaskSelection(_ task: TransitTask) {
+        selectedTask = task
+    }
+
+    private var selectedTaskPresented: Binding<Bool> {
+        Binding(
+            get: { selectedTask != nil },
+            set: { newValue in
+                if !newValue {
+                    selectedTask = nil
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var addTaskSheetContent: some View {
+        if horizontalSizeClass == .compact {
+            AddTaskSheet(projects: allProjects)
+                .presentationDragIndicator(.visible)
+                .presentationDetents([.medium, .large])
+        } else {
+            AddTaskSheet(projects: allProjects)
+        }
+    }
+
+    @ViewBuilder
+    private var selectedTaskSheetContent: some View {
+        if let selectedTask {
+            if horizontalSizeClass == .compact {
+                TaskDetailView(task: selectedTask)
+                    .presentationDragIndicator(.visible)
+                    .presentationDetents([.medium, .large])
+            } else {
+                TaskDetailView(task: selectedTask)
+            }
         }
     }
 }
