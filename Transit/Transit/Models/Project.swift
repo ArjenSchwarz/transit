@@ -11,11 +11,11 @@ import SwiftUI
 
 @Model
 final class Project {
-    var id: UUID
-    var name: String
-    var projectDescription: String  // "description" is reserved in some contexts
+    var id: UUID = UUID()
+    var name: String = ""
+    var projectDescription: String = ""  // "description" is reserved in some contexts
     var gitRepo: String?
-    var colorHex: String  // Stored as hex string for CloudKit compatibility
+    var colorHex: String = "" // Stored as hex string for CloudKit compatibility
 
     @Relationship(deleteRule: .nullify, inverse: \TransitTask.project)
     var tasks: [TransitTask]?

@@ -10,14 +10,14 @@ import SwiftData
 
 @Model
 final class TransitTask {
-    var id: UUID
+    var id: UUID = UUID()
     var permanentDisplayId: Int?  // nil when provisional
-    var name: String
+    var name: String = ""
     var taskDescription: String?
-    var statusRawValue: String    // Stored as raw string for CloudKit
-    var typeRawValue: String      // Stored as raw string for CloudKit
-    var creationDate: Date        // Set once at creation, used for promotion ordering
-    var lastStatusChangeDate: Date
+    var statusRawValue: String  = "idea"  // Stored as raw string for CloudKit
+    var typeRawValue: String  = "feature"    // Stored as raw string for CloudKit
+    var creationDate: Date  = Date()      // Set once at creation, used for promotion ordering
+    var lastStatusChangeDate: Date = Date()
     var completionDate: Date?
     var metadataJSON: String?     // Stored as JSON string for CloudKit compatibility
 
