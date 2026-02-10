@@ -55,12 +55,14 @@ struct DashboardView: View {
             }
         }
         .navigationTitle("Transit")
+        .toolbarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 filterButton
                 addButton
             }
-            ToolbarItem(placement: .secondaryAction) {
+            ToolbarSpacer(.fixed)
+            ToolbarItem(placement: .primaryAction) {
                 NavigationLink(value: NavigationDestination.settings) {
                     Label("Settings", systemImage: "gear")
                 }
