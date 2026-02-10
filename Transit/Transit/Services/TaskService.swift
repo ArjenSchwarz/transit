@@ -16,6 +16,10 @@ final class TaskService: @unchecked Sendable {
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
 
+    var context: ModelContext {
+        modelContext
+    }
+
     init(modelContext: ModelContext, displayIDAllocator: DisplayIDAllocator) {
         self.modelContext = modelContext
         self.displayIDAllocator = displayIDAllocator

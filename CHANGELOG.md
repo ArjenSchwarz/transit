@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- App Intents module with `CreateTaskIntent`, `UpdateStatusIntent`, and `QueryTasksIntent`, including shared `IntentError` JSON response formatting and validation/parsing flows for CLI-safe automation
+- Intent-focused unit test coverage for error JSON encoding and all App Intents success/failure paths (missing fields, invalid type/status, ambiguous or missing project resolution, display ID lookup, and filtered task queries)
 - `TransitAppRuntimeTests` coverage verifying `TransitAppRuntime.persistentStoreURL()` is stable and ensures the app support directory exists before container initialization
 - Settings experience with a new `SettingsView` that provides grouped `Projects` and `General` sections, including project rows with color initial swatches and active task counts, an add-project entry point, app version display, and iCloud sync toggle state
 - New `ProjectEditView` for creating and editing projects with validated name/description fields, optional git repository URL input, and color picker selection
@@ -42,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `TaskService` now exposes its `ModelContext` to enable intent query predicates to execute through the existing service dependency path
 - `TransitAppRuntime` now reuses one explicit persistent store URL across CloudKit-enabled and local-only configurations so sync toggles preserve local history and replay deltas when sync is re-enabled
 - Reworked app bootstrap into a runtime-managed entry point that owns `ModelContainer`, service instantiation, dependency injection, and App Intents dependency registration, while wrapping the dashboard in a root `NavigationStack`
 - Added CloudKit sync mode reconfiguration driven by the `syncEnabled` setting so toggling iCloud sync rebuilds app services/container and triggers provisional display ID promotion when sync is re-enabled
