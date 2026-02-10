@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Settings button moved from overflow menu (`.secondaryAction`) to always-visible toolbar placement (`.primaryAction`) with `ToolbarSpacer` separating it from filter/add buttons into its own Liquid Glass pill on macOS/iPad
+- Navigation title display mode set to `.inline` so the title sits in the toolbar bar instead of taking a separate row on iOS
+
+### Changed
+
 - Toolbar buttons in AddTaskSheet, TaskEditView, ProjectEditView, and TaskDetailView now use iOS 26 Liquid Glass styling: chevron.left icon for cancel/dismiss, checkmark icon with automatic `.glassProminent` for save/confirm actions
 - ProjectEditView hides the system back button when editing (pushed navigation) to avoid duplicate chevrons
 - TaskEditView status picker now shows human-readable display names instead of slugified raw values (e.g. "Ready for Implementation" instead of "ready-for-implementation")
