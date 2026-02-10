@@ -42,6 +42,7 @@ struct ColumnView: View {
             if tasks.isEmpty {
                 EmptyStateView(message: emptyMessage)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .accessibilityIdentifier("dashboard.column.empty.\(column.rawValue)")
             } else {
                 ScrollView {
                     LazyVStack(spacing: 10) {
@@ -66,6 +67,7 @@ struct ColumnView: View {
                 }
             }
         }
+        .accessibilityIdentifier("dashboard.column.\(column.rawValue)")
         .padding(12)
         .background {
             RoundedRectangle(cornerRadius: 16, style: .continuous)

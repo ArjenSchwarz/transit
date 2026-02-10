@@ -60,6 +60,7 @@ struct AddTaskSheet: View {
                         dismiss()
                     }
                     .disabled(isSaving)
+                    .accessibilityIdentifier("addTask.cancelButton")
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
@@ -67,6 +68,7 @@ struct AddTaskSheet: View {
                         createTask()
                     }
                     .disabled(!canCreateTask)
+                    .accessibilityIdentifier("addTask.createButton")
                 }
             }
             .task {
@@ -80,6 +82,7 @@ struct AddTaskSheet: View {
                 Text(errorMessage ?? "Unknown error")
             }
         }
+        .accessibilityIdentifier("addTask.sheet")
     }
 
     private var selectedProjectSelection: Binding<UUID?> {

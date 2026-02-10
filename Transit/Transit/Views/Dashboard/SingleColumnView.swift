@@ -17,6 +17,8 @@ struct SingleColumnView: View {
             .glassEffect()
             .padding(.horizontal)
             .padding(.top, 8)
+            .accessibilityIdentifier("dashboard.segmentedControl")
+            .accessibilityValue(selectedColumn.rawValue)
 
             ColumnView(
                 column: selectedColumn,

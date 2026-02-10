@@ -16,6 +16,7 @@ struct FilterPopoverView: View {
                     selectedProjectIDs.removeAll(keepingCapacity: true)
                 }
                 .disabled(selectedProjectIDs.isEmpty)
+                .accessibilityIdentifier("filter.clearButton")
             }
 
             if projects.isEmpty {
@@ -43,6 +44,7 @@ struct FilterPopoverView: View {
                                 .padding(.vertical, 6)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("filter.project.\(project.id.uuidString)")
                         }
                     }
                 }
@@ -52,6 +54,7 @@ struct FilterPopoverView: View {
         .padding(14)
         .frame(minWidth: 280)
         .glassEffect()
+        .accessibilityIdentifier("filter.popover")
     }
 
     private func toggle(projectID: UUID) {

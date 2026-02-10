@@ -118,6 +118,7 @@ struct TaskDetailView: View {
                 }
             }
         }
+        .accessibilityIdentifier("taskDetail.sheet")
     }
 
     private var errorPresented: Binding<Bool> {

@@ -20,6 +20,7 @@ struct SettingsView: View {
         .listStyle(.inset)
         #endif
         .navigationTitle("Settings")
+        .accessibilityIdentifier("settings.view")
     }
 
     private var activeTaskCounts: [UUID: Int] {
@@ -41,6 +42,7 @@ struct SettingsView: View {
                     message: "No projects yet. Tap + to create your first project.",
                     symbol: "folder.badge.plus"
                 )
+                .accessibilityIdentifier("settings.projectsEmptyState")
             } else {
                 ForEach(projects, id: \.id) { project in
                     NavigationLink {

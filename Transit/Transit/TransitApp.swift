@@ -59,6 +59,7 @@ final class TransitAppRuntime: ObservableObject {
     private var isPromoting = false
     private var connectivityMonitor: NWPathMonitor?
     private var lastConnectivitySatisfied = false
+    private var didSeedUITestData = false
 
     init(initialSyncEnabled: Bool) {
         cloudSyncEnabled = initialSyncEnabled
@@ -79,6 +80,7 @@ final class TransitAppRuntime: ObservableObject {
         taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         projectService = ProjectService(modelContext: context)
 
+        bootstrapUITestDataIfNeeded()
         registerDependencies()
     }
 
@@ -160,12 +162,107 @@ final class TransitAppRuntime: ObservableObject {
 #endif
     }
 
+    private func bootstrapUITestDataIfNeeded() {
+        guard !didSeedUITestData else { return }
+        guard let scenario = UITestScenario(
+            rawValue: ProcessInfo.processInfo.environment["TRANSIT_UI_TEST_SCENARIO"] ?? ""
+        ) else { return }
+
+        didSeedUITestData = true
+
+        switch scenario {
+        case .empty:
+            return
+        case .board:
+            seedBoardScenario()
+        }
+    }
+
+    private func seedBoardScenario() {
+        let now = Date()
+
+        let alpha = Project(
+            id: UUID(uuidString: "11111111-1111-1111-1111-111111111111") ?? UUID(),
+            name: "Alpha",
+            description: "Primary",
+            colorHex: "#0A84FF"
+        )
+        let beta = Project(
+            id: UUID(uuidString: "22222222-2222-2222-2222-222222222222") ?? UUID(),
+            name: "Beta",
+            description: "Secondary",
+            colorHex: "#30D158"
+        )
+
+        modelContext.insert(alpha)
+        modelContext.insert(beta)
+
+        let activeTask = TransitTask(
+            id: UUID(uuidString: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") ?? UUID(),
+            permanentDisplayId: 1,
+            name: "Ship Active",
+            description: "In progress task",
+            status: .inProgress,
+            type: .feature,
+            creationDate: now.addingTimeInterval(-120),
+            lastStatusChangeDate: now.addingTimeInterval(-60),
+            project: alpha
+        )
+
+        let ideaTask = TransitTask(
+            id: UUID(uuidString: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb") ?? UUID(),
+            permanentDisplayId: 2,
+            name: "Backlog Idea",
+            description: "Idea task",
+            status: .idea,
+            type: .research,
+            creationDate: now.addingTimeInterval(-600),
+            lastStatusChangeDate: now.addingTimeInterval(-500),
+            project: alpha
+        )
+
+        let abandonedTask = TransitTask(
+            id: UUID(uuidString: "cccccccc-cccc-cccc-cccc-cccccccccccc") ?? UUID(),
+            permanentDisplayId: 3,
+            name: "Old Abandoned",
+            description: "Abandoned task",
+            status: .abandoned,
+            type: .chore,
+            creationDate: now.addingTimeInterval(-400),
+            lastStatusChangeDate: now.addingTimeInterval(-300),
+            completionDate: now.addingTimeInterval(-300),
+            project: alpha
+        )
+
+        let betaTask = TransitTask(
+            id: UUID(uuidString: "dddddddd-dddd-dddd-dddd-dddddddddddd") ?? UUID(),
+            permanentDisplayId: 4,
+            name: "Beta Review",
+            description: "Ready for review",
+            status: .readyForReview,
+            type: .bug,
+            creationDate: now.addingTimeInterval(-240),
+            lastStatusChangeDate: now.addingTimeInterval(-200),
+            project: beta
+        )
+
+        modelContext.insert(activeTask)
+        modelContext.insert(ideaTask)
+        modelContext.insert(abandonedTask)
+        modelContext.insert(betaTask)
+
+        try? modelContext.save()
+    }
+
     private static func makeModelContainer(
         schema: Schema,
         syncEnabled: Bool,
         storeURL: URL
     ) -> ModelContainer {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        let environment = ProcessInfo.processInfo.environment
+        let isTestContext = environment["XCTestConfigurationFilePath"] != nil
+            || environment["TRANSIT_UI_TEST_SCENARIO"] != nil
+        if isTestContext {
             let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
             guard let container = try? ModelContainer(for: schema, configurations: [configuration]) else {
                 fatalError("Failed to initialize in-memory model container for tests")
@@ -203,4 +300,9 @@ final class TransitAppRuntime: ObservableObject {
         try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory.appendingPathComponent("Transit.store")
     }
+}
+
+private enum UITestScenario: String {
+    case empty
+    case board
 }

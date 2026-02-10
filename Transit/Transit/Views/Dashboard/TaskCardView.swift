@@ -16,6 +16,13 @@ struct TaskCardView: View {
         task.status == .abandoned
     }
 
+    private var accessibilityID: String {
+        if let displayID = task.permanentDisplayId {
+            return "dashboard.taskCard.\(displayID)"
+        }
+        return "dashboard.taskCard.provisional"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
@@ -36,6 +43,8 @@ struct TaskCardView: View {
                 .foregroundStyle(.primary)
                 .lineLimit(2)
                 .strikethrough(isAbandoned, pattern: .solid, color: .primary)
+                .accessibilityIdentifier(isAbandoned ? "dashboard.abandonedTaskName" : "dashboard.taskName")
+                .accessibilityValue(isAbandoned ? "abandoned-50-opacity" : "")
 
             HStack(spacing: 6) {
                 if task.status.isHandoff {
@@ -63,9 +72,20 @@ struct TaskCardView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(projectBorderColor, lineWidth: 1.5)
         }
+        .overlay(alignment: .topLeading) {
+            if isAbandoned {
+                Text("abandoned-50-opacity")
+                    .font(.caption2)
+                    .foregroundStyle(.clear)
+                    .accessibilityIdentifier("dashboard.abandonedOpacityMarker")
+                    .accessibilityLabel("abandoned-50-opacity")
+            }
+        }
         .opacity(isAbandoned ? 0.5 : 1)
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .onTapGesture(perform: onSelect)
         .draggable(TaskDragPayload(taskID: task.id))
+        .accessibilityIdentifier(accessibilityID)
+        .accessibilityValue(isAbandoned ? "abandoned-50-opacity" : "active")
     }
 }

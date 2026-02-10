@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- End-to-end `TransitUITests` coverage for dashboard/settings navigation, add sheet presentation, default active segmented state, filter badge behavior, and empty-state/no-project flows via deterministic launch scenarios
+- Integration coverage in `TransitTests` for cross-intent behavior: Create Task visibility in dashboard columns, Update Status reflection in dashboard state, Query Tasks filtered results, and sequential display ID allocation across creates
 - App Intents module with `CreateTaskIntent`, `UpdateStatusIntent`, and `QueryTasksIntent`, including shared `IntentError` JSON response formatting and validation/parsing flows for CLI-safe automation
 - Intent-focused unit test coverage for error JSON encoding and all App Intents success/failure paths (missing fields, invalid type/status, ambiguous or missing project resolution, display ID lookup, and filtered task queries)
 - `TransitAppRuntimeTests` coverage verifying `TransitAppRuntime.persistentStoreURL()` is stable and ensures the app support directory exists before container initialization
@@ -44,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `TransitAppRuntime` now recognizes UI-test launch scenarios and provisions in-memory model containers plus seeded board fixtures for stable UI automation runs
+- Dashboard/add/settings/detail views now expose targeted accessibility identifiers used by UI tests for deterministic interaction and assertions
 - `TaskService` now exposes its `ModelContext` to enable intent query predicates to execute through the existing service dependency path
 - `TransitAppRuntime` now reuses one explicit persistent store URL across CloudKit-enabled and local-only configurations so sync toggles preserve local history and replay deltas when sync is re-enabled
 - Reworked app bootstrap into a runtime-managed entry point that owns `ModelContainer`, service instantiation, dependency injection, and App Intents dependency registration, while wrapping the dashboard in a root `NavigationStack`

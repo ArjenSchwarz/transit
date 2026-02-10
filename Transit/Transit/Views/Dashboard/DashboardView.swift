@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 import SwiftUI
 
@@ -25,6 +26,10 @@ struct DashboardView: View {
         verticalSizeClass == .compact
     }
 
+    private var forceSingleColumnForUITests: Bool {
+        ProcessInfo.processInfo.environment["TRANSIT_UI_FORCE_SINGLE_COLUMN"] == "1"
+    }
+
     private var filteredColumns: [DashboardColumn: [TransitTask]] {
         DashboardLogic.filteredColumns(
             tasks: allTasks,
@@ -36,7 +41,9 @@ struct DashboardView: View {
     var body: some View {
         GeometryReader { geometry in
             let rawColumnCount = max(1, Int(geometry.size.width / Self.columnMinWidth))
-            let columnCount = isPhoneLandscape ? min(rawColumnCount, 3) : rawColumnCount
+            let columnCount = forceSingleColumnForUITests
+            ? 1
+            : (isPhoneLandscape ? min(rawColumnCount, 3) : rawColumnCount)
 
             Group {
                 if columnCount == 1 {
@@ -60,6 +67,7 @@ struct DashboardView: View {
                 if allTasks.isEmpty {
                     EmptyStateView(message: "No tasks yet. Tap + to create one.")
                         .padding(20)
+                        .accessibilityIdentifier("dashboard.globalEmptyState")
                 }
             }
         }
@@ -105,6 +113,8 @@ struct DashboardView: View {
                 Label("\(selectedProjectIDs.count)", systemImage: "line.3.horizontal.decrease.circle.fill")
             }
         }
+        .accessibilityIdentifier("dashboard.filterButton")
+        .accessibilityValue("\(selectedProjectIDs.count)")
         .popover(isPresented: $isFilterPopoverPresented, arrowEdge: .top) {
             FilterPopoverView(
                 projects: allProjects,
@@ -124,6 +134,7 @@ struct DashboardView: View {
         } label: {
             Image(systemName: "plus")
         }
+        .accessibilityIdentifier("dashboard.addButton")
     }
 
     @ViewBuilder
@@ -133,6 +144,7 @@ struct DashboardView: View {
         } label: {
             Image(systemName: "gearshape")
         }
+        .accessibilityIdentifier("dashboard.settingsButton")
     }
 
     private func handleDroppedTask(taskID: UUID, column: DashboardColumn) -> Bool {
