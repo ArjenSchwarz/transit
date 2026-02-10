@@ -5,9 +5,23 @@ import Foundation
 /// [req 17.1-17.6]
 struct UpdateStatusIntent: AppIntent {
     nonisolated(unsafe) static var title: LocalizedStringResource = "Transit: Update Status"
+
+    nonisolated(unsafe) static var description = IntentDescription(
+        "Move a task to a different status. Use the task's display ID (e.g. 42 for T-42).",
+        categoryName: "Tasks",
+        resultValueName: "Status Change JSON"
+    )
+
     nonisolated(unsafe) static var openAppWhenRun: Bool = true
 
-    @Parameter(title: "Input")
+    @Parameter(
+        title: "Input JSON",
+        description: """
+        JSON object with "displayId" (integer, e.g. 42 for T-42) and "status" (idea | planning | spec | \
+        ready-for-implementation | in-progress | ready-for-review | done | abandoned). \
+        Example: {"displayId": 42, "status": "in-progress"}
+        """
+    )
     var input: String
 
     @Dependency

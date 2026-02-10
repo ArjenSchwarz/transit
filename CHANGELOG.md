@@ -6,8 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `IntentDescription` with category and result labels for all three App Intents (CreateTask, UpdateStatus, QueryTasks), visible in the Shortcuts gallery
+- Parameter descriptions on each intent documenting required/optional JSON fields, valid enum values, and usage examples
+- `TransitShortcuts` `AppShortcutsProvider` registering all intents with Siri phrases and icons for Shortcuts app discoverability
+
 ### Fixed
 
+- Add missing `import SwiftData` in `ProjectEditView` that caused build failure
 - Add explicit `modelContext.save()` in `TaskEditView` and `ProjectEditView` after direct property mutations to prevent data loss on app termination before SwiftData auto-save
 - TaskDetailView now shows Abandon button for Done tasks (was hidden because `isTerminal` excluded both Done and Abandoned; spec [req 4.5] requires abandon from any status including Done)
 

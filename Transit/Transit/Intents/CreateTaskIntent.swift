@@ -5,9 +5,23 @@ import Foundation
 /// Always creates tasks in Idea status. [req 16.1-16.8]
 struct CreateTaskIntent: AppIntent {
     nonisolated(unsafe) static var title: LocalizedStringResource = "Transit: Create Task"
+
+    nonisolated(unsafe) static var description = IntentDescription(
+        "Create a new task in Transit. The task starts in Idea status.",
+        categoryName: "Tasks",
+        resultValueName: "Task JSON"
+    )
+
     nonisolated(unsafe) static var openAppWhenRun: Bool = true
 
-    @Parameter(title: "Input")
+    @Parameter(
+        title: "Input JSON",
+        description: """
+        JSON object with task details. Required fields: "name" (string), "type" (bug | feature | chore | \
+        research | documentation). Optional: "projectId" (UUID), "project" (name), "description" (string), \
+        "metadata" (object). Example: {"name": "Fix login", "type": "bug", "project": "Alpha"}
+        """
+    )
     var input: String
 
     @Dependency
