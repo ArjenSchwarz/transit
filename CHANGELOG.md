@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- UpdateStatusIntent for CLI/Shortcuts status updates with JSON input parsing, displayId lookup, status validation, and transition via TaskService
+- QueryTasksIntent for CLI/Shortcuts task queries with optional filters (status, projectId, type), SwiftData predicate building, and JSON array response
+- TaskService.queryTasks method for filtered task queries from intents
+- Comprehensive test suites for CreateTaskIntent, UpdateStatusIntent, and QueryTasksIntent covering happy paths and error cases
 - App Intents foundation: IntentError enum with JSON encoding for structured error responses (TASK_NOT_FOUND, PROJECT_NOT_FOUND, AMBIGUOUS_PROJECT, INVALID_STATUS, INVALID_TYPE, INVALID_INPUT)
 - CreateTaskIntent for CLI/Shortcuts task creation with JSON input parsing, project resolution (by UUID or name), type validation, and task creation in Idea status
 - TransitServices singleton for sharing TaskService and ProjectService instances with App Intents

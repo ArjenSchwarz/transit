@@ -74,4 +74,10 @@ final class TaskService {
         let descriptor = FetchDescriptor(predicate: predicate)
         return try modelContext.fetch(descriptor).first
     }
+
+    /// Query tasks with optional filters for intent lookups.
+    func queryTasks(predicate: Predicate<TransitTask>?) throws -> [TransitTask] {
+        let descriptor = FetchDescriptor(predicate: predicate)
+        return try modelContext.fetch(descriptor)
+    }
 }
