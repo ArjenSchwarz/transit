@@ -30,6 +30,19 @@ enum TaskStatus: String, Codable, CaseIterable {
         self == .done || self == .abandoned
     }
 
+    var displayName: String {
+        switch self {
+        case .idea: "Idea"
+        case .planning: "Planning"
+        case .spec: "Spec"
+        case .readyForImplementation: "Ready for Implementation"
+        case .inProgress: "In Progress"
+        case .readyForReview: "Ready for Review"
+        case .done: "Done"
+        case .abandoned: "Abandoned"
+        }
+    }
+
     /// Short labels for iPhone segmented control [req 13.2]
     var shortLabel: String {
         switch column {

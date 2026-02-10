@@ -33,10 +33,12 @@ struct TaskEditView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button { dismiss() } label: {
+                        Image(systemName: "chevron.left")
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
+                    Button("Save", systemImage: "checkmark") { save() }
                         .disabled(!canSave)
                 }
             }
@@ -75,7 +77,7 @@ struct TaskEditView: View {
         Section {
             Picker("Status", selection: $selectedStatus) {
                 ForEach(TaskStatus.allCases, id: \.self) { status in
-                    Text(status.rawValue).tag(status)
+                    Text(status.displayName).tag(status)
                 }
             }
         }

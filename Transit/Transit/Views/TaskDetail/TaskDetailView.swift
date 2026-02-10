@@ -21,7 +21,9 @@ struct TaskDetailView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button { dismiss() } label: {
+                        Image(systemName: "chevron.left")
+                    }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button("Edit") { showEdit = true }
