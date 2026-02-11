@@ -128,7 +128,7 @@ references:
   - Blocked-by: 2ds0b3w (Implement ProjectEntity and ProjectEntityQuery), 2ds0b3x (Implement TaskEntity struct), 2ds0b4z (Implement TaskCreationResult struct)
   - Stream: 3
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [2.6](requirements.md#2.6), [2.7](requirements.md#2.7), [2.8](requirements.md#2.8), [2.11](requirements.md#2.11), [2.12](requirements.md#2.12), [2.13](requirements.md#2.13)
-  - [ ] 10.1. Write unit tests for AddTaskIntent <!-- id:2ds0b54 -->
+  - [x] 10.1. Write unit tests for AddTaskIntent <!-- id:2ds0b54 -->
     - Stream: 3
   - [ ] 10.2. Add intent title and IntentDescription <!-- id:2ds0b55 -->
     - Stream: 3

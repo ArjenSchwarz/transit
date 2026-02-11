@@ -244,4 +244,90 @@ struct AddTaskIntentTests {
         #expect(result.projectId == project.id)
         #expect(result.projectName == "Test Project")
     }
+    
+    // MARK: - Error Handling Tests
+    
+    @Test("Throws projectNotFound when project is deleted")
+    func throwsProjectNotFoundWhenProjectDeleted() async throws {
+        let (context, taskService, projectService, project) = try makeTestContext()
+        let projectEntity = ProjectEntity.from(project)
+        
+        // Delete the project after creating the entity
+        context.delete(project)
+        try context.save()
+        
+        await #expect(throws: VisualIntentError.self) {
+            try await AddTaskIntent.execute(
+                name: "Task for deleted project",
+                taskDescription: nil,
+                type: .feature,
+                project: projectEntity,
+                taskService: taskService,
+                projectService: projectService
+            )
+        }
+    }
+    
+    @Test("Throws projectNotFound with correct error message")
+    func throwsProjectNotFoundWithCorrectMessage() async throws {
+        let (context, taskService, projectService, project) = try makeTestContext()
+        let projectEntity = ProjectEntity.from(project)
+        
+        context.delete(project)
+        try context.save()
+        
+        do {
+            _ = try await AddTaskIntent.execute(
+                name: "Test",
+                taskDescription: nil,
+                type: .feature,
+                project: projectEntity,
+                taskService: taskService,
+                projectService: projectService
+            )
+            Issue.record("Expected projectNotFound error to be thrown")
+        } catch let error as VisualIntentError {
+            guard case .projectNotFound(let message) = error else {
+                Issue.record("Expected projectNotFound error, got \(error)")
+                return
+            }
+            #expect(message.contains(projectEntity.name))
+        }
+    }
+    
+    @Test("Handles nil description correctly")
+    func handlesNilDescriptionCorrectly() async throws {
+        let (_, taskService, projectService, project) = try makeTestContext()
+        let projectEntity = ProjectEntity.from(project)
+        
+        let result = try await AddTaskIntent.execute(
+            name: "Task without description",
+            taskDescription: nil,
+            type: .feature,
+            project: projectEntity,
+            taskService: taskService,
+            projectService: projectService
+        )
+        
+        let task = try taskService.findByID(result.taskId)
+        #expect(task.taskDescription == nil)
+    }
+    
+    @Test("Handles empty description correctly")
+    func handlesEmptyDescriptionCorrectly() async throws {
+        let (_, taskService, projectService, project) = try makeTestContext()
+        let projectEntity = ProjectEntity.from(project)
+        
+        let result = try await AddTaskIntent.execute(
+            name: "Task with empty description",
+            taskDescription: "",
+            type: .feature,
+            project: projectEntity,
+            taskService: taskService,
+            projectService: projectService
+        )
+        
+        let task = try taskService.findByID(result.taskId)
+        #expect(task.taskDescription == "")
+    }
 }
