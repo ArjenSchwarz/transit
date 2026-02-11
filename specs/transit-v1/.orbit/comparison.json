@@ -1,0 +1,391 @@
+{
+  "recommendation": 1,
+  "confidence": "medium",
+  "summary": "Variant 1 (claude-opus) delivers the best balance of code quality, simplicity, and efficiency — completing in 22 minutes versus 157m and 246m for variants 2 and 3. All three variants achieve full spec compliance, but Variant 1 uses cleaner architectural patterns (separate ConnectivityMonitor/SyncManager, proper @Dependency for App Intents, static testable dashboard filtering) without over-engineering. Variant 3 has superior testability infrastructure (CounterStore protocol, DashboardLogic module) that should be selectively adopted into Variant 1.",
+  "file_analyses": [
+    {
+      "path": "Transit/Transit/Models/TaskStatus.swift",
+      "variants": {
+        "1": "Concise Swift 6 style with implicit returns. Uses column-based shortLabel (delegates to DashboardColumn). DashboardColumn has Identifiable conformance. Clean and minimal.",
+        "2": "Adds explicit Sendable conformance and file header comments. shortLabel switches on self rather than delegating to column — produces same result but with status-level control. DashboardColumn uses custom raw values for serialization.",
+        "3": "Uses nonisolated annotations throughout for concurrency safety. Same logical structure as V1. Identical column mapping and shortLabel approach."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Models/TransitTask.swift",
+      "variants": {
+        "1": "Init takes DisplayID enum directly and switches internally. metadata getter returns empty dict on failure (never nil). Compact init, minimal defaults.",
+        "2": "Init takes permanentDisplayId as Int? directly — simpler but bypasses the DisplayID abstraction at construction. metadata setter doesn't guard against empty dict (writes empty JSON). Adds file header comments.",
+        "3": "Most flexible init with all fields as parameters with defaults. metadata is Optional<[String: String]> (returns nil not empty dict — more semantically correct). Includes creationDate param for testability. Normalizes empty metadata to nil."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/Transit/Models/Project.swift",
+      "variants": {
+        "1": "Simplest: stores colorHex, no computed color property. Init takes colorHex string directly. Clean and CloudKit-focused.",
+        "2": "Adds computed `color` property for UI convenience. Init takes Color and converts via hexString. Imports SwiftUI.",
+        "3": "Both colorHex init and Color convenience init. Computed color property is @MainActor isolated. Most flexible but adds complexity."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Services/StatusEngine.swift",
+      "variants": {
+        "1": "Clean struct with two static methods. Doc comments explain completionDate lifecycle. Injected Date parameter for testability.",
+        "2": "Identical logic to V1 with additional inline comments. Separate doc comment for initializeNewTask explaining it's not a transition.",
+        "3": "Same logic. Additionally clears completionDate in initializeNewTask (defensive — new tasks shouldn't have one but V3 guards against it)."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Services/TaskService.swift",
+      "variants": {
+        "1": "Uses @discardableResult on createTask. Does NOT call modelContext.save() — relies on SwiftData auto-save. updateStatus/abandon/restore return void (no throws). findByDisplayID returns optional.",
+        "2": "Calls modelContext.save() after every mutation (explicit persistence). updateStatus/abandon/restore all throw. Adds queryTasks method for intent-filtered queries. findByDisplayID throws.",
+        "3": "Most robust: custom Error enum (invalidName, missingProject, taskNotFound, etc.). Input validation (trims name, validates non-empty). restore guards against non-abandoned tasks. findByDisplayID throws and checks for duplicates. Injected Date parameter for testability. Exposes modelContext via property."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/Transit/Services/ProjectService.swift",
+      "variants": {
+        "1": "Returns Result<Project, ProjectLookupError> for findProject. Separate ProjectLookupError type. IntentHelpers.mapProjectLookupError bridges to IntentError. Clean separation — no intent knowledge in service.",
+        "2": "Has separate findProjectForIntent method that returns Result<Project, IntentError> — mixes intent concerns into domain service. Also has separate findProject(id:) and findProject(name:) methods. ProjectServiceError only covers ambiguous case.",
+        "3": "Custom Error enum with five cases. findProject throws instead of returning Result. Uses string folding for diacritic-insensitive comparison (more thorough than V1/V2). Validates inputs in createProject (name/description non-empty). activeTaskCount uses predicate fetch instead of relationship traversal."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Services/DisplayIDAllocator.swift",
+      "variants": {
+        "1": "Direct CKDatabase operations. Optimistic locking via CKModifyRecordsOperation with savePolicy .ifServerRecordUnchanged. 5 retries. @unchecked Sendable. Computed zoneID/recordID properties.",
+        "2": "Similar to V1 but uses Int64 explicitly for CloudKit compatibility. Has separate createInitialCounter method that handles race condition on first counter creation. Custom DisplayIDError enum. promoteProvisionalTasks saves after each task (partial success).",
+        "3": "Best testability: CounterStore protocol abstracts CloudKit operations. InMemoryCounterStore in tests enables deterministic conflict/failure testing. Uses changeTag-based optimistic locking instead of CKRecord internal state. 8 retries (more than V1/V2's 5). Private CloudKitCounterStore implementation is clean."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/Transit/TransitApp.swift",
+      "variants": {
+        "1": "Separates concerns into ConnectivityMonitor, SyncManager, and ScenePhaseModifier. Uses NavigationDestination enum for typed routing. UI test seeding via launch arguments. AppDependencyManager for intent service registration. 144 lines — well-structured.",
+        "2": "Most basic: inline connectivity monitoring via NWPathMonitor, no sync toggle implementation (hardcoded CloudKit container). TransitServices singleton for intent access. No UI test support. 104 lines but missing functionality.",
+        "3": "Most sophisticated: TransitAppRuntime class extracts all logic from App struct. Runtime sync toggle rebuilds ModelContainer (preserves persistent history). UITestScenario enum with rich seed data. Environment-based test detection. 360 lines — significantly more complex but handles more edge cases."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Intents/CreateTaskIntent.swift",
+      "variants": {
+        "1": "Static execute method enables testing without @Dependency. Separate validateInput returns optional IntentError. Uses IntentHelpers for JSON/project-error mapping. Clean flow: parse → validate → resolve → create → encode.",
+        "2": "Uses TransitServices.shared singleton (fragile). Inline parseJSON/formatResponse methods. Explicit step numbering comments. No static testable method — tests must go through perform().",
+        "3": "Request struct for parsed input. Separate static methods: parseRequest, resolveProject, createTaskResponse. Most granular error mapping (catches TaskService.Error and ProjectService.Error specifically). Adds 'ok' field to responses. #if canImport(AppIntents) guards."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Intents/IntentError.swift",
+      "variants": {
+        "1": "Nonisolated enum (not Error conforming). json property uses JSONSerialization for safe escaping. Flat response: {error, hint}.",
+        "2": "Conforms to Error protocol. Same json structure as V1. Adds file header comments.",
+        "3": "Conforms to Error and Equatable. Nested response structure: {ok: false, error: {code, hint}}. Separate IntentJSON utility enum for encode/parseObject. More structured but different from spec's flat format."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Intents/IntentHelpers.swift",
+      "variants": {
+        "1": "Shared nonisolated utility: parseJSON, encodeJSON, encodeJSONArray, mapProjectLookupError. Clean separation of cross-cutting intent concerns.",
+        "2": "No equivalent — JSON parsing is inline in each intent. Duplicated across intents.",
+        "3": "IntentJSON enum provides encode and parseObject. Similar to V1's IntentHelpers but without the error mapping utility."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Views/Dashboard/DashboardView.swift",
+      "variants": {
+        "1": "Static buildFilteredColumns method is testable. Uses NavigationDestination enum for settings push. Has separate filterButton/addButton extracted properties. 168 lines.",
+        "2": "Wraps content in its own NavigationStack (duplicates if parent also has one). Inline filteredColumns computed property (not testable in isolation). Drop handler uses UUID directly. 150 lines.",
+        "3": "Extracts logic to DashboardLogic module (most testable). Has forceSingleColumnForUITests environment override. Missing project alert when no projects exist. Platform-specific toolbar placement (#if os(iOS)). Most accessibility identifiers. 281 lines."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Views/Dashboard/TaskCardView.swift",
+      "variants": {
+        "1": "Simplest: no onTap callback (parent handles). Uses .glassEffect(.regular, in:) with explicit shape. Draggable with plain string UUID.",
+        "2": "Has onTap callback. Button wrapper with .buttonStyle(.plain). .glassEffect() without parameters. More explicit but adds Button nesting.",
+        "3": "Most detailed: explicit handoff badge (orange exclamationmark), accessibility identifiers/values, TaskDragPayload Transferable type, hidden accessibility marker for abandoned opacity. Significantly more UI polish but also most complex."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Views/Dashboard/KanbanBoardView.swift",
+      "variants": {
+        "1": "Takes visibleCount and initialScrollTarget parameters. Uses scrollTargetLayout and scrollPosition for landscape initial scroll. 40 lines.",
+        "2": "Simplest: just a horizontal ScrollView with columns. No scroll targeting. 31 lines.",
+        "3": "Similar to V1 with visibleCount and initialScrollTarget. Identical scroll targeting approach. 41 lines."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Views/Settings/SettingsView.swift",
+      "variants": {
+        "1": "NavigationLink to ProjectEditView using NavigationDestination enum. Shows iCloud Sync toggle connected to SyncManager. Shows active task count per project. Empty state. 97 lines.",
+        "2": "NavigationLink directly. Shows iCloud Sync toggle (not connected to actual logic). Shows active task count. 89 lines.",
+        "3": "NavigationLink directly. iCloud Sync toggle connected to @AppStorage (actually functional via TransitAppRuntime). App version from Bundle. 137 lines."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Extensions/Color+Codable.swift",
+      "variants": {
+        "1": "Compact hex conversion using platform-conditional UIColor/NSColor. Init from hex string with Scanner. hexString computed property. 28 lines.",
+        "2": "More robust: handles alpha channel, validates component range, safer hex parsing. 60 lines.",
+        "3": "Middle ground: platform-conditional, handles alpha but drops it for hex. Uses Int(string, radix: 16) for parsing (more modern than Scanner). 52 lines."
+      },
+      "preference": 2
+    },
+    {
+      "path": "Transit/Transit/Services/ConnectivityMonitor.swift",
+      "variants": {
+        "1": "Dedicated @Observable class with NWPathMonitor. Fires onRestore callback on connectivity transition. Properly tracks wasConnected state to detect actual restoration (not just any satisfied status). Clean interface.",
+        "2": "No separate monitor — inline in TransitApp.swift. Fires on every satisfied status (not just restoration). Less precise.",
+        "3": "Inline in TransitAppRuntime. Tracks lastConnectivitySatisfied to detect actual restoration. isPromoting guard prevents concurrent promotions. Good but tied to runtime class."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/Transit/Services/SyncManager.swift",
+      "variants": {
+        "1": "Dedicated @Observable class. Manages sync preference in UserDefaults. Factory method for ModelConfiguration. Documents that re-enabling sync requires restart. Clean separation.",
+        "2": "No equivalent — sync is hardcoded to enabled.",
+        "3": "Handled by TransitAppRuntime.reconfigureCloudSync. Rebuilds entire ModelContainer at runtime (more capable but complex). Preserves persistent history across toggles."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/TransitTests/TestModelContainer.swift",
+      "variants": {
+        "1": "Shared singleton in-memory container with newContext() factory. Documents why shared container avoids 'loadIssueModelContainer' errors. 36 lines.",
+        "2": "No dedicated test support file visible — test setup is inline in each test struct.",
+        "3": "makeInMemoryModelContainer() free function (creates new container each time). Plus InMemoryCounterStore actor for DisplayIDAllocator testing with conflict simulation. 74 lines."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/TransitTests/StatusEngineTests.swift",
+      "variants": {
+        "1": "15 tests including property-based invariant tests (completionDate iff terminal, monotonic timestamps). Uses makeTestTask helper. Thorough coverage of all transitions.",
+        "2": "Similar coverage to V1. Tests initialization, transitions to terminal/non-terminal, restoration. Uses explicit @MainActor.",
+        "3": "Uses seeded random generator for property-based tests. Tests completionDate lifecycle across random status sequences. More robust randomized testing approach."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/TransitTests/CreateTaskIntentTests.swift",
+      "variants": {
+        "1": "Tests static execute method directly (no @Dependency needed). Covers: valid input, missing name, invalid type, ambiguous project, projectId precedence, unknown project, malformed JSON. 204 lines.",
+        "2": "Tests through perform() which requires TransitServices singleton setup. Same test cases as V1. Uses Issue.record for better failure diagnostics. 264 lines.",
+        "3": "Tests static execute method. Also tests parseRequest, resolveProject separately. Covers metadata validation. 146 lines — more focused."
+      },
+      "preference": 1
+    },
+    {
+      "path": "Transit/TransitUITests/TransitUITests.swift",
+      "variants": {
+        "1": "12 tests using --uitesting and --uitesting-seed-data launch arguments. Tests navigation, sheet presentation, empty states, filter badges, abandoned task visibility. 201 lines.",
+        "2": "Similar scope using TransitServices.shared setup. Tests navigation, add task, filter. 174 lines.",
+        "3": "Uses environment-based UITestScenario enum. Tests empty state with no-project prompt, navigation flow, filter badge, column empty states. Deterministic scenarios. 82 lines — most focused."
+      },
+      "preference": 3
+    },
+    {
+      "path": ".swiftlint.yml",
+      "variants": {
+        "1": "Minimal: 2 lines adding disabled_rules for todo.",
+        "2": "Comprehensive: 71 lines with opt-in rules (force_unwrapping, sorted_imports, etc.), line/file/type length configs, identifier name constraints, custom no_print rule.",
+        "3": "Minimal: 5 lines including Transit directory and excluding DerivedData."
+      },
+      "preference": 2
+    },
+    {
+      "path": "CHANGELOG.md",
+      "variants": {
+        "1": "Detailed changelog with Fixed and Added sections. Documents the Done→Abandon fix. Lists all UI tests, integration tests, views, services with brief descriptions. 60 lines.",
+        "2": "Structured changelog with Changed and Added sections. Lists all features by category. 21 lines — more concise.",
+        "3": "Detailed changelog listing all features chronologically. 43 lines."
+      },
+      "preference": 1
+    }
+  ],
+  "observations": [
+    "Variant 1 completed in 22 minutes — 7x faster than Variant 2 (157m) and 11x faster than Variant 3 (246m). Despite the speed difference, V1's code quality is comparable or better than V2 and only slightly behind V3 in testability architecture.",
+    "All three variants achieve full spec compliance: 8 statuses with correct column mapping, provisional/permanent display IDs, 48-hour terminal task filtering, three App Intents with structured JSON responses, drag-and-drop status changes, and adaptive layout for iPhone/iPad/Mac.",
+    "The biggest architectural divergence is in App Intents service access: V1 uses @Dependency (the framework's intended pattern), V2 uses a manual TransitServices singleton (fragile), and V3 uses @Dependency with #if canImport guards. V1's approach is the most idiomatic.",
+    "Variant 2 (kiro) has the most documentation bloat — 6 implementation status documents (implementation-complete.md, implementation-progress.md, implementation-summary.md, session-summary.md, task-1-completion.md, project-structure.md) that add little value beyond the task file updates.",
+    "Variant 3's CounterStore protocol abstraction for DisplayIDAllocator is the standout testability pattern — it enables deterministic conflict simulation in tests that V1 and V2 cannot achieve without mocking CloudKit.",
+    "V1 is the only variant that properly separates ConnectivityMonitor and SyncManager into distinct, reusable service classes. V2 has no sync toggle at all, and V3 bundles everything into TransitAppRuntime.",
+    "Variant 2's ProjectService has a findProjectForIntent method that returns Result<Project, IntentError> — this couples the domain service to intent-specific error types, breaking the layered architecture. V1 correctly keeps this mapping in IntentHelpers.",
+    "V3's TaskService has the best input validation (trims names, validates non-empty, guards restore preconditions) and error types (custom Error enum with specific cases), but at the cost of more ceremony per operation.",
+    "Commit quality: V1 has 8 well-structured logical commits following a clear progression. V2 has 20 commits with some noise (3 separate documentation commits, inconsistent message formatting). V3 has 13 commits including two bug-fix commits for issues introduced in earlier commits.",
+    "V3 is the only variant that includes a visible handoff badge on task cards (orange exclamationmark for readyForImplementation/readyForReview), which is a nice UX touch not explicitly required by spec but valuable for users."
+  ],
+  "documentation_assessment": [
+    {
+      "variant_id": 1,
+      "has_dev_setup": true,
+      "has_deployment": false,
+      "has_requirements": true,
+      "has_usage_examples": true,
+      "missing_docs": [
+        "Deployment guide (App Store submission, CloudKit container setup)",
+        "App Intent JSON schema examples for CLI usage"
+      ],
+      "notes": "Has implementation.md with beginner/intermediate/expert explanations and requirement traceability. Agent-notes cover project structure, dashboard views, shared components, and technical constraints. CHANGELOG.md is detailed. Development setup covered by Makefile + CLAUDE.md."
+    },
+    {
+      "variant_id": 2,
+      "has_dev_setup": true,
+      "has_deployment": false,
+      "has_requirements": true,
+      "has_usage_examples": false,
+      "missing_docs": [
+        "Deployment guide",
+        "App Intent JSON schema examples",
+        "Architecture documentation (the 6 status docs focus on implementation progress, not architecture)"
+      ],
+      "notes": "Produced 6 documentation files but they are implementation progress reports (session-summary.md, implementation-complete.md, etc.) rather than useful reference documentation. These have limited long-term value and add noise. No intent usage examples."
+    },
+    {
+      "variant_id": 3,
+      "has_dev_setup": true,
+      "has_deployment": false,
+      "has_requirements": true,
+      "has_usage_examples": false,
+      "missing_docs": [
+        "Deployment guide",
+        "App Intent JSON schema examples",
+        "Architecture documentation",
+        "Agent notes or implementation notes"
+      ],
+      "notes": "Minimal documentation — only CHANGELOG.md and task file updates. No implementation notes or architecture docs. Development setup covered by existing Makefile + CLAUDE.md. The code is self-documenting but lacks reference material for future maintainers."
+    }
+  ],
+  "cross_variant_improvements": [
+    {
+      "source_variant_id": 3,
+      "description": "CounterStore protocol abstraction for DisplayIDAllocator",
+      "rationale": "V3's protocol-based design enables deterministic testing of display ID allocation including conflict scenarios, retry exhaustion, and partial promotion failures. V1 cannot unit test these paths without mocking CloudKit. The InMemoryCounterStore actor in V3's test support is essential for reliable CI testing.",
+      "priority": "high"
+    },
+    {
+      "source_variant_id": 3,
+      "description": "Typed Error enums per service (TaskService.Error, ProjectService.Error)",
+      "rationale": "V3's specific error types enable callers to handle different failure modes precisely. V1's TaskService silently swallows errors (e.g., findByDisplayID returns nil instead of distinguishing 'not found' from 'fetch failed'). This matters for intent error mapping quality.",
+      "priority": "medium"
+    },
+    {
+      "source_variant_id": 3,
+      "description": "DashboardLogic extracted as a separate pure function module",
+      "rationale": "V1 has the filtering logic as a static method on DashboardView, which is testable but conceptually couples business logic to a view. V3's DashboardLogic module is a cleaner separation and enables dedicated DashboardLogicTests without importing SwiftUI.",
+      "priority": "medium"
+    },
+    {
+      "source_variant_id": 3,
+      "description": "UITestScenario enum with environment-based deterministic test seeding",
+      "rationale": "V3's approach using environment variables and named scenarios (empty, board) with rich predetermined seed data is more robust than V1's launch argument approach. It enables multiple distinct test scenarios and produces deterministic, reproducible UI tests.",
+      "priority": "medium"
+    },
+    {
+      "source_variant_id": 2,
+      "description": "Explicit modelContext.save() after service mutations",
+      "rationale": "V2 calls try modelContext.save() after every mutation in TaskService. V1 relies on SwiftData's auto-save behavior, which is generally fine but means mutations aren't immediately persisted if the app crashes. Explicit saves are more defensive, especially for intent-created tasks.",
+      "priority": "medium"
+    },
+    {
+      "source_variant_id": 2,
+      "description": "Comprehensive SwiftLint configuration",
+      "rationale": "V2's .swiftlint.yml has opt-in rules (force_unwrapping, sorted_imports), length limits, identifier constraints, and a custom no_print rule. V1 only disables the todo rule. A more configured linter catches issues earlier and enforces consistency as the codebase grows.",
+      "priority": "low"
+    },
+    {
+      "source_variant_id": 3,
+      "description": "Handoff badge on TaskCardView for agent handoff statuses",
+      "rationale": "V3 displays an orange 'Handoff' badge on task cards in readyForImplementation or readyForReview status. This makes handoff tasks visually distinct beyond just sorting order, improving discoverability for users checking the board. Not required by spec but valuable UX.",
+      "priority": "low"
+    },
+    {
+      "source_variant_id": 3,
+      "description": "Accessibility identifiers on all interactive elements",
+      "rationale": "V3 has comprehensive accessibilityIdentifier coverage (dashboard.filterButton, dashboard.addButton, dashboard.settingsButton, dashboard.taskCard.{id}, etc.) enabling reliable UI test automation. V1's UI tests work but are more fragile without explicit identifiers.",
+      "priority": "low"
+    }
+  ],
+  "learnings": [
+    {
+      "variant_id": 3,
+      "category": "architecture",
+      "title": "Protocol abstraction for external service testability",
+      "description": "V3 defines a CounterStore protocol that abstracts CloudKit operations (loadCounter, saveCounter) and provides an InMemoryCounterStore actor for tests. The production CloudKitCounterStore is a private implementation detail. This lets tests simulate conflicts, failures, and race conditions deterministically.",
+      "rationale": "External services (CloudKit, APIs, databases) are the hardest things to test. Abstracting them behind a protocol at the boundary enables fast, deterministic unit tests while keeping the real implementation isolated. This pattern applies to any service that talks to an external system — HTTP clients, payment processors, notification services.",
+      "file_references": [
+        "Transit/Transit/Services/DisplayIDAllocator.swift",
+        "Transit/TransitTests/TestSupport.swift"
+      ]
+    },
+    {
+      "variant_id": 1,
+      "category": "architecture",
+      "title": "Static testable methods on view types for business logic",
+      "description": "V1's DashboardView exposes buildFilteredColumns as a static method taking all inputs as parameters. This makes the complex filtering/sorting logic (48-hour cutoff, handoff promotion, project filtering, done-before-abandoned ordering) testable without instantiating any SwiftUI views.",
+      "rationale": "SwiftUI views are notoriously hard to unit test. Extracting complex logic into static or free functions that take explicit inputs and return explicit outputs gives you testability without requiring a separate ViewModel class. This pattern is applicable any time a view has non-trivial data transformation logic.",
+      "file_references": [
+        "Transit/Transit/Views/Dashboard/DashboardView.swift"
+      ]
+    },
+    {
+      "variant_id": 1,
+      "category": "architecture",
+      "title": "Separate domain errors from intent error mapping",
+      "description": "V1 defines ProjectLookupError in the domain layer and provides IntentHelpers.mapProjectLookupError to translate it to IntentError. The domain service never imports or references intent types. V2 breaks this by having findProjectForIntent return Result<Project, IntentError> directly in the service.",
+      "rationale": "Keeping domain services ignorant of presentation concerns (including CLI/intent error formats) maintains clean layering and lets you add new consumers (MCP, web API) without modifying services. The mapping function acts as an anti-corruption layer between domains.",
+      "file_references": [
+        "Transit/Transit/Services/ProjectService.swift",
+        "Transit/Transit/Intents/IntentHelpers.swift"
+      ]
+    },
+    {
+      "variant_id": 3,
+      "category": "testing",
+      "title": "Environment-based UI test scenario seeding",
+      "description": "V3 uses a UITestScenario enum and environment variables (TRANSIT_UI_TEST_SCENARIO, TRANSIT_UI_FORCE_SINGLE_COLUMN) to seed deterministic test data with predetermined UUIDs, display IDs, and status/type combinations. Each scenario (empty, board) produces a known starting state.",
+      "rationale": "UI tests are brittle when they depend on dynamic data. Enum-based scenarios with known seed data make tests reproducible and allow testing specific states (empty dashboard, populated board, specific statuses) without complex setup. The environment variable approach also keeps test infrastructure out of the production code path.",
+      "file_references": [
+        "Transit/Transit/TransitApp.swift",
+        "Transit/TransitUITests/TransitUITests.swift"
+      ]
+    },
+    {
+      "variant_id": 1,
+      "category": "code-pattern",
+      "title": "Scene phase modifier for lifecycle-triggered async work",
+      "description": "V1 extracts a ScenePhaseModifier ViewModifier that observes scenePhase (which is only available inside a View body) and triggers display ID promotion on app launch (.task) and foreground return (.onChange). This solves the problem that App.body cannot directly observe scenePhase in the same way views can.",
+      "rationale": "SwiftUI's @Environment(\\.scenePhase) only works inside the view hierarchy, not in App.init(). Extracting lifecycle-triggered async work into a ViewModifier keeps the App struct clean and makes the trigger points explicit. This pattern is useful whenever you need to run async work on app lifecycle events.",
+      "file_references": [
+        "Transit/Transit/TransitApp.swift"
+      ]
+    },
+    {
+      "variant_id": 3,
+      "category": "error-handling",
+      "title": "Structured Request types for intent input parsing",
+      "description": "V3's CreateTaskIntent defines a Request struct that holds validated, typed fields (name: String, type: TaskType, projectID: UUID?, etc.). The parseRequest method converts raw JSON into this struct, throwing IntentError on validation failure. Subsequent methods operate on the typed Request, never touching raw JSON.",
+      "rationale": "Parsing untyped input (JSON, form data, CLI args) into a validated struct at the boundary eliminates repeated nil-checking and type-casting throughout the handler. The Request struct acts as a 'parse, don't validate' boundary — once constructed, all fields are guaranteed valid. This pattern applies to any handler that processes external input.",
+      "file_references": [
+        "Transit/Transit/Intents/CreateTaskIntent.swift"
+      ]
+    }
+  ]
+}

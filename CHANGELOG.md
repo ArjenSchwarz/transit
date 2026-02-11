@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Orbit session data (variant comparison, consolidation reports, human-readable transcripts) tracked in git for documentation
+
+### Changed
+
+- `.gitignore` updated to selectively allow `.orbit` directories while blocking cost/billing data, raw API logs, and working trees
+
+### Added
+
 - Frosted Panels theme system with four options: Follow System (default), Universal, Light, and Dark
 - `AppTheme` and `ResolvedTheme` enums for theme preference storage and resolution
 - `BoardBackground` view rendering layered radial gradients (indigo, pink, teal, purple) behind the kanban board, adapted per theme variant
