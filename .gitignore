@@ -43,3 +43,19 @@ playground.xcworkspace
 # *.xcworkspace
 
 DerivedData/
+
+# Orbit data
+# Override global gitignore to allow .orbit directories
+!specs/**/.orbit/
+# Block cost/billing data, raw API logs, and working trees
+specs/**/.orbit/summary.json
+specs/**/.orbit/logs/**/summary.json
+specs/**/.orbit/logs/**/*-session.json
+specs/**/.orbit/logs/**/*-session.txt
+specs/**/.orbit/logs/**/*-transcript.jsonl
+specs/**/.orbit/logs/**/index.md
+specs/**/.orbit/logs/**/index.html
+specs/**/.orbit/worktrees/
+# Block comparison report directories (generated output)
+specs/**/comparison-report
+

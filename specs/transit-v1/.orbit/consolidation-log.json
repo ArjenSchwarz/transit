@@ -1,0 +1,17 @@
+{
+  "schema_version": "1",
+  "entries": [
+    {
+      "schema_version": "1",
+      "timestamp": "0001-01-01T00:00:00Z",
+      "chosen_variant_id": 1,
+      "agent": "claude-code",
+      "report_file": "consolidation-report-2026-02-10T17-41-19.md",
+      "improvements_attempted": 0,
+      "improvements_applied": 0,
+      "improvements_skipped": 0,
+      "tests_passed": true,
+      "post_prompt_passed": true
+    }
+  ]
+}
