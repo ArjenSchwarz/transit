@@ -123,6 +123,8 @@ struct QueryTasksIntent: AppIntent {
         }
         if let completionDate = task.completionDate {
             dict["completionDate"] = isoFormatter.string(from: completionDate)
+        } else {
+            dict["completionDate"] = NSNull()
         }
         return dict
     }

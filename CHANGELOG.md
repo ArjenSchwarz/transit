@@ -9,12 +9,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Orbit session data (variant comparison, consolidation reports, human-readable transcripts) tracked in git for documentation
+- Shared Shortcuts intent infrastructure for `shortcuts-friendly-intents` phase 1:
+  - `TaskStatus` and `TaskType` `AppEnum` conformances for reusable Shortcuts dropdown display values
+  - `VisualIntentError` with `LocalizedError` messaging and stable visual-intent error codes
+  - `ProjectEntity`/`ProjectEntityQuery` and `TaskEntity`/`TaskEntityQuery` for AppEntity-backed selection and lookup
+  - `DateFilterHelpers` utility for relative/absolute date range parsing with inclusive boundary checks
+  - New unit test coverage for all of the above shared intent components
 
 ### Changed
 
 - `CLAUDE.md` rewritten to reflect current architecture: added service layer, navigation pattern, theme system, SwiftData+CloudKit constraints, Swift 6 MainActor isolation gotchas, Liquid Glass constraints, and test infrastructure details; removed incorrect `.materialBackground()` reference
 - `README.md` expanded from stub to full project documentation with features, requirements, build commands, CLI usage, and documentation pointers
 - `.gitignore` updated to selectively allow `.orbit` directories while blocking cost/billing data, raw API logs, and working trees
+- `QueryTasksIntent` now always includes a `completionDate` key in each task JSON object (`null` when absent) for a stable response schema
+- `TestModelContainer.newContext()` now creates an isolated in-memory SwiftData container per context to prevent cross-suite data leakage in tests
 
 ### Added
 
