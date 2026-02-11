@@ -50,44 +50,44 @@ references:
   - [x] 4.4. Handle empty project list gracefully <!-- id:2ds0b4c -->
     - Stream: 1
 
-- [ ] 5. Implement TaskEntity struct <!-- id:2ds0b3x -->
+- [x] 5. Implement TaskEntity struct <!-- id:2ds0b3x -->
   - Stream: 1
   - Requirements: [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.7](requirements.md#4.7), [4.9](requirements.md#4.9)
-  - [ ] 5.1. Write unit tests for TaskEntity <!-- id:2ds0b4d -->
+  - [x] 5.1. Write unit tests for TaskEntity <!-- id:2ds0b4d -->
     - Stream: 1
-  - [ ] 5.2. Implement AppEntity conformance with id and displayRepresentation <!-- id:2ds0b4e -->
+  - [x] 5.2. Implement AppEntity conformance with id and displayRepresentation <!-- id:2ds0b4e -->
     - Stream: 1
-  - [ ] 5.3. Add all required properties from requirement 3.9 <!-- id:2ds0b4f -->
+  - [x] 5.3. Add all required properties from requirement 3.9 <!-- id:2ds0b4f -->
     - Stream: 1
-  - [ ] 5.4. Implement static from() factory method with error handling <!-- id:2ds0b4g -->
+  - [x] 5.4. Implement static from() factory method with error handling <!-- id:2ds0b4g -->
     - Stream: 1
 
-- [ ] 6. Implement TaskEntityQuery <!-- id:2ds0b3y -->
+- [x] 6. Implement TaskEntityQuery <!-- id:2ds0b3y -->
   - Stream: 1
   - Requirements: [4.5](requirements.md#4.5), [4.6](requirements.md#4.6)
-  - [ ] 6.1. Write unit tests for TaskEntityQuery <!-- id:2ds0b4h -->
+  - [x] 6.1. Write unit tests for TaskEntityQuery <!-- id:2ds0b4h -->
     - Stream: 1
-  - [ ] 6.2. Implement EntityQuery conformance with UUID resolution <!-- id:2ds0b4i -->
+  - [x] 6.2. Implement EntityQuery conformance with UUID resolution <!-- id:2ds0b4i -->
     - Stream: 1
-  - [ ] 6.3. Use fetch-then-filter pattern for CloudKit sync resilience <!-- id:2ds0b4j -->
+  - [x] 6.3. Use fetch-then-filter pattern for CloudKit sync resilience <!-- id:2ds0b4j -->
     - Stream: 1
-  - [ ] 6.4. Use compactMap for batch contexts to handle sync issues gracefully <!-- id:2ds0b4k -->
+  - [x] 6.4. Use compactMap for batch contexts to handle sync issues gracefully <!-- id:2ds0b4k -->
     - Stream: 1
 
-- [ ] 7. Implement DateFilterHelpers utility <!-- id:2ds0b3z -->
+- [x] 7. Implement DateFilterHelpers utility <!-- id:2ds0b3z -->
   - Stream: 1
   - Requirements: [8.1](requirements.md#8.1), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3), [8.4](requirements.md#8.4), [8.5](requirements.md#8.5), [8.6](requirements.md#8.6), [8.7](requirements.md#8.7), [8.8](requirements.md#8.8)
-  - [ ] 7.1. Write unit tests for DateFilterHelpers covering all scenarios <!-- id:2ds0b4l -->
+  - [x] 7.1. Write unit tests for DateFilterHelpers covering all scenarios <!-- id:2ds0b4l -->
     - Stream: 1
-  - [ ] 7.2. Implement relative date range calculation (today, this-week, this-month) <!-- id:2ds0b4m -->
+  - [x] 7.2. Implement relative date range calculation (today, this-week, this-month) <!-- id:2ds0b4m -->
     - Stream: 1
-  - [ ] 7.3. Implement absolute date range parsing from ISO 8601 strings <!-- id:2ds0b4n -->
+  - [x] 7.3. Implement absolute date range parsing from ISO 8601 strings <!-- id:2ds0b4n -->
     - Stream: 1
-  - [ ] 7.4. Use Calendar.current for all date calculations <!-- id:2ds0b4o -->
+  - [x] 7.4. Use Calendar.current for all date calculations <!-- id:2ds0b4o -->
     - Stream: 1
-  - [ ] 7.5. Implement inclusive boundary date comparisons <!-- id:2ds0b4p -->
+  - [x] 7.5. Implement inclusive boundary date comparisons <!-- id:2ds0b4p -->
     - Stream: 1
-  - [ ] 7.6. Handle nil date values by excluding from filtered results <!-- id:2ds0b4q -->
+  - [x] 7.6. Handle nil date values by excluding from filtered results <!-- id:2ds0b4q -->
     - Stream: 1
 
 ## Enhanced Query Intent
