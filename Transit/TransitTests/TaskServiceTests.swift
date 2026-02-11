@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 import Testing
 @testable import Transit
@@ -67,8 +68,10 @@ struct TaskServiceTests {
             project: project
         )
 
-        #expect(task.creationDate <= Date.now)
-        #expect(task.lastStatusChangeDate <= Date.now)
+        let creationDate = task.creationDate
+        let lastStatusChangeDate = task.lastStatusChangeDate
+        #expect(creationDate <= Date.now)
+        #expect(lastStatusChangeDate <= Date.now)
     }
 
     @Test func createTaskWithMetadataStoresMetadata() async throws {
@@ -83,7 +86,8 @@ struct TaskServiceTests {
             metadata: ["git.branch": "feature/test"]
         )
 
-        #expect(task.metadata["git.branch"] == "feature/test")
+        let metadata = task.metadata
+        #expect(metadata["git.branch"] == "feature/test")
     }
 
     @Test func createTaskTrimsAndValidatesName() async throws {
@@ -92,7 +96,7 @@ struct TaskServiceTests {
 
         // Whitespace-only name should throw
         await #expect(throws: TaskService.Error.invalidName) {
-            try await service.createTask(
+            _ = try await service.createTask(
                 name: "   ", description: nil, type: .feature, project: project
             )
         }
@@ -101,7 +105,8 @@ struct TaskServiceTests {
         let task = try await service.createTask(
             name: "  Trimmed Name  ", description: nil, type: .feature, project: project
         )
-        #expect(task.name == "Trimmed Name")
+        let taskName = task.name
+        #expect(taskName == "Trimmed Name")
     }
 
     // MARK: - updateStatus

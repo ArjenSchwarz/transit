@@ -8,7 +8,7 @@ references:
 
 ## Foundation: Shared Infrastructure
 
-- [ ] 1. Implement TaskStatus AppEnum conformance <!-- id:2ds0b3t -->
+- [x] 1. Implement TaskStatus AppEnum conformance <!-- id:2ds0b3t -->
   - Stream: 1
   - Requirements: [5.6](requirements.md#5.6), [5.7](requirements.md#5.7), [5.10](requirements.md#5.10)
   - [ ] 1.1. Write unit tests for TaskStatus AppEnum <!-- id:2ds0b40 -->
