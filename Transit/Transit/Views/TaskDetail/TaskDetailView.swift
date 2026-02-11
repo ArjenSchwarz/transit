@@ -42,7 +42,7 @@ struct TaskDetailView: View {
         Section {
             LabeledContent("Name", value: task.name)
             LabeledContent("Type") { TypeBadge(type: task.type) }
-            LabeledContent("Status", value: task.status.shortLabel)
+            LabeledContent("Status", value: task.status.displayName)
             if let project = task.project {
                 LabeledContent("Project") {
                     HStack {

@@ -86,6 +86,17 @@ final class TaskService {
 
     // MARK: - Lookup
 
+    /// Finds a task by its UUID. Throws on not-found.
+    func findByID(_ id: UUID) throws -> TransitTask {
+        let descriptor = FetchDescriptor<TransitTask>(
+            predicate: #Predicate { $0.id == id }
+        )
+        guard let task = try modelContext.fetch(descriptor).first else {
+            throw Error.taskNotFound
+        }
+        return task
+    }
+
     /// Finds a task by its permanent display ID. Throws on not-found or duplicates.
     func findByDisplayID(_ displayId: Int) throws -> TransitTask {
         let descriptor = FetchDescriptor<TransitTask>(

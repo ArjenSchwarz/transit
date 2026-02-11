@@ -118,7 +118,7 @@ struct UpdateStatusIntentTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
     }
 
-    @Test func missingDisplayIdReturnsInvalidInput() throws {
+    @Test func missingBothIdentifiersReturnsInvalidInput() throws {
         let (taskService, _) = try makeService()
 
         let input = """
@@ -144,6 +144,39 @@ struct UpdateStatusIntentTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
     }
 
+    // MARK: - taskId Lookup
+
+    @Test func updateViaTaskIdWorks() throws {
+        let (taskService, context) = try makeService()
+        let project = makeProject(in: context)
+        let task = makeTask(in: context, project: project, displayId: 50)
+
+        let input = """
+        {"taskId":"\(task.id.uuidString)","status":"planning"}
+        """
+
+        let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["taskId"] as? String == task.id.uuidString)
+        #expect(parsed["previousStatus"] as? String == "idea")
+        #expect(parsed["status"] as? String == "planning")
+    }
+
+    @Test func unknownTaskIdReturnsTaskNotFound() throws {
+        let (taskService, _) = try makeService()
+        let fakeId = UUID().uuidString
+
+        let input = """
+        {"taskId":"\(fakeId)","status":"planning"}
+        """
+
+        let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "TASK_NOT_FOUND")
+    }
+
     // MARK: - Response Format
 
     @Test func responseContainsAllRequiredFields() throws {
@@ -158,9 +191,9 @@ struct UpdateStatusIntentTests {
         let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
 
         let parsed = try parseJSON(result)
+        #expect(parsed.keys.contains("taskId"))
         #expect(parsed.keys.contains("displayId"))
         #expect(parsed.keys.contains("previousStatus"))
         #expect(parsed.keys.contains("status"))
-        #expect(parsed.count == 3)
     }
 }

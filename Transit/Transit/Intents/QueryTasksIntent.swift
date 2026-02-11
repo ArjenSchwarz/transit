@@ -107,15 +107,23 @@ struct QueryTasksIntent: AppIntent {
         let isoFormatter = ISO8601DateFormatter()
         var dict: [String: Any] = [
             "taskId": task.id.uuidString,
-            "displayId": task.permanentDisplayId as Any,
             "name": task.name,
             "status": task.statusRawValue,
             "type": task.typeRawValue,
             "lastStatusChangeDate": isoFormatter.string(from: task.lastStatusChangeDate)
         ]
-        dict["projectId"] = task.project?.id.uuidString as Any
-        dict["projectName"] = task.project?.name as Any
-        dict["completionDate"] = task.completionDate.map { isoFormatter.string(from: $0) } as Any
+        if let displayId = task.permanentDisplayId {
+            dict["displayId"] = displayId
+        }
+        if let projectId = task.project?.id.uuidString {
+            dict["projectId"] = projectId
+        }
+        if let projectName = task.project?.name {
+            dict["projectName"] = projectName
+        }
+        if let completionDate = task.completionDate {
+            dict["completionDate"] = isoFormatter.string(from: completionDate)
+        }
         return dict
     }
 }
