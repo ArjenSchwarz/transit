@@ -28,8 +28,9 @@ struct FindTasksIntegrationTests {
     }
 
     @discardableResult
-    private func makeProject(in context: ModelContext, name: String = "Test Project") -> Project {
-        let project = Project(name: name, description: "A test project", gitRepo: nil, colorHex: "#FF0000")
+    private func makeProject(in context: ModelContext, name: String? = nil) -> Project {
+        let projectName = name ?? "FTI-Integ-\(UUID().uuidString.prefix(8))"
+        let project = Project(name: projectName, description: "A test project", gitRepo: nil, colorHex: "#FF0000")
         context.insert(project)
         return project
     }
@@ -84,8 +85,9 @@ struct FindTasksIntegrationTests {
             name: "Integration Task", type: .bug, project: project, services: svc
         )
 
+        let entityP = ProjectEntity.from(project)
         let found = try FindTasksIntent.execute(
-            input: findInput(),
+            input: findInput(project: entityP),
             modelContext: svc.context
         )
 
@@ -103,8 +105,9 @@ struct FindTasksIntegrationTests {
         _ = try await createTask(name: "Bug Task", type: .bug, project: project, services: svc)
         _ = try await createTask(name: "Feature Task", type: .feature, project: project, services: svc)
 
+        let entityP = ProjectEntity.from(project)
         let bugResults = try FindTasksIntent.execute(
-            input: findInput(type: .bug),
+            input: findInput(type: .bug, project: entityP),
             modelContext: svc.context
         )
 
@@ -137,12 +140,13 @@ struct FindTasksIntegrationTests {
 
         let result = try await createTask(name: "Moving Task", project: project, services: svc)
 
-        // Move to in-progress via UpdateStatusIntent
+        // Move to in-progress via TaskService
         let task = try svc.task.findByID(result.taskId)
         try svc.task.updateStatus(task: task, to: .inProgress)
 
+        let entityP = ProjectEntity.from(project)
         let inProgressResults = try FindTasksIntent.execute(
-            input: findInput(status: .inProgress),
+            input: findInput(project: entityP, status: .inProgress),
             modelContext: svc.context
         )
 
@@ -157,8 +161,9 @@ struct FindTasksIntegrationTests {
 
         _ = try await createTask(name: "New Task", project: project, services: svc)
 
+        let entityP = ProjectEntity.from(project)
         let results = try FindTasksIntent.execute(
-            input: findInput(lastChangedFilter: .today),
+            input: findInput(project: entityP, lastChangedFilter: .today),
             modelContext: svc.context
         )
 
@@ -172,8 +177,9 @@ struct FindTasksIntegrationTests {
 
         _ = try await createTask(name: "Bug Task", type: .bug, project: project, services: svc)
 
+        let entityP = ProjectEntity.from(project)
         let results = try FindTasksIntent.execute(
-            input: findInput(type: .chore),
+            input: findInput(type: .chore, project: entityP),
             modelContext: svc.context
         )
 
@@ -188,8 +194,9 @@ struct FindTasksIntegrationTests {
             name: "Full Check", type: .research, project: project, services: svc
         )
 
+        let entityP = ProjectEntity.from(project)
         let found = try FindTasksIntent.execute(
-            input: findInput(),
+            input: findInput(project: entityP),
             modelContext: svc.context
         )
 

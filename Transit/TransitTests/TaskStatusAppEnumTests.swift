@@ -37,7 +37,8 @@ struct TaskStatusAppEnumTests {
         let representations = TaskStatus.caseDisplayRepresentations
         for (status, expectedTitle) in expected {
             let repr = representations[status]
-            #expect(repr?.title == "\(expectedTitle)", "Expected \(expectedTitle) for \(status)")
+            let title = repr.map { String(localized: $0.title) }
+            #expect(title == expectedTitle, "Expected \(expectedTitle) for \(status)")
         }
     }
 }

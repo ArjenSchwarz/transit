@@ -82,13 +82,14 @@ struct ProjectServiceTests {
 
     @Test func findProjectByNameWithWhitespaceWorks() throws {
         let (service, _) = try makeService()
-        service.createProject(name: "Transit", description: "Desc", gitRepo: nil, colorHex: "#000000")
+        let uniqueName = "WhitespaceTest-\(UUID().uuidString.prefix(8))"
+        service.createProject(name: uniqueName, description: "Desc", gitRepo: nil, colorHex: "#000000")
 
-        let result = service.findProject(name: "  Transit  ")
+        let result = service.findProject(name: "  \(uniqueName)  ")
 
         switch result {
         case .success(let found):
-            #expect(found.name == "Transit")
+            #expect(found.name == uniqueName)
         case .failure(let error):
             Issue.record("Expected success but got \(error)")
         }

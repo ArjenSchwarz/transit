@@ -182,10 +182,10 @@ struct UpdateStatusIntentTests {
     @Test func responseContainsAllRequiredFields() throws {
         let (taskService, context) = try makeService()
         let project = makeProject(in: context)
-        makeTask(in: context, project: project, displayId: 7)
+        makeTask(in: context, project: project, displayId: 9999)
 
         let input = """
-        {"displayId":7,"status":"spec"}
+        {"displayId":9999,"status":"spec"}
         """
 
         let result = UpdateStatusIntent.execute(input: input, taskService: taskService)

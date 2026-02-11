@@ -14,8 +14,9 @@ struct FindTasksDateFilterTests {
     }
 
     @discardableResult
-    private func makeProject(in context: ModelContext) -> Project {
-        let project = Project(name: "Test Project", description: "A test project", gitRepo: nil, colorHex: "#FF0000")
+    private func makeProject(in context: ModelContext, name: String? = nil) -> Project {
+        let projectName = name ?? "FTDF-\(UUID().uuidString.prefix(8))"
+        let project = Project(name: projectName, description: "A test project", gitRepo: nil, colorHex: "#FF0000")
         context.insert(project)
         return project
     }
@@ -39,6 +40,7 @@ struct FindTasksDateFilterTests {
     }
 
     private func makeInput(
+        project: ProjectEntity? = nil,
         completionDateFilter: DateFilterOption? = nil,
         lastChangedFilter: DateFilterOption? = nil,
         completionFromDate: Date? = nil,
@@ -48,7 +50,7 @@ struct FindTasksDateFilterTests {
     ) -> FindTasksIntent.Input {
         FindTasksIntent.Input(
             type: nil,
-            project: nil,
+            project: project,
             status: nil,
             completionDateFilter: completionDateFilter,
             lastChangedFilter: lastChangedFilter,
@@ -73,8 +75,9 @@ struct FindTasksDateFilterTests {
         )
         doneLastWeek.completionDate = Calendar.current.date(byAdding: .day, value: -7, to: Date())
 
+        let entityP = ProjectEntity.from(project)
         let result = try FindTasksIntent.execute(
-            input: makeInput(completionDateFilter: .today),
+            input: makeInput(project: entityP, completionDateFilter: .today),
             modelContext: context
         )
         #expect(result.count == 1)
@@ -93,8 +96,9 @@ struct FindTasksDateFilterTests {
         )
         longAgo.completionDate = Calendar.current.date(byAdding: .day, value: -30, to: Date())
 
+        let entityP = ProjectEntity.from(project)
         let result = try FindTasksIntent.execute(
-            input: makeInput(completionDateFilter: .thisWeek),
+            input: makeInput(project: entityP, completionDateFilter: .thisWeek),
             modelContext: context
         )
         #expect(result.count == 1)
@@ -113,8 +117,9 @@ struct FindTasksDateFilterTests {
         )
         twoMonthsAgo.completionDate = Calendar.current.date(byAdding: .day, value: -60, to: Date())
 
+        let entityP = ProjectEntity.from(project)
         let result = try FindTasksIntent.execute(
-            input: makeInput(completionDateFilter: .thisMonth),
+            input: makeInput(project: entityP, completionDateFilter: .thisMonth),
             modelContext: context
         )
         #expect(result.count == 1)
@@ -141,8 +146,10 @@ struct FindTasksDateFilterTests {
         )
         outOfRange.completionDate = fmt.date(from: "2026-01-15")
 
+        let entityP = ProjectEntity.from(project)
         let result = try FindTasksIntent.execute(
             input: makeInput(
+                project: entityP,
                 completionDateFilter: .customRange,
                 completionFromDate: fmt.date(from: "2026-02-01"),
                 completionToDate: fmt.date(from: "2026-02-11")
@@ -164,8 +171,9 @@ struct FindTasksDateFilterTests {
         )
         done.completionDate = Date()
 
+        let entityP = ProjectEntity.from(project)
         let result = try FindTasksIntent.execute(
-            input: makeInput(completionDateFilter: .today),
+            input: makeInput(project: entityP, completionDateFilter: .today),
             modelContext: context
         )
         #expect(result.count == 1)
@@ -181,8 +189,9 @@ struct FindTasksDateFilterTests {
         let oldTask = makeTask(in: context, project: project, name: "Changed Last Week", displayId: 2)
         oldTask.lastStatusChangeDate = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
 
+        let entityP = ProjectEntity.from(project)
         let result = try FindTasksIntent.execute(
-            input: makeInput(lastChangedFilter: .today),
+            input: makeInput(project: entityP, lastChangedFilter: .today),
             modelContext: context
         )
         #expect(result.count == 1)

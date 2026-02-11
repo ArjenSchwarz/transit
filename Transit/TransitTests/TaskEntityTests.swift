@@ -155,6 +155,6 @@ struct TaskEntityTests {
             lastStatusChangeDate: Date(),
             completionDate: nil
         )
-        #expect(entity.displayRepresentation.title == "Fix Login Bug")
+        #expect(String(localized: entity.displayRepresentation.title) == "Fix Login Bug")
     }
 }

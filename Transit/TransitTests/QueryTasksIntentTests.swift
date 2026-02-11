@@ -64,13 +64,14 @@ struct QueryTasksIntentTests {
 
     @Test func noFiltersReturnsAllTasks() throws {
         let svc = try makeServices()
-        let project = makeProject(in: svc.context)
+        let project = makeProject(in: svc.context, name: "QTI-NoFilter-\(UUID().uuidString.prefix(8))")
         makeTask(in: svc.context, project: project, name: "Task A", displayId: 1)
         makeTask(in: svc.context, project: project, name: "Task B", displayId: 2)
         makeTask(in: svc.context, project: project, name: "Task C", displayId: 3)
 
         let result = QueryTasksIntent.execute(
-            input: "{}", projectService: svc.project, modelContext: svc.context
+            input: "{\"projectId\":\"\(project.id.uuidString)\"}",
+            projectService: svc.project, modelContext: svc.context
         )
 
         let parsed = try parseJSONArray(result)
@@ -79,11 +80,13 @@ struct QueryTasksIntentTests {
 
     @Test func emptyInputReturnsAllTasks() throws {
         let svc = try makeServices()
-        let project = makeProject(in: svc.context)
+        let project = makeProject(in: svc.context, name: "QTI-Empty-\(UUID().uuidString.prefix(8))")
         makeTask(in: svc.context, project: project, name: "Task A", displayId: 1)
 
+        // Empty input returns all tasks — filter by project to isolate from shared store
         let result = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, modelContext: svc.context
+            input: "{\"projectId\":\"\(project.id.uuidString)\"}",
+            projectService: svc.project, modelContext: svc.context
         )
 
         let parsed = try parseJSONArray(result)
@@ -94,13 +97,14 @@ struct QueryTasksIntentTests {
 
     @Test func statusFilterReturnsMatchingTasks() throws {
         let svc = try makeServices()
-        let project = makeProject(in: svc.context)
+        let project = makeProject(in: svc.context, name: "QTI-Status-\(UUID().uuidString.prefix(8))")
         makeTask(in: svc.context, project: project, name: "Idea Task", displayId: 1, status: .idea)
         makeTask(in: svc.context, project: project, name: "Planning Task", displayId: 2, status: .planning)
         makeTask(in: svc.context, project: project, name: "Another Idea", displayId: 3, status: .idea)
 
         let result = QueryTasksIntent.execute(
-            input: "{\"status\":\"idea\"}", projectService: svc.project, modelContext: svc.context
+            input: "{\"status\":\"idea\",\"projectId\":\"\(project.id.uuidString)\"}",
+            projectService: svc.project, modelContext: svc.context
         )
 
         let parsed = try parseJSONArray(result)
@@ -148,12 +152,13 @@ struct QueryTasksIntentTests {
 
     @Test func typeFilterReturnsMatchingTasks() throws {
         let svc = try makeServices()
-        let project = makeProject(in: svc.context)
+        let project = makeProject(in: svc.context, name: "QTI-Type-\(UUID().uuidString.prefix(8))")
         makeTask(in: svc.context, project: project, name: "Bug Task", type: .bug, displayId: 1)
         makeTask(in: svc.context, project: project, name: "Feature Task", type: .feature, displayId: 2)
 
         let result = QueryTasksIntent.execute(
-            input: "{\"type\":\"bug\"}", projectService: svc.project, modelContext: svc.context
+            input: "{\"type\":\"bug\",\"projectId\":\"\(project.id.uuidString)\"}",
+            projectService: svc.project, modelContext: svc.context
         )
 
         let parsed = try parseJSONArray(result)
@@ -165,11 +170,13 @@ struct QueryTasksIntentTests {
 
     @Test func responseContainsAllRequiredFields() throws {
         let svc = try makeServices()
-        let project = makeProject(in: svc.context)
-        makeTask(in: svc.context, project: project, displayId: 5)
+        let project = makeProject(in: svc.context, name: "QTI-Fields-\(UUID().uuidString.prefix(8))")
+        let task = makeTask(in: svc.context, project: project, displayId: 5, status: .done)
+        task.completionDate = Date()
 
         let result = QueryTasksIntent.execute(
-            input: "{}", projectService: svc.project, modelContext: svc.context
+            input: "{\"projectId\":\"\(project.id.uuidString)\"}",
+            projectService: svc.project, modelContext: svc.context
         )
 
         let parsed = try parseJSONArray(result)

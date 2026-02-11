@@ -72,7 +72,8 @@ struct TaskCreationResultTests {
         )
 
         let rep = result.displayRepresentation
-        #expect(String(describing: rep.title).contains("T-5"))
+        let title = String(localized: rep.title)
+        #expect(title.contains("T-5"))
     }
 
     @Test func displayRepresentationWithoutDisplayId() {
@@ -86,7 +87,8 @@ struct TaskCreationResultTests {
         )
 
         let rep = result.displayRepresentation
-        #expect(String(describing: rep.title).contains("Task created"))
+        let title = String(localized: rep.title)
+        #expect(title.contains("Task created"))
     }
 
     // MARK: - Factory Method

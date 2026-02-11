@@ -27,8 +27,9 @@ struct QueryAndDisplayIDIntegrationTests {
     }
 
     @discardableResult
-    private func makeProject(in context: ModelContext, name: String = "Test Project") -> Project {
-        let project = Project(name: name, description: "A test project", gitRepo: nil, colorHex: "#FF0000")
+    private func makeProject(in context: ModelContext, name: String? = nil) -> Project {
+        let projectName = name ?? "QADI-\(UUID().uuidString.prefix(8))"
+        let project = Project(name: projectName, description: "A test project", gitRepo: nil, colorHex: "#FF0000")
         context.insert(project)
         return project
     }
@@ -41,6 +42,10 @@ struct QueryAndDisplayIDIntegrationTests {
     private func parseJSONArray(_ string: String) throws -> [[String: Any]] {
         let data = try #require(string.data(using: .utf8))
         return try #require(try JSONSerialization.jsonObject(with: data) as? [[String: Any]])
+    }
+
+    private func tasksForProject(_ project: Project, in context: ModelContext) throws -> [TransitTask] {
+        try context.fetch(FetchDescriptor<TransitTask>()).filter { $0.project?.id == project.id }
     }
 
     // MARK: - Query Returns Filtered Results
@@ -62,17 +67,17 @@ struct QueryAndDisplayIDIntegrationTests {
             input: input2, taskService: svc.task, projectService: svc.project
         )
 
-        // Move Task A to planning
+        // Move Task A to planning using taskId (avoids displayId collisions in shared store)
         let parsed1 = try parseJSON(result1)
-        let displayId = parsed1["displayId"]
+        let taskId = try #require(parsed1["taskId"] as? String)
         let updateInput = """
-        {"displayId":\(displayId!),"status":"planning"}
+        {"taskId":"\(taskId)","status":"planning"}
         """
         _ = UpdateStatusIntent.execute(input: updateInput, taskService: svc.task)
 
-        // Query for idea tasks only
+        // Query for idea tasks scoped to this project
         let queryResult = QueryTasksIntent.execute(
-            input: "{\"status\":\"idea\"}",
+            input: "{\"projectId\":\"\(project.id.uuidString)\",\"status\":\"idea\"}",
             projectService: svc.project,
             modelContext: svc.context
         )
@@ -95,7 +100,8 @@ struct QueryAndDisplayIDIntegrationTests {
         )
 
         let queryResult = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, modelContext: svc.context
+            input: "{\"projectId\":\"\(project.id.uuidString)\"}",
+            projectService: svc.project, modelContext: svc.context
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.count == 2)
@@ -145,7 +151,7 @@ struct QueryAndDisplayIDIntegrationTests {
             }
         }
 
-        let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        let tasks = try tasksForProject(project, in: svc.context)
         #expect(tasks.count == 3)
 
         // If we got permanent IDs, verify they're unique and incrementing
@@ -167,7 +173,8 @@ struct QueryAndDisplayIDIntegrationTests {
         )
 
         let queryResult = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, modelContext: svc.context
+            input: "{\"projectId\":\"\(project.id.uuidString)\"}",
+            projectService: svc.project, modelContext: svc.context
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.count == 1)
@@ -178,7 +185,7 @@ struct QueryAndDisplayIDIntegrationTests {
         #expect(taskDict["status"] as? String == "idea")
         #expect(taskDict["type"] as? String == "research")
         #expect(taskDict["projectId"] is String)
-        #expect(taskDict["projectName"] as? String == "Test Project")
+        #expect(taskDict["projectName"] as? String == project.name)
         #expect(taskDict["lastStatusChangeDate"] is String)
     }
 }

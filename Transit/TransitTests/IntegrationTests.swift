@@ -28,8 +28,9 @@ struct IntentDashboardIntegrationTests {
     }
 
     @discardableResult
-    private func makeProject(in context: ModelContext, name: String = "Test Project") -> Project {
-        let project = Project(name: name, description: "A test project", gitRepo: nil, colorHex: "#FF0000")
+    private func makeProject(in context: ModelContext, name: String? = nil) -> Project {
+        let projectName = name ?? "IDI-\(UUID().uuidString.prefix(8))"
+        let project = Project(name: projectName, description: "A test project", gitRepo: nil, colorHex: "#FF0000")
         context.insert(project)
         return project
     }
@@ -39,8 +40,8 @@ struct IntentDashboardIntegrationTests {
         return try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 
-    private func allTasks(in context: ModelContext) throws -> [TransitTask] {
-        try context.fetch(FetchDescriptor<TransitTask>())
+    private func tasksForProject(_ project: Project, in context: ModelContext) throws -> [TransitTask] {
+        try context.fetch(FetchDescriptor<TransitTask>()).filter { $0.project?.id == project.id }
     }
 
     // MARK: - Intent Creates Task Visible on Dashboard
@@ -58,7 +59,7 @@ struct IntentDashboardIntegrationTests {
         let parsed = try parseJSON(result)
         #expect(parsed["status"] as? String == "idea")
 
-        let tasks = try allTasks(in: svc.context)
+        let tasks = try tasksForProject(project, in: svc.context)
         #expect(tasks.count == 1)
         #expect(tasks[0].name == "Intent Task")
 
@@ -85,7 +86,8 @@ struct IntentDashboardIntegrationTests {
             input: input2, taskService: svc.task, projectService: svc.project
         )
 
-        let tasks = try allTasks(in: svc.context)
+        let tasks = try tasksForProject(project, in: svc.context)
+            + tasksForProject(otherProject, in: svc.context)
         let columns = DashboardLogic.buildFilteredColumns(
             allTasks: tasks, selectedProjectIDs: [project.id]
         )
@@ -106,15 +108,15 @@ struct IntentDashboardIntegrationTests {
             input: createInput, taskService: svc.task, projectService: svc.project
         )
         let createParsed = try parseJSON(createResult)
-        let displayId = createParsed["displayId"]
+        let taskId = try #require(createParsed["taskId"] as? String)
 
-        var tasks = try allTasks(in: svc.context)
+        var tasks = try tasksForProject(project, in: svc.context)
         var columns = DashboardLogic.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
         #expect((columns[.idea] ?? []).count == 1)
 
-        // Update status via intent
+        // Update status via intent using taskId (avoids displayId collisions in shared store)
         let updateInput = """
-        {"displayId":\(displayId!),"status":"in-progress"}
+        {"taskId":"\(taskId)","status":"in-progress"}
         """
         let updateResult = UpdateStatusIntent.execute(input: updateInput, taskService: svc.task)
         let updateParsed = try parseJSON(updateResult)
@@ -122,7 +124,7 @@ struct IntentDashboardIntegrationTests {
         #expect(updateParsed["status"] as? String == "in-progress")
 
         // Verify task moved columns
-        tasks = try allTasks(in: svc.context)
+        tasks = try tasksForProject(project, in: svc.context)
         columns = DashboardLogic.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
         #expect((columns[.idea] ?? []).count == 0)
         #expect((columns[.inProgress] ?? []).count == 1)
@@ -139,14 +141,14 @@ struct IntentDashboardIntegrationTests {
             input: createInput, taskService: svc.task, projectService: svc.project
         )
         let createParsed = try parseJSON(createResult)
-        let displayId = createParsed["displayId"]
+        let taskId = try #require(createParsed["taskId"] as? String)
 
         let updateInput = """
-        {"displayId":\(displayId!),"status":"done"}
+        {"taskId":"\(taskId)","status":"done"}
         """
         _ = UpdateStatusIntent.execute(input: updateInput, taskService: svc.task)
 
-        let tasks = try allTasks(in: svc.context)
+        let tasks = try tasksForProject(project, in: svc.context)
         #expect(tasks[0].completionDate != nil)
 
         let columns = DashboardLogic.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
@@ -168,7 +170,7 @@ struct IntentDashboardIntegrationTests {
             )
         }
 
-        let tasks = try allTasks(in: svc.context)
+        let tasks = try tasksForProject(project, in: svc.context)
         #expect(tasks.count == 5)
 
         let columns = DashboardLogic.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])

@@ -34,7 +34,8 @@ struct TaskTypeAppEnumTests {
         let representations = TaskType.caseDisplayRepresentations
         for (type, expectedTitle) in expected {
             let repr = representations[type]
-            #expect(repr?.title == "\(expectedTitle)", "Expected \(expectedTitle) for \(type)")
+            let title = repr.map { String(localized: $0.title) }
+            #expect(title == expectedTitle, "Expected \(expectedTitle) for \(type)")
         }
     }
 }

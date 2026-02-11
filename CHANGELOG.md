@@ -29,6 +29,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Test isolation across all test suites: scoped queries by unique project names and projectId/ProjectEntity filters to prevent data leakage through the shared in-memory TestModelContainer singleton
+- `LocalizedStringResource` comparison in AppEnum tests: use `String(localized:)` instead of direct equality with string interpolation (static `"Idea"` creates key-based resource, `"\(variable)"` creates `%@` format-string resource — they render the same but don't compare equal)
+- `QueryTasksIntentTests.responseContainsAllRequiredFields`: test now creates a done task with completionDate set so the key appears in JSON output
+- `UpdateStatusIntentTests.responseContainsAllRequiredFields`: use unique displayId (9999) to avoid collisions in shared store
+- `IntentDashboardIntegrationTests` and `QueryAndDisplayIDIntegrationTests`: use taskId instead of displayId for status updates to avoid duplicate displayId collisions across test suites
+- `ProjectServiceTests.findProjectByNameWithWhitespaceWorks`: use unique project name to avoid ambiguity from shared store data
+
+### Added
+
+- Implementation explanation document (`specs/shortcuts-friendly-intents/implementation.md`) with beginner/intermediate/expert level explanations and completeness assessment
+
 - Pre-existing missing `import AppIntents` in ProjectEntityTests and TaskEntityTests
 - Pre-existing missing `import Foundation` in TaskServiceTests (for `Date.now`)
 - Pre-existing `sending` data race warning in TaskServiceTests

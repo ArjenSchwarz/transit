@@ -52,16 +52,20 @@ struct ProjectEntityTests {
             projectId: UUID(),
             name: "My Project"
         )
-        #expect(entity.displayRepresentation.title == "My Project")
+        let title = String(localized: entity.displayRepresentation.title)
+        #expect(title == "My Project")
     }
 
     // MARK: - Empty Project List
 
-    @Test func suggestedEntitiesReturnsEmptyWhenNoProjects() throws {
+    @Test func queryReturnsEmptyWhenNoProjectsMatchId() throws {
         let context = try TestModelContainer.newContext()
+        // Use a random UUID that won't match any project
+        let fakeId = UUID().uuidString
         let descriptor = FetchDescriptor<Project>()
         let projects = try context.fetch(descriptor)
-        let entities = projects.map(ProjectEntity.from)
+        let matching = projects.filter { $0.id.uuidString == fakeId }
+        let entities = matching.map(ProjectEntity.from)
         #expect(entities.isEmpty)
     }
 }

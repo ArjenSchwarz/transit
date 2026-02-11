@@ -65,19 +65,23 @@ struct FindTasksIntentTests {
 
     @Test func noFiltersReturnsAllTasks() throws {
         let context = try makeContext()
-        let project = makeProject(in: context)
+        let project = makeProject(in: context, name: "FTI-NoFilter-\(UUID().uuidString.prefix(8))")
         makeTask(in: context, project: project, name: "Task A", displayId: 1)
         makeTask(in: context, project: project, name: "Task B", displayId: 2)
         makeTask(in: context, project: project, name: "Task C", displayId: 3)
 
-        let result = try FindTasksIntent.execute(input: makeInput(), modelContext: context)
+        let entityP = ProjectEntity.from(project)
+        let result = try FindTasksIntent.execute(input: makeInput(project: entityP), modelContext: context)
         #expect(result.count == 3)
     }
 
     @Test func noTasksReturnsEmptyArray() throws {
         let context = try makeContext()
+        // Use a unique project with no tasks to isolate from shared store
+        let emptyProject = makeProject(in: context, name: "FTI-Empty-\(UUID().uuidString.prefix(8))")
+        let entityP = ProjectEntity.from(emptyProject)
 
-        let result = try FindTasksIntent.execute(input: makeInput(), modelContext: context)
+        let result = try FindTasksIntent.execute(input: makeInput(project: entityP), modelContext: context)
         #expect(result.isEmpty)
     }
 
@@ -85,12 +89,13 @@ struct FindTasksIntentTests {
 
     @Test func filterByType() throws {
         let context = try makeContext()
-        let project = makeProject(in: context)
+        let project = makeProject(in: context, name: "FTI-Type-\(UUID().uuidString.prefix(8))")
         makeTask(in: context, project: project, name: "Bug Task", type: .bug, displayId: 1)
         makeTask(in: context, project: project, name: "Feature Task", type: .feature, displayId: 2)
 
+        let entityP = ProjectEntity.from(project)
         let result = try FindTasksIntent.execute(
-            input: makeInput(type: .bug),
+            input: makeInput(type: .bug, project: entityP),
             modelContext: context
         )
         #expect(result.count == 1)
@@ -119,12 +124,13 @@ struct FindTasksIntentTests {
 
     @Test func filterByStatus() throws {
         let context = try makeContext()
-        let project = makeProject(in: context)
+        let project = makeProject(in: context, name: "FTI-Status-\(UUID().uuidString.prefix(8))")
         makeTask(in: context, project: project, name: "Idea Task", displayId: 1, status: .idea)
         makeTask(in: context, project: project, name: "Done Task", displayId: 2, status: .done)
 
+        let entityP = ProjectEntity.from(project)
         let result = try FindTasksIntent.execute(
-            input: makeInput(status: .done),
+            input: makeInput(project: entityP, status: .done),
             modelContext: context
         )
         #expect(result.count == 1)
@@ -198,7 +204,7 @@ struct FindTasksIntentTests {
 
     @Test func resultsSortedByLastStatusChangeDateDescending() throws {
         let context = try makeContext()
-        let project = makeProject(in: context)
+        let project = makeProject(in: context, name: "FTI-Sort-\(UUID().uuidString.prefix(8))")
 
         let older = makeTask(in: context, project: project, name: "Older", displayId: 1)
         older.lastStatusChangeDate = Calendar.current.date(byAdding: .hour, value: -2, to: Date())!
@@ -208,7 +214,8 @@ struct FindTasksIntentTests {
 
         makeTask(in: context, project: project, name: "Newest", displayId: 3)
 
-        let result = try FindTasksIntent.execute(input: makeInput(), modelContext: context)
+        let entityP = ProjectEntity.from(project)
+        let result = try FindTasksIntent.execute(input: makeInput(project: entityP), modelContext: context)
         #expect(result.count == 3)
         #expect(result[0].name == "Newest")
         #expect(result[1].name == "Newer")
@@ -233,13 +240,14 @@ struct FindTasksIntentTests {
 
     @Test func resultEntitiesHaveCorrectProperties() throws {
         let context = try makeContext()
-        let project = makeProject(in: context, name: "My Project")
+        let project = makeProject(in: context, name: "FTI-Props-\(UUID().uuidString.prefix(8))")
         let task = makeTask(
             in: context, project: project, name: "My Task", type: .bug,
             displayId: 42, status: .inProgress
         )
 
-        let result = try FindTasksIntent.execute(input: makeInput(), modelContext: context)
+        let entityP = ProjectEntity.from(project)
+        let result = try FindTasksIntent.execute(input: makeInput(project: entityP), modelContext: context)
         #expect(result.count == 1)
 
         let entity = try #require(result.first)
@@ -249,6 +257,6 @@ struct FindTasksIntentTests {
         #expect(entity.status == "in-progress")
         #expect(entity.type == "bug")
         #expect(entity.projectId == project.id)
-        #expect(entity.projectName == "My Project")
+        #expect(entity.projectName == project.name)
     }
 }
