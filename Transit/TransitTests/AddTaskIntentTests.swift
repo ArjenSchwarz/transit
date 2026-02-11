@@ -73,6 +73,25 @@ struct AddTaskIntentTests {
         #expect(allTasks[0].name == "Trim me")
     }
 
+    @Test func executeParsesMetadataKeyValuePairs() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        _ = try await AddTaskIntent.execute(
+            name: "Metadata Task",
+            taskDescription: nil,
+            type: .feature,
+            project: makeEntity(from: project),
+            metadata: "priority=high, source=shortcut",
+            services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
+        )
+
+        let allTasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(allTasks.count == 1)
+        #expect(allTasks[0].metadata["priority"] == "high")
+        #expect(allTasks[0].metadata["source"] == "shortcut")
+    }
+
     @Test func executeThrowsInvalidInputForEmptyName() async throws {
         let svc = try makeServices()
         let project = makeProject(in: svc.context)
@@ -112,6 +131,22 @@ struct AddTaskIntentTests {
             default:
                 Issue.record("Expected noProjects error, got \(error.code)")
             }
+        }
+    }
+
+    @Test func executeThrowsInvalidInputForMalformedMetadata() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        await #expect(throws: VisualIntentError.self) {
+            _ = try await AddTaskIntent.execute(
+                name: "Task",
+                taskDescription: nil,
+                type: .feature,
+                project: makeEntity(from: project),
+                metadata: "priority=high,bad-entry",
+                services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
+            )
         }
     }
 

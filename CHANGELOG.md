@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Visual `AddTaskIntent` now supports optional metadata input as comma-separated `key=value` pairs (for example: `priority=high,source=shortcut`) and persists it on created tasks.
+- Metadata-focused coverage for visual task creation:
+  - `AddTaskIntentTests` now verifies valid metadata parsing and malformed metadata rejection.
+  - `AddTaskIntentIntegrationTests` now verifies persisted metadata values end-to-end.
 - `IntentCompatibilityAndDiscoverabilityTests` regression suite to lock Shortcuts discoverability and backward-compatibility contracts:
   - intent title stability for legacy and visual intents
   - shortcut provider registration count for all five intents

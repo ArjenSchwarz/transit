@@ -68,4 +68,23 @@ struct AddTaskIntentIntegrationTests {
         #expect(entities[0].name == "Queryable Task")
         #expect(entities[0].status == "idea")
     }
+
+    @Test func addTaskIntentPersistsMetadataFromInputString() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        _ = try await AddTaskIntent.execute(
+            name: "Metadata Integration Task",
+            taskDescription: nil,
+            type: .feature,
+            project: ProjectEntity.from(project),
+            metadata: "priority=high,source=shortcut",
+            services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
+        )
+
+        let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.count == 1)
+        #expect(tasks[0].metadata["priority"] == "high")
+        #expect(tasks[0].metadata["source"] == "shortcut")
+    }
 }
