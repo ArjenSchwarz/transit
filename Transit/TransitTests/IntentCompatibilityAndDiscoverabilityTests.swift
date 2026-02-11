@@ -135,7 +135,8 @@ struct IntentCompatibilityTests {
         #expect(first["type"] as? String == "feature")
         #expect(first["projectId"] as? String == project.id.uuidString)
         #expect(first["projectName"] as? String == project.name)
-        #expect(first.keys.contains("completionDate"))
+        // completionDate omitted for non-completed tasks (nil = key absent)
+        #expect(!first.keys.contains("completionDate"))
         #expect(first.keys.contains("lastStatusChangeDate"))
     }
 }

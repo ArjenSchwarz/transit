@@ -10,7 +10,7 @@ struct TransitShortcuts: AppShortcutsProvider {
                 "Log a \(.applicationName) task"
             ],
             shortTitle: "Add Task",
-            systemImageName: "plus.square"
+            systemImageName: "plus.circle.fill"
         )
 
         AppShortcut(
@@ -53,7 +53,7 @@ struct TransitShortcuts: AppShortcutsProvider {
                 "Filter tasks in \(.applicationName)"
             ],
             shortTitle: "Find Tasks",
-            systemImageName: "line.3.horizontal.decrease.circle"
+            systemImageName: "magnifyingglass.circle.fill"
         )
     }
 }

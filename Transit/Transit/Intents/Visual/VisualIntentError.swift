@@ -1,6 +1,6 @@
 import Foundation
 
-enum VisualIntentError: LocalizedError {
+enum VisualIntentError: LocalizedError, Equatable {
     case noProjects
     case invalidInput(String)
     case invalidDate(String)
