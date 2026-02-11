@@ -11,21 +11,21 @@ references:
 - [x] 1. Implement TaskStatus AppEnum conformance <!-- id:2ds0b3t -->
   - Stream: 1
   - Requirements: [5.6](requirements.md#5.6), [5.7](requirements.md#5.7), [5.10](requirements.md#5.10)
-  - [ ] 1.1. Write unit tests for TaskStatus AppEnum <!-- id:2ds0b40 -->
+  - [x] 1.1. Write unit tests for TaskStatus AppEnum <!-- id:2ds0b40 -->
     - Stream: 1
-  - [ ] 1.2. Implement AppEnum protocol conformance with display names <!-- id:2ds0b41 -->
+  - [x] 1.2. Implement AppEnum protocol conformance with display names <!-- id:2ds0b41 -->
     - Stream: 1
-  - [ ] 1.3. Mark static properties as nonisolated to avoid MainActor conflicts <!-- id:2ds0b42 -->
+  - [x] 1.3. Mark static properties as nonisolated to avoid MainActor conflicts <!-- id:2ds0b42 -->
     - Stream: 1
 
-- [ ] 2. Implement TaskType AppEnum conformance <!-- id:2ds0b3u -->
+- [x] 2. Implement TaskType AppEnum conformance <!-- id:2ds0b3u -->
   - Stream: 1
   - Requirements: [5.8](requirements.md#5.8), [5.9](requirements.md#5.9), [5.10](requirements.md#5.10)
-  - [ ] 2.1. Write unit tests for TaskType AppEnum <!-- id:2ds0b43 -->
+  - [x] 2.1. Write unit tests for TaskType AppEnum <!-- id:2ds0b43 -->
     - Stream: 1
-  - [ ] 2.2. Implement AppEnum protocol conformance with display names <!-- id:2ds0b44 -->
+  - [x] 2.2. Implement AppEnum protocol conformance with display names <!-- id:2ds0b44 -->
     - Stream: 1
-  - [ ] 2.3. Mark static properties as nonisolated to avoid MainActor conflicts <!-- id:2ds0b45 -->
+  - [x] 2.3. Mark static properties as nonisolated to avoid MainActor conflicts <!-- id:2ds0b45 -->
     - Stream: 1
 
 - [ ] 3. Implement VisualIntentError enum <!-- id:2ds0b3v -->
