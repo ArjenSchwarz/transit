@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `FindTasksIntent` visual Shortcuts intent ("Transit: Find Tasks") with native dropdown filters for task type, project, status, and date ranges
+- `DateFilterOption` AppEnum with relative (today, this-week, this-month) and custom-range options for visual date filtering
+- Nested `ParameterSummary` with `When` clauses showing conditional from/to date pickers only when custom-range is selected
+- FindTasksIntent AppShortcut entry in `TransitShortcuts` with Siri phrases
+- Unit tests for FindTasksIntent (16 tests covering all filter types, AND logic, sort order, 200-result limit, entity properties)
+- Date filter unit tests for FindTasksIntent (6 tests covering relative dates, custom ranges, nil date exclusion)
+- Integration tests for FindTasksIntent (7 tests verifying AddTask → FindTasks end-to-end flow)
+
 - Date filtering for QueryTasksIntent: `completionDate` and `lastStatusChangeDate` filters with relative ranges (today, this-week, this-month) and absolute ISO 8601 date ranges
 - `AddTaskIntent` visual Shortcuts intent ("Transit: Add Task") with native parameter dropdowns for type and project selection
 - `TaskCreationResult` AppEntity returned by AddTaskIntent with display ID, status, and project metadata

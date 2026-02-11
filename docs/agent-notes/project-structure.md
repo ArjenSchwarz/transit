@@ -24,7 +24,9 @@ Transit/Transit/
 │   ├── AddTask/               # AddTaskSheet
 │   ├── Settings/              # SettingsView, ProjectEditView
 │   └── Shared/                # Reusable components
-├── Intents/                   # App Intents for CLI integration
+├── Intents/                   # App Intents for CLI and Shortcuts integration
+│   ├── Visual/                # Shortcuts-friendly visual intents (AddTask, FindTasks)
+│   └── Shared/                # Entities, Enums, Results, Utilities
 └── Extensions/                # Color+Codable, Date+TransitHelpers
 ```
 
