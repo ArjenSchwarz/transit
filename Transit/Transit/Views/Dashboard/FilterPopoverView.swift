@@ -48,7 +48,7 @@ struct FilterPopoverView: View {
                 }
             }
         }
-        .frame(minWidth: 200)
+        .frame(minWidth: 200, minHeight: 300)
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }
