@@ -41,9 +41,9 @@ references:
 - [ ] 4. Implement ProjectEntity and ProjectEntityQuery <!-- id:2ds0b3w -->
   - Stream: 1
   - Requirements: [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5)
-  - [ ] 4.1. Write unit tests for ProjectEntity <!-- id:2ds0b49 -->
+  - [x] 4.1. Write unit tests for ProjectEntity <!-- id:2ds0b49 -->
     - Stream: 1
-  - [ ] 4.2. Implement ProjectEntity with id and name properties <!-- id:2ds0b4a -->
+  - [x] 4.2. Implement ProjectEntity with id and name properties <!-- id:2ds0b4a -->
     - Stream: 1
   - [ ] 4.3. Implement ProjectEntityQuery to fetch projects from ModelContext <!-- id:2ds0b4b -->
     - Stream: 1
