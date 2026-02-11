@@ -5,15 +5,26 @@ import SwiftData
 /// EntityQuery for ProjectEntity, fetches available projects from SwiftData.
 /// Returns empty array when no projects exist (graceful degradation).
 struct ProjectEntityQuery: EntityQuery {
+    @Dependency
+    private var projectService: ProjectService
+
     @MainActor
     func entities(for identifiers: [String]) async throws -> [ProjectEntity] {
-        // Stub implementation - will be completed in task 4.3
-        []
+        let uuids = identifiers.compactMap { UUID(uuidString: $0) }
+        
+        let descriptor = FetchDescriptor<Project>()
+        let allProjects = (try? projectService.context.fetch(descriptor)) ?? []
+        
+        return allProjects
+            .filter { uuids.contains($0.id) }
+            .map(ProjectEntity.from)
     }
 
     @MainActor
     func suggestedEntities() async throws -> [ProjectEntity] {
-        // Stub implementation - will be completed in task 4.3
-        []
+        let descriptor = FetchDescriptor<Project>()
+        let allProjects = (try? projectService.context.fetch(descriptor)) ?? []
+        
+        return allProjects.map(ProjectEntity.from)
     }
 }
