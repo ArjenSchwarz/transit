@@ -28,7 +28,7 @@ references:
   - [x] 2.3. Mark static properties as nonisolated to avoid MainActor conflicts <!-- id:2ds0b45 -->
     - Stream: 1
 
-- [ ] 3. Implement VisualIntentError enum <!-- id:2ds0b3v -->
+- [x] 3. Implement VisualIntentError enum <!-- id:2ds0b3v -->
   - Stream: 1
   - Requirements: [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4), [7.5](requirements.md#7.5), [7.6](requirements.md#7.6), [7.7](requirements.md#7.7), [7.8](requirements.md#7.8), [7.9](requirements.md#7.9)
   - [ ] 3.1. Write unit tests for VisualIntentError <!-- id:2ds0b46 -->
