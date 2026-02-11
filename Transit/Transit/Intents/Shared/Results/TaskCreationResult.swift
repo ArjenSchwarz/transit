@@ -3,7 +3,7 @@ import Foundation
 /// Result type returned by AddTaskIntent after successful task creation.
 /// Contains all essential task information for Shortcuts automation.
 /// [req 2.10, 4.8, 4.9]
-struct TaskCreationResult {
+struct TaskCreationResult: Codable, Sendable {
     /// The unique identifier of the created task
     let taskId: UUID
     

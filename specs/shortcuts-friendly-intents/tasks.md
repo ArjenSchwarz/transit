@@ -124,7 +124,7 @@ references:
   - [x] 9.3. Use standard Swift types for Shortcuts serialization <!-- id:2ds0b52 -->
     - Stream: 3
 
-- [ ] 10. Implement AddTaskIntent (Transit: Add Task) <!-- id:2ds0b53 -->
+- [x] 10. Implement AddTaskIntent (Transit: Add Task) <!-- id:2ds0b53 -->
   - Blocked-by: 2ds0b3w (Implement ProjectEntity and ProjectEntityQuery), 2ds0b3x (Implement TaskEntity struct), 2ds0b4z (Implement TaskCreationResult struct)
   - Stream: 3
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [2.6](requirements.md#2.6), [2.7](requirements.md#2.7), [2.8](requirements.md#2.8), [2.11](requirements.md#2.11), [2.12](requirements.md#2.12), [2.13](requirements.md#2.13)
