@@ -85,11 +85,14 @@ struct CreateTaskIntent: AppIntent {
             return IntentError.invalidInput(hint: "Task creation failed").json
         }
 
-        return IntentHelpers.encodeJSON([
+        var response: [String: Any] = [
             "taskId": task.id.uuidString,
-            "displayId": task.permanentDisplayId as Any,
             "status": task.statusRawValue
-        ])
+        ]
+        if let displayId = task.permanentDisplayId {
+            response["displayId"] = displayId
+        }
+        return IntentHelpers.encodeJSON(response)
     }
 
     // MARK: - Private Helpers

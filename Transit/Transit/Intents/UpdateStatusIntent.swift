@@ -17,9 +17,10 @@ struct UpdateStatusIntent: AppIntent {
     @Parameter(
         title: "Input JSON",
         description: """
-        JSON object with "displayId" (integer, e.g. 42 for T-42) and "status" (idea | planning | spec | \
-        ready-for-implementation | in-progress | ready-for-review | done | abandoned). \
-        Example: {"displayId": 42, "status": "in-progress"}
+        JSON object with a task identifier and "status". Identify the task with either "displayId" \
+        (integer, e.g. 42 for T-42) or "taskId" (UUID string). "status" must be one of: idea | planning | \
+        spec | ready-for-implementation | in-progress | ready-for-review | done | abandoned. \
+        Examples: {"displayId": 42, "status": "in-progress"} or {"taskId": "...", "status": "done"}
         """
     )
     var input: String
@@ -41,10 +42,6 @@ struct UpdateStatusIntent: AppIntent {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json
         }
 
-        guard let displayId = json["displayId"] as? Int else {
-            return IntentError.invalidInput(hint: "Missing required field: displayId").json
-        }
-
         guard let statusString = json["status"] as? String else {
             return IntentError.invalidInput(hint: "Missing required field: status").json
         }
@@ -53,10 +50,20 @@ struct UpdateStatusIntent: AppIntent {
         }
 
         let task: TransitTask
-        do {
-            task = try taskService.findByDisplayID(displayId)
-        } catch {
-            return IntentError.taskNotFound(hint: "No task with displayId \(displayId)").json
+        if let displayId = json["displayId"] as? Int {
+            do {
+                task = try taskService.findByDisplayID(displayId)
+            } catch {
+                return IntentError.taskNotFound(hint: "No task with displayId \(displayId)").json
+            }
+        } else if let taskIdString = json["taskId"] as? String, let taskId = UUID(uuidString: taskIdString) {
+            do {
+                task = try taskService.findByID(taskId)
+            } catch {
+                return IntentError.taskNotFound(hint: "No task with taskId \(taskIdString)").json
+            }
+        } else {
+            return IntentError.invalidInput(hint: "Provide either displayId (integer) or taskId (UUID)").json
         }
 
         let previousStatus = task.statusRawValue
@@ -66,10 +73,14 @@ struct UpdateStatusIntent: AppIntent {
             return IntentError.invalidInput(hint: "Status update failed").json
         }
 
-        return IntentHelpers.encodeJSON([
-            "displayId": displayId,
+        var response: [String: Any] = [
+            "taskId": task.id.uuidString,
             "previousStatus": previousStatus,
             "status": newStatus.rawValue
-        ])
+        ]
+        if let displayId = task.permanentDisplayId {
+            response["displayId"] = displayId
+        }
+        return IntentHelpers.encodeJSON(response)
     }
 }
