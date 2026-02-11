@@ -205,28 +205,28 @@ references:
 - [x] 14. End-to-end intent testing <!-- id:2ds0b5z -->
   - Blocked-by: 2ds0b4r (Enhance QueryTasksIntent with date filtering), 2ds0b53 (Implement AddTaskIntent (Transit: Add Task)), 2ds0b5h (Implement FindTasksIntent (Transit: Find Tasks))
   - Stream: 5
-  - [ ] 14.1. Test all three intents via Shortcuts interface <!-- id:2ds0b60 -->
+  - [x] 14.1. Test all three intents via Shortcuts interface <!-- id:2ds0b60 -->
     - Stream: 5
-  - [ ] 14.2. Verify intent discoverability in Shortcuts app <!-- id:2ds0b61 -->
+  - [x] 14.2. Verify intent discoverability in Shortcuts app <!-- id:2ds0b61 -->
     - Stream: 5
-  - [ ] 14.3. Test error handling for all error cases <!-- id:2ds0b62 -->
+  - [x] 14.3. Test error handling for all error cases <!-- id:2ds0b62 -->
     - Stream: 5
-  - [ ] 14.4. Test conditional parameter display (custom-range dates) <!-- id:2ds0b63 -->
+  - [x] 14.4. Test conditional parameter display (custom-range dates) <!-- id:2ds0b63 -->
     - Stream: 5
-  - [ ] 14.5. Verify TaskEntity properties are accessible in Shortcuts <!-- id:2ds0b64 -->
+  - [x] 14.5. Verify TaskEntity properties are accessible in Shortcuts <!-- id:2ds0b64 -->
     - Stream: 5
 
 - [x] 15. Backward compatibility verification <!-- id:2ds0b65 -->
   - Blocked-by: 2ds0b4r (Enhance QueryTasksIntent with date filtering)
   - Stream: 5
   - Requirements: [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [6.5](requirements.md#6.5), [6.6](requirements.md#6.6), [6.7](requirements.md#6.7), [6.8](requirements.md#6.8)
-  - [ ] 15.1. Test existing QueryTasksIntent without date filters <!-- id:2ds0b66 -->
+  - [x] 15.1. Test existing QueryTasksIntent without date filters <!-- id:2ds0b66 -->
     - Stream: 5
-  - [ ] 15.2. Test existing CreateTaskIntent with current JSON format <!-- id:2ds0b67 -->
+  - [x] 15.2. Test existing CreateTaskIntent with current JSON format <!-- id:2ds0b67 -->
     - Stream: 5
-  - [ ] 15.3. Test existing UpdateStatusIntent unchanged <!-- id:2ds0b68 -->
+  - [x] 15.3. Test existing UpdateStatusIntent unchanged <!-- id:2ds0b68 -->
     - Stream: 5
-  - [ ] 15.4. Verify all existing intent names remain unchanged <!-- id:2ds0b69 -->
+  - [x] 15.4. Verify all existing intent names remain unchanged <!-- id:2ds0b69 -->
     - Stream: 5
-  - [ ] 15.5. Verify JSON input/output formats unchanged for existing intents <!-- id:2ds0b6a -->
+  - [x] 15.5. Verify JSON input/output formats unchanged for existing intents <!-- id:2ds0b6a -->
     - Stream: 5

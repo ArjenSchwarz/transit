@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Comprehensive manual testing checklist for Shortcuts-Friendly Intents feature with 50 test cases covering intent discoverability, task creation, task search, date filtering, error handling, and backward compatibility
+- Quick start guide for manual testing with setup instructions, quick test scenarios, testing tips, and troubleshooting guidance
+
+### Added
+
 - Orbit session data (variant comparison, consolidation reports, human-readable transcripts) tracked in git for documentation
 
 ### Changed
