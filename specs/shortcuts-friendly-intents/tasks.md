@@ -92,23 +92,23 @@ references:
 
 ## Enhanced Query Intent
 
-- [ ] 8. Enhance QueryTasksIntent with date filtering <!-- id:2ds0b4r -->
+- [x] 8. Enhance QueryTasksIntent with date filtering <!-- id:2ds0b4r -->
   - Blocked-by: 2ds0b3z (Implement DateFilterHelpers utility)
   - Stream: 2
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [1.7](requirements.md#1.7), [1.8](requirements.md#1.8), [1.9](requirements.md#1.9), [1.10](requirements.md#1.10), [1.11](requirements.md#1.11), [1.12](requirements.md#1.12)
-  - [ ] 8.1. Write unit tests for date filtering in QueryTasksIntent <!-- id:2ds0b4s -->
+  - [x] 8.1. Write unit tests for date filtering in QueryTasksIntent <!-- id:2ds0b4s -->
     - Stream: 2
-  - [ ] 8.2. Add DateRangeFilter codable type with from/to properties <!-- id:2ds0b4t -->
+  - [x] 8.2. Add DateRangeFilter codable type with from/to properties <!-- id:2ds0b4t -->
     - Stream: 2
-  - [ ] 8.3. Add optional completionDate and lastStatusChangeDate filter parameters <!-- id:2ds0b4u -->
+  - [x] 8.3. Add optional completionDate and lastStatusChangeDate filter parameters <!-- id:2ds0b4u -->
     - Stream: 2
-  - [ ] 8.4. Update JSON schema to support relative and absolute date ranges <!-- id:2ds0b4v -->
+  - [x] 8.4. Update JSON schema to support relative and absolute date ranges <!-- id:2ds0b4v -->
     - Stream: 2
-  - [ ] 8.5. Implement filter logic using DateFilterHelpers <!-- id:2ds0b4w -->
+  - [x] 8.5. Implement filter logic using DateFilterHelpers <!-- id:2ds0b4w -->
     - Stream: 2
-  - [ ] 8.6. Update parameter description with date filter examples <!-- id:2ds0b4x -->
+  - [x] 8.6. Update parameter description with date filter examples <!-- id:2ds0b4x -->
     - Stream: 2
-  - [ ] 8.7. Test backward compatibility with existing queries <!-- id:2ds0b4y -->
+  - [x] 8.7. Test backward compatibility with existing queries <!-- id:2ds0b4y -->
     - Stream: 2
 
 ## Visual Task Creation Intent

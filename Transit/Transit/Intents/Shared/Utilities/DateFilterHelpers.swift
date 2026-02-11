@@ -19,7 +19,19 @@ enum DateFilterHelpers {
     }()
 
     static func parseDateFilter(_ json: [String: Any]) -> DateRange? {
-        if let relative = json["relative"] as? String {
+        parseDateFilter(
+            relative: json["relative"] as? String,
+            from: json["from"] as? String,
+            toDateString: json["to"] as? String
+        )
+    }
+
+    static func parseDateFilter(
+        relative: String?,
+        from: String?,
+        toDateString: String?
+    ) -> DateRange? {
+        if let relative {
             switch relative {
             case "today":
                 return .today
@@ -32,18 +44,18 @@ enum DateFilterHelpers {
             }
         }
 
-        let from = (json["from"] as? String).flatMap(dateFromString)
-        let toDate = (json["to"] as? String).flatMap(dateFromString)
+        let fromDate = from.flatMap(dateFromString)
+        let toDate = toDateString.flatMap(dateFromString)
 
-        if json["from"] != nil && from == nil {
+        if from != nil && fromDate == nil {
             return nil
         }
-        if json["to"] != nil && toDate == nil {
+        if toDateString != nil && toDate == nil {
             return nil
         }
 
-        if json["from"] != nil || json["to"] != nil {
-            return .absolute(from: from, toDate: toDate)
+        if from != nil || toDateString != nil {
+            return .absolute(from: fromDate, toDate: toDate)
         }
 
         return nil

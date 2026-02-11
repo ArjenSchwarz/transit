@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Dedicated `QueryTasksIntentDateFilterTests` suite covering relative/absolute date filters, precedence rules, invalid date input handling, and legacy non-date query compatibility
 - Orbit session data (variant comparison, consolidation reports, human-readable transcripts) tracked in git for documentation
 - Shared Shortcuts intent infrastructure for `shortcuts-friendly-intents` phase 1:
   - `TaskStatus` and `TaskType` `AppEnum` conformances for reusable Shortcuts dropdown display values
@@ -18,6 +19,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `QueryTasksIntent` now decodes typed JSON filters with codable date-range support for `completionDate` and `lastStatusChangeDate` (`relative` or `from`/`to`)
+- Date-filter validation now rejects malformed date ranges with an `INVALID_INPUT` error before query execution
+- Query filtering now runs in a single pass with reserved result capacity to reduce intermediate array allocations
+- `DateFilterHelpers` now supports direct `relative`/`from`/`to` parsing in addition to dictionary-based parsing
 - `CLAUDE.md` rewritten to reflect current architecture: added service layer, navigation pattern, theme system, SwiftData+CloudKit constraints, Swift 6 MainActor isolation gotchas, Liquid Glass constraints, and test infrastructure details; removed incorrect `.materialBackground()` reference
 - `README.md` expanded from stub to full project documentation with features, requirements, build commands, CLI usage, and documentation pointers
 - `.gitignore` updated to selectively allow `.orbit` directories while blocking cost/billing data, raw API logs, and working trees
