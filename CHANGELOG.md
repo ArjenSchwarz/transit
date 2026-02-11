@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `TaskStatus` AppEnum conformance with human-readable display names and `nonisolated` static properties for Shortcuts dropdown integration
+- `TaskType` AppEnum conformance with display names for Shortcuts dropdown integration
+- `VisualIntentError` enum conforming to `LocalizedError` with six error cases (noProjects, invalidInput, invalidDate, projectNotFound, taskNotFound, taskCreationFailed) providing errorDescription, failureReason, and recoverySuggestion
+- `ProjectEntity` AppEntity with `ProjectEntityQuery` for project picker dropdowns in Shortcuts
+- `TaskEntity` AppEntity with throwing `from(_:)` factory method for data integrity validation and `compactMap`-based CloudKit sync resilience
+- `TaskEntityQuery` EntityQuery using fetch-then-filter pattern for SwiftData predicate compatibility
+- `DateFilterHelpers` utility with relative date ranges (today, this-week, this-month), absolute ISO 8601 date ranges, Calendar.current-based comparisons, and inclusive boundary handling
+- Unit tests for all new shared infrastructure: AppEnum conformances, VisualIntentError, ProjectEntity, TaskEntity, TaskEntityQuery, and DateFilterHelpers (30+ date range scenarios)
+
 - Orbit session data (variant comparison, consolidation reports, human-readable transcripts) tracked in git for documentation
 
 ### Changed

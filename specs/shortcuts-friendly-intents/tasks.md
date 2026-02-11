@@ -8,86 +8,86 @@ references:
 
 ## Foundation: Shared Infrastructure
 
-- [ ] 1. Implement TaskStatus AppEnum conformance <!-- id:2ds0b3t -->
+- [x] 1. Implement TaskStatus AppEnum conformance <!-- id:2ds0b3t -->
   - Stream: 1
   - Requirements: [5.6](requirements.md#5.6), [5.7](requirements.md#5.7), [5.10](requirements.md#5.10)
-  - [ ] 1.1. Write unit tests for TaskStatus AppEnum <!-- id:2ds0b40 -->
+  - [x] 1.1. Write unit tests for TaskStatus AppEnum <!-- id:2ds0b40 -->
     - Stream: 1
-  - [ ] 1.2. Implement AppEnum protocol conformance with display names <!-- id:2ds0b41 -->
+  - [x] 1.2. Implement AppEnum protocol conformance with display names <!-- id:2ds0b41 -->
     - Stream: 1
-  - [ ] 1.3. Mark static properties as nonisolated to avoid MainActor conflicts <!-- id:2ds0b42 -->
+  - [x] 1.3. Mark static properties as nonisolated to avoid MainActor conflicts <!-- id:2ds0b42 -->
     - Stream: 1
 
-- [ ] 2. Implement TaskType AppEnum conformance <!-- id:2ds0b3u -->
+- [x] 2. Implement TaskType AppEnum conformance <!-- id:2ds0b3u -->
   - Stream: 1
   - Requirements: [5.8](requirements.md#5.8), [5.9](requirements.md#5.9), [5.10](requirements.md#5.10)
-  - [ ] 2.1. Write unit tests for TaskType AppEnum <!-- id:2ds0b43 -->
+  - [x] 2.1. Write unit tests for TaskType AppEnum <!-- id:2ds0b43 -->
     - Stream: 1
-  - [ ] 2.2. Implement AppEnum protocol conformance with display names <!-- id:2ds0b44 -->
+  - [x] 2.2. Implement AppEnum protocol conformance with display names <!-- id:2ds0b44 -->
     - Stream: 1
-  - [ ] 2.3. Mark static properties as nonisolated to avoid MainActor conflicts <!-- id:2ds0b45 -->
+  - [x] 2.3. Mark static properties as nonisolated to avoid MainActor conflicts <!-- id:2ds0b45 -->
     - Stream: 1
 
-- [ ] 3. Implement VisualIntentError enum <!-- id:2ds0b3v -->
+- [x] 3. Implement VisualIntentError enum <!-- id:2ds0b3v -->
   - Stream: 1
   - Requirements: [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4), [7.5](requirements.md#7.5), [7.6](requirements.md#7.6), [7.7](requirements.md#7.7), [7.8](requirements.md#7.8), [7.9](requirements.md#7.9)
-  - [ ] 3.1. Write unit tests for VisualIntentError <!-- id:2ds0b46 -->
+  - [x] 3.1. Write unit tests for VisualIntentError <!-- id:2ds0b46 -->
     - Stream: 1
-  - [ ] 3.2. Implement LocalizedError conformance with error codes <!-- id:2ds0b47 -->
+  - [x] 3.2. Implement LocalizedError conformance with error codes <!-- id:2ds0b47 -->
     - Stream: 1
-  - [ ] 3.3. Add all error cases: noProjects, invalidInput, invalidDate, projectNotFound, taskNotFound, taskCreationFailed <!-- id:2ds0b48 -->
+  - [x] 3.3. Add all error cases: noProjects, invalidInput, invalidDate, projectNotFound, taskNotFound, taskCreationFailed <!-- id:2ds0b48 -->
     - Stream: 1
 
-- [ ] 4. Implement ProjectEntity and ProjectEntityQuery <!-- id:2ds0b3w -->
+- [x] 4. Implement ProjectEntity and ProjectEntityQuery <!-- id:2ds0b3w -->
   - Stream: 1
   - Requirements: [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5)
-  - [ ] 4.1. Write unit tests for ProjectEntity <!-- id:2ds0b49 -->
+  - [x] 4.1. Write unit tests for ProjectEntity <!-- id:2ds0b49 -->
     - Stream: 1
-  - [ ] 4.2. Implement ProjectEntity with id and name properties <!-- id:2ds0b4a -->
+  - [x] 4.2. Implement ProjectEntity with id and name properties <!-- id:2ds0b4a -->
     - Stream: 1
-  - [ ] 4.3. Implement ProjectEntityQuery to fetch projects from ModelContext <!-- id:2ds0b4b -->
+  - [x] 4.3. Implement ProjectEntityQuery to fetch projects from ModelContext <!-- id:2ds0b4b -->
     - Stream: 1
-  - [ ] 4.4. Handle empty project list gracefully <!-- id:2ds0b4c -->
+  - [x] 4.4. Handle empty project list gracefully <!-- id:2ds0b4c -->
     - Stream: 1
 
-- [ ] 5. Implement TaskEntity struct <!-- id:2ds0b3x -->
+- [x] 5. Implement TaskEntity struct <!-- id:2ds0b3x -->
   - Stream: 1
   - Requirements: [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.7](requirements.md#4.7), [4.9](requirements.md#4.9)
-  - [ ] 5.1. Write unit tests for TaskEntity <!-- id:2ds0b4d -->
+  - [x] 5.1. Write unit tests for TaskEntity <!-- id:2ds0b4d -->
     - Stream: 1
-  - [ ] 5.2. Implement AppEntity conformance with id and displayRepresentation <!-- id:2ds0b4e -->
+  - [x] 5.2. Implement AppEntity conformance with id and displayRepresentation <!-- id:2ds0b4e -->
     - Stream: 1
-  - [ ] 5.3. Add all required properties from requirement 3.9 <!-- id:2ds0b4f -->
+  - [x] 5.3. Add all required properties from requirement 3.9 <!-- id:2ds0b4f -->
     - Stream: 1
-  - [ ] 5.4. Implement static from() factory method with error handling <!-- id:2ds0b4g -->
+  - [x] 5.4. Implement static from() factory method with error handling <!-- id:2ds0b4g -->
     - Stream: 1
 
-- [ ] 6. Implement TaskEntityQuery <!-- id:2ds0b3y -->
+- [x] 6. Implement TaskEntityQuery <!-- id:2ds0b3y -->
   - Stream: 1
   - Requirements: [4.5](requirements.md#4.5), [4.6](requirements.md#4.6)
-  - [ ] 6.1. Write unit tests for TaskEntityQuery <!-- id:2ds0b4h -->
+  - [x] 6.1. Write unit tests for TaskEntityQuery <!-- id:2ds0b4h -->
     - Stream: 1
-  - [ ] 6.2. Implement EntityQuery conformance with UUID resolution <!-- id:2ds0b4i -->
+  - [x] 6.2. Implement EntityQuery conformance with UUID resolution <!-- id:2ds0b4i -->
     - Stream: 1
-  - [ ] 6.3. Use fetch-then-filter pattern for CloudKit sync resilience <!-- id:2ds0b4j -->
+  - [x] 6.3. Use fetch-then-filter pattern for CloudKit sync resilience <!-- id:2ds0b4j -->
     - Stream: 1
-  - [ ] 6.4. Use compactMap for batch contexts to handle sync issues gracefully <!-- id:2ds0b4k -->
+  - [x] 6.4. Use compactMap for batch contexts to handle sync issues gracefully <!-- id:2ds0b4k -->
     - Stream: 1
 
-- [ ] 7. Implement DateFilterHelpers utility <!-- id:2ds0b3z -->
+- [x] 7. Implement DateFilterHelpers utility <!-- id:2ds0b3z -->
   - Stream: 1
   - Requirements: [8.1](requirements.md#8.1), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3), [8.4](requirements.md#8.4), [8.5](requirements.md#8.5), [8.6](requirements.md#8.6), [8.7](requirements.md#8.7), [8.8](requirements.md#8.8)
-  - [ ] 7.1. Write unit tests for DateFilterHelpers covering all scenarios <!-- id:2ds0b4l -->
+  - [x] 7.1. Write unit tests for DateFilterHelpers covering all scenarios <!-- id:2ds0b4l -->
     - Stream: 1
-  - [ ] 7.2. Implement relative date range calculation (today, this-week, this-month) <!-- id:2ds0b4m -->
+  - [x] 7.2. Implement relative date range calculation (today, this-week, this-month) <!-- id:2ds0b4m -->
     - Stream: 1
-  - [ ] 7.3. Implement absolute date range parsing from ISO 8601 strings <!-- id:2ds0b4n -->
+  - [x] 7.3. Implement absolute date range parsing from ISO 8601 strings <!-- id:2ds0b4n -->
     - Stream: 1
-  - [ ] 7.4. Use Calendar.current for all date calculations <!-- id:2ds0b4o -->
+  - [x] 7.4. Use Calendar.current for all date calculations <!-- id:2ds0b4o -->
     - Stream: 1
-  - [ ] 7.5. Implement inclusive boundary date comparisons <!-- id:2ds0b4p -->
+  - [x] 7.5. Implement inclusive boundary date comparisons <!-- id:2ds0b4p -->
     - Stream: 1
-  - [ ] 7.6. Handle nil date values by excluding from filtered results <!-- id:2ds0b4q -->
+  - [x] 7.6. Handle nil date values by excluding from filtered results <!-- id:2ds0b4q -->
     - Stream: 1
 
 ## Enhanced Query Intent
