@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Visual `FindTasksIntent` (`Transit: Find Tasks`) with optional Shortcuts filters for type, project, status, completion date, and last status change date
+- Custom-range date filtering UI for `FindTasksIntent` via nested `ParameterSummary` `When` clauses, including conditional from/to date fields
+- `FindTasksIntent` test coverage:
+  - `FindTasksIntentTests` for AND-filter logic, custom date ranges, 200-result cap, sort order, empty results, and invalid range validation
+  - `FindTasksIntentIntegrationTests` for end-to-end `TaskEntity` field mapping and empty-match behavior
+- `FindTasksIntent` registration in `TransitShortcuts` with dedicated phrases and icon for Shortcuts discoverability
 - Visual `AddTaskIntent` (`Transit: Add Task`) with native Shortcuts parameters for name, optional description, task type, and project selection
 - `TaskCreationResult` shared intent return type (plus query support) carrying `taskId`, `displayId`, `status`, `projectId`, and `projectName` for structured Shortcuts output
 - New automated coverage for visual task creation:
@@ -25,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `TaskEntityQuery` now pre-sizes UUID sets and output arrays and uses iterative filtering to reduce transient allocations on entity resolution paths
 - `QueryTasksIntent` now decodes typed JSON filters with codable date-range support for `completionDate` and `lastStatusChangeDate` (`relative` or `from`/`to`)
 - Date-filter validation now rejects malformed date ranges with an `INVALID_INPUT` error before query execution
 - Query filtering now runs in a single pass with reserved result capacity to reduce intermediate array allocations

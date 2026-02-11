@@ -3,6 +3,17 @@ import AppIntents
 struct TransitShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
+            intent: AddTaskIntent(),
+            phrases: [
+                "Add task in \(.applicationName)",
+                "Create task with \(.applicationName)",
+                "Log a \(.applicationName) task"
+            ],
+            shortTitle: "Add Task",
+            systemImageName: "plus.square"
+        )
+
+        AppShortcut(
             intent: CreateTaskIntent(),
             phrases: [
                 "Create a task in \(.applicationName)",
@@ -32,6 +43,17 @@ struct TransitShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Query Tasks",
             systemImageName: "magnifyingglass"
+        )
+
+        AppShortcut(
+            intent: FindTasksIntent(),
+            phrases: [
+                "Find tasks in \(.applicationName)",
+                "Search \(.applicationName) tasks",
+                "Filter tasks in \(.applicationName)"
+            ],
+            shortTitle: "Find Tasks",
+            systemImageName: "line.3.horizontal.decrease.circle"
         )
     }
 }

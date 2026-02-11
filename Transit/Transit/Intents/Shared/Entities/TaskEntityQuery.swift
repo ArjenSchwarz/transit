@@ -35,17 +35,8 @@ struct TaskEntityQuery: EntityQuery {
         }
 
         let tasks = (try? modelContext.fetch(FetchDescriptor<TransitTask>())) ?? []
-        var entities: [TaskEntity] = []
-        entities.reserveCapacity(min(tasks.count, wantedIDs.count))
-
-        for task in tasks {
-            guard wantedIDs.contains(task.id) else { continue }
-            if let entity = try? TaskEntity.from(task) {
-                entities.append(entity)
-            }
-        }
-
-        return entities
+        let matchingTasks = tasks.filter { wantedIDs.contains($0.id) }
+        return entities(from: matchingTasks)
     }
 
     @MainActor
@@ -59,15 +50,21 @@ struct TaskEntityQuery: EntityQuery {
             return []
         }
 
-        var entities: [TaskEntity] = []
-        entities.reserveCapacity(min(tasks.count, 10))
+        return entities(from: Array(tasks.prefix(10)))
+    }
 
-        for task in tasks.prefix(10) {
+    static func entities(from tasks: [TransitTask]) -> [TaskEntity] {
+        if tasks.isEmpty {
+            return []
+        }
+
+        var entities: [TaskEntity] = []
+        entities.reserveCapacity(tasks.count)
+        for task in tasks {
             if let entity = try? TaskEntity.from(task) {
                 entities.append(entity)
             }
         }
-
         return entities
     }
 }
