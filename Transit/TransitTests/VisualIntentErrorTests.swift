@@ -110,6 +110,38 @@ struct VisualIntentErrorTests {
         #expect(error.recoverySuggestion != nil)
     }
 
+    // MARK: - Error Codes
+
+    @Test func noProjectsErrorCode() {
+        let error = VisualIntentError.noProjects
+        #expect(error.code == "NO_PROJECTS")
+    }
+
+    @Test func invalidInputErrorCode() {
+        let error = VisualIntentError.invalidInput("test")
+        #expect(error.code == "INVALID_INPUT")
+    }
+
+    @Test func invalidDateErrorCode() {
+        let error = VisualIntentError.invalidDate("test")
+        #expect(error.code == "INVALID_DATE")
+    }
+
+    @Test func projectNotFoundErrorCode() {
+        let error = VisualIntentError.projectNotFound("test")
+        #expect(error.code == "PROJECT_NOT_FOUND")
+    }
+
+    @Test func taskNotFoundErrorCode() {
+        let error = VisualIntentError.taskNotFound("test")
+        #expect(error.code == "TASK_NOT_FOUND")
+    }
+
+    @Test func taskCreationFailedErrorCode() {
+        let error = VisualIntentError.taskCreationFailed("test")
+        #expect(error.code == "TASK_CREATION_FAILED")
+    }
+
     // MARK: - Associated Values
 
     @Test func invalidInputPreservesHint() {

@@ -31,11 +31,11 @@ references:
 - [x] 3. Implement VisualIntentError enum <!-- id:2ds0b3v -->
   - Stream: 1
   - Requirements: [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4), [7.5](requirements.md#7.5), [7.6](requirements.md#7.6), [7.7](requirements.md#7.7), [7.8](requirements.md#7.8), [7.9](requirements.md#7.9)
-  - [ ] 3.1. Write unit tests for VisualIntentError <!-- id:2ds0b46 -->
+  - [x] 3.1. Write unit tests for VisualIntentError <!-- id:2ds0b46 -->
     - Stream: 1
-  - [ ] 3.2. Implement LocalizedError conformance with error codes <!-- id:2ds0b47 -->
+  - [x] 3.2. Implement LocalizedError conformance with error codes <!-- id:2ds0b47 -->
     - Stream: 1
-  - [ ] 3.3. Add all error cases: noProjects, invalidInput, invalidDate, projectNotFound, taskNotFound, taskCreationFailed <!-- id:2ds0b48 -->
+  - [x] 3.3. Add all error cases: noProjects, invalidInput, invalidDate, projectNotFound, taskNotFound, taskCreationFailed <!-- id:2ds0b48 -->
     - Stream: 1
 
 - [ ] 4. Implement ProjectEntity and ProjectEntityQuery <!-- id:2ds0b3w -->

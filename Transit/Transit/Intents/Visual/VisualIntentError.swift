@@ -10,6 +10,17 @@ enum VisualIntentError: LocalizedError {
     case taskNotFound(String)
     case taskCreationFailed(String)
 
+    var code: String {
+        switch self {
+        case .noProjects: "NO_PROJECTS"
+        case .invalidInput: "INVALID_INPUT"
+        case .invalidDate: "INVALID_DATE"
+        case .projectNotFound: "PROJECT_NOT_FOUND"
+        case .taskNotFound: "TASK_NOT_FOUND"
+        case .taskCreationFailed: "TASK_CREATION_FAILED"
+        }
+    }
+
     var errorDescription: String? {
         switch self {
         case .noProjects:
