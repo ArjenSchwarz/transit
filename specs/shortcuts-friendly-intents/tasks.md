@@ -167,36 +167,36 @@ references:
     - Stream: 4
   - [x] 12.2. Add intent title and IntentDescription <!-- id:2ds0b5j -->
     - Stream: 4
-  - [ ] 12.3. Implement optional task type filter dropdown <!-- id:2ds0b5k -->
+  - [x] 12.3. Implement optional task type filter dropdown <!-- id:2ds0b5k -->
     - Stream: 4
-  - [ ] 12.4. Implement optional project filter dropdown <!-- id:2ds0b5l -->
+  - [x] 12.4. Implement optional project filter dropdown <!-- id:2ds0b5l -->
     - Stream: 4
-  - [ ] 12.5. Implement optional task status filter dropdown <!-- id:2ds0b5m -->
+  - [x] 12.5. Implement optional task status filter dropdown <!-- id:2ds0b5m -->
     - Stream: 4
-  - [ ] 12.6. Implement completion date filter with relative options <!-- id:2ds0b5n -->
+  - [x] 12.6. Implement completion date filter with relative options <!-- id:2ds0b5n -->
     - Stream: 4
-  - [ ] 12.7. Implement last status change date filter with relative options <!-- id:2ds0b5o -->
+  - [x] 12.7. Implement last status change date filter with relative options <!-- id:2ds0b5o -->
     - Stream: 4
-  - [ ] 12.8. Implement ParameterSummary with nested When clauses for custom-range <!-- id:2ds0b5p -->
+  - [x] 12.8. Implement ParameterSummary with nested When clauses for custom-range <!-- id:2ds0b5p -->
     - Stream: 4
-  - [ ] 12.9. Add conditional from/to date parameters for custom ranges <!-- id:2ds0b5q -->
+  - [x] 12.9. Add conditional from/to date parameters for custom ranges <!-- id:2ds0b5q -->
     - Stream: 4
-  - [ ] 12.10. Return [TaskEntity] array using TaskEntityQuery <!-- id:2ds0b5r -->
+  - [x] 12.10. Return [TaskEntity] array using TaskEntityQuery <!-- id:2ds0b5r -->
     - Stream: 4
-  - [ ] 12.11. Apply all filters using AND logic <!-- id:2ds0b5s -->
+  - [x] 12.11. Apply all filters using AND logic <!-- id:2ds0b5s -->
     - Stream: 4
-  - [ ] 12.12. Limit results to 200 tasks maximum <!-- id:2ds0b5t -->
+  - [x] 12.12. Limit results to 200 tasks maximum <!-- id:2ds0b5t -->
     - Stream: 4
-  - [ ] 12.13. Sort results by lastStatusChangeDate descending <!-- id:2ds0b5u -->
+  - [x] 12.13. Sort results by lastStatusChangeDate descending <!-- id:2ds0b5u -->
     - Stream: 4
-  - [ ] 12.14. Return empty array when no matches (no error) <!-- id:2ds0b5v -->
+  - [x] 12.14. Return empty array when no matches (no error) <!-- id:2ds0b5v -->
     - Stream: 4
-  - [ ] 12.15. Declare supportedModes as .background only <!-- id:2ds0b5w -->
+  - [x] 12.15. Declare supportedModes as .background only <!-- id:2ds0b5w -->
     - Stream: 4
-  - [ ] 12.16. Integrate with ModelContext for task queries <!-- id:2ds0b5x -->
+  - [x] 12.16. Integrate with ModelContext for task queries <!-- id:2ds0b5x -->
     - Stream: 4
 
-- [ ] 13. Write integration tests for FindTasksIntent <!-- id:2ds0b5y -->
+- [x] 13. Write integration tests for FindTasksIntent <!-- id:2ds0b5y -->
   - Blocked-by: 2ds0b5h (Implement FindTasksIntent (Transit: Find Tasks))
   - Stream: 4
 

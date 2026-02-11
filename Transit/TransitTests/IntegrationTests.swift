@@ -225,4 +225,333 @@ struct IntentDashboardIntegrationTests {
             )
         }
     }
+
+    // MARK: - FindTasksIntent Integration Tests
+
+    @Test func findTasksIntentRetrievesCreatedTask() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context, name: "Search Test Project")
+        let projectEntity = ProjectEntity.from(project)
+
+        // Create a task via AddTaskIntent
+        let createResult = try await AddTaskIntent.execute(
+            name: "Searchable Task",
+            taskDescription: "Should be findable",
+            type: .bug,
+            project: projectEntity,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+
+        // Find the task via FindTasksIntent
+        let results = try await FindTasksIntent.execute(
+            type: nil,
+            project: nil,
+            status: nil,
+            completionDateFilter: nil,
+            completionFromDate: nil,
+            completionToDate: nil,
+            lastChangedFilter: nil,
+            lastChangedFromDate: nil,
+            lastChangedToDate: nil,
+            projectService: svc.project
+        )
+
+        #expect(results.count == 1)
+        #expect(results[0].name == "Searchable Task")
+        #expect(results[0].type == "bug")
+        #expect(results[0].status == "idea")
+        #expect(results[0].projectName == "Search Test Project")
+        #expect(results[0].taskId == createResult.taskId)
+    }
+
+    @Test func findTasksIntentFiltersCreatedTasksByType() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context, name: "Filter Test Project")
+        let projectEntity = ProjectEntity.from(project)
+
+        // Create tasks of different types
+        _ = try await AddTaskIntent.execute(
+            name: "Feature Task",
+            taskDescription: nil,
+            type: .feature,
+            project: projectEntity,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+        _ = try await AddTaskIntent.execute(
+            name: "Bug Task",
+            taskDescription: nil,
+            type: .bug,
+            project: projectEntity,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+        _ = try await AddTaskIntent.execute(
+            name: "Chore Task",
+            taskDescription: nil,
+            type: .chore,
+            project: projectEntity,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+
+        // Find only bug tasks
+        let results = try await FindTasksIntent.execute(
+            type: .bug,
+            project: nil,
+            status: nil,
+            completionDateFilter: nil,
+            completionFromDate: nil,
+            completionToDate: nil,
+            lastChangedFilter: nil,
+            lastChangedFromDate: nil,
+            lastChangedToDate: nil,
+            projectService: svc.project
+        )
+
+        #expect(results.count == 1)
+        #expect(results[0].name == "Bug Task")
+        #expect(results[0].type == "bug")
+    }
+
+    @Test func findTasksIntentFiltersCreatedTasksByProject() async throws {
+        let svc = try makeServices()
+        let project1 = makeProject(in: svc.context, name: "Project Alpha")
+        let project2 = makeProject(in: svc.context, name: "Project Beta")
+        let projectEntity1 = ProjectEntity.from(project1)
+        let projectEntity2 = ProjectEntity.from(project2)
+
+        // Create tasks in different projects
+        _ = try await AddTaskIntent.execute(
+            name: "Alpha Task",
+            taskDescription: nil,
+            type: .feature,
+            project: projectEntity1,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+        _ = try await AddTaskIntent.execute(
+            name: "Beta Task",
+            taskDescription: nil,
+            type: .feature,
+            project: projectEntity2,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+
+        // Find only tasks in Project Alpha
+        let results = try await FindTasksIntent.execute(
+            type: nil,
+            project: projectEntity1,
+            status: nil,
+            completionDateFilter: nil,
+            completionFromDate: nil,
+            completionToDate: nil,
+            lastChangedFilter: nil,
+            lastChangedFromDate: nil,
+            lastChangedToDate: nil,
+            projectService: svc.project
+        )
+
+        #expect(results.count == 1)
+        #expect(results[0].name == "Alpha Task")
+        #expect(results[0].projectName == "Project Alpha")
+    }
+
+    @Test func findTasksIntentFiltersCreatedTasksByStatus() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context, name: "Status Test Project")
+        let projectEntity = ProjectEntity.from(project)
+
+        // Create a task and update its status
+        let createResult = try await AddTaskIntent.execute(
+            name: "Status Task",
+            taskDescription: nil,
+            type: .feature,
+            project: projectEntity,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+
+        // Update status to in-progress
+        let tasks = try allTasks(in: svc.context)
+        let task = try #require(tasks.first)
+        try await svc.task.updateStatus(task: task, to: .inProgress)
+
+        // Find only in-progress tasks
+        let results = try await FindTasksIntent.execute(
+            type: nil,
+            project: nil,
+            status: .inProgress,
+            completionDateFilter: nil,
+            completionFromDate: nil,
+            completionToDate: nil,
+            lastChangedFilter: nil,
+            lastChangedFromDate: nil,
+            lastChangedToDate: nil,
+            projectService: svc.project
+        )
+
+        #expect(results.count == 1)
+        #expect(results[0].name == "Status Task")
+        #expect(results[0].status == "in-progress")
+    }
+
+    @Test func findTasksIntentAppliesMultipleFilters() async throws {
+        let svc = try makeServices()
+        let project1 = makeProject(in: svc.context, name: "Multi Filter Project 1")
+        let project2 = makeProject(in: svc.context, name: "Multi Filter Project 2")
+        let projectEntity1 = ProjectEntity.from(project1)
+        let projectEntity2 = ProjectEntity.from(project2)
+
+        // Create various tasks
+        _ = try await AddTaskIntent.execute(
+            name: "Bug in Project 1",
+            taskDescription: nil,
+            type: .bug,
+            project: projectEntity1,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+        _ = try await AddTaskIntent.execute(
+            name: "Feature in Project 1",
+            taskDescription: nil,
+            type: .feature,
+            project: projectEntity1,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+        _ = try await AddTaskIntent.execute(
+            name: "Bug in Project 2",
+            taskDescription: nil,
+            type: .bug,
+            project: projectEntity2,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+
+        // Find only bugs in Project 1 with idea status
+        let results = try await FindTasksIntent.execute(
+            type: .bug,
+            project: projectEntity1,
+            status: .idea,
+            completionDateFilter: nil,
+            completionFromDate: nil,
+            completionToDate: nil,
+            lastChangedFilter: nil,
+            lastChangedFromDate: nil,
+            lastChangedToDate: nil,
+            projectService: svc.project
+        )
+
+        #expect(results.count == 1)
+        #expect(results[0].name == "Bug in Project 1")
+        #expect(results[0].type == "bug")
+        #expect(results[0].projectName == "Multi Filter Project 1")
+        #expect(results[0].status == "idea")
+    }
+
+    @Test func findTasksIntentReturnsEmptyArrayWhenNoMatches() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context, name: "Empty Results Project")
+        let projectEntity = ProjectEntity.from(project)
+
+        // Create a feature task
+        _ = try await AddTaskIntent.execute(
+            name: "Feature Task",
+            taskDescription: nil,
+            type: .feature,
+            project: projectEntity,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+
+        // Search for bug tasks (should find none)
+        let results = try await FindTasksIntent.execute(
+            type: .bug,
+            project: nil,
+            status: nil,
+            completionDateFilter: nil,
+            completionFromDate: nil,
+            completionToDate: nil,
+            lastChangedFilter: nil,
+            lastChangedFromDate: nil,
+            lastChangedToDate: nil,
+            projectService: svc.project
+        )
+
+        #expect(results.isEmpty)
+    }
+
+    @Test func findTasksIntentFiltersByCompletionDateToday() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context, name: "Date Filter Project")
+        let projectEntity = ProjectEntity.from(project)
+
+        // Create a task and mark it as done
+        _ = try await AddTaskIntent.execute(
+            name: "Completed Task",
+            taskDescription: nil,
+            type: .feature,
+            project: projectEntity,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+
+        let tasks = try allTasks(in: svc.context)
+        let task = try #require(tasks.first)
+        try await svc.task.updateStatus(task: task, to: .done)
+
+        // Find tasks completed today
+        let results = try await FindTasksIntent.execute(
+            type: nil,
+            project: nil,
+            status: nil,
+            completionDateFilter: .today,
+            completionFromDate: nil,
+            completionToDate: nil,
+            lastChangedFilter: nil,
+            lastChangedFromDate: nil,
+            lastChangedToDate: nil,
+            projectService: svc.project
+        )
+
+        #expect(results.count == 1)
+        #expect(results[0].name == "Completed Task")
+        #expect(results[0].completionDate != nil)
+    }
+
+    @Test func findTasksIntentFiltersByLastStatusChangeDateToday() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context, name: "Status Change Project")
+        let projectEntity = ProjectEntity.from(project)
+
+        // Create a task (lastStatusChangeDate will be today)
+        _ = try await AddTaskIntent.execute(
+            name: "Recent Task",
+            taskDescription: nil,
+            type: .feature,
+            project: projectEntity,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+
+        // Find tasks changed today
+        let results = try await FindTasksIntent.execute(
+            type: nil,
+            project: nil,
+            status: nil,
+            completionDateFilter: nil,
+            completionFromDate: nil,
+            completionToDate: nil,
+            lastChangedFilter: .today,
+            lastChangedFromDate: nil,
+            lastChangedToDate: nil,
+            projectService: svc.project
+        )
+
+        #expect(results.count == 1)
+        #expect(results[0].name == "Recent Task")
+    }
 }
