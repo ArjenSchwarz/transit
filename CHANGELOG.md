@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- End-to-end intent tests (19 tests) verifying cross-intent flows: AddTask → FindTasks, AddTask → UpdateStatus → FindTasks, CreateTask JSON → FindTasks visual, multi-project filtering, Shortcuts registration, intent titles, error handling for all error cases, custom-range date filtering with both completion and lastChanged dates, TaskEntity property verification, and display representation
+- Backward compatibility tests (21 tests) verifying existing JSON intents remain unchanged: QueryTasksIntent with/without filters, CreateTaskIntent with all input formats (projectId, projectName, description, metadata, error codes), UpdateStatusIntent via displayId and taskId, intent title stability, JSON response field validation, error response format, and combined filter format acceptance
+
 - `FindTasksIntent` visual Shortcuts intent ("Transit: Find Tasks") with native dropdown filters for task type, project, status, and date ranges
 - `DateFilterOption` AppEnum with relative (today, this-week, this-month) and custom-range options for visual date filtering
 - Nested `ParameterSummary` with `When` clauses showing conditional from/to date pickers only when custom-range is selected
