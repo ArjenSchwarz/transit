@@ -20,8 +20,15 @@ struct QueryTasksIntent: AppIntent {
         description: """
         JSON object with optional filters: "status" (idea | planning | spec | ready-for-implementation | \
         in-progress | ready-for-review | done | abandoned), "type" (bug | feature | chore | research | \
-        documentation), "projectId" (UUID). All filters are optional. \
-        Example: {"status": "in-progress"} or {} for all tasks.
+        documentation), "projectId" (UUID), "completionDate" (date filter), \
+        "lastStatusChangeDate" (date filter). All filters are optional. \
+        Date filters accept relative or absolute ranges: \
+        {"completionDate": {"relative": "today"}} or \
+        {"completionDate": {"relative": "this-week"}} or \
+        {"completionDate": {"relative": "this-month"}} or \
+        {"completionDate": {"from": "2026-01-01", "to": "2026-01-31"}}. \
+        Tasks with nil dates are excluded when that date filter is active. \
+        Example: {"status": "done", "completionDate": {"relative": "this-week"}} or {} for all tasks.
         """
     )
     var input: String
@@ -57,8 +64,22 @@ struct QueryTasksIntent: AppIntent {
             return error.json
         }
 
+        // Parse date filters before applying (parseDateFilter throws on invalid input)
+        let completionDateRange: DateFilterHelpers.DateRange?
+        let statusChangeDateRange: DateFilterHelpers.DateRange?
+        do {
+            completionDateRange = try parseDateFilterFromJSON(json, key: "completionDate")
+            statusChangeDateRange = try parseDateFilterFromJSON(json, key: "lastStatusChangeDate")
+        } catch {
+            return IntentError.invalidInput(hint: error.localizedDescription).json
+        }
+
         let allTasks = (try? modelContext.fetch(FetchDescriptor<TransitTask>())) ?? []
-        let filtered = applyFilters(json, to: allTasks)
+        let filtered = applyFilters(
+            json, to: allTasks,
+            completionDateRange: completionDateRange,
+            statusChangeDateRange: statusChangeDateRange
+        )
         return IntentHelpers.encodeJSONArray(filtered.map(taskToDict))
     }
 
@@ -85,9 +106,21 @@ struct QueryTasksIntent: AppIntent {
         return nil
     }
 
+    /// Parse a date filter sub-object from the JSON input for the given key.
+    /// Returns nil if the key is not present. Throws on invalid date format.
+    @MainActor private static func parseDateFilterFromJSON(
+        _ json: [String: Any],
+        key: String
+    ) throws -> DateFilterHelpers.DateRange? {
+        guard let filterJSON = json[key] as? [String: Any] else { return nil }
+        return try DateFilterHelpers.parseDateFilter(filterJSON)
+    }
+
     @MainActor private static func applyFilters(
         _ json: [String: Any],
-        to tasks: [TransitTask]
+        to tasks: [TransitTask],
+        completionDateRange: DateFilterHelpers.DateRange? = nil,
+        statusChangeDateRange: DateFilterHelpers.DateRange? = nil
     ) -> [TransitTask] {
         var result = tasks
         if let status = json["status"] as? String {
@@ -99,6 +132,17 @@ struct QueryTasksIntent: AppIntent {
         }
         if let type = json["type"] as? String {
             result = result.filter { $0.typeRawValue == type }
+        }
+        if let range = completionDateRange {
+            result = result.filter { task in
+                guard let date = task.completionDate else { return false }
+                return DateFilterHelpers.dateInRange(date, range: range)
+            }
+        }
+        if let range = statusChangeDateRange {
+            result = result.filter { task in
+                DateFilterHelpers.dateInRange(task.lastStatusChangeDate, range: range)
+            }
         }
         return result
     }

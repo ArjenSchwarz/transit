@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Date filtering for QueryTasksIntent: `completionDate` and `lastStatusChangeDate` filters with relative ranges (today, this-week, this-month) and absolute ISO 8601 date ranges
+- `AddTaskIntent` visual Shortcuts intent ("Transit: Add Task") with native parameter dropdowns for type and project selection
+- `TaskCreationResult` AppEntity returned by AddTaskIntent with display ID, status, and project metadata
+- AddTaskIntent AppShortcut entry in `TransitShortcuts` with Siri phrase
+- Unit tests for date filtering (12 tests covering relative dates, absolute ranges, error handling, combined filters, backward compatibility)
+- Unit tests for AddTaskIntent (10 tests covering success cases, error handling, name trimming, persistence)
+- Unit tests for TaskCreationResult (6 tests covering properties, display representation, factory method)
+
+### Fixed
+
+- Pre-existing missing `import AppIntents` in ProjectEntityTests and TaskEntityTests
+- Pre-existing missing `import Foundation` in TaskServiceTests (for `Date.now`)
+- Pre-existing `sending` data race warning in TaskServiceTests
+
 - `TaskStatus` AppEnum conformance with human-readable display names and `nonisolated` static properties for Shortcuts dropdown integration
 - `TaskType` AppEnum conformance with display names for Shortcuts dropdown integration
 - `VisualIntentError` enum conforming to `LocalizedError` with six error cases (noProjects, invalidInput, invalidDate, projectNotFound, taskNotFound, taskCreationFailed) providing errorDescription, failureReason, and recoverySuggestion

@@ -1,6 +1,7 @@
+import AppIntents
 import Foundation
-import Testing
 import SwiftData
+import Testing
 @testable import Transit
 
 @Suite(.serialized)

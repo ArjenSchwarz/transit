@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 import Testing
 @testable import Transit
@@ -92,7 +93,7 @@ struct TaskServiceTests {
 
         // Whitespace-only name should throw
         await #expect(throws: TaskService.Error.invalidName) {
-            try await service.createTask(
+            _ = try await service.createTask(
                 name: "   ", description: nil, type: .feature, project: project
             )
         }

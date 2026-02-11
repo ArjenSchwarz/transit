@@ -185,4 +185,5 @@ struct QueryTasksIntentTests {
         #expect(item.keys.contains("completionDate"))
         #expect(item.keys.contains("lastStatusChangeDate"))
     }
+
 }

@@ -92,68 +92,68 @@ references:
 
 ## Enhanced Query Intent
 
-- [ ] 8. Enhance QueryTasksIntent with date filtering <!-- id:2ds0b4r -->
+- [x] 8. Enhance QueryTasksIntent with date filtering <!-- id:2ds0b4r -->
   - Blocked-by: 2ds0b3z (Implement DateFilterHelpers utility)
   - Stream: 2
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [1.7](requirements.md#1.7), [1.8](requirements.md#1.8), [1.9](requirements.md#1.9), [1.10](requirements.md#1.10), [1.11](requirements.md#1.11), [1.12](requirements.md#1.12)
-  - [ ] 8.1. Write unit tests for date filtering in QueryTasksIntent <!-- id:2ds0b4s -->
+  - [x] 8.1. Write unit tests for date filtering in QueryTasksIntent <!-- id:2ds0b4s -->
     - Stream: 2
-  - [ ] 8.2. Add DateRangeFilter codable type with from/to properties <!-- id:2ds0b4t -->
+  - [x] 8.2. Add DateRangeFilter codable type with from/to properties <!-- id:2ds0b4t -->
     - Stream: 2
-  - [ ] 8.3. Add optional completionDate and lastStatusChangeDate filter parameters <!-- id:2ds0b4u -->
+  - [x] 8.3. Add optional completionDate and lastStatusChangeDate filter parameters <!-- id:2ds0b4u -->
     - Stream: 2
-  - [ ] 8.4. Update JSON schema to support relative and absolute date ranges <!-- id:2ds0b4v -->
+  - [x] 8.4. Update JSON schema to support relative and absolute date ranges <!-- id:2ds0b4v -->
     - Stream: 2
-  - [ ] 8.5. Implement filter logic using DateFilterHelpers <!-- id:2ds0b4w -->
+  - [x] 8.5. Implement filter logic using DateFilterHelpers <!-- id:2ds0b4w -->
     - Stream: 2
-  - [ ] 8.6. Update parameter description with date filter examples <!-- id:2ds0b4x -->
+  - [x] 8.6. Update parameter description with date filter examples <!-- id:2ds0b4x -->
     - Stream: 2
-  - [ ] 8.7. Test backward compatibility with existing queries <!-- id:2ds0b4y -->
+  - [x] 8.7. Test backward compatibility with existing queries <!-- id:2ds0b4y -->
     - Stream: 2
 
 ## Visual Task Creation Intent
 
-- [ ] 9. Implement TaskCreationResult struct <!-- id:2ds0b4z -->
+- [x] 9. Implement TaskCreationResult struct <!-- id:2ds0b4z -->
   - Blocked-by: 2ds0b3t (Implement TaskStatus AppEnum conformance), 2ds0b3u (Implement TaskType AppEnum conformance), 2ds0b3v (Implement VisualIntentError enum)
   - Stream: 3
   - Requirements: [2.10](requirements.md#2.10), [4.8](requirements.md#4.8), [4.9](requirements.md#4.9)
-  - [ ] 9.1. Write unit tests for TaskCreationResult <!-- id:2ds0b50 -->
+  - [x] 9.1. Write unit tests for TaskCreationResult <!-- id:2ds0b50 -->
     - Stream: 3
-  - [ ] 9.2. Implement struct with taskId, displayId, status, projectId, projectName <!-- id:2ds0b51 -->
+  - [x] 9.2. Implement struct with taskId, displayId, status, projectId, projectName <!-- id:2ds0b51 -->
     - Stream: 3
-  - [ ] 9.3. Use standard Swift types for Shortcuts serialization <!-- id:2ds0b52 -->
+  - [x] 9.3. Use standard Swift types for Shortcuts serialization <!-- id:2ds0b52 -->
     - Stream: 3
 
-- [ ] 10. Implement AddTaskIntent (Transit: Add Task) <!-- id:2ds0b53 -->
+- [x] 10. Implement AddTaskIntent (Transit: Add Task) <!-- id:2ds0b53 -->
   - Blocked-by: 2ds0b3w (Implement ProjectEntity and ProjectEntityQuery), 2ds0b3x (Implement TaskEntity struct), 2ds0b4z (Implement TaskCreationResult struct)
   - Stream: 3
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [2.6](requirements.md#2.6), [2.7](requirements.md#2.7), [2.8](requirements.md#2.8), [2.11](requirements.md#2.11), [2.12](requirements.md#2.12), [2.13](requirements.md#2.13)
-  - [ ] 10.1. Write unit tests for AddTaskIntent <!-- id:2ds0b54 -->
+  - [x] 10.1. Write unit tests for AddTaskIntent <!-- id:2ds0b54 -->
     - Stream: 3
-  - [ ] 10.2. Add intent title and IntentDescription <!-- id:2ds0b55 -->
+  - [x] 10.2. Add intent title and IntentDescription <!-- id:2ds0b55 -->
     - Stream: 3
-  - [ ] 10.3. Implement required name parameter (text field) <!-- id:2ds0b56 -->
+  - [x] 10.3. Implement required name parameter (text field) <!-- id:2ds0b56 -->
     - Stream: 3
-  - [ ] 10.4. Implement optional description parameter (text field) <!-- id:2ds0b57 -->
+  - [x] 10.4. Implement optional description parameter (text field) <!-- id:2ds0b57 -->
     - Stream: 3
-  - [ ] 10.5. Implement task type dropdown using TaskType AppEnum <!-- id:2ds0b58 -->
+  - [x] 10.5. Implement task type dropdown using TaskType AppEnum <!-- id:2ds0b58 -->
     - Stream: 3
-  - [ ] 10.6. Implement project dropdown using ProjectEntity <!-- id:2ds0b59 -->
+  - [x] 10.6. Implement project dropdown using ProjectEntity <!-- id:2ds0b59 -->
     - Stream: 3
-  - [ ] 10.7. Throw NO_PROJECTS error when no projects exist <!-- id:2ds0b5a -->
+  - [x] 10.7. Throw NO_PROJECTS error when no projects exist <!-- id:2ds0b5a -->
     - Stream: 3
-  - [ ] 10.8. Create tasks with initial status idea <!-- id:2ds0b5b -->
+  - [x] 10.8. Create tasks with initial status idea <!-- id:2ds0b5b -->
     - Stream: 3
-  - [ ] 10.9. Validate non-empty task name <!-- id:2ds0b5c -->
+  - [x] 10.9. Validate non-empty task name <!-- id:2ds0b5c -->
     - Stream: 3
-  - [ ] 10.10. Integrate with TaskService for task creation <!-- id:2ds0b5d -->
+  - [x] 10.10. Integrate with TaskService for task creation <!-- id:2ds0b5d -->
     - Stream: 3
-  - [ ] 10.11. Return TaskCreationResult with all required fields <!-- id:2ds0b5e -->
+  - [x] 10.11. Return TaskCreationResult with all required fields <!-- id:2ds0b5e -->
     - Stream: 3
-  - [ ] 10.12. Declare supportedModes including .foreground <!-- id:2ds0b5f -->
+  - [x] 10.12. Declare supportedModes including .foreground <!-- id:2ds0b5f -->
     - Stream: 3
 
-- [ ] 11. Write integration tests for AddTaskIntent <!-- id:2ds0b5g -->
+- [x] 11. Write integration tests for AddTaskIntent <!-- id:2ds0b5g -->
   - Blocked-by: 2ds0b53 (Implement AddTaskIntent (Transit: Add Task))
   - Stream: 3
 
