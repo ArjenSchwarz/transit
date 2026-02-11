@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Visual `AddTaskIntent` (`Transit: Add Task`) with native Shortcuts parameters for name, optional description, task type, and project selection
+- `TaskCreationResult` shared intent return type (plus query support) carrying `taskId`, `displayId`, `status`, `projectId`, and `projectName` for structured Shortcuts output
+- New automated coverage for visual task creation:
+  - `TaskCreationResultTests` for mapping and data-integrity error handling
+  - `AddTaskIntentTests` for validation, no-project handling, stale project selection, and task creation behavior
+  - `AddTaskIntentIntegrationTests` for end-to-end persistence and query visibility
 - Dedicated `QueryTasksIntentDateFilterTests` suite covering relative/absolute date filters, precedence rules, invalid date input handling, and legacy non-date query compatibility
 - Orbit session data (variant comparison, consolidation reports, human-readable transcripts) tracked in git for documentation
 - Shared Shortcuts intent infrastructure for `shortcuts-friendly-intents` phase 1:
