@@ -58,7 +58,7 @@ struct FindTasksIntentTests {
 
         // Update status if needed
         if status != .idea {
-            try await taskService.updateStatus(task: task, newStatus: status)
+            try await taskService.updateStatus(task: task, to: status)
         }
 
         // Override dates if provided (for testing date filters)
@@ -103,7 +103,8 @@ struct FindTasksIntentTests {
 
     @Test("Returns empty array when no tasks exist")
     func returnsEmptyArrayWhenNoTasks() async throws {
-        let (_, _, projectService) = try makeTestContext()
+        let testContext = try makeTestContext()
+        let projectService = testContext.projectService
 
         let results = try await FindTasksIntent.execute(
             type: nil,

@@ -2,7 +2,7 @@ import Foundation
 
 /// Error type for visual Shortcuts intents that provides localized error messages.
 /// Conforms to LocalizedError to enable native Shortcuts error display.
-enum VisualIntentError: LocalizedError {
+enum VisualIntentError: LocalizedError, Equatable {
     case noProjects
     case invalidInput(String)
     case invalidDate(String)

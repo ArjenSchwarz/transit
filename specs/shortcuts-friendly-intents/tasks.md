@@ -163,7 +163,7 @@ references:
   - Blocked-by: 2ds0b3x (Implement TaskEntity struct), 2ds0b3y (Implement TaskEntityQuery), 2ds0b3z (Implement DateFilterHelpers utility), 2ds0b4r (Enhance QueryTasksIntent with date filtering)
   - Stream: 4
   - Requirements: [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [3.6](requirements.md#3.6), [3.7](requirements.md#3.7), [3.8](requirements.md#3.8), [3.9](requirements.md#3.9), [3.10](requirements.md#3.10), [3.11](requirements.md#3.11), [3.12](requirements.md#3.12), [3.13](requirements.md#3.13), [3.14](requirements.md#3.14), [3.15](requirements.md#3.15), [3.16](requirements.md#3.16)
-  - [ ] 12.1. Write unit tests for FindTasksIntent <!-- id:2ds0b5i -->
+  - [x] 12.1. Write unit tests for FindTasksIntent <!-- id:2ds0b5i -->
     - Stream: 4
   - [ ] 12.2. Add intent title and IntentDescription <!-- id:2ds0b5j -->
     - Stream: 4
