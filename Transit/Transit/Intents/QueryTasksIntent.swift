@@ -20,8 +20,10 @@ struct QueryTasksIntent: AppIntent {
         description: """
         JSON object with optional filters: "status" (idea | planning | spec | ready-for-implementation | \
         in-progress | ready-for-review | done | abandoned), "type" (bug | feature | chore | research | \
-        documentation), "projectId" (UUID). All filters are optional. \
-        Example: {"status": "in-progress"} or {} for all tasks.
+        documentation), "projectId" (UUID), "completionDate" (date filter), "lastStatusChangeDate" (date filter). \
+        Date filters support relative ranges: {"relative": "today" | "this-week" | "this-month"} or absolute ranges: \
+        {"from": "YYYY-MM-DD", "to": "YYYY-MM-DD"} (both optional, inclusive). \
+        Example: {"status": "done", "completionDate": {"relative": "today"}} or {} for all tasks.
         """
     )
     var input: String
@@ -100,6 +102,24 @@ struct QueryTasksIntent: AppIntent {
         if let type = json["type"] as? String {
             result = result.filter { $0.typeRawValue == type }
         }
+
+        // Apply completionDate filter
+        if let completionFilter = json["completionDate"] as? [String: Any],
+           let dateRange = DateFilterHelpers.parseDateFilter(completionFilter) {
+            result = result.filter { task in
+                guard let completionDate = task.completionDate else { return false }
+                return DateFilterHelpers.dateInRange(completionDate, range: dateRange)
+            }
+        }
+
+        // Apply lastStatusChangeDate filter
+        if let statusChangeFilter = json["lastStatusChangeDate"] as? [String: Any],
+           let dateRange = DateFilterHelpers.parseDateFilter(statusChangeFilter) {
+            result = result.filter { task in
+                DateFilterHelpers.dateInRange(task.lastStatusChangeDate, range: dateRange)
+            }
+        }
+
         return result
     }
 

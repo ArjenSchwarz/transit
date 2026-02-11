@@ -92,7 +92,7 @@ references:
 
 ## Enhanced Query Intent
 
-- [ ] 8. Enhance QueryTasksIntent with date filtering <!-- id:2ds0b4r -->
+- [x] 8. Enhance QueryTasksIntent with date filtering <!-- id:2ds0b4r -->
   - Blocked-by: 2ds0b3z (Implement DateFilterHelpers utility)
   - Stream: 2
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [1.7](requirements.md#1.7), [1.8](requirements.md#1.8), [1.9](requirements.md#1.9), [1.10](requirements.md#1.10), [1.11](requirements.md#1.11), [1.12](requirements.md#1.12)
