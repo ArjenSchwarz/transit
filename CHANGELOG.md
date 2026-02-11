@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `IntentCompatibilityAndDiscoverabilityTests` regression suite to lock Shortcuts discoverability and backward-compatibility contracts:
+  - intent title stability for legacy and visual intents
+  - shortcut provider registration count for all five intents
+  - JSON output contract checks for `CreateTaskIntent`, `UpdateStatusIntent`, and non-date `QueryTasksIntent`
 - Visual `FindTasksIntent` (`Transit: Find Tasks`) with optional Shortcuts filters for type, project, status, completion date, and last status change date
 - Custom-range date filtering UI for `FindTasksIntent` via nested `ParameterSummary` `When` clauses, including conditional from/to date fields
 - `FindTasksIntent` test coverage:
@@ -31,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Completed `shortcuts-friendly-intents` Integration and Verification phase tasks in `specs/shortcuts-friendly-intents/tasks.md` after running strict linting and full `TransitTests` verification.
 - `TaskEntityQuery` now pre-sizes UUID sets and output arrays and uses iterative filtering to reduce transient allocations on entity resolution paths
 - `QueryTasksIntent` now decodes typed JSON filters with codable date-range support for `completionDate` and `lastStatusChangeDate` (`relative` or `from`/`to`)
 - Date-filter validation now rejects malformed date ranges with an `INVALID_INPUT` error before query execution
