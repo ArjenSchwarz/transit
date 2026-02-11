@@ -9,9 +9,11 @@ Transit is a native Apple task tracker (iOS 26 / iPadOS 26 / macOS 26) for a sin
 ## Tech Stack
 
 - **Swift 6.2**, **SwiftUI**, targeting **iOS/iPadOS/macOS 26 exclusively** — no backwards compatibility
-- **CloudKit** (private database) for cross-device sync
+- **`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`** — every type is `@MainActor` by default (see gotchas below)
+- **SwiftData** with **CloudKit** (private database) for cross-device sync
 - **App Intents** framework for CLI/automation integration via Shortcuts
-- Liquid Glass design language throughout (`.glassEffect()`, `.materialBackground()`)
+- **Liquid Glass** design language: `.glassEffect()`, `.buttonStyle(.glass)` / `.buttonStyle(.glassProminent)`
+- **Xcode File System Sync** enabled — Xcode auto-discovers files from disk, no need to edit pbxproj
 
 ## Build and Test Commands
 
@@ -36,8 +38,6 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
   -only-testing:TransitTests/StatusEngineTests test
 ```
 
-## Testing Strategy
-
 ### When to Run Which Tests
 
 - **During development**: Use `make test-quick` — runs unit tests on macOS without the simulator, fast feedback loop
@@ -48,7 +48,7 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
 
 ### Data Model
 
-Two entities with a one-to-many relationship:
+Two SwiftData entities with a one-to-many relationship:
 - **Project** → has many **Tasks**. A Task belongs to exactly one Project.
 - Tasks have a UUID (CloudKit record ID) and a separate `displayId` integer (T-1, T-42) for human-facing use, allocated via a CloudKit counter record with optimistic locking.
 
@@ -56,11 +56,7 @@ Two entities with a one-to-many relationship:
 
 Idea → Planning → Spec → Ready for Implementation → In Progress → Ready for Review → Done / Abandoned
 
-"Ready for Implementation" and "Ready for Review" are **agent handoff statuses** — they don't get their own kanban columns. They render within Spec and In Progress columns respectively, visually promoted to the top.
-
-### Task Types (hardcoded)
-
-Bug, Feature, Chore, Research, Documentation
+"Ready for Implementation" and "Ready for Review" are **agent handoff statuses** — they don't get their own kanban columns. They render within Spec and In Progress columns respectively, visually promoted to the top with an orange "Handoff" badge.
 
 ### Kanban Dashboard (5 visual columns)
 
@@ -76,19 +72,63 @@ Idea | Planning | Spec | In Progress | Done/Abandoned
 - **iPhone landscape**: three columns visible, swipeable
 - **iPad/Mac**: all five columns visible
 
-### App Intents (V1)
+### Service Layer
 
-Three intents exposed as Shortcuts: `Transit: Create Task`, `Transit: Update Status`, `Transit: Query Tasks`. All accept/return structured JSON. Intents support both `projectId` (UUID, preferred) and `project` (name, fallback) for project references. Tasks are referenced by `displayId`.
+All business logic lives in `Services/`, not in views:
 
-Error responses use consistent structured format with error codes: `TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`.
+- **StatusEngine** — pure logic for status transitions with `completionDate`/`lastStatusChangeDate` side effects
+- **DisplayIDAllocator** — CloudKit counter with optimistic locking, provisional ID fallback when offline
+- **TaskService** (`@MainActor @Observable`) — task CRUD, status changes, abandon/restore. Typed `Error` enum.
+- **ProjectService** (`@MainActor @Observable`) — project CRUD, case-insensitive name lookup with ambiguity detection
+- **SyncManager** — CloudKit sync preference via UserDefaults; toggle takes effect on next launch
+- **ConnectivityMonitor** — NWPathMonitor wrapper, triggers display ID promotion on connectivity restore
 
-### Metadata
+### Navigation
 
-Free-form `[String: String]` on tasks. Reserved namespace prefixes by convention: `git.`, `ci.`, `agent.`.
+Single `NavigationStack` at app root in `TransitApp.swift`. `NavigationDestination` enum (`.settings`, `.projectEdit(Project)`) for type-safe routing. Settings is pushed, not a sheet or tab.
 
-### Sync
+### App Intents
 
-CloudKit private database, last-write-wins conflict resolution. Multiple writers (UI, CLI, future MCP) are possible but conflicts are low-stakes for single-user.
+Three intents exposed as Shortcuts: `Transit: Create Task`, `Transit: Update Status`, `Transit: Query Tasks`. All accept/return structured JSON via a single `@Parameter(title: "Input") var input: String`. Error responses are JSON-encoded in the return string (not thrown) so CLI callers get parseable output.
+
+Error codes: `TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`.
+
+### Theme System
+
+Frosted Panels theme with four options: Follow System (default), Universal, Light, Dark. `BoardBackground` renders layered radial gradients behind the kanban board; columns and cards use frosted glass materials adapted per theme variant.
+
+## Key Technical Constraints
+
+### SwiftData + CloudKit
+
+- All relationships **must be optional** for CloudKit compatibility
+- No `@Attribute(.unique)` with CloudKit
+- Delete rules: `.cascade` or `.nullify` only
+- Post-deployment migration is add-only (no renames, deletions, or type changes)
+- `#Predicate` cannot query optional to-many relationships — query from the child side or filter in-memory
+
+### Swift 6 Default MainActor Isolation
+
+- Every type is `@MainActor` by default. `@Model` classes are the exception — they follow standard isolation.
+- `Codable` conformance on enums triggers `@MainActor` isolation. Avoid `Codable` on pure data enums unless needed.
+- Color extensions using `UIColor`/`NSColor` become `@MainActor` isolated. Use `Color.resolve(in: EnvironmentValues())` instead.
+- `@Model` inits should take raw stored types (`colorHex: String`), not SwiftUI types (`Color`).
+- Test files must explicitly `import Foundation` and use `@MainActor` annotation.
+
+### Liquid Glass
+
+- Primary modifier: `.glassEffect(_:in:isEnabled:)` with variants `.regular`, `.clear`, `.identity`
+- There is **no** `.materialBackground()` modifier
+- Use `GlassEffectContainer` for grouping multiple glass elements
+- Glass is for the navigation/control layer only, not for content
+
+## Test Infrastructure
+
+- **Swift Testing** framework (not XCTest) for unit tests
+- **TestModelContainer** singleton (`TransitTests/TestModelContainer.swift`) — shared in-memory container with `cloudKitDatabase: .none` and explicit `Schema`. All three properties (schema, in-memory, no CloudKit) are required to avoid conflicts.
+- Each test gets a fresh `ModelContext` via `TestModelContainer.newContext()`
+- SwiftData test suites must use `@Suite(.serialized)` to prevent concurrent access issues
+- UI tests use `--uitesting` launch argument for in-memory storage and `--uitesting-seed-data` for deterministic test data
 
 ## Key Design Decisions
 
@@ -96,10 +136,12 @@ CloudKit private database, last-write-wins conflict resolution. Multiple writers
 - New tasks always start in Idea status
 - Abandoned tasks restore to Idea (not previous status)
 - Filter state is ephemeral (resets on launch)
-- Navigation: single-screen with dashboard as root; Settings is a pushed view, not a tab
 - Project picker uses native dropdown/menu (not chips or searchable list)
+- Free-form `[String: String]` metadata on tasks with reserved namespace prefixes: `git.`, `ci.`, `agent.`
 
 ## Reference Files
 
-- `docs/transit-design-doc.md` — full design document with data model, UI specs, intent schemas, and decision log
-- `docs/transit-ui-mockup.jsx` — React-based interactive mockup of the UI layout (reference only, not for production; native implementation uses SwiftUI with actual Liquid Glass materials)
+- `specs/transit-v1/` — requirements, design, tasks, decision log, and implementation notes
+- `docs/transit-design-doc.md` — full design document with data model, UI specs, intent schemas
+- `docs/transit-ui-mockup.jsx` — React-based interactive mockup (reference only, not production)
+- `docs/agent-notes/` — implementation notes on architecture, constraints, and patterns
