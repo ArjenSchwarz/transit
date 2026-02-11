@@ -130,30 +130,30 @@ references:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [2.6](requirements.md#2.6), [2.7](requirements.md#2.7), [2.8](requirements.md#2.8), [2.11](requirements.md#2.11), [2.12](requirements.md#2.12), [2.13](requirements.md#2.13)
   - [x] 10.1. Write unit tests for AddTaskIntent <!-- id:2ds0b54 -->
     - Stream: 3
-  - [ ] 10.2. Add intent title and IntentDescription <!-- id:2ds0b55 -->
+  - [x] 10.2. Add intent title and IntentDescription <!-- id:2ds0b55 -->
     - Stream: 3
-  - [ ] 10.3. Implement required name parameter (text field) <!-- id:2ds0b56 -->
+  - [x] 10.3. Implement required name parameter (text field) <!-- id:2ds0b56 -->
     - Stream: 3
-  - [ ] 10.4. Implement optional description parameter (text field) <!-- id:2ds0b57 -->
+  - [x] 10.4. Implement optional description parameter (text field) <!-- id:2ds0b57 -->
     - Stream: 3
-  - [ ] 10.5. Implement task type dropdown using TaskType AppEnum <!-- id:2ds0b58 -->
+  - [x] 10.5. Implement task type dropdown using TaskType AppEnum <!-- id:2ds0b58 -->
     - Stream: 3
-  - [ ] 10.6. Implement project dropdown using ProjectEntity <!-- id:2ds0b59 -->
+  - [x] 10.6. Implement project dropdown using ProjectEntity <!-- id:2ds0b59 -->
     - Stream: 3
-  - [ ] 10.7. Throw NO_PROJECTS error when no projects exist <!-- id:2ds0b5a -->
+  - [x] 10.7. Throw NO_PROJECTS error when no projects exist <!-- id:2ds0b5a -->
     - Stream: 3
-  - [ ] 10.8. Create tasks with initial status idea <!-- id:2ds0b5b -->
+  - [x] 10.8. Create tasks with initial status idea <!-- id:2ds0b5b -->
     - Stream: 3
-  - [ ] 10.9. Validate non-empty task name <!-- id:2ds0b5c -->
+  - [x] 10.9. Validate non-empty task name <!-- id:2ds0b5c -->
     - Stream: 3
-  - [ ] 10.10. Integrate with TaskService for task creation <!-- id:2ds0b5d -->
+  - [x] 10.10. Integrate with TaskService for task creation <!-- id:2ds0b5d -->
     - Stream: 3
-  - [ ] 10.11. Return TaskCreationResult with all required fields <!-- id:2ds0b5e -->
+  - [x] 10.11. Return TaskCreationResult with all required fields <!-- id:2ds0b5e -->
     - Stream: 3
-  - [ ] 10.12. Declare supportedModes including .foreground <!-- id:2ds0b5f -->
+  - [x] 10.12. Declare supportedModes including .foreground <!-- id:2ds0b5f -->
     - Stream: 3
 
-- [ ] 11. Write integration tests for AddTaskIntent <!-- id:2ds0b5g -->
+- [x] 11. Write integration tests for AddTaskIntent <!-- id:2ds0b5g -->
   - Blocked-by: 2ds0b53 (Implement AddTaskIntent (Transit: Add Task))
   - Stream: 3
 

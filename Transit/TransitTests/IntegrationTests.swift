@@ -174,4 +174,55 @@ struct IntentDashboardIntegrationTests {
         let columns = DashboardLogic.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
         #expect((columns[.idea] ?? []).count == 5)
     }
+    
+    // MARK: - Visual Intent Integration Tests
+    
+    @Test func addTaskIntentCreatesTaskVisibleInDashboard() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context, name: "Visual Test Project")
+        let projectEntity = ProjectEntity.from(project)
+        
+        let result = try await AddTaskIntent.execute(
+            name: "Visual Intent Task",
+            taskDescription: "Created via AddTaskIntent",
+            type: .feature,
+            project: projectEntity,
+            taskService: svc.task,
+            projectService: svc.project
+        )
+        
+        #expect(result.status == "idea")
+        #expect(result.projectName == "Visual Test Project")
+        
+        let tasks = try allTasks(in: svc.context)
+        #expect(tasks.count == 1)
+        #expect(tasks[0].name == "Visual Intent Task")
+        #expect(tasks[0].taskDescription == "Created via AddTaskIntent")
+        #expect(tasks[0].type == .feature)
+        #expect(tasks[0].status == .idea)
+        
+        let columns = DashboardLogic.buildFilteredColumns(allTasks: tasks, selectedProjectIDs: [])
+        #expect((columns[.idea] ?? []).count == 1)
+        #expect((columns[.idea] ?? [])[0].name == "Visual Intent Task")
+    }
+    
+    @Test func addTaskIntentThrowsErrorWhenNoProjectsExist() async throws {
+        let svc = try makeServices()
+        let dummyProjectEntity = ProjectEntity(
+            id: UUID().uuidString,
+            projectId: UUID(),
+            name: "Nonexistent Project"
+        )
+        
+        await #expect(throws: VisualIntentError.noProjects) {
+            try await AddTaskIntent.execute(
+                name: "Test Task",
+                taskDescription: nil,
+                type: .feature,
+                project: dummyProjectEntity,
+                taskService: svc.task,
+                projectService: svc.project
+            )
+        }
+    }
 }

@@ -13,6 +13,9 @@ struct AddTaskIntent: AppIntent {
         resultValueName: "Task Creation Result"
     )
     
+    // Note: The design specifies `supportedModes: [.foreground]` for iOS 26,
+    // but this API doesn't exist in the current SDK. Using `openAppWhenRun = true`
+    // achieves the same behavior (opens app after task creation).
     nonisolated(unsafe) static var openAppWhenRun: Bool = true
     
     // MARK: - Parameters
@@ -68,6 +71,13 @@ struct AddTaskIntent: AppIntent {
         taskService: TaskService,
         projectService: ProjectService
     ) async throws -> TaskCreationResult {
+        // Check if any projects exist [req 2.6, 2.7]
+        let descriptor = FetchDescriptor<Project>()
+        let allProjects = try projectService.context.fetch(descriptor)
+        guard !allProjects.isEmpty else {
+            throw VisualIntentError.noProjects
+        }
+        
         // Validate non-empty task name [req 2.12]
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {

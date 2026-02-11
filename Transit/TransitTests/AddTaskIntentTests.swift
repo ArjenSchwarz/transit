@@ -330,4 +330,31 @@ struct AddTaskIntentTests {
         let task = try taskService.findByID(result.taskId)
         #expect(task.taskDescription == "")
     }
+    
+    @Test("Throws noProjects error when no projects exist")
+    func throwsNoProjectsErrorWhenNoProjectsExist() async throws {
+        let context = try TestModelContainer.newContext()
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
+        let projectService = ProjectService(modelContext: context)
+        
+        // Create a dummy ProjectEntity (user would have selected this before deletion)
+        let dummyProjectEntity = ProjectEntity(
+            id: UUID().uuidString,
+            projectId: UUID(),
+            name: "Deleted Project"
+        )
+        
+        await #expect(throws: VisualIntentError.noProjects) {
+            try await AddTaskIntent.execute(
+                name: "Test Task",
+                taskDescription: nil,
+                type: .feature,
+                project: dummyProjectEntity,
+                taskService: taskService,
+                projectService: projectService
+            )
+        }
+    }
 }
