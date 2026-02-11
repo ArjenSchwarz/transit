@@ -216,7 +216,7 @@ references:
   - [ ] 14.5. Verify TaskEntity properties are accessible in Shortcuts <!-- id:2ds0b64 -->
     - Stream: 5
 
-- [ ] 15. Backward compatibility verification <!-- id:2ds0b65 -->
+- [x] 15. Backward compatibility verification <!-- id:2ds0b65 -->
   - Blocked-by: 2ds0b4r (Enhance QueryTasksIntent with date filtering)
   - Stream: 5
   - Requirements: [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [6.5](requirements.md#6.5), [6.6](requirements.md#6.6), [6.7](requirements.md#6.7), [6.8](requirements.md#6.8)
