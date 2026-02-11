@@ -202,7 +202,7 @@ references:
 
 ## Integration and Verification
 
-- [ ] 14. End-to-end intent testing <!-- id:2ds0b5z -->
+- [x] 14. End-to-end intent testing <!-- id:2ds0b5z -->
   - Blocked-by: 2ds0b4r (Enhance QueryTasksIntent with date filtering), 2ds0b53 (Implement AddTaskIntent (Transit: Add Task)), 2ds0b5h (Implement FindTasksIntent (Transit: Find Tasks))
   - Stream: 5
   - [ ] 14.1. Test all three intents via Shortcuts interface <!-- id:2ds0b60 -->
