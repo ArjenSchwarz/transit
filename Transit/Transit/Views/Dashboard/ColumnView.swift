@@ -6,7 +6,13 @@ struct ColumnView: View {
     let onTaskTap: (TransitTask) -> Void
     var onDrop: ((String) -> Bool)? // UUID string of dropped task
 
+    @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isDropTargeted = false
+
+    private var resolvedTheme: ResolvedTheme {
+        (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,6 +27,9 @@ struct ColumnView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+
+            Divider()
+                .padding(.horizontal, 8)
 
             if tasks.isEmpty {
                 // Per-column empty state [req 20.2]
@@ -50,10 +59,15 @@ struct ColumnView: View {
         .contentShape(.rect)
         .background {
             if isDropTargeted {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: 14)
                     .fill(.tint.opacity(0.1))
+            } else {
+                columnPanel
             }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
         .dropDestination(for: String.self) { items, _ in
             guard let uuidString = items.first else { return false }
             return onDrop?(uuidString) ?? false
@@ -61,6 +75,47 @@ struct ColumnView: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isDropTargeted = targeted
             }
+        }
+    }
+
+    // MARK: - Column Panel
+
+    @ViewBuilder
+    private var columnPanel: some View {
+        switch resolvedTheme {
+        case .universal:
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.white.opacity(0.07))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(.white.opacity(0.12), lineWidth: 0.5)
+                )
+        case .light:
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.thinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.white.opacity(0.55))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(.white.opacity(0.4), lineWidth: 0.5)
+                )
+        case .dark:
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.black.opacity(0.15))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
+                )
         }
     }
 

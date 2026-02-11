@@ -3,6 +3,13 @@ import SwiftUI
 struct TaskCardView: View {
     let task: TransitTask
 
+    @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var resolvedTheme: ResolvedTheme {
+        (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
+    }
+
     private var projectColor: Color {
         guard let hex = task.project?.colorHex else { return .gray }
         return Color(hex: hex)
@@ -58,14 +65,62 @@ struct TaskCardView: View {
             }
         }
         .padding(10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+        .background {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(cardMaterial)
+        }
+        .overlay(alignment: .top) {
+            // Top-edge accent stripe (project colour)
+            UnevenRoundedRectangle(
+                topLeadingRadius: 12,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 12
+            )
+            .fill(projectColor)
+            .frame(height: 2.5)
+        }
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(projectColor, lineWidth: 1.5)
+                .strokeBorder(cardBorder, lineWidth: 0.5)
         )
+        .shadow(color: cardShadow, radius: cardShadowRadius, y: cardShadowY)
         .opacity(isAbandoned ? 0.5 : 1.0)
         .draggable(task.id.uuidString) // [req 7.1]
         .accessibilityIdentifier(accessibilityID)
+    }
+
+    // MARK: - Theme-Adapted Card Styling
+
+    private var cardMaterial: Material {
+        switch resolvedTheme {
+        case .universal: .ultraThinMaterial
+        case .light: .thinMaterial
+        case .dark: .ultraThinMaterial
+        }
+    }
+
+    private var cardBorder: Color {
+        switch resolvedTheme {
+        case .universal: .white.opacity(0.15)
+        case .light: .white.opacity(0.5)
+        case .dark: .white.opacity(0.10)
+        }
+    }
+
+    private var cardShadow: Color {
+        switch resolvedTheme {
+        case .universal: .black.opacity(0.08)
+        case .light: .black.opacity(0.06)
+        case .dark: .black.opacity(0.20)
+        }
+    }
+
+    private var cardShadowRadius: CGFloat {
+        resolvedTheme == .light ? 4 : 2
+    }
+
+    private var cardShadowY: CGFloat {
+        resolvedTheme == .light ? 2 : 1
     }
 }

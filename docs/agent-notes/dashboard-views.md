@@ -18,18 +18,30 @@
 - `TransitTask` extended with `@retroactive Identifiable` for `.sheet(item:)`
 
 ### TaskCardView
-- Glass effect + project color border (1.5pt)
+- Theme-aware material background (ultraThin for universal/dark, thin for light)
+- Top-edge accent stripe (2.5pt, project colour) instead of full border
+- Subtle border + shadow adapted per theme
 - Shows: project name, task name (strikethrough if abandoned), display ID, type badge
 - Abandoned tasks render at 50% opacity
 - `.draggable(task.id.uuidString)` for drag-and-drop
+- Reads theme via `@AppStorage("appTheme")` + `@Environment(\.colorScheme)`
 
 ### ColumnView
-- Header with column name + task count
+- Frosted glass panel background per theme (rounded corners, 14pt)
+- Header with column name + task count, divider below header
 - Empty state via `EmptyStateView` when no tasks
 - Done/Abandoned column: separator divider before first abandoned task
 - `onDrop: ((String) -> Bool)?` callback for drag-and-drop
 - `.contentShape(.rect)` required for reliable drop hit-testing (Spacers/ScrollViews don't cover full frame without it)
 - `isDropTargeted` state with tint background provides visual feedback during drag hover
+- Reads theme via `@AppStorage("appTheme")` + `@Environment(\.colorScheme)`
+
+### BoardBackground
+- Radial gradient mesh behind the kanban board
+- Universal: vibrant mid-saturation (indigo, pink, teal, purple)
+- Light: pastel version with lower opacity
+- Dark: deeper/more saturated with higher opacity
+- Applied as `.background` on the GeometryReader in DashboardView
 
 ### KanbanBoardView
 - Horizontal `ScrollView` with `.viewAligned` scroll target behavior
@@ -63,6 +75,14 @@ Implemented in `DashboardView.buildFilteredColumns()`:
 - Done/Abandoned column always assigns `.done` (never `.abandoned` via drag)
 - SingleColumnView: segmented control segments are drop targets via ZStack overlay
 - KanbanBoardView: `.viewAligned` scroll behavior enables column-by-column auto-scroll during drag
+
+## Theming
+
+- `AppTheme` enum in `Models/AppTheme.swift`: `.followSystem`, `.universal`, `.light`, `.dark`
+- Stored as `@AppStorage("appTheme")` (raw string value)
+- `ResolvedTheme` collapses `.followSystem` to `.light` or `.dark` based on `colorScheme`
+- Views read theme via: `(AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)`
+- Theme picker in Settings → Appearance section
 
 ### Gotchas
 - Always use `.contentShape(.rect)` on views with `.dropDestination` that contain Spacers or ScrollViews
