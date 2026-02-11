@@ -8,11 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- Comprehensive manual testing checklist for Shortcuts-Friendly Intents feature with 50 test cases covering intent discoverability, task creation, task search, date filtering, error handling, and backward compatibility
-- Quick start guide for manual testing with setup instructions, quick test scenarios, testing tips, and troubleshooting guidance
-
-### Added
-
+- **Shortcuts-Friendly Intents**: Visual App Intents for Shortcuts users alongside existing JSON-based CLI intents
+  - `Transit: Add Task` intent with visual parameter entry (dropdowns for project/type, text fields for name/description)
+  - `Transit: Find Tasks` intent with comprehensive filtering (type, project, status, completion date, last changed date)
+  - Date filtering support in existing `Transit: Query Tasks` intent (relative ranges: today/this-week/this-month, absolute ranges: from/to dates)
+  - AppEntity conformance for `TaskEntity` and `ProjectEntity` enabling structured data return to Shortcuts
+  - AppEnum conformance for `TaskStatus` and `TaskType` enabling dropdown selection in Shortcuts
+  - `VisualIntentError` with LocalizedError conformance for native Shortcuts error display
+  - Conditional parameter display in Find Tasks (from/to date pickers appear only when custom-range selected)
+  - 200-task result limit in Find Tasks to prevent performance issues
+  - Comprehensive unit test coverage (2,700+ lines) and integration tests
+  - Manual testing guide with 50 test cases for Shortcuts UI verification
+  - Backward compatibility maintained: all existing JSON-based intents unchanged
 - Orbit session data (variant comparison, consolidation reports, human-readable transcripts) tracked in git for documentation
 
 ### Changed

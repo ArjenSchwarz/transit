@@ -39,13 +39,24 @@ make lint         # Run SwiftLint
 
 ## CLI Usage
 
-Transit exposes three App Intents accessible via the Shortcuts app or `shortcuts run` on the command line:
+Transit exposes App Intents accessible via the Shortcuts app or `shortcuts run` on the command line:
 
-- **Transit: Create Task** — create a task with project, name, type, and optional description/metadata
+### Visual Intents (Shortcuts UI)
+
+- **Transit: Add Task** — create a task using visual parameter entry (dropdowns for project/type, text fields for name/description)
+- **Transit: Find Tasks** — search for tasks with filters (type, project, status, completion date, last changed date)
+
+These intents use native Shortcuts UI elements (dropdowns, date pickers) and return structured data that Shortcuts can process.
+
+### JSON-Based Intents (CLI/Automation)
+
+- **Transit: Create Task** — create a task with JSON input (project, name, type, optional description/metadata)
 - **Transit: Update Status** — move a task to a new status by display ID (e.g., T-42)
-- **Transit: Query Tasks** — filter tasks by project, status, and/or type
+- **Transit: Query Tasks** — filter tasks by project, status, type, and/or dates (completion date, last status change)
 
-All intents accept a JSON string input and return a JSON string response, including structured error codes (`TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`).
+JSON intents accept a JSON string input and return a JSON string response, including structured error codes (`TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`, `NO_PROJECTS`, `INVALID_INPUT`, `INVALID_DATE`).
+
+**Date Filtering**: Both Query Tasks (JSON) and Find Tasks (visual) support date filtering with relative ranges (today, this-week, this-month) and absolute ranges (from/to dates in YYYY-MM-DD format).
 
 ## Documentation
 
