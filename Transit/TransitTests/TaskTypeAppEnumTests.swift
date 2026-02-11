@@ -14,7 +14,7 @@ struct TaskTypeAppEnumTests {
 
     @Test func allCasesHaveDisplayRepresentations() {
         let representations = TaskType.caseDisplayRepresentations
-        
+
         for type in TaskType.allCases {
             #expect(representations[type] != nil, "Missing display representation for \(type)")
         }
@@ -53,8 +53,8 @@ struct TaskTypeAppEnumTests {
         // This test verifies that static properties can be accessed from
         // a nonisolated async context without MainActor isolation conflicts
         await Task.detached {
-            let _ = TaskType.typeDisplayRepresentation
-            let _ = TaskType.caseDisplayRepresentations
+            _ = TaskType.typeDisplayRepresentation
+            _ = TaskType.caseDisplayRepresentations
         }.value
     }
 }

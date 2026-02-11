@@ -99,12 +99,12 @@ struct TaskEntityTests {
         let display = entity.displayRepresentation
         // Verify display representation can be accessed
         // The actual formatting is handled by the system
-        let _ = display.title
-        let _ = display.subtitle
+        _ = display.title
+        _ = display.subtitle
     }
 
     @Test func typeDisplayRepresentationIsCreated() {
-        let _ = TaskEntity.typeDisplayRepresentation
+        _ = TaskEntity.typeDisplayRepresentation
     }
 
     // MARK: - Factory Method

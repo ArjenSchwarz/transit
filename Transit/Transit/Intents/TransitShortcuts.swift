@@ -12,7 +12,7 @@ struct TransitShortcuts: AppShortcutsProvider {
             shortTitle: "Create Task",
             systemImageName: "plus.circle"
         )
-        
+
         AppShortcut(
             intent: AddTaskIntent(),
             phrases: [
@@ -42,6 +42,17 @@ struct TransitShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Query Tasks",
             systemImageName: "magnifyingglass"
+        )
+
+        AppShortcut(
+            intent: FindTasksIntent(),
+            phrases: [
+                "Find tasks in \(.applicationName)",
+                "Search \(.applicationName) tasks",
+                "Filter \(.applicationName) tasks"
+            ],
+            shortTitle: "Find Tasks",
+            systemImageName: "line.3.horizontal.decrease.circle"
         )
     }
 }

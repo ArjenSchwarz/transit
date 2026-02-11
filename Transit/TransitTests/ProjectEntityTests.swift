@@ -32,12 +32,12 @@ struct ProjectEntityTests {
         )
 
         // Just verify the display representation can be accessed
-        let _ = entity.displayRepresentation
+        _ = entity.displayRepresentation
     }
 
     @Test func typeDisplayRepresentationIsCreated() {
         // Just verify the type display representation can be accessed
-        let _ = ProjectEntity.typeDisplayRepresentation
+        _ = ProjectEntity.typeDisplayRepresentation
     }
 
     // MARK: - Factory Method
