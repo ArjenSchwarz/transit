@@ -6,10 +6,12 @@ struct SettingsView: View {
     @Environment(ProjectService.self) private var projectService
     @Environment(\.dismiss) private var dismiss
     @AppStorage("syncEnabled") private var syncEnabled = true
+    @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @State private var showCreateProject = false
 
     var body: some View {
         List {
+            appearanceSection
             projectsSection
             generalSection
         }
@@ -35,6 +37,16 @@ struct SettingsView: View {
     }
 
     // MARK: - Sections
+
+    private var appearanceSection: some View {
+        Section("Appearance") {
+            Picker("Theme", selection: $appTheme) {
+                ForEach(AppTheme.allCases, id: \.rawValue) { theme in
+                    Text(theme.displayName).tag(theme.rawValue)
+                }
+            }
+        }
+    }
 
     private var projectsSection: some View {
         Section {

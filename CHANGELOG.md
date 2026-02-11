@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Frosted Panels theme system with four options: Follow System (default), Universal, Light, and Dark
+- `AppTheme` and `ResolvedTheme` enums for theme preference storage and resolution
+- `BoardBackground` view rendering layered radial gradients (indigo, pink, teal, purple) behind the kanban board, adapted per theme variant
+- Theme picker in Settings → Appearance section
+- Frosted glass panel backgrounds on kanban columns with rounded corners, material fills, and subtle borders per theme
+- Top-edge accent stripe (2.5pt, project colour) on task cards replacing the full project-colour border
+- Theme-aware card styling with adapted materials, borders, and shadows per variant
+
+### Changed
+
+- Task cards no longer use `.glassEffect(.regular)` and `.regularMaterial`; replaced with layered frosted materials on a colourful gradient background
+- Column headers now have a divider separator below them
+
 ### Fixed
 
 - Newly created projects now appear immediately in the settings list and project picker instead of waiting 10-30 seconds for SwiftData's background auto-save
