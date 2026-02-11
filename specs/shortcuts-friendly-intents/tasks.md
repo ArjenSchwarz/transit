@@ -96,32 +96,32 @@ references:
   - Blocked-by: 2ds0b3z (Implement DateFilterHelpers utility)
   - Stream: 2
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [1.7](requirements.md#1.7), [1.8](requirements.md#1.8), [1.9](requirements.md#1.9), [1.10](requirements.md#1.10), [1.11](requirements.md#1.11), [1.12](requirements.md#1.12)
-  - [ ] 8.1. Write unit tests for date filtering in QueryTasksIntent <!-- id:2ds0b4s -->
+  - [x] 8.1. Write unit tests for date filtering in QueryTasksIntent <!-- id:2ds0b4s -->
     - Stream: 2
-  - [ ] 8.2. Add DateRangeFilter codable type with from/to properties <!-- id:2ds0b4t -->
+  - [x] 8.2. Add DateRangeFilter codable type with from/to properties <!-- id:2ds0b4t -->
     - Stream: 2
-  - [ ] 8.3. Add optional completionDate and lastStatusChangeDate filter parameters <!-- id:2ds0b4u -->
+  - [x] 8.3. Add optional completionDate and lastStatusChangeDate filter parameters <!-- id:2ds0b4u -->
     - Stream: 2
-  - [ ] 8.4. Update JSON schema to support relative and absolute date ranges <!-- id:2ds0b4v -->
+  - [x] 8.4. Update JSON schema to support relative and absolute date ranges <!-- id:2ds0b4v -->
     - Stream: 2
-  - [ ] 8.5. Implement filter logic using DateFilterHelpers <!-- id:2ds0b4w -->
+  - [x] 8.5. Implement filter logic using DateFilterHelpers <!-- id:2ds0b4w -->
     - Stream: 2
-  - [ ] 8.6. Update parameter description with date filter examples <!-- id:2ds0b4x -->
+  - [x] 8.6. Update parameter description with date filter examples <!-- id:2ds0b4x -->
     - Stream: 2
-  - [ ] 8.7. Test backward compatibility with existing queries <!-- id:2ds0b4y -->
+  - [x] 8.7. Test backward compatibility with existing queries <!-- id:2ds0b4y -->
     - Stream: 2
 
 ## Visual Task Creation Intent
 
-- [ ] 9. Implement TaskCreationResult struct <!-- id:2ds0b4z -->
+- [x] 9. Implement TaskCreationResult struct <!-- id:2ds0b4z -->
   - Blocked-by: 2ds0b3t (Implement TaskStatus AppEnum conformance), 2ds0b3u (Implement TaskType AppEnum conformance), 2ds0b3v (Implement VisualIntentError enum)
   - Stream: 3
   - Requirements: [2.10](requirements.md#2.10), [4.8](requirements.md#4.8), [4.9](requirements.md#4.9)
-  - [ ] 9.1. Write unit tests for TaskCreationResult <!-- id:2ds0b50 -->
+  - [x] 9.1. Write unit tests for TaskCreationResult <!-- id:2ds0b50 -->
     - Stream: 3
-  - [ ] 9.2. Implement struct with taskId, displayId, status, projectId, projectName <!-- id:2ds0b51 -->
+  - [x] 9.2. Implement struct with taskId, displayId, status, projectId, projectName <!-- id:2ds0b51 -->
     - Stream: 3
-  - [ ] 9.3. Use standard Swift types for Shortcuts serialization <!-- id:2ds0b52 -->
+  - [x] 9.3. Use standard Swift types for Shortcuts serialization <!-- id:2ds0b52 -->
     - Stream: 3
 
 - [ ] 10. Implement AddTaskIntent (Transit: Add Task) <!-- id:2ds0b53 -->
