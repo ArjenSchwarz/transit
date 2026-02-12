@@ -26,6 +26,11 @@ struct TaskDetailView: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
+                    ShareLink(item: task.shareText, subject: Text(task.name)) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
                     Button("Edit") { showEdit = true }
                 }
             }
