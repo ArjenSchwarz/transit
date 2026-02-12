@@ -50,6 +50,29 @@ final class TransitTask {
         }
     }
 
+    var shareText: String {
+        let typeName = type.rawValue.capitalized
+        var text = "# \(displayID.formatted) \(name) (\(typeName))\n"
+
+        if let project {
+            text += "Project: \(project.name)\n"
+        }
+
+        if let taskDescription, !taskDescription.isEmpty {
+            text += "\n\(taskDescription)\n"
+        }
+
+        let metadata = metadata
+        if !metadata.isEmpty {
+            text += "\n"
+            for (key, value) in metadata.sorted(by: { $0.key < $1.key }) {
+                text += "\(key): \(value)\n"
+            }
+        }
+
+        return text
+    }
+
     init(
         name: String,
         description: String? = nil,

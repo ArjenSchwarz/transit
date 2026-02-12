@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Share button on task detail view toolbar for copying task details as formatted markdown text (display ID, title, type, project, description, metadata)
+- `TransitTask.shareText` computed property for generating shareable markdown representation
+- `ShareTextTests` suite (8 tests) covering header formatting, provisional display IDs, project name, description inclusion/omission, metadata sorting, and full format validation
+
+### Changed
+
+- `DisplayID.formatted` marked `nonisolated` to allow use from non-MainActor contexts (e.g. `@Model` computed properties)
+
 ### Fixed
 
 - `AddTaskSheet` build failure on macOS caused by `PersistentModel` (`Project`, `TransitTask`) being captured in a `@Sendable` `Task {}` closure. Replaced `Project` capture with UUID and explicitly discarded the `TransitTask` return value.
