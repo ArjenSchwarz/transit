@@ -25,6 +25,7 @@ Transit/Transit/
 │   ├── Settings/              # SettingsView, ProjectEditView
 │   └── Shared/                # Reusable components
 ├── Intents/                   # App Intents for CLI integration
+├── MCP/                       # MCP server (macOS only) — see mcp-server.md
 └── Extensions/                # Color+Codable, Date+TransitHelpers
 ```
 
@@ -50,6 +51,7 @@ Transit/Transit/
 - `ConnectivityMonitor` is started in `init()` with `onRestore` wired to `displayIDAllocator.promoteProvisionalTasks`.
 - `ScenePhaseModifier` (private ViewModifier) observes `@Environment(\.scenePhase)` from within a View context (required by SwiftUI — cannot observe scenePhase in the App struct's Scene). Triggers promotion on `.task` (app launch) and `.onChange(of: scenePhase)` when returning to `.active`.
 - `SyncManager` and `ConnectivityMonitor` are injected into the environment.
+- `MCPSettings`, `MCPToolHandler`, and `MCPServer` are created and wired in `init()` (macOS only). `MCPSettings` and `MCPServer` are injected into the environment for SettingsView.
 
 ## Error Types
 

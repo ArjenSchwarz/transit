@@ -125,6 +125,7 @@
 			);
 			name = Transit;
 			packageProductDependencies = (
+				A1MCP00022F5A000000000002 /* Hummingbird */,
 			);
 			productName = Transit;
 			productReference = D48D3EA92F3A033000139F85 /* Transit.app */;
@@ -210,6 +211,9 @@
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D48D3EAA2F3A033000139F85 /* Products */;
+			packageReferences = (
+				A1MCP00012F5A000000000001 /* XCRemoteSwiftPackageReference "hummingbird" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -640,6 +644,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A1MCP00012F5A000000000001 /* XCRemoteSwiftPackageReference "hummingbird" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/hummingbird-project/hummingbird.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1MCP00022F5A000000000002 /* Hummingbird */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1MCP00012F5A000000000001 /* XCRemoteSwiftPackageReference "hummingbird" */;
+			productName = Hummingbird;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D48D3EA12F3A033000139F85 /* Project object */;
 }
