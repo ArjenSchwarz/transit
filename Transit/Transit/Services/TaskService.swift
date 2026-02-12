@@ -9,6 +9,7 @@ final class TaskService {
     enum Error: Swift.Error, Equatable {
         case invalidName
         case taskNotFound
+        case projectNotFound
         case duplicateDisplayID
         case restoreRequiresAbandonedTask
     }
@@ -22,6 +23,32 @@ final class TaskService {
     }
 
     // MARK: - Task Creation
+
+    /// Creates a new task in `.idea` status, looking up the project by UUID.
+    /// Fetches the project from the model context, then delegates to the
+    /// primary `createTask` overload.
+    @discardableResult
+    func createTask(
+        name: String,
+        description: String?,
+        type: TaskType,
+        projectID: UUID,
+        metadata: [String: String]? = nil
+    ) async throws -> TransitTask {
+        let descriptor = FetchDescriptor<Project>(
+            predicate: #Predicate { $0.id == projectID }
+        )
+        guard let project = try modelContext.fetch(descriptor).first else {
+            throw Error.projectNotFound
+        }
+        return try await createTask(
+            name: name,
+            description: description,
+            type: type,
+            project: project,
+            metadata: metadata
+        )
+    }
 
     /// Creates a new task in `.idea` status. Attempts to allocate a permanent
     /// display ID from CloudKit; falls back to provisional on failure.

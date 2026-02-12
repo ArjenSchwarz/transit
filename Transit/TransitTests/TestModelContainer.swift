@@ -1,36 +1,21 @@
+import Foundation
 import SwiftData
 @testable import Transit
 
-/// Provides a shared in-memory ModelContainer for tests. Creating multiple
-/// ModelContainer instances for the same schema in the same process causes
-/// `loadIssueModelContainer` errors. Using a single shared container avoids
-/// this while giving each test a fresh ModelContext.
+/// Provides isolated in-memory ModelContexts for tests.
 @MainActor
 enum TestModelContainer {
-    private static var _container: ModelContainer?
-
-    static var shared: ModelContainer {
-        get throws {
-            if let container = _container {
-                return container
-            }
-            let schema = Schema([Project.self, TransitTask.self])
-            let config = ModelConfiguration(
-                "TransitTests",
-                schema: schema,
-                isStoredInMemoryOnly: true,
-                cloudKitDatabase: .none
-            )
-            let container = try ModelContainer(for: schema, configurations: [config])
-            _container = container
-            return container
-        }
-    }
-
-    /// Returns a fresh ModelContext from the shared container. Each test
-    /// should use its own context to avoid cross-test state leakage.
+    /// Returns a fresh ModelContext backed by its own in-memory container to
+    /// avoid cross-test state leakage between suites.
     static func newContext() throws -> ModelContext {
-        let container = try shared
+        let schema = Schema([Project.self, TransitTask.self])
+        let config = ModelConfiguration(
+            "TransitTests-\(UUID().uuidString)",
+            schema: schema,
+            isStoredInMemoryOnly: true,
+            cloudKitDatabase: .none
+        )
+        let container = try ModelContainer(for: schema, configurations: [config])
         return ModelContext(container)
     }
 }

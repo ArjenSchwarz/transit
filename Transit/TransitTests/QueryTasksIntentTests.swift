@@ -39,12 +39,20 @@ struct QueryTasksIntentTests {
         name: String = "Task",
         type: TaskType = .feature,
         displayId: Int,
-        status: TaskStatus = .idea
+        status: TaskStatus = .idea,
+        completionDate: Date? = nil,
+        lastStatusChangeDate: Date? = nil
     ) -> TransitTask {
         let task = TransitTask(name: name, type: type, project: project, displayID: .permanent(displayId))
         StatusEngine.initializeNewTask(task)
         if status != .idea {
             StatusEngine.applyTransition(task: task, to: status)
+        }
+        if let completionDate {
+            task.completionDate = completionDate
+        }
+        if let lastStatusChangeDate {
+            task.lastStatusChangeDate = lastStatusChangeDate
         }
         context.insert(task)
         return task

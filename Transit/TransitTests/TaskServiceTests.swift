@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 import Testing
 @testable import Transit
@@ -91,10 +92,18 @@ struct TaskServiceTests {
         let project = makeProject(in: context)
 
         // Whitespace-only name should throw
-        await #expect(throws: TaskService.Error.invalidName) {
-            try await service.createTask(
-                name: "   ", description: nil, type: .feature, project: project
+        do {
+            _ = try await service.createTask(
+                name: "   ",
+                description: nil,
+                type: .feature,
+                project: project
             )
+            Issue.record("Expected TaskService.Error.invalidName")
+        } catch let error as TaskService.Error {
+            #expect(error == .invalidName)
+        } catch {
+            Issue.record("Unexpected error: \(error)")
         }
 
         // Valid name with leading/trailing whitespace should be trimmed

@@ -8,17 +8,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `AddTaskSheet` build failure on macOS caused by `PersistentModel` (`Project`, `TransitTask`) being captured in a `@Sendable` `Task {}` closure. Replaced `Project` capture with UUID and explicitly discarded the `TransitTask` return value.
+- `AddTaskSheet` task creation failing at runtime because `registeredModel(for:)` returns `nil` when the project was fetched by a different `ModelContext`. Changed `TaskService.createTask(projectID:)` to use `FetchDescriptor` with UUID predicate instead of `PersistentIdentifier` lookup.
 - Claude Code Review workflow missing `pull-requests: write` permission, preventing the action from posting review comments on PRs
 
 ### Added
 
+- Visual `AddTaskIntent` now supports optional metadata input as comma-separated `key=value` pairs (for example: `priority=high,source=shortcut`) and persists it on created tasks.
+- Metadata-focused coverage for visual task creation:
+  - `AddTaskIntentTests` now verifies valid metadata parsing and malformed metadata rejection.
+  - `AddTaskIntentIntegrationTests` now verifies persisted metadata values end-to-end.
+- `IntentCompatibilityAndDiscoverabilityTests` regression suite to lock Shortcuts discoverability and backward-compatibility contracts:
+  - intent title stability for legacy and visual intents
+  - shortcut provider registration count for all five intents
+  - JSON output contract checks for `CreateTaskIntent`, `UpdateStatusIntent`, and non-date `QueryTasksIntent`
+- Visual `FindTasksIntent` (`Transit: Find Tasks`) with optional Shortcuts filters for type, project, status, completion date, and last status change date
+- Custom-range date filtering UI for `FindTasksIntent` via nested `ParameterSummary` `When` clauses, including conditional from/to date fields
+- `FindTasksIntent` test coverage:
+  - `FindTasksIntentTests` for AND-filter logic, custom date ranges, 200-result cap, sort order, empty results, and invalid range validation
+  - `FindTasksIntentIntegrationTests` for end-to-end `TaskEntity` field mapping and empty-match behavior
+- `FindTasksIntent` registration in `TransitShortcuts` with dedicated phrases and icon for Shortcuts discoverability
+- Visual `AddTaskIntent` (`Transit: Add Task`) with native Shortcuts parameters for name, optional description, task type, and project selection
+- `TaskCreationResult` shared intent return type (plus query support) carrying `taskId`, `displayId`, `status`, `projectId`, and `projectName` for structured Shortcuts output
+- New automated coverage for visual task creation:
+  - `TaskCreationResultTests` for mapping and data-integrity error handling
+  - `AddTaskIntentTests` for validation, no-project handling, stale project selection, and task creation behavior
+  - `AddTaskIntentIntegrationTests` for end-to-end persistence and query visibility
+- Dedicated `QueryTasksIntentDateFilterTests` suite covering relative/absolute date filters, precedence rules, invalid date input handling, and legacy non-date query compatibility
 - Orbit session data (variant comparison, consolidation reports, human-readable transcripts) tracked in git for documentation
+- Shared Shortcuts intent infrastructure for `shortcuts-friendly-intents` phase 1:
+  - `TaskStatus` and `TaskType` `AppEnum` conformances for reusable Shortcuts dropdown display values
+  - `VisualIntentError` with `LocalizedError` messaging and stable visual-intent error codes
+  - `ProjectEntity`/`ProjectEntityQuery` and `TaskEntity`/`TaskEntityQuery` for AppEntity-backed selection and lookup
+  - `DateFilterHelpers` utility for relative/absolute date range parsing with inclusive boundary checks
+  - New unit test coverage for all of the above shared intent components
 
 ### Changed
 
+- Completed `shortcuts-friendly-intents` Integration and Verification phase tasks in `specs/shortcuts-friendly-intents/tasks.md` after running strict linting and full `TransitTests` verification.
+- `TaskEntityQuery` now pre-sizes UUID sets and output arrays and uses iterative filtering to reduce transient allocations on entity resolution paths
+- `QueryTasksIntent` now decodes typed JSON filters with codable date-range support for `completionDate` and `lastStatusChangeDate` (`relative` or `from`/`to`)
+- Date-filter validation now rejects malformed date ranges with an `INVALID_INPUT` error before query execution
+- Query filtering now runs in a single pass with reserved result capacity to reduce intermediate array allocations
+- `DateFilterHelpers` now supports direct `relative`/`from`/`to` parsing in addition to dictionary-based parsing
 - `CLAUDE.md` rewritten to reflect current architecture: added service layer, navigation pattern, theme system, SwiftData+CloudKit constraints, Swift 6 MainActor isolation gotchas, Liquid Glass constraints, and test infrastructure details; removed incorrect `.materialBackground()` reference
 - `README.md` expanded from stub to full project documentation with features, requirements, build commands, CLI usage, and documentation pointers
 - `.gitignore` updated to selectively allow `.orbit` directories while blocking cost/billing data, raw API logs, and working trees
+- `QueryTasksIntent` now always includes a `completionDate` key in each task JSON object (`null` when absent) for a stable response schema
+- `TestModelContainer.newContext()` now creates an isolated in-memory SwiftData container per context to prevent cross-suite data leakage in tests
 
 ### Added
 
