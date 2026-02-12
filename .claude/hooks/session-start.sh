@@ -6,7 +6,7 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
 
-SWIFT_VERSION="6.0.3"
+SWIFT_VERSION="6.2.3"
 SWIFTLINT_VERSION="0.63.2"
 SWIFT_DIR="$HOME/.swift"
 INSTALL_DIR="$HOME/.local/bin"
