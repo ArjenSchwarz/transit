@@ -21,6 +21,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- MCP server `isRunning` state now correctly resets to `false` when the server fails to bind or stops unexpectedly, preventing the Settings UI from showing a stale "Running" status
+- Removed unused `[weak self]` capture in `MCPServer.start()` detached task
+
+### Fixed
+
 - macOS toolbar background is now transparent, allowing the BoardBackground gradient to bleed through to the top of the window matching iOS Liquid Glass behaviour
 
 ### Added
