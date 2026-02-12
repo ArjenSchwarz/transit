@@ -21,7 +21,10 @@ final class MCPServer {
         isRunning = true
 
         let handler = toolHandler
-        serverTask = Task.detached { [weak self] in
+        let setNotRunning = { @MainActor [weak self] in
+            self?.isRunning = false
+        }
+        serverTask = Task.detached {
             let router = Router()
             router.post("mcp") { request, _ -> Response in
                 let body = try await request.body.collect(upTo: 1_048_576)
@@ -52,8 +55,9 @@ final class MCPServer {
             do {
                 try await app.runService()
             } catch {
-                // Server stopped or failed to start
+                // Server stopped or failed to bind
             }
+            await setNotRunning()
         }
     }
 
