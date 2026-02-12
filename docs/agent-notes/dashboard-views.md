@@ -88,3 +88,4 @@ Implemented in `DashboardView.buildFilteredColumns()`:
 - Always use `.contentShape(.rect)` on views with `.dropDestination` that contain Spacers or ScrollViews
 - Avoid `.scrollTargetBehavior(.paging)` with drag-and-drop — use `.viewAligned` instead
 - On iPhone portrait, cross-column drag requires the segmented control overlay (no other visible drop targets)
+- macOS window toolbar defaults to opaque background; use `.toolbarBackgroundVisibility(.hidden, for: .windowToolbar)` to make it transparent. iOS inline navigation bars are automatically translucent with Liquid Glass.

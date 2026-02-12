@@ -65,6 +65,9 @@ struct DashboardView: View {
         }
         .navigationTitle("Transit")
         .toolbarTitleDisplayMode(.inline)
+        #if os(macOS)
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        #endif
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 filterButton
