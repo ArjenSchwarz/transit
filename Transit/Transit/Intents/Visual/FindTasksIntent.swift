@@ -197,12 +197,10 @@ struct FindTasksIntent: AppIntent {
             }
 
             filtered.append(task)
-            if filtered.count == maxResults {
-                break
-            }
         }
 
-        return TaskEntityQuery.entities(from: filtered)
+        let entities = TaskEntityQuery.entities(from: filtered)
+        return Array(entities.prefix(maxResults))
     }
 
     @MainActor
@@ -224,7 +222,8 @@ struct FindTasksIntent: AppIntent {
         case .thisMonth:
             return .thisMonth
         case .customRange:
-            if let from, let toDate, from > toDate {
+            let calendar = Calendar.current
+            if let from, let toDate, calendar.startOfDay(for: from) > calendar.startOfDay(for: toDate) {
                 throw VisualIntentError.invalidDate("\(fieldName) from date must be before to date")
             }
             return .absolute(from: from, toDate: toDate)

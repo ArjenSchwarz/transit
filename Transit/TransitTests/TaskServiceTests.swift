@@ -103,7 +103,7 @@ struct TaskServiceTests {
         } catch let error as TaskService.Error {
             #expect(error == .invalidName)
         } catch {
-            Issue.record("Unexpected error: \\(error)")
+            Issue.record("Unexpected error: \(error)")
         }
 
         // Valid name with leading/trailing whitespace should be trimmed

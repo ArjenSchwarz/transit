@@ -9,6 +9,7 @@ final class TaskService {
     enum Error: Swift.Error, Equatable {
         case invalidName
         case taskNotFound
+        case projectNotFound
         case duplicateDisplayID
         case restoreRequiresAbandonedTask
     }
@@ -38,7 +39,7 @@ final class TaskService {
             predicate: #Predicate { $0.id == projectID }
         )
         guard let project = try modelContext.fetch(descriptor).first else {
-            throw Error.taskNotFound
+            throw Error.projectNotFound
         }
         return try await createTask(
             name: name,
