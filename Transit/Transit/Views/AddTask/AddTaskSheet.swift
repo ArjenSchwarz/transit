@@ -94,15 +94,16 @@ struct AddTaskSheet: View {
 
         let description = taskDescription.trimmingCharacters(in: .whitespaces)
         let type = selectedType
+        let projectID = project.persistentModelID
 
         dismiss()
 
         Task {
-            try await taskService.createTask(
+            _ = try await taskService.createTask(
                 name: trimmedName,
                 description: description.isEmpty ? nil : description,
                 type: type,
-                project: project
+                projectID: projectID
             )
         }
     }

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `AddTaskSheet` build failure on macOS caused by `PersistentModel` (`Project`, `TransitTask`) being captured in a `@Sendable` `Task {}` closure. Replaced `Project` capture with `PersistentIdentifier` and explicitly discarded the `TransitTask` return value.
+
 ### Added
 
 - Visual `AddTaskIntent` now supports optional metadata input as comma-separated `key=value` pairs (for example: `priority=high,source=shortcut`) and persists it on created tasks.

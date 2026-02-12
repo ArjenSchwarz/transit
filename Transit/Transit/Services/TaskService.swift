@@ -23,6 +23,29 @@ final class TaskService {
 
     // MARK: - Task Creation
 
+    /// Creates a new task in `.idea` status using a project's persistent ID.
+    /// Resolves the project from the model context, then delegates to the
+    /// primary `createTask` overload.
+    @discardableResult
+    func createTask(
+        name: String,
+        description: String?,
+        type: TaskType,
+        projectID: PersistentIdentifier,
+        metadata: [String: String]? = nil
+    ) async throws -> TransitTask {
+        guard let project: Project = modelContext.registeredModel(for: projectID) else {
+            throw Error.taskNotFound
+        }
+        return try await createTask(
+            name: name,
+            description: description,
+            type: type,
+            project: project,
+            metadata: metadata
+        )
+    }
+
     /// Creates a new task in `.idea` status. Attempts to allocate a permanent
     /// display ID from CloudKit; falls back to provisional on failure.
     @discardableResult
