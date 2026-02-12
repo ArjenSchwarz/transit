@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- macOS toolbar background is now transparent, allowing the BoardBackground gradient to bleed through to the top of the window matching iOS Liquid Glass behaviour
+
 ### Added
 
 - Share button on task detail view toolbar for copying task details as formatted markdown text (display ID, title, type, project, description, metadata)
