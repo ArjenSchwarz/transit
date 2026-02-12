@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- `AddTaskSheet` build failure on macOS caused by `PersistentModel` (`Project`, `TransitTask`) being captured in a `@Sendable` `Task {}` closure. Replaced `Project` capture with `PersistentIdentifier` and explicitly discarded the `TransitTask` return value.
+- `AddTaskSheet` build failure on macOS caused by `PersistentModel` (`Project`, `TransitTask`) being captured in a `@Sendable` `Task {}` closure. Replaced `Project` capture with UUID and explicitly discarded the `TransitTask` return value.
+- `AddTaskSheet` task creation failing at runtime because `registeredModel(for:)` returns `nil` when the project was fetched by a different `ModelContext`. Changed `TaskService.createTask(projectID:)` to use `FetchDescriptor` with UUID predicate instead of `PersistentIdentifier` lookup.
 
 ### Added
 

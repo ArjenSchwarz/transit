@@ -23,18 +23,21 @@ final class TaskService {
 
     // MARK: - Task Creation
 
-    /// Creates a new task in `.idea` status using a project's persistent ID.
-    /// Resolves the project from the model context, then delegates to the
+    /// Creates a new task in `.idea` status, looking up the project by UUID.
+    /// Fetches the project from the model context, then delegates to the
     /// primary `createTask` overload.
     @discardableResult
     func createTask(
         name: String,
         description: String?,
         type: TaskType,
-        projectID: PersistentIdentifier,
+        projectID: UUID,
         metadata: [String: String]? = nil
     ) async throws -> TransitTask {
-        guard let project: Project = modelContext.registeredModel(for: projectID) else {
+        let descriptor = FetchDescriptor<Project>(
+            predicate: #Predicate { $0.id == projectID }
+        )
+        guard let project = try modelContext.fetch(descriptor).first else {
             throw Error.taskNotFound
         }
         return try await createTask(

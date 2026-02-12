@@ -94,7 +94,7 @@ struct AddTaskSheet: View {
 
         let description = taskDescription.trimmingCharacters(in: .whitespaces)
         let type = selectedType
-        let projectID = project.persistentModelID
+        let projectID = project.id
 
         dismiss()
 
