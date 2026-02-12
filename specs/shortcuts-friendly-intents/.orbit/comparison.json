@@ -1,0 +1,299 @@
+{
+  "recommendation": 3,
+  "confidence": "high",
+  "summary": "Variant 3 (Codex) is the best implementation: it is the most spec-compliant (includes metadata per req 2.9, uses supportedModes per reqs 2.11/3.15), has the cleanest technical approach (Codable JSON parsing, injectable date testing, cached DateFormatter, date range validation), and achieves this with the smallest focused changeset (2,669 lines vs 4,225 and 8,323). Variant 1 is a strong runner-up with excellent test coverage and clean patterns but misses a required feature (metadata). Variant 2 has production bugs, acknowledged test failures, and excessive documentation bloat.",
+  "file_analyses": [
+    {
+      "path": "Transit/Transit/Intents/QueryTasksIntent.swift",
+      "variants": {
+        "1": "Adds date filtering using [String: Any] dict parsing with IntentHelpers.parseJSON(). Pre-validates date filters before applying, returning IntentError JSON on invalid dates. Clean additive change. Omits nil completionDate keys from JSON output.",
+        "2": "Similar [String: Any] dict approach but calls DateFilterHelpers.parseDateFilter directly without pre-validation. Silently ignores invalid dates (violates req 1.10). Less defensive than V1.",
+        "3": "Uses Codable structs (DateRangeFilter, QueryFilters) for type-safe JSON parsing, eliminating as? casts. Validates upfront via dedicated validateDateFilters(). Emits NSNull for nil completionDate (changes JSON contract). Cleanest separation of concerns."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/Transit/Intents/Visual/AddTaskIntent.swift",
+      "variants": {
+        "1": "Clean implementation with Input struct for parameter grouping. Uses openAppWhenRun=true. Returns ReturnsValue<TaskCreationResult> as AppEntity. Does NOT include metadata parameter (violates req 2.9). Checks for projects by fetching all then checking isEmpty.",
+        "2": "Returns ReturnsValue<String> (JSON string) instead of structured AppEntity -- degrades Shortcuts UX as users cannot use 'Get Details'. Uses openAppWhenRun=true. No metadata support. Manual JSONEncoder for result.",
+        "3": "Includes metadata parameter as comma-separated key=value string (fulfills req 2.9). Returns ReturnsValue<TaskCreationResult> as AppEntity. Uses supportedModes: [.foreground] per spec (req 2.11). Efficient hasAnyProjects() with fetchLimit=1. Thorough metadata parser with validation."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/Transit/Intents/Visual/FindTasksIntent.swift",
+      "variants": {
+        "1": "Good implementation with 10 @Parameter properties and proper When clauses. Uses openAppWhenRun=false. 200-result limit applied after sort. Does not validate inverted date ranges. Uses Input struct for execute().",
+        "2": "Similar structure with async throws on execute() (unnecessary). Uses openAppWhenRun=false. 200-result limit after sort. No inverted date range validation. Passes 9 parameters individually to execute().",
+        "3": "Uses supportedModes: [.background] per spec (req 3.15). Defines Filters struct for parameter grouping. Validates from < to for custom ranges (throws VisualIntentError.invalidDate). Early exit at maxResults=200 during filtering loop for memory efficiency. More explicit parameter naming (lastStatusChangeDateFilter)."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/Transit/Intents/Visual/VisualIntentError.swift",
+      "variants": {
+        "1": "Lean implementation with 6 cases, full LocalizedError conformance (errorDescription, failureReason, recoverySuggestion). No code property, no Equatable. Clean and minimal.",
+        "2": "Adds code property (string error codes) and Equatable conformance. More complete but arguably over-engineered for visual intents where LocalizedError already provides messages.",
+        "3": "Includes code property (matching req 7.4 which asks for error code enum value). No Equatable. Good balance between V1's minimalism and V2's completeness."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/Transit/Intents/Shared/Entities/TaskEntity.swift",
+      "variants": {
+        "1": "Clean AppEntity with from() factory. displayRepresentation uses status.capitalized which produces 'In-progress' for kebab-case values (cosmetic issue).",
+        "2": "Structurally identical to V1. Same displayRepresentation approach.",
+        "3": "Adds DefaultQueryType typealias (harmless). Same from() factory pattern. Same structure overall."
+      },
+      "preference": null
+    },
+    {
+      "path": "Transit/Transit/Intents/Shared/Entities/TaskEntityQuery.swift",
+      "variants": {
+        "1": "Instance methods only. Uses compactMap with array.contains() for UUID resolution (O(n) per lookup). 10 suggested entities.",
+        "2": "Has @testable import Transit in production code -- this is a bug. Otherwise similar to V1.",
+        "3": "Static helper methods for testability. Uses Set<UUID> for O(1) lookups. reserveCapacity optimization. Reusable entities(from:) helper. No production bugs."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/Transit/Intents/Shared/Entities/ProjectEntity.swift",
+      "variants": {
+        "1": "Clean, minimal. Non-throwing from() factory.",
+        "2": "Similar to V1.",
+        "3": "Same pattern. Static helper methods in query. Sorted suggestedEntities by name."
+      },
+      "preference": null
+    },
+    {
+      "path": "Transit/Transit/Intents/Shared/Entities/ProjectEntityQuery.swift",
+      "variants": {
+        "1": "Clean. 10 suggested entities, sorted by name.",
+        "2": "No sorting for suggestedEntities. Otherwise similar.",
+        "3": "Static methods for testability. Set-based lookups. Sorted by name. reserveCapacity."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/Transit/Intents/Shared/Enums/TaskStatusAppEnum.swift",
+      "variants": {
+        "1": "Minimal extension with nonisolated properties. Clean.",
+        "2": "Identical to V1.",
+        "3": "Identical to V1."
+      },
+      "preference": null
+    },
+    {
+      "path": "Transit/Transit/Intents/Shared/Enums/TaskTypeAppEnum.swift",
+      "variants": {
+        "1": "Minimal extension with nonisolated properties.",
+        "2": "Identical to V1.",
+        "3": "Identical to V1."
+      },
+      "preference": null
+    },
+    {
+      "path": "Transit/Transit/Intents/Shared/Results/TaskCreationResult.swift",
+      "variants": {
+        "1": "AppEntity with displayRepresentation showing 'T-42 created'. Stub EntityQuery returning empty arrays (creation results are transient). Correct approach for Shortcuts integration.",
+        "2": "Plain Codable struct, NOT an AppEntity. AddTaskIntent must JSON-encode and return as String. Shortcuts cannot inspect individual properties. Worse UX.",
+        "3": "AppEntity like V1, but with a WORKING EntityQuery that can resolve previously created tasks from SwiftData. More complete implementation. displayRepresentation handles both allocated and provisional display IDs."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/Transit/Intents/Shared/Utilities/DateFilterHelpers.swift",
+      "variants": {
+        "1": "Clean DateRange enum. parseDateFilter throws VisualIntentError.invalidDate for bad dates. New DateFormatter per call. Hardcoded Date() in dateInRange. No Equatable on DateRange.",
+        "2": "Unnecessarily marked @MainActor. Returns nil for invalid dates (silently ignores -- violates req 1.10). New DateFormatter per call. Hardcoded Date().",
+        "3": "DateRange conforms to Equatable for testability. Injectable 'now' parameter in dateInRange() for deterministic testing. Cached static DateFormatter. Two parseDateFilter overloads (dict and typed parameters). Returns nil for unknown relatives (caller validates)."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/Transit/Intents/TransitShortcuts.swift",
+      "variants": {
+        "1": "All 5 intents registered. Filled icons for visual intents, outline for JSON. Good visual distinction.",
+        "2": "All 5 intents registered. Different icon choices. Slightly different phrases.",
+        "3": "All 5 intents registered. Three Siri phrases per intent (more discoverable). AddTaskIntent listed first."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/TransitTests/DateFilterHelpersTests.swift",
+      "variants": {
+        "1": "240 lines. Thorough coverage of relative parsing, absolute ranges, boundary dates, start-of-day normalization, nil date exclusion.",
+        "2": "369 lines. Very thorough including DST boundary, leap year, timezone, idempotence tests. Potentially over-tested for trivial string-returning functions.",
+        "3": "77 lines. Focused and concise. Parameterized relative filter test, absolute range parsing, invalid date rejection, inclusive boundaries, boundary tests. Achieves good coverage with less code."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/TransitTests/FindTasksIntentTests.swift",
+      "variants": {
+        "1": "262 lines. Good coverage of all filter types, AND logic, sort order, 200-result limit, entity properties.",
+        "2": "526 lines. Extensive but overly verbose. 12+ tests with significant setup duplication.",
+        "3": "295 lines. Uses FindTaskSeed struct for declarative test data. Includes inverted date range validation test (unique to V3). Clean balance of coverage and conciseness."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/TransitTests/AddTaskIntentTests.swift",
+      "variants": {
+        "1": "219 lines. Covers success, error paths (empty name, whitespace, no projects, deleted project). Good.",
+        "2": "360 lines. 15 tests. Very thorough but verbose. Covers similar cases as V1 with more detail.",
+        "3": "170 lines. 7 tests including metadata parsing and malformed metadata rejection. Unique to V3 since V1/V2 don't implement metadata. Stale project test with explicit save() after deletion."
+      },
+      "preference": 3
+    },
+    {
+      "path": "Transit/TransitTests/IntentCompatibilityAndDiscoverabilityTests.swift",
+      "variants": {
+        "1": "Split across BackwardCompatibilityTests.swift (312 lines) and BackwardCompatibilityFormatTests.swift (214 lines). Comprehensive: 21+ tests verifying JSON formats, intent names, error codes.",
+        "2": "Has backward-compatibility-results.md and backward-compatibility-guide.md documentation files but relies more on manual testing documentation than automated tests.",
+        "3": "141 lines. Focused regression suite: intent title stability, shortcut registration count, JSON contract checks with field count assertions. Compact but effective."
+      },
+      "preference": 1
+    }
+  ],
+  "observations": [
+    "Variant 3 is the most spec-compliant: it implements metadata support (req 2.9) and uses supportedModes (reqs 2.11, 3.15) which V1 and V2 both miss. The requirements document explicitly calls for these.",
+    "Variant 2 has a production bug: @testable import Transit in TaskEntityQuery.swift. This import modifier should only appear in test targets and may cause build issues or unexpected access-level behavior.",
+    "Variant 2's TaskCreationResult is a plain Codable struct instead of an AppEntity, forcing JSON string returns from AddTaskIntent. This degrades the Shortcuts user experience -- users cannot use 'Get Details' to extract individual properties.",
+    "Variant 2 silently ignores invalid date formats (DateFilterHelpers returns nil), violating requirement 1.10 which explicitly states 'The system SHALL return an error IF an invalid date format is provided.'",
+    "Variant 2 generated 8,323 lines of changes -- over 3x V3's 2,669 lines -- mostly due to 4+ redundant manual testing documentation files (780, 550, 199, 179 lines). The implementation doc acknowledges failing tests, suggesting the code wasn't fully validated.",
+    "Variant 3's injectable 'now' parameter in DateFilterHelpers.dateInRange() is a genuine testing improvement: it enables deterministic date tests without relying on the system clock, preventing flaky tests that fail near midnight.",
+    "Variant 3's Codable struct approach for QueryTasksIntent JSON parsing eliminates all as? type casts and provides compile-time type safety. This is meaningfully better than the [String: Any] dictionary approach used by V1 and V2.",
+    "Variant 1 has the strongest backward compatibility test suite (526+ lines across multiple files), which provides the best regression protection for existing CLI integrations.",
+    "Variant 3's NSNull emission for nil completionDate in QueryTasksIntent JSON output is a potential backward compatibility concern -- existing CLI consumers may not expect null values where keys were previously omitted.",
+    "All three variants correctly handle the dual-interface strategy (JSON for CLI, visual for Shortcuts) with shared infrastructure. The architectural approach is consistent across all implementations."
+  ],
+  "documentation_assessment": [
+    {
+      "variant_id": 1,
+      "has_dev_setup": false,
+      "has_deployment": false,
+      "has_requirements": true,
+      "has_usage_examples": true,
+      "missing_docs": [
+        "No dev setup instructions for running the new intents locally",
+        "No deployment/release notes for the new Shortcuts intents"
+      ],
+      "notes": "Includes implementation.md (121 lines) explaining design decisions, known limitations, and phase completion. The changelog is detailed with per-phase breakdowns. Spec requirements and design docs pre-exist. Adequate for developers familiar with the project."
+    },
+    {
+      "variant_id": 2,
+      "has_dev_setup": true,
+      "has_deployment": false,
+      "has_requirements": true,
+      "has_usage_examples": true,
+      "missing_docs": [
+        "No deployment/release notes"
+      ],
+      "notes": "Excessive documentation: 4 manual testing docs totaling ~1,700 lines (INTEGRATION_TESTING_GUIDE.md, MANUAL_TESTING_REQUIRED.md, manual-testing-checklist.md, manual-testing-quick-start.md), plus spec-level summaries (phase-complete-summary.md, task-14-summary.md, task-15-summary.md, backward-compatibility-results.md, backward-compatibility-guide.md, manual-testing-guide.md, manual-testing-results.md, MANUAL-TESTING-README.md). The volume is disproportionate to the feature scope and much of it is redundant."
+    },
+    {
+      "variant_id": 3,
+      "has_dev_setup": false,
+      "has_deployment": false,
+      "has_requirements": true,
+      "has_usage_examples": true,
+      "missing_docs": [
+        "No dev setup instructions for running the new intents locally",
+        "No deployment/release notes for the new Shortcuts intents"
+      ],
+      "notes": "Changelog is well-structured with clear per-commit feature descriptions. The task file is updated with completion markers. Relies on existing project docs (CLAUDE.md, specs/) for context. Appropriately minimal -- documentation matches the scope."
+    }
+  ],
+  "cross_variant_improvements": [
+    {
+      "source_variant_id": 1,
+      "description": "Adopt V1's comprehensive backward compatibility test suite (BackwardCompatibilityTests.swift + BackwardCompatibilityFormatTests.swift, 526 lines total)",
+      "rationale": "V3's IntentCompatibilityAndDiscoverabilityTests covers intent names and JSON field counts, but V1 tests every JSON field value, all error code responses, and format stability across all three existing intents. This provides stronger regression protection for the existing CLI integrations.",
+      "priority": "high"
+    },
+    {
+      "source_variant_id": 1,
+      "description": "Fix NSNull emission for nil completionDate -- omit the key instead, matching V1's approach",
+      "rationale": "V3 emits NSNull() for tasks without a completion date, changing the existing JSON contract. V1 omits the key entirely, which is the pre-existing behavior. CLI consumers may break on unexpected null values.",
+      "priority": "high"
+    },
+    {
+      "source_variant_id": 1,
+      "description": "Add end-to-end cross-intent flow tests (create via AddTask, find via FindTasks; create via JSON CreateTask, find via visual FindTasks)",
+      "rationale": "V1's IntentEndToEndTests.swift (318 lines) verifies that tasks created through one intent are discoverable through another, testing the integration between visual and JSON interfaces. V3 has integration tests but they're per-intent, not cross-intent.",
+      "priority": "medium"
+    },
+    {
+      "source_variant_id": 1,
+      "description": "Use filled vs outline SF Symbols to visually distinguish visual intents from JSON intents in the Shortcuts app",
+      "rationale": "V1 uses filled icons (plus.circle.fill) for visual intents and outline icons for JSON intents, creating a subtle visual hierarchy in the Shortcuts picker. A small UX polish.",
+      "priority": "low"
+    },
+    {
+      "source_variant_id": 2,
+      "description": "Add Equatable conformance to VisualIntentError for simpler test assertions",
+      "rationale": "V3's tests use pattern matching for error type checks because VisualIntentError isn't Equatable. Adding Equatable (as V2 does) simplifies test assertions without any production cost.",
+      "priority": "low"
+    }
+  ],
+  "learnings": [
+    {
+      "variant_id": 3,
+      "category": "testing",
+      "title": "Injectable time dependencies for deterministic date tests",
+      "description": "V3's DateFilterHelpers.dateInRange() accepts a 'now' parameter defaulting to Date(), allowing tests to inject a fixed point in time. This eliminates reliance on the system clock during test execution.",
+      "rationale": "Time-dependent tests are a common source of flakiness -- they pass during the day but fail near midnight or at week/month boundaries. By making the current time injectable with a sensible default, production code stays clean while tests become deterministic. This pattern applies to any code that branches on the current date/time: cache expiry, rate limiting, scheduling, etc.",
+      "file_references": ["Transit/Transit/Intents/Shared/Utilities/DateFilterHelpers.swift:64"]
+    },
+    {
+      "variant_id": 3,
+      "category": "code-pattern",
+      "title": "Codable structs for structured JSON parsing over [String: Any]",
+      "description": "V3 defines private Codable structs (DateRangeFilter, QueryFilters) to parse JSON input instead of using [String: Any] dictionaries with as? casts. The JSONDecoder handles deserialization, and the code works with typed properties.",
+      "rationale": "Dictionary-based JSON parsing is error-prone: typos in key strings aren't caught at compile time, as? casts can silently return nil, and the code doesn't self-document the expected schema. Codable structs with CodingKeys make the contract explicit, move type checking to compile time, and serve as documentation of the expected input format. This pattern is applicable anywhere you parse structured external input.",
+      "file_references": ["Transit/Transit/Intents/QueryTasksIntent.swift:5-43"]
+    },
+    {
+      "variant_id": 1,
+      "category": "architecture",
+      "title": "Input struct pattern for multi-parameter static methods",
+      "description": "V1 defines nested Input structs (e.g., AddTaskIntent.Input) to bundle parameters passed to static execute() methods. Instead of a method with 8 parameters, the caller constructs an Input value and passes it as a single argument.",
+      "rationale": "Long parameter lists make call sites hard to read and maintain. When adding or removing a parameter, every call site must change. The Input struct groups related parameters, makes test call sites readable (named fields), and provides a natural place for default values. This is a lighter alternative to the Builder pattern for methods that take many related parameters.",
+      "file_references": ["Transit/Transit/Intents/Visual/AddTaskIntent.swift:37-42"]
+    },
+    {
+      "variant_id": 3,
+      "category": "testing",
+      "title": "Declarative seed structs for test data creation",
+      "description": "V3's FindTasksIntentTests defines a FindTaskSeed struct with properties like name, type, status, and completionDate. Tests declare an array of seeds and a helper converts them to persisted model objects, separating test data definition from SwiftData persistence mechanics.",
+      "rationale": "Test data setup often dominates test file length and obscures the actual assertions. By separating 'what data exists' (declarative struct) from 'how it gets created' (helper method), each test reads as a specification: given these seeds, when I filter by X, then I expect Y. The pattern scales well -- adding a new field to the seed struct makes it available to all tests. Applicable to any test suite with complex model setup.",
+      "file_references": ["Transit/TransitTests/FindTasksIntentTests.swift"]
+    },
+    {
+      "variant_id": 3,
+      "category": "code-pattern",
+      "title": "Static methods on EntityQuery for testable framework code",
+      "description": "V3 extracts the core logic of EntityQuery methods (entities(for:), suggestedEntities()) into static methods that accept a ModelContext parameter. The instance methods required by the protocol delegate to these statics, and tests call the statics directly.",
+      "rationale": "Apple's App Intents framework uses @Dependency for runtime injection, which cannot be configured in unit tests. By extracting logic into static methods that take explicit dependencies, you get both framework compliance (instance methods delegate to statics) and testability (tests call statics with test contexts). This pattern applies broadly to any protocol-conforming code where the framework controls instantiation.",
+      "file_references": ["Transit/Transit/Intents/Shared/Entities/TaskEntityQuery.swift"]
+    },
+    {
+      "variant_id": 1,
+      "category": "testing",
+      "title": "UUID-suffixed test data for shared in-memory store isolation",
+      "description": "V1's tests append UUID prefixes to project names (e.g., 'FTI-NoFilter-\\(UUID().uuidString.prefix(8))') and filter results by project, ensuring each test operates on its own data even when sharing an in-memory SwiftData container.",
+      "rationale": "In-memory SwiftData containers in test environments can leak data between tests when using a shared container. Rather than creating a new container per test (expensive) or relying on teardown (fragile), UUID-suffixed names guarantee uniqueness. Each test queries only its own data, achieving isolation without infrastructure overhead. Useful for any shared-database test scenario.",
+      "file_references": ["Transit/TransitTests/FindTasksIntentTests.swift", "Transit/TransitTests/BackwardCompatibilityTests.swift"]
+    },
+    {
+      "variant_id": 2,
+      "category": "error-handling",
+      "title": "Error code properties on LocalizedError for programmatic handling",
+      "description": "V2's VisualIntentError includes a computed 'code' property returning string codes like 'NO_PROJECTS' and 'INVALID_INPUT' alongside the LocalizedError properties (errorDescription, failureReason, recoverySuggestion).",
+      "rationale": "LocalizedError provides human-readable messages, but programmatic consumers (scripts, automation tools, logging systems) need stable identifiers. Adding a code property gives both audiences what they need without coupling them. The string-based codes are stable across localization changes and version updates, while the localized descriptions can evolve freely. This dual-interface approach to errors mirrors the broader dual-interface strategy of the feature itself.",
+      "file_references": ["Transit/Transit/Intents/Visual/VisualIntentError.swift"]
+    }
+  ]
+}
