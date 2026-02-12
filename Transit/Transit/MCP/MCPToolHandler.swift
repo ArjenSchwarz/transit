@@ -15,12 +15,16 @@ final class MCPToolHandler {
 
     // MARK: - JSON-RPC Dispatch
 
-    func handle(_ request: JSONRPCRequest) async -> JSONRPCResponse {
+    /// Returns `nil` for JSON-RPC notifications (no response required).
+    func handle(_ request: JSONRPCRequest) async -> JSONRPCResponse? {
+        // Notifications have no id — the server must not reply.
+        if request.id == nil {
+            return nil
+        }
+
         switch request.method {
         case "initialize":
             return handleInitialize(id: request.id)
-        case "notifications/initialized":
-            return JSONRPCResponse.success(id: request.id, result: EmptyResult())
         case "ping":
             return JSONRPCResponse.success(id: request.id, result: EmptyResult())
         case "tools/list":
@@ -195,6 +199,14 @@ final class MCPToolHandler {
             return errorResult("Failed to fetch tasks: \(error)")
         }
 
+        var projectFilter: UUID?
+        if let pidStr = args["projectId"] as? String {
+            guard let pid = UUID(uuidString: pidStr) else {
+                return errorResult("Invalid projectId: expected a UUID string")
+            }
+            projectFilter = pid
+        }
+
         let filtered = allTasks.filter { task in
             if let status = args["status"] as? String, task.statusRawValue != status {
                 return false
@@ -202,9 +214,7 @@ final class MCPToolHandler {
             if let type = args["type"] as? String, task.typeRawValue != type {
                 return false
             }
-            if let pidStr = args["projectId"] as? String,
-               let pid = UUID(uuidString: pidStr),
-               task.project?.id != pid {
+            if let pid = projectFilter, task.project?.id != pid {
                 return false
             }
             return true

@@ -76,6 +76,11 @@ struct SettingsView: View {
                     TextField("Port", value: $settings.port, format: .number)
                         .frame(width: 80)
                         .multilineTextAlignment(.trailing)
+                        .onSubmit {
+                            guard mcpServer.isRunning else { return }
+                            mcpServer.stop()
+                            mcpServer.start(port: mcpSettings.port)
+                        }
                 }
 
                 LabeledContent("Status") {
