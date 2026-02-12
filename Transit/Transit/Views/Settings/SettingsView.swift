@@ -9,9 +9,17 @@ struct SettingsView: View {
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @State private var showCreateProject = false
 
+    #if os(macOS)
+    @Environment(MCPSettings.self) private var mcpSettings
+    @Environment(MCPServer.self) private var mcpServer
+    #endif
+
     var body: some View {
         List {
             appearanceSection
+            #if os(macOS)
+            mcpSection
+            #endif
             projectsSection
             generalSection
         }
@@ -47,6 +55,45 @@ struct SettingsView: View {
             }
         }
     }
+
+    #if os(macOS)
+    private var mcpSection: some View {
+        @Bindable var settings = mcpSettings
+        return Section("MCP Server") {
+            Toggle("Enable MCP Server", isOn: $settings.isEnabled)
+                .onChange(of: mcpSettings.isEnabled) { _, enabled in
+                    if enabled {
+                        mcpServer.start(port: mcpSettings.port)
+                    } else {
+                        mcpServer.stop()
+                    }
+                }
+
+            if mcpSettings.isEnabled {
+                HStack {
+                    Text("Port")
+                    Spacer()
+                    TextField("Port", value: $settings.port, format: .number)
+                        .frame(width: 80)
+                        .multilineTextAlignment(.trailing)
+                }
+
+                LabeledContent("Status") {
+                    Text(mcpServer.isRunning ? "Running" : "Stopped")
+                        .foregroundStyle(mcpServer.isRunning ? .green : .secondary)
+                }
+
+                LabeledContent("Setup Command") {
+                    let command = "claude mcp add transit --transport http http://localhost:\(mcpSettings.port)/mcp"
+                    Text(command)
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+    #endif
 
     private var projectsSection: some View {
         Section {

@@ -13,6 +13,11 @@ struct TransitApp: App {
     private let syncManager: SyncManager
     private let connectivityMonitor: ConnectivityMonitor
 
+    #if os(macOS)
+    private let mcpSettings: MCPSettings
+    private let mcpServer: MCPServer
+    #endif
+
     private static var uiTestScenario: UITestScenario? {
         UITestScenario(rawValue: ProcessInfo.processInfo.environment["TRANSIT_UI_TEST_SCENARIO"] ?? "")
     }
@@ -56,6 +61,13 @@ struct TransitApp: App {
 
         AppDependencyManager.shared.add(dependency: taskService)
         AppDependencyManager.shared.add(dependency: projectService)
+
+        #if os(macOS)
+        let mcpSettings = MCPSettings()
+        self.mcpSettings = mcpSettings
+        let mcpToolHandler = MCPToolHandler(taskService: taskService, projectService: projectService)
+        self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
+        #endif
     }
 
     var body: some Scene {
@@ -79,10 +91,24 @@ struct TransitApp: App {
             .environment(projectService)
             .environment(syncManager)
             .environment(connectivityMonitor)
+            #if os(macOS)
+            .environment(mcpSettings)
+            .environment(mcpServer)
+            .task { startMCPServerIfEnabled() }
+            #endif
             .task { seedUITestDataIfNeeded() }
         }
         .modelContainer(container)
     }
+
+    // MARK: - MCP Server
+
+    #if os(macOS)
+    private func startMCPServerIfEnabled() {
+        guard mcpSettings.isEnabled else { return }
+        mcpServer.start(port: mcpSettings.port)
+    }
+    #endif
 
     // MARK: - UI Test Support
 

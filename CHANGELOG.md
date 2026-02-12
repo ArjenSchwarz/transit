@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Embedded MCP server (macOS only) using Hummingbird HTTP framework, exposing `create_task`, `update_task_status`, and `query_tasks` tools via Streamable HTTP transport (JSON-RPC 2.0 over `POST /mcp`)
+- MCP Settings section in Settings view (macOS) with enable toggle, port configuration, running status indicator, and copyable `claude mcp add` setup command
+- `MCPTypes.swift` with full JSON-RPC 2.0 and MCP protocol Codable types
+- `MCPToolHandler` bridging MCP tool calls to existing `TaskService` and `ProjectService`
+- `MCPServer` managing Hummingbird lifecycle with localhost-only binding (127.0.0.1)
+- `MCPSettings` observable class for per-machine UserDefaults-backed preferences (enabled, port)
+- 17 unit tests for MCP tool handler covering all three tools, error cases, and protocol methods
+- Network server and client entitlements for macOS App Sandbox
+- Hummingbird 2.x as first external SPM dependency
+- Implementation plan and agent notes for MCP server architecture
+
 ### Fixed
 
 - macOS toolbar background is now transparent, allowing the BoardBackground gradient to bleed through to the top of the window matching iOS Liquid Glass behaviour
