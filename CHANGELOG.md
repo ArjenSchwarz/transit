@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Claude Code Review workflow missing `pull-requests: write` permission, preventing the action from posting review comments on PRs
+
 ### Added
 
 - Orbit session data (variant comparison, consolidation reports, human-readable transcripts) tracked in git for documentation
