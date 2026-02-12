@@ -9,6 +9,7 @@ final class MCPServer {
 
     private let toolHandler: MCPToolHandler
     private var serverTask: Task<Void, Never>?
+    private var generation = 0
 
     private(set) var isRunning = false
 
@@ -18,11 +19,14 @@ final class MCPServer {
 
     func start(port: Int) {
         guard !isRunning else { return }
+        generation += 1
+        let currentGeneration = generation
         isRunning = true
 
         let handler = toolHandler
         let setNotRunning = { @MainActor [weak self] in
-            self?.isRunning = false
+            guard let self, self.generation == currentGeneration else { return }
+            self.isRunning = false
         }
         serverTask = Task.detached {
             let router = Router()
@@ -41,7 +45,10 @@ final class MCPServer {
                     return Self.jsonResponse(err)
                 }
 
-                let rpcResponse = await handler.handle(rpcRequest)
+                // Notifications (id == nil) must not receive a JSON-RPC response body
+                guard let rpcResponse = await handler.handle(rpcRequest) else {
+                    return Response(status: .accepted)
+                }
                 return Self.jsonResponse(rpcResponse)
             }
 
