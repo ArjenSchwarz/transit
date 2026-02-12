@@ -25,13 +25,15 @@ struct TaskDetailView: View {
                         Image(systemName: "chevron.left")
                     }
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    ShareLink(item: task.shareText, subject: Text(task.name)) {
-                        Image(systemName: "square.and.arrow.up")
+                ToolbarItem(placement: .confirmationAction) {
+                    HStack(spacing: 12) {
+                        ShareLink(item: task.shareText, subject: Text(task.name)) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        Button { showEdit = true } label: {
+                            Image(systemName: "pencil")
+                        }
                     }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Edit") { showEdit = true }
                 }
             }
             .sheet(isPresented: $showEdit) {
