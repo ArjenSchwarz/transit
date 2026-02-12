@@ -10,7 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `AddTaskSheet` build failure on macOS caused by `PersistentModel` (`Project`, `TransitTask`) being captured in a `@Sendable` `Task {}` closure. Replaced `Project` capture with UUID and explicitly discarded the `TransitTask` return value.
 - `AddTaskSheet` task creation failing at runtime because `registeredModel(for:)` returns `nil` when the project was fetched by a different `ModelContext`. Changed `TaskService.createTask(projectID:)` to use `FetchDescriptor` with UUID predicate instead of `PersistentIdentifier` lookup.
+- Claude Code Review workflow missing `pull-requests: write` permission, preventing the action from posting review comments on PRs
 
+>>>>>>> origin/main
 ### Added
 
 - Visual `AddTaskIntent` now supports optional metadata input as comma-separated `key=value` pairs (for example: `priority=high,source=shortcut`) and persists it on created tasks.
