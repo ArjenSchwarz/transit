@@ -93,15 +93,17 @@ struct AddTaskSheet: View {
         guard !trimmedName.isEmpty else { return }
 
         let description = taskDescription.trimmingCharacters(in: .whitespaces)
+        let type = selectedType
+
+        dismiss()
 
         Task {
             try await taskService.createTask(
                 name: trimmedName,
                 description: description.isEmpty ? nil : description,
-                type: selectedType,
+                type: type,
                 project: project
             )
-            dismiss()
         }
     }
 }
