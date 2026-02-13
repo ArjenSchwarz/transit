@@ -94,6 +94,24 @@ struct MCPToolHandlerDisplayIdTests {
         // description key should be present but null (serialized as NSNull)
         #expect(task["name"] as? String == "No Desc")
         #expect(task.keys.contains("description"))
+        #expect(task["description"] is NSNull)
+    }
+
+    @Test(arguments: [-1, 0])
+    func queryByInvalidDisplayIdReturnsEmpty(displayId: Int) async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.taskService.createTask(
+            name: "Real Task", description: nil, type: .feature, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["displayId": displayId]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.isEmpty)
     }
 
     @Test func queryWithoutDisplayIdOmitsDescriptionAndMetadata() async throws {
