@@ -14,6 +14,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 6 new MCP tool handler tests covering displayId lookup, not-found, filter composition, and response field presence
 - Smolspec and task list for MCP task ID filter feature (`specs/mcp-task-id-filter/`)
 
+### Fixed
+
+- MCP tool handler tests now handle optional `JSONRPCResponse?` return type from `handle()`, preventing compilation errors
+- `QueryTasksIntentTests.responseContainsAllRequiredFields` no longer asserts `completionDate` key is present for tasks without a completion date
+
 ### Added
 
 - Embedded MCP server (macOS only) using Hummingbird HTTP framework, exposing `create_task`, `update_task_status`, and `query_tasks` tools via Streamable HTTP transport (JSON-RPC 2.0 over `POST /mcp`)

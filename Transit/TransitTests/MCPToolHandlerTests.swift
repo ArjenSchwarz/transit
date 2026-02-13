@@ -42,8 +42,9 @@ struct MCPToolHandlerTests {
         request(method: "tools/call", id: id, params: ["name": tool, "arguments": arguments])
     }
 
-    private func decodeResult(_ response: JSONRPCResponse) throws -> [String: Any] {
-        let data = try JSONEncoder().encode(response)
+    private func decodeResult(_ response: JSONRPCResponse?) throws -> [String: Any] {
+        let unwrapped = try #require(response, "Expected a JSON-RPC response but got nil")
+        let data = try JSONEncoder().encode(unwrapped)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         let result = try #require(json?["result"] as? [String: Any])
         let content = try #require(result["content"] as? [[String: Any]])
@@ -52,8 +53,9 @@ struct MCPToolHandlerTests {
         return try #require(try JSONSerialization.jsonObject(with: textData) as? [String: Any])
     }
 
-    private func decodeArrayResult(_ response: JSONRPCResponse) throws -> [[String: Any]] {
-        let data = try JSONEncoder().encode(response)
+    private func decodeArrayResult(_ response: JSONRPCResponse?) throws -> [[String: Any]] {
+        let unwrapped = try #require(response, "Expected a JSON-RPC response but got nil")
+        let data = try JSONEncoder().encode(unwrapped)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         let result = try #require(json?["result"] as? [String: Any])
         let content = try #require(result["content"] as? [[String: Any]])
@@ -62,8 +64,9 @@ struct MCPToolHandlerTests {
         return try #require(try JSONSerialization.jsonObject(with: textData) as? [[String: Any]])
     }
 
-    private func isError(_ response: JSONRPCResponse) throws -> Bool {
-        let data = try JSONEncoder().encode(response)
+    private func isError(_ response: JSONRPCResponse?) throws -> Bool {
+        let unwrapped = try #require(response, "Expected a JSON-RPC response but got nil")
+        let data = try JSONEncoder().encode(unwrapped)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         let result = try #require(json?["result"] as? [String: Any])
         return result["isError"] as? Bool == true
@@ -73,7 +76,7 @@ struct MCPToolHandlerTests {
 
     @Test func initializeReturnsServerInfo() async throws {
         let env = try makeEnv()
-        let response = await env.handler.handle(request(method: "initialize"))
+        let response = try #require(await env.handler.handle(request(method: "initialize")))
 
         let data = try JSONEncoder().encode(response)
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -90,7 +93,7 @@ struct MCPToolHandlerTests {
 
     @Test func toolsListReturnsThreeTools() async throws {
         let env = try makeEnv()
-        let response = await env.handler.handle(request(method: "tools/list"))
+        let response = try #require(await env.handler.handle(request(method: "tools/list")))
 
         let data = try JSONEncoder().encode(response)
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -108,7 +111,7 @@ struct MCPToolHandlerTests {
 
     @Test func pingReturnsSuccess() async throws {
         let env = try makeEnv()
-        let response = await env.handler.handle(request(method: "ping"))
+        let response = try #require(await env.handler.handle(request(method: "ping")))
 
         let data = try JSONEncoder().encode(response)
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -120,7 +123,7 @@ struct MCPToolHandlerTests {
 
     @Test func unknownMethodReturnsError() async throws {
         let env = try makeEnv()
-        let response = await env.handler.handle(request(method: "foo/bar"))
+        let response = try #require(await env.handler.handle(request(method: "foo/bar")))
 
         let data = try JSONEncoder().encode(response)
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])

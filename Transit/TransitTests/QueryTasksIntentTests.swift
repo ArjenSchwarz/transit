@@ -190,7 +190,6 @@ struct QueryTasksIntentTests {
         #expect(item["type"] is String)
         #expect(item["projectId"] is String)
         #expect(item["projectName"] is String)
-        #expect(item.keys.contains("completionDate"))
         #expect(item.keys.contains("lastStatusChangeDate"))
     }
 }
