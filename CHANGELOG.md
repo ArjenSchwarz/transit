@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Smolspec and task list for bigger description field feature (`specs/bigger-description-field/`)
+
 - macOS Liquid Glass form layout for all form/settings views using `Grid` + `FormRow` + `LiquidGlassSection` components, replacing standard `Form`/`List` on macOS while keeping iOS layouts unchanged
 - `FormRow` reusable component (`Views/Shared/FormRow.swift`) — right-aligned label + content column in a `GridRow` with `.frame(maxWidth: .infinity, alignment: .leading)` for consistent left-alignment
 - `LiquidGlassSection` reusable component (`Views/Shared/LiquidGlassSection.swift`) — `VStack` with headline title and `.glassEffect(.regular, in:)` background container
