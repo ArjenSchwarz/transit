@@ -21,6 +21,7 @@ private struct DateRangeFilter: Codable {
 }
 
 private struct QueryFilters: Codable {
+    var displayId: Int?
     var status: String?
     var type: String?
     var projectId: String?
@@ -28,12 +29,14 @@ private struct QueryFilters: Codable {
     var lastStatusChangeDate: DateRangeFilter?
 
     init(
+        displayId: Int? = nil,
         status: String? = nil,
         type: String? = nil,
         projectId: String? = nil,
         completionDate: DateRangeFilter? = nil,
         lastStatusChangeDate: DateRangeFilter? = nil
     ) {
+        self.displayId = displayId
         self.status = status
         self.type = type
         self.projectId = projectId
@@ -58,12 +61,13 @@ struct QueryTasksIntent: AppIntent {
     @Parameter(
         title: "Input JSON",
         description: """
-        JSON object with optional filters: "status" (idea | planning | spec | ready-for-implementation | \
+        JSON object with optional filters: "displayId" (integer, for single-task lookup with detailed output \
+        including description and metadata), "status" (idea | planning | spec | ready-for-implementation | \
         in-progress | ready-for-review | done | abandoned), "type" (bug | feature | chore | research | \
         documentation), "projectId" (UUID), "completionDate", "lastStatusChangeDate". \
         Date filters accept {"relative":"today|this-week|this-month"} or {"from":"YYYY-MM-DD","to":"YYYY-MM-DD"} \
         (from/to optional and inclusive; relative takes precedence if both are present). \
-        All filters are optional. Example: {"status":"in-progress"} or \
+        All filters are optional. Example: {"displayId":42} or {"status":"in-progress"} or \
         {"completionDate":{"relative":"today"}} or {"lastStatusChangeDate":{"from":"2026-02-01","to":"2026-02-11"}}.
         """
     )
@@ -105,9 +109,20 @@ struct QueryTasksIntent: AppIntent {
             return error.json
         }
 
+        // Single-task lookup by displayId
+        if let displayId = filters.displayId {
+            var descriptor = FetchDescriptor<TransitTask>(
+                predicate: #Predicate { $0.permanentDisplayId == displayId }
+            )
+            descriptor.fetchLimit = 1
+            let matches = (try? modelContext.fetch(descriptor)) ?? []
+            let filtered = applyFilters(filters, to: matches)
+            return IntentHelpers.encodeJSONArray(filtered.map { taskToDict($0, detailed: true) })
+        }
+
         let allTasks = (try? modelContext.fetch(FetchDescriptor<TransitTask>())) ?? []
         let filtered = applyFilters(filters, to: allTasks)
-        return IntentHelpers.encodeJSONArray(filtered.map(taskToDict))
+        return IntentHelpers.encodeJSONArray(filtered.map { taskToDict($0) })
     }
 
     // MARK: - Private Helpers
@@ -192,7 +207,7 @@ struct QueryTasksIntent: AppIntent {
         )
     }
 
-    @MainActor private static func taskToDict(_ task: TransitTask) -> [String: Any] {
+    @MainActor private static func taskToDict(_ task: TransitTask, detailed: Bool = false) -> [String: Any] {
         let isoFormatter = ISO8601DateFormatter()
         var dict: [String: Any] = [
             "taskId": task.id.uuidString,
@@ -212,6 +227,13 @@ struct QueryTasksIntent: AppIntent {
         }
         if let completionDate = task.completionDate {
             dict["completionDate"] = isoFormatter.string(from: completionDate)
+        }
+        if detailed {
+            dict["description"] = task.taskDescription as Any
+            let metadata = task.metadata
+            if !metadata.isEmpty {
+                dict["metadata"] = metadata
+            }
         }
         return dict
     }

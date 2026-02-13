@@ -171,6 +171,66 @@ struct QueryTasksIntentTests {
 
     // MARK: - Response Format
 
+    // MARK: - DisplayId Lookup
+
+    @Test func displayIdLookupReturnsDetailedTask() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = TransitTask(
+            name: "Detailed Task",
+            description: "A task with details",
+            type: .bug,
+            project: project,
+            displayID: .permanent(42),
+            metadata: ["git.branch": "feature/test"]
+        )
+        StatusEngine.initializeNewTask(task)
+        svc.context.insert(task)
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"displayId\":42}", projectService: svc.project, modelContext: svc.context
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.count == 1)
+        let item = try #require(parsed.first)
+        #expect(item["displayId"] as? Int == 42)
+        #expect(item["name"] as? String == "Detailed Task")
+        #expect(item["description"] as? String == "A task with details")
+        let metadata = try #require(item["metadata"] as? [String: String])
+        #expect(metadata["git.branch"] == "feature/test")
+    }
+
+    @Test func displayIdNotFoundReturnsEmptyArray() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeTask(in: svc.context, project: project, displayId: 1)
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"displayId\":999}", projectService: svc.project, modelContext: svc.context
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.isEmpty)
+    }
+
+    @Test func displayIdWithNonMatchingFilterReturnsEmptyArray() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeTask(in: svc.context, project: project, displayId: 10, status: .idea)
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"displayId\":10,\"status\":\"done\"}",
+            projectService: svc.project,
+            modelContext: svc.context
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.isEmpty)
+    }
+
+    // MARK: - Response Format
+
     @Test func responseContainsAllRequiredFields() throws {
         let svc = try makeServices()
         let project = makeProject(in: svc.context)
