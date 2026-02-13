@@ -6,15 +6,15 @@ references:
 
 ## AddTaskSheet
 
-- [ ] 1. iOS: Replace description TextField with TextEditor that fills available space in its own Section
+- [x] 1. iOS: Replace description TextField with TextEditor that fills available space in its own Section
 
-- [ ] 2. macOS: Replace description TextField with TextEditor using .frame(minHeight: 120) inside FormRow
+- [x] 2. macOS: Replace description TextField with TextEditor using .frame(minHeight: 120) inside FormRow
 
-- [ ] 3. Add ZStack placeholder overlay ("Description" in .secondary) that hides when text is non-empty
+- [x] 3. Add ZStack placeholder overlay ("Description" in .secondary) that hides when text is non-empty
 
-- [ ] 4. Change presentation detent to .large default with .medium option via @State selection binding
+- [x] 4. Change presentation detent to .large default with .medium option via @State selection binding
 
-- [ ] 5. Build succeeds on both platforms; TextEditor expands on iOS and aligns in Grid on macOS
+- [x] 5. Build succeeds on both platforms; TextEditor expands on iOS and aligns in Grid on macOS
 
 ## TaskEditView
 

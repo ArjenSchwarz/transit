@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Description field in AddTaskSheet and TaskEditView replaced with `TextEditor` for larger text input on both iOS and macOS
+- AddTaskSheet now defaults to `.large` presentation detent (with `.medium` option) instead of `.medium` only
+- TaskEditView now has `.large`/`.medium` presentation detents (previously had none)
+- iOS description field moved to its own `Section` with `TextEditor` that fills available space
+- macOS description field uses `TextEditor` with `minHeight: 120` inside existing `FormRow` grid layout
+- Both views use a ZStack placeholder overlay for the description field (TextEditor has no built-in placeholder)
+
 ### Added
 
 - Smolspec and task list for bigger description field feature (`specs/bigger-description-field/`)
