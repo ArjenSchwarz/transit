@@ -13,14 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Conjunctive filter composition: `displayId` works alongside `status`, `type`, and `projectId` filters
 - 6 new MCP tool handler tests covering displayId lookup, not-found, filter composition, and response field presence
 - Smolspec and task list for MCP task ID filter feature (`specs/mcp-task-id-filter/`)
-
-### Fixed
-
-- MCP tool handler tests now handle optional `JSONRPCResponse?` return type from `handle()`, preventing compilation errors
-- `QueryTasksIntentTests.responseContainsAllRequiredFields` no longer asserts `completionDate` key is present for tasks without a completion date
-
-### Added
-
+- `MCPTestHelpers` shared test utility with environment setup and JSON-RPC response decoding helpers, used by both `MCPToolHandlerTests` and `MCPToolHandlerDisplayIdTests`
 - Embedded MCP server (macOS only) using Hummingbird HTTP framework, exposing `create_task`, `update_task_status`, and `query_tasks` tools via Streamable HTTP transport (JSON-RPC 2.0 over `POST /mcp`)
 - MCP Settings section in Settings view (macOS) with enable toggle, port configuration, running status indicator, and copyable `claude mcp add` setup command
 - `MCPTypes.swift` with full JSON-RPC 2.0 and MCP protocol Codable types
@@ -34,6 +27,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- MCP tool handler tests now handle optional `JSONRPCResponse?` return type from `handle()`, preventing compilation errors
+- `QueryTasksIntentTests.responseContainsAllRequiredFields` no longer asserts `completionDate` key is present for tasks without a completion date
 - MCP server `isRunning` state now correctly resets to `false` when the server fails to bind or stops unexpectedly, preventing the Settings UI from showing a stale "Running" status
 - Removed unused `[weak self]` capture in `MCPServer.start()` detached task
 
