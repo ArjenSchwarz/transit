@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
-    @Query private var projects: [Project]
+    @Query(sort: \Project.name) private var projects: [Project]
     @Environment(ProjectService.self) private var projectService
     @Environment(\.dismiss) private var dismiss
     @AppStorage("syncEnabled") private var syncEnabled = true

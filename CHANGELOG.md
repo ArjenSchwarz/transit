@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Project lists are now alphabetically sorted by name in all views: settings, filter popover, add task picker, and edit task picker
+
 - `TaskEditView` macOS layout uses `ScrollView` > `VStack` > `LiquidGlassSection` > `Grid` + `FormRow` for fields, with bottom-right Save button
 - `TaskDetailView` macOS layout uses the same pattern for read-only detail display with glass sections for details, description, metadata, and actions
 - `AddTaskSheet` macOS layout uses glass sections for task fields and type picker

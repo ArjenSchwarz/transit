@@ -5,7 +5,7 @@ struct AddTaskSheet: View {
     @Environment(TaskService.self) private var taskService
     @Environment(ProjectService.self) private var projectService
     @Environment(\.dismiss) private var dismiss
-    @Query private var projects: [Project]
+    @Query(sort: \Project.name) private var projects: [Project]
 
     @State private var name = ""
     @State private var taskDescription = ""

@@ -3,7 +3,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @Query(sort: \TransitTask.lastStatusChangeDate, order: .reverse) private var allTasks: [TransitTask]
-    @Query private var projects: [Project]
+    @Query(sort: \Project.name) private var projects: [Project]
     @State private var selectedProjectIDs: Set<UUID> = []
     @State private var selectedColumn: DashboardColumn = .inProgress // [req 13.3]
     @State private var selectedTask: TransitTask?
