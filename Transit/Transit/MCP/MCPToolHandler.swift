@@ -192,13 +192,6 @@ final class MCPToolHandler {
     // MARK: - query_tasks
 
     private func handleQueryTasks(_ args: [String: Any]) -> MCPToolResult {
-        let allTasks: [TransitTask]
-        do {
-            allTasks = try projectService.context.fetch(FetchDescriptor<TransitTask>())
-        } catch {
-            return errorResult("Failed to fetch tasks: \(error)")
-        }
-
         var projectFilter: UUID?
         if let pidStr = args["projectId"] as? String {
             guard let pid = UUID(uuidString: pidStr) else {
@@ -207,22 +200,48 @@ final class MCPToolHandler {
             projectFilter = pid
         }
 
-        let filtered = allTasks.filter { task in
-            if let status = args["status"] as? String, task.statusRawValue != status {
-                return false
-            }
-            if let type = args["type"] as? String, task.typeRawValue != type {
-                return false
-            }
-            if let pid = projectFilter, task.project?.id != pid {
-                return false
-            }
-            return true
+        let filters = QueryFilters(
+            status: args["status"] as? String,
+            type: args["type"] as? String,
+            projectId: projectFilter
+        )
+
+        // Single-task lookup by displayId — returns early with detailed response
+        if let displayId = args["displayId"] as? Int {
+            return handleDisplayIdLookup(displayId, filters: filters)
         }
 
+        // Full-table query
+        let allTasks: [TransitTask]
+        do {
+            allTasks = try projectService.context.fetch(FetchDescriptor<TransitTask>())
+        } catch {
+            return errorResult("Failed to fetch tasks: \(error)")
+        }
+
+        let filtered = allTasks.filter { filters.matches($0) }
         let isoFormatter = ISO8601DateFormatter()
         let results = filtered.map { Self.taskToDict($0, formatter: isoFormatter) }
         return textResult(IntentHelpers.encodeJSONArray(results))
+    }
+
+    private func handleDisplayIdLookup(_ displayId: Int, filters: QueryFilters) -> MCPToolResult {
+        let task: TransitTask
+        do {
+            task = try taskService.findByDisplayID(displayId)
+        } catch TaskService.Error.taskNotFound {
+            return textResult(IntentHelpers.encodeJSONArray([]))
+        } catch {
+            return errorResult("Lookup failed: \(error)")
+        }
+
+        guard filters.matches(task) else {
+            return textResult(IntentHelpers.encodeJSONArray([]))
+        }
+
+        let isoFormatter = ISO8601DateFormatter()
+        let dict = Self.taskToDict(task, formatter: isoFormatter, detailed: true)
+        return textResult(IntentHelpers.encodeJSONArray([dict]))
     }
 
     // MARK: - Helpers
@@ -246,7 +265,8 @@ final class MCPToolHandler {
 
     private static func taskToDict(
         _ task: TransitTask,
-        formatter: ISO8601DateFormatter
+        formatter: ISO8601DateFormatter,
+        detailed: Bool = false
     ) -> [String: Any] {
         var dict: [String: Any] = [
             "taskId": task.id.uuidString,
@@ -267,7 +287,29 @@ final class MCPToolHandler {
         if let completionDate = task.completionDate {
             dict["completionDate"] = formatter.string(from: completionDate)
         }
+        if detailed {
+            dict["description"] = task.taskDescription as Any
+            let metadata = task.metadata
+            if !metadata.isEmpty {
+                dict["metadata"] = metadata
+            }
+        }
         return dict
+    }
+}
+
+// MARK: - Query Filters
+
+private struct QueryFilters {
+    let status: String?
+    let type: String?
+    let projectId: UUID?
+
+    func matches(_ task: TransitTask) -> Bool {
+        if let status, task.statusRawValue != status { return false }
+        if let type, task.typeRawValue != type { return false }
+        if let projectId, task.project?.id != projectId { return false }
+        return true
     }
 }
 
@@ -314,11 +356,15 @@ nonisolated enum MCPToolDefinitions {
         )
     )
 
+    // swiftlint:disable:next line_length
+    private static let queryTasksDescription = "Search and filter tasks. All filters are optional — omit all to return every task. Use displayId for single-task lookup with full details."
+
     static let queryTasks = MCPToolDefinition(
         name: "query_tasks",
-        description: "Search and filter tasks. All filters are optional — omit all to return every task.",
+        description: queryTasksDescription,
         inputSchema: .object(
             properties: [
+                "displayId": .integer("Task display ID for single-task lookup (e.g. 42 for T-42)"),
                 "status": .stringEnum(
                     "Filter by status",
                     values: TaskStatus.allCases.map(\.rawValue)
