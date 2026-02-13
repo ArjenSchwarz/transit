@@ -23,19 +23,19 @@ references:
 
 ## Testing
 
-- [ ] 4. Test displayId lookup returns task with detail fields
+- [x] 4. Test displayId lookup returns task with detail fields
   - Unit test: create a task with description and metadata, query by displayId, verify response contains description and metadata fields alongside standard fields.
   - Verify: test passes with make test-quick.
 
-- [ ] 5. Test displayId not found returns empty array
+- [x] 5. Test displayId not found returns empty array
   - Unit test: query by a displayId that does not exist, verify response is an empty JSON array (not an error).
   - Verify: test passes with make test-quick.
 
-- [ ] 6. Test displayId with non-matching status filter returns empty
+- [x] 6. Test displayId with non-matching status filter returns empty
   - Unit test: create a task in idea status, query with its displayId plus status=done, verify empty array returned.
   - Verify: test passes with make test-quick.
 
-- [ ] 7. Verify existing query_tasks tests still pass
+- [x] 7. Verify existing query_tasks tests still pass
   - Run the full MCPToolHandlerTests suite to confirm no regressions in existing query behavior.
   - Covers: queryAllTasks, queryTasksFilterByStatus, queryTasksFilterByType, queryTasksReturnsProjectInfo.
   - Verify: make test-quick passes with all existing and new tests green.
