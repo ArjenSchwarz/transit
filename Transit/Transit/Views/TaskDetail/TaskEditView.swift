@@ -15,6 +15,7 @@ struct TaskEditView: View {
     @State private var selectedStatus: TaskStatus = .idea
     @State private var selectedProjectID: UUID?
     @State private var metadata: [String: String] = [:]
+    @State private var selectedDetent: PresentationDetent = .large
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedProjectID != nil
@@ -36,9 +37,24 @@ struct TaskEditView: View {
     private var iOSForm: some View {
         Form {
             iOSFieldsSection
+
+            Section {
+                ZStack(alignment: .topLeading) {
+                    if taskDescription.isEmpty {
+                        Text("Description")
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 8)
+                            .padding(.leading, 4)
+                    }
+                    TextEditor(text: $taskDescription)
+                        .frame(maxHeight: .infinity)
+                }
+            }
+
             iOSStatusSection
             MetadataSection(metadata: $metadata, isEditing: true)
         }
+        .presentationDetents([.medium, .large], selection: $selectedDetent)
         .navigationTitle("Edit Task")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -58,9 +74,6 @@ struct TaskEditView: View {
     private var iOSFieldsSection: some View {
         Section {
             TextField("Name", text: $name)
-
-            TextField("Description", text: $taskDescription, axis: .vertical)
-                .lineLimit(3...6)
 
             Picker("Type", selection: $selectedType) {
                 ForEach(TaskType.allCases, id: \.self) { type in
@@ -110,8 +123,17 @@ struct TaskEditView: View {
                         }
 
                         FormRow("Description", labelWidth: Self.labelWidth) {
-                            TextField("", text: $taskDescription, axis: .vertical)
-                                .lineLimit(3...6)
+                            ZStack(alignment: .topLeading) {
+                                if taskDescription.isEmpty {
+                                    Text("Description")
+                                        .foregroundStyle(.secondary)
+                                        .padding(.top, 8)
+                                        .padding(.leading, 4)
+                                }
+                                TextEditor(text: $taskDescription)
+                                    .frame(minHeight: 120)
+                                    .scrollContentBackground(.hidden)
+                            }
                         }
 
                         FormRow("Type", labelWidth: Self.labelWidth) {

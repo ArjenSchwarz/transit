@@ -11,6 +11,7 @@ struct AddTaskSheet: View {
     @State private var taskDescription = ""
     @State private var selectedType: TaskType = .feature
     @State private var selectedProjectID: UUID?
+    @State private var selectedDetent: PresentationDetent = .large
 
     private var selectedProject: Project? {
         guard let id = selectedProjectID else { return nil }
@@ -50,7 +51,7 @@ struct AddTaskSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large], selection: $selectedDetent)
         .onAppear {
             if selectedProjectID == nil {
                 selectedProjectID = projects.first?.id
@@ -75,9 +76,19 @@ struct AddTaskSheet: View {
                 }
 
                 TextField("Name", text: $name)
+            }
 
-                TextField("Description", text: $taskDescription, axis: .vertical)
-                    .lineLimit(3...6)
+            Section {
+                ZStack(alignment: .topLeading) {
+                    if taskDescription.isEmpty {
+                        Text("Description")
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 8)
+                            .padding(.leading, 4)
+                    }
+                    TextEditor(text: $taskDescription)
+                        .frame(maxHeight: .infinity)
+                }
             }
 
             Section {
@@ -125,8 +136,17 @@ struct AddTaskSheet: View {
                         }
 
                         FormRow("Description", labelWidth: Self.labelWidth) {
-                            TextField("", text: $taskDescription, axis: .vertical)
-                                .lineLimit(3...6)
+                            ZStack(alignment: .topLeading) {
+                                if taskDescription.isEmpty {
+                                    Text("Description")
+                                        .foregroundStyle(.secondary)
+                                        .padding(.top, 8)
+                                        .padding(.leading, 4)
+                                }
+                                TextEditor(text: $taskDescription)
+                                    .frame(minHeight: 120)
+                                    .scrollContentBackground(.hidden)
+                            }
                         }
                     }
                 }
