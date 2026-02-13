@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `displayId` parameter on `QueryTasksIntent` for single-task lookup via `FetchDescriptor` predicate
+- Detailed response fields (`description`, `metadata`) in `QueryTasksIntent` when querying by `displayId`
+- 3 new `QueryTasksIntentTests` covering displayId lookup with detailed output, not-found returning empty array, and displayId with non-matching filter
 - Smolspec and task list for App Intent displayId filter feature (`specs/intent-displayid-filter/`)
 - `displayId` parameter on `query_tasks` MCP tool for single-task lookup via predicate-based fetch
 - Detailed response fields (`description`, `metadata`) included when querying by `displayId`
