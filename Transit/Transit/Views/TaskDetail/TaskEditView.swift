@@ -7,7 +7,7 @@ struct TaskEditView: View {
     @Environment(TaskService.self) private var taskService
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Query private var projects: [Project]
+    @Query(sort: \Project.name) private var projects: [Project]
 
     @State private var name: String = ""
     @State private var taskDescription: String = ""
