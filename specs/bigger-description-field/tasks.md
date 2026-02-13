@@ -18,16 +18,16 @@ references:
 
 ## TaskEditView
 
-- [ ] 6. iOS: Replace description TextField with TextEditor that fills available space in its own Section
+- [x] 6. iOS: Replace description TextField with TextEditor that fills available space in its own Section
 
-- [ ] 7. macOS: Replace description TextField with TextEditor using .frame(minHeight: 120) inside FormRow
+- [x] 7. macOS: Replace description TextField with TextEditor using .frame(minHeight: 120) inside FormRow
 
-- [ ] 8. Add ZStack placeholder overlay matching AddTaskSheet pattern
+- [x] 8. Add ZStack placeholder overlay matching AddTaskSheet pattern
 
-- [ ] 9. Add .large presentation detent with .medium option via @State selection binding (currently has no detent)
+- [x] 9. Add .large presentation detent with .medium option via @State selection binding (currently has no detent)
 
-- [ ] 10. Build succeeds on both platforms; TextEditor expands on iOS and aligns in Grid on macOS
+- [x] 10. Build succeeds on both platforms; TextEditor expands on iOS and aligns in Grid on macOS
 
 ## Verification
 
-- [ ] 11. Trim-to-nil save behaviour preserved: empty TextEditor saves description as nil in both views
+- [x] 11. Trim-to-nil save behaviour preserved: empty TextEditor saves description as nil in both views
