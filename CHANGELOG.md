@@ -8,7 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- Smolspec and task list for MCP task ID filter feature (`specs/mcp-task-id-filter/`): adds `displayId` parameter to `query_tasks` MCP tool for single-task lookup with description and metadata in response
+- `displayId` parameter on `query_tasks` MCP tool for single-task lookup via predicate-based fetch
+- Detailed response fields (`description`, `metadata`) included when querying by `displayId`
+- Conjunctive filter composition: `displayId` works alongside `status`, `type`, and `projectId` filters
+- 6 new MCP tool handler tests covering displayId lookup, not-found, filter composition, and response field presence
+- Smolspec and task list for MCP task ID filter feature (`specs/mcp-task-id-filter/`)
 
 ### Added
 
