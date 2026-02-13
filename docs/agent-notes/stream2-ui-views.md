@@ -27,6 +27,7 @@
 - Status changes go through `TaskService.updateStatus()` for side effects (completionDate, lastStatusChangeDate)
 - MetadataSection in editing mode
 - Loads task data into local `@State` on appear, saves back on Save
+- **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow` for right-aligned labels, constrained field widths (text maxWidth 320, pickers maxWidth 240), and a bottom-right Save button
 
 ## SettingsView
 `Views/Settings/SettingsView.swift`

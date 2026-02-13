@@ -22,33 +22,40 @@ struct TaskEditView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                fieldsSection
-                statusSection
-                MetadataSection(metadata: $metadata, isEditing: true)
-            }
-            .navigationTitle("Edit Task")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(macOS)
+            macOSForm
+            #else
+            iOSForm
             #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "chevron.left")
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save", systemImage: "checkmark") { save() }
-                        .disabled(!canSave)
-                }
-            }
-            .onAppear { loadTask() }
         }
     }
 
-    // MARK: - Sections
+    // MARK: - iOS Layout
 
-    private var fieldsSection: some View {
+    #if os(iOS)
+    private var iOSForm: some View {
+        Form {
+            iOSFieldsSection
+            iOSStatusSection
+            MetadataSection(metadata: $metadata, isEditing: true)
+        }
+        .navigationTitle("Edit Task")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.left")
+                }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save", systemImage: "checkmark") { save() }
+                    .disabled(!canSave)
+            }
+        }
+        .onAppear { loadTask() }
+    }
+
+    private var iOSFieldsSection: some View {
         Section {
             TextField("Name", text: $name)
 
@@ -73,7 +80,7 @@ struct TaskEditView: View {
         }
     }
 
-    private var statusSection: some View {
+    private var iOSStatusSection: some View {
         Section {
             Picker("Status", selection: $selectedStatus) {
                 ForEach(TaskStatus.allCases, id: \.self) { status in
@@ -82,6 +89,103 @@ struct TaskEditView: View {
             }
         }
     }
+    #endif
+
+    // MARK: - macOS Layout
+
+    #if os(macOS)
+    private static let labelWidth: CGFloat = 90
+
+    private var macOSForm: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                LiquidGlassSection(title: "Details") {
+                    Grid(
+                        alignment: .leadingFirstTextBaseline,
+                        horizontalSpacing: 16,
+                        verticalSpacing: 14
+                    ) {
+                        FormRow("Name", labelWidth: Self.labelWidth) {
+                            TextField("", text: $name)
+                        }
+
+                        FormRow("Description", labelWidth: Self.labelWidth) {
+                            TextField("", text: $taskDescription, axis: .vertical)
+                                .lineLimit(3...6)
+                        }
+
+                        FormRow("Type", labelWidth: Self.labelWidth) {
+                            Picker("", selection: $selectedType) {
+                                ForEach(TaskType.allCases, id: \.self) { type in
+                                    Text(type.rawValue.capitalized).tag(type)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .fixedSize()
+                        }
+
+                        FormRow("Project", labelWidth: Self.labelWidth) {
+                            Picker("", selection: $selectedProjectID) {
+                                ForEach(projects) { project in
+                                    HStack {
+                                        ProjectColorDot(color: Color(hex: project.colorHex))
+                                        Text(project.name)
+                                    }
+                                    .tag(Optional(project.id))
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .fixedSize()
+                        }
+                    }
+                }
+
+                LiquidGlassSection(title: "Status") {
+                    Grid(
+                        alignment: .leadingFirstTextBaseline,
+                        horizontalSpacing: 16,
+                        verticalSpacing: 14
+                    ) {
+                        FormRow("Status", labelWidth: Self.labelWidth) {
+                            Picker("", selection: $selectedStatus) {
+                                ForEach(TaskStatus.allCases, id: \.self) { status in
+                                    Text(status.displayName).tag(status)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .fixedSize()
+                        }
+                    }
+                }
+
+                LiquidGlassSection(title: "Metadata") {
+                    MetadataSection(metadata: $metadata, isEditing: true)
+                }
+
+                HStack {
+                    Spacer()
+                    Button("Save") { save() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(!canSave)
+                }
+            }
+            .padding(32)
+            .frame(maxWidth: 760, alignment: .leading)
+        }
+        .navigationTitle("Edit Task")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.left")
+                }
+            }
+        }
+        .onAppear { loadTask() }
+    }
+    #endif
 
     // MARK: - Data Loading
 

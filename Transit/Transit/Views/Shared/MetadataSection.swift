@@ -5,32 +5,41 @@ struct MetadataSection: View {
     let isEditing: Bool
 
     var body: some View {
+        #if os(macOS)
+        metadataContent
+        #else
         Section("Metadata") {
-            if metadata.isEmpty && !isEditing {
-                Text("No metadata")
-                    .foregroundStyle(.secondary)
-            }
-            ForEach(metadata.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
-                if isEditing {
-                    HStack {
-                        Text(key)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        TextField("Value", text: binding(for: key))
-                        Button(role: .destructive) {
-                            metadata.removeValue(forKey: key)
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundStyle(.red)
-                        }
-                    }
-                } else {
-                    LabeledContent(key, value: value)
-                }
-            }
+            metadataContent
+        }
+        #endif
+    }
+
+    @ViewBuilder
+    private var metadataContent: some View {
+        if metadata.isEmpty && !isEditing {
+            Text("No metadata")
+                .foregroundStyle(.secondary)
+        }
+        ForEach(metadata.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
             if isEditing {
-                AddMetadataRow(metadata: $metadata)
+                HStack {
+                    Text(key)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    TextField("Value", text: binding(for: key))
+                    Button(role: .destructive) {
+                        metadata.removeValue(forKey: key)
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                            .foregroundStyle(.red)
+                    }
+                }
+            } else {
+                LabeledContent(key, value: value)
             }
+        }
+        if isEditing {
+            AddMetadataRow(metadata: $metadata)
         }
     }
 
