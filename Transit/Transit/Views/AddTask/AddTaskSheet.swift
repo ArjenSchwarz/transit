@@ -27,7 +27,11 @@ struct AddTaskSheet: View {
                 if projects.isEmpty {
                     EmptyStateView(message: "No projects yet. Create one in Settings.")
                 } else {
-                    taskForm
+                    #if os(macOS)
+                    macOSForm
+                    #else
+                    iOSForm
+                    #endif
                 }
             }
             .navigationTitle("New Task")
@@ -54,9 +58,10 @@ struct AddTaskSheet: View {
         }
     }
 
-    // MARK: - Form
+    // MARK: - iOS Layout
 
-    private var taskForm: some View {
+    #if os(iOS)
+    private var iOSForm: some View {
         Form {
             Section {
                 Picker("Project", selection: $selectedProjectID) {
@@ -84,6 +89,72 @@ struct AddTaskSheet: View {
             }
         }
     }
+    #endif
+
+    // MARK: - macOS Layout
+
+    #if os(macOS)
+    private static let labelWidth: CGFloat = 90
+
+    private var macOSForm: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                LiquidGlassSection(title: "Task") {
+                    Grid(
+                        alignment: .leadingFirstTextBaseline,
+                        horizontalSpacing: 16,
+                        verticalSpacing: 14
+                    ) {
+                        FormRow("Project", labelWidth: Self.labelWidth) {
+                            Picker("", selection: $selectedProjectID) {
+                                ForEach(projects) { project in
+                                    HStack {
+                                        ProjectColorDot(color: Color(hex: project.colorHex))
+                                        Text(project.name)
+                                    }
+                                    .tag(Optional(project.id))
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .fixedSize()
+                        }
+
+                        FormRow("Name", labelWidth: Self.labelWidth) {
+                            TextField("", text: $name)
+                        }
+
+                        FormRow("Description", labelWidth: Self.labelWidth) {
+                            TextField("", text: $taskDescription, axis: .vertical)
+                                .lineLimit(3...6)
+                        }
+                    }
+                }
+
+                LiquidGlassSection(title: "Type") {
+                    Grid(
+                        alignment: .leadingFirstTextBaseline,
+                        horizontalSpacing: 16,
+                        verticalSpacing: 14
+                    ) {
+                        FormRow("Type", labelWidth: Self.labelWidth) {
+                            Picker("", selection: $selectedType) {
+                                ForEach(TaskType.allCases, id: \.self) { type in
+                                    Text(type.rawValue.capitalized).tag(type)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .fixedSize()
+                        }
+                    }
+                }
+            }
+            .padding(32)
+            .frame(maxWidth: 760, alignment: .leading)
+        }
+    }
+    #endif
 
     // MARK: - Actions
 

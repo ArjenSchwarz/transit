@@ -15,28 +15,26 @@ struct SettingsView: View {
     #endif
 
     var body: some View {
+        #if os(macOS)
+        macOSSettings
+        #else
+        iOSSettings
+        #endif
+    }
+
+    // MARK: - iOS Layout
+
+    #if os(iOS)
+    private var iOSSettings: some View {
         List {
-            appearanceSection
-            #if os(macOS)
-            mcpSection
-            #endif
-            projectsSection
-            generalSection
+            iOSAppearanceSection
+            iOSProjectsSection
+            iOSGeneralSection
         }
         .navigationTitle("Settings")
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
-        #endif
         .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                }
-            }
-        }
+        .toolbar { settingsToolbar }
         .sheet(isPresented: $showCreateProject) {
             NavigationStack {
                 ProjectEditView(project: nil)
@@ -44,9 +42,7 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Sections
-
-    private var appearanceSection: some View {
+    private var iOSAppearanceSection: some View {
         Section("Appearance") {
             Picker("Theme", selection: $appTheme) {
                 ForEach(AppTheme.allCases, id: \.rawValue) { theme in
@@ -56,51 +52,7 @@ struct SettingsView: View {
         }
     }
 
-    #if os(macOS)
-    private var mcpSection: some View {
-        @Bindable var settings = mcpSettings
-        return Section("MCP Server") {
-            Toggle("Enable MCP Server", isOn: $settings.isEnabled)
-                .onChange(of: mcpSettings.isEnabled) { _, enabled in
-                    if enabled {
-                        mcpServer.start(port: mcpSettings.port)
-                    } else {
-                        mcpServer.stop()
-                    }
-                }
-
-            if mcpSettings.isEnabled {
-                HStack {
-                    Text("Port")
-                    Spacer()
-                    TextField("Port", value: $settings.port, format: .number)
-                        .frame(width: 80)
-                        .multilineTextAlignment(.trailing)
-                        .onSubmit {
-                            guard mcpServer.isRunning else { return }
-                            mcpServer.stop()
-                            mcpServer.start(port: mcpSettings.port)
-                        }
-                }
-
-                LabeledContent("Status") {
-                    Text(mcpServer.isRunning ? "Running" : "Stopped")
-                        .foregroundStyle(mcpServer.isRunning ? .green : .secondary)
-                }
-
-                LabeledContent("Setup Command") {
-                    let command = "claude mcp add transit --transport http http://localhost:\(mcpSettings.port)/mcp"
-                    Text(command)
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-    #endif
-
-    private var projectsSection: some View {
+    private var iOSProjectsSection: some View {
         Section {
             if projects.isEmpty {
                 Text("Create your first project to get started.")
@@ -120,6 +72,177 @@ struct SettingsView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+            }
+        }
+    }
+
+    private var iOSGeneralSection: some View {
+        Section("General") {
+            LabeledContent("About Transit", value: appVersion)
+            Toggle("iCloud Sync", isOn: $syncEnabled)
+        }
+    }
+    #endif
+
+    // MARK: - macOS Layout
+
+    #if os(macOS)
+    private static let labelWidth: CGFloat = 120
+
+    private var macOSSettings: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                macOSAppearanceSection
+                macOSMCPSection
+                macOSProjectsSection
+                macOSGeneralSection
+            }
+            .padding(32)
+            .frame(maxWidth: 760, alignment: .leading)
+        }
+        .navigationTitle("Settings")
+        .navigationBarBackButtonHidden(true)
+        .toolbar { settingsToolbar }
+        .sheet(isPresented: $showCreateProject) {
+            NavigationStack {
+                ProjectEditView(project: nil)
+            }
+        }
+    }
+
+    private var macOSAppearanceSection: some View {
+        LiquidGlassSection(title: "Appearance") {
+            Grid(
+                alignment: .leadingFirstTextBaseline,
+                horizontalSpacing: 16,
+                verticalSpacing: 14
+            ) {
+                FormRow("Theme", labelWidth: Self.labelWidth) {
+                    Picker("", selection: $appTheme) {
+                        ForEach(AppTheme.allCases, id: \.rawValue) { theme in
+                            Text(theme.displayName).tag(theme.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .fixedSize()
+                }
+            }
+        }
+    }
+
+    private var macOSMCPSection: some View {
+        @Bindable var settings = mcpSettings
+        return LiquidGlassSection(title: "MCP Server") {
+            Grid(
+                alignment: .leadingFirstTextBaseline,
+                horizontalSpacing: 16,
+                verticalSpacing: 14
+            ) {
+                FormRow("Enabled", labelWidth: Self.labelWidth) {
+                    Toggle("", isOn: $settings.isEnabled)
+                        .labelsHidden()
+                        .onChange(of: mcpSettings.isEnabled) { _, enabled in
+                            if enabled {
+                                mcpServer.start(port: mcpSettings.port)
+                            } else {
+                                mcpServer.stop()
+                            }
+                        }
+                }
+
+                if mcpSettings.isEnabled {
+                    FormRow("Port", labelWidth: Self.labelWidth) {
+                        TextField("", value: $settings.port, format: .number)
+                            .frame(width: 80)
+                            .onSubmit {
+                                guard mcpServer.isRunning else { return }
+                                mcpServer.stop()
+                                mcpServer.start(port: mcpSettings.port)
+                            }
+                    }
+
+                    FormRow("Status", labelWidth: Self.labelWidth) {
+                        Text(mcpServer.isRunning ? "Running" : "Stopped")
+                            .foregroundStyle(mcpServer.isRunning ? .green : .secondary)
+                    }
+
+                    FormRow("Setup", labelWidth: Self.labelWidth) {
+                        let command =
+                            "claude mcp add transit --transport http http://localhost:\(mcpSettings.port)/mcp"
+                        Text(command)
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    private var macOSProjectsSection: some View {
+        LiquidGlassSection(title: "Projects") {
+            VStack(alignment: .leading, spacing: 0) {
+                if projects.isEmpty {
+                    Text("Create your first project to get started.")
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 8)
+                } else {
+                    ForEach(projects) { project in
+                        NavigationLink(value: NavigationDestination.projectEdit(project)) {
+                            projectRow(project)
+                        }
+                        .buttonStyle(.plain)
+                        if project.id != projects.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+
+                Divider()
+                    .padding(.vertical, 4)
+
+                Button {
+                    showCreateProject = true
+                } label: {
+                    Label("Add Project", systemImage: "plus")
+                }
+                .buttonStyle(.plain)
+                .padding(.vertical, 4)
+            }
+        }
+    }
+
+    private var macOSGeneralSection: some View {
+        LiquidGlassSection(title: "General") {
+            Grid(
+                alignment: .leadingFirstTextBaseline,
+                horizontalSpacing: 16,
+                verticalSpacing: 14
+            ) {
+                FormRow("Version", labelWidth: Self.labelWidth) {
+                    Text(appVersion)
+                        .foregroundStyle(.secondary)
+                }
+
+                FormRow("iCloud Sync", labelWidth: Self.labelWidth) {
+                    Toggle("", isOn: $syncEnabled)
+                        .labelsHidden()
+                }
+            }
+        }
+    }
+    #endif
+
+    // MARK: - Shared
+
+    @ToolbarContentBuilder
+    private var settingsToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigation) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
             }
         }
     }
@@ -145,15 +268,6 @@ struct SettingsView: View {
                     .foregroundStyle(.white)
             }
     }
-
-    private var generalSection: some View {
-        Section("General") {
-            LabeledContent("About Transit", value: appVersion)
-            Toggle("iCloud Sync", isOn: $syncEnabled)
-        }
-    }
-
-    // MARK: - Helpers
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
