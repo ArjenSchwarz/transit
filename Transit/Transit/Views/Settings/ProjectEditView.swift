@@ -20,6 +20,17 @@ struct ProjectEditView: View {
     }
 
     var body: some View {
+        #if os(macOS)
+        macOSForm
+        #else
+        iOSForm
+        #endif
+    }
+
+    // MARK: - iOS Layout
+
+    #if os(iOS)
+    private var iOSForm: some View {
         Form {
             Section {
                 TextField("Name", text: $name)
@@ -28,18 +39,75 @@ struct ProjectEditView: View {
                 TextField("Git Repo URL", text: $gitRepo)
                     .textContentType(.URL)
                     .autocorrectionDisabled()
-                    #if os(iOS)
                     .textInputAutocapitalization(.never)
-                    #endif
             }
             Section {
                 ColorPicker("Color", selection: $color, supportsOpacity: false)
             }
         }
         .navigationTitle(isEditing ? "Edit Project" : "New Project")
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
-        #endif
+        .navigationBarBackButtonHidden(isEditing)
+        .toolbar { editToolbar }
+        .onAppear { loadProject() }
+    }
+    #endif
+
+    // MARK: - macOS Layout
+
+    #if os(macOS)
+    private static let labelWidth: CGFloat = 90
+
+    private var macOSForm: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                LiquidGlassSection(title: "Details") {
+                    Grid(
+                        alignment: .leadingFirstTextBaseline,
+                        horizontalSpacing: 16,
+                        verticalSpacing: 14
+                    ) {
+                        FormRow("Name", labelWidth: Self.labelWidth) {
+                            TextField("", text: $name)
+                        }
+
+                        FormRow("Description", labelWidth: Self.labelWidth) {
+                            TextField("", text: $projectDescription, axis: .vertical)
+                                .lineLimit(3...6)
+                        }
+
+                        FormRow("Git Repo", labelWidth: Self.labelWidth) {
+                            TextField("", text: $gitRepo)
+                                .autocorrectionDisabled()
+                        }
+                    }
+                }
+
+                LiquidGlassSection(title: "Appearance") {
+                    Grid(
+                        alignment: .leadingFirstTextBaseline,
+                        horizontalSpacing: 16,
+                        verticalSpacing: 14
+                    ) {
+                        FormRow("Color", labelWidth: Self.labelWidth) {
+                            ColorPicker("", selection: $color, supportsOpacity: false)
+                                .labelsHidden()
+                                .fixedSize()
+                        }
+                    }
+                }
+
+                HStack {
+                    Spacer()
+                    Button("Save") { save() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(!canSave)
+                }
+            }
+            .padding(32)
+            .frame(maxWidth: 760, alignment: .leading)
+        }
+        .navigationTitle(isEditing ? "Edit Project" : "New Project")
         .navigationBarBackButtonHidden(isEditing)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -47,22 +115,34 @@ struct ProjectEditView: View {
                     Image(systemName: "chevron.left")
                 }
             }
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Save", systemImage: "checkmark") { save() }
-                    .disabled(!canSave)
+        }
+        .onAppear { loadProject() }
+    }
+    #endif
+
+    // MARK: - Shared
+
+    @ToolbarContentBuilder
+    private var editToolbar: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
             }
         }
-        .onAppear {
-            if let project {
-                name = project.name
-                projectDescription = project.projectDescription
-                gitRepo = project.gitRepo ?? ""
-                color = Color(hex: project.colorHex)
-            }
+        ToolbarItem(placement: .confirmationAction) {
+            Button("Save", systemImage: "checkmark") { save() }
+                .disabled(!canSave)
         }
     }
 
-    // MARK: - Actions
+    private func loadProject() {
+        if let project {
+            name = project.name
+            projectDescription = project.projectDescription
+            gitRepo = project.gitRepo ?? ""
+            color = Color(hex: project.colorHex)
+        }
+    }
 
     private func save() {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)

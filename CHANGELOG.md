@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- macOS Liquid Glass form layout for all form/settings views using `Grid` + `FormRow` + `LiquidGlassSection` components, replacing standard `Form`/`List` on macOS while keeping iOS layouts unchanged
+- `FormRow` reusable component (`Views/Shared/FormRow.swift`) — right-aligned label + content column in a `GridRow` with `.frame(maxWidth: .infinity, alignment: .leading)` for consistent left-alignment
+- `LiquidGlassSection` reusable component (`Views/Shared/LiquidGlassSection.swift`) — `VStack` with headline title and `.glassEffect(.regular, in:)` background container
+- Smolspec and task list for macOS Liquid Glass forms feature (`specs/macos-liquid-glass-forms/`)
+
+### Changed
+
+- `TaskEditView` macOS layout uses `ScrollView` > `VStack` > `LiquidGlassSection` > `Grid` + `FormRow` for fields, with bottom-right Save button
+- `TaskDetailView` macOS layout uses the same pattern for read-only detail display with glass sections for details, description, metadata, and actions
+- `AddTaskSheet` macOS layout uses glass sections for task fields and type picker
+- `ProjectEditView` macOS layout uses glass sections for project details and appearance (ColorPicker)
+- `SettingsView` macOS layout replaces `List` with glass sections for appearance, MCP server, projects, and general settings
+- `MetadataSection` now platform-adaptive: iOS wraps content in `Section("Metadata")` for Form/List compatibility; macOS emits bare content for caller to wrap in `LiquidGlassSection`
+
 - `displayId` parameter on `QueryTasksIntent` for single-task lookup via `FetchDescriptor` predicate
 - Detailed response fields (`description`, `metadata`) in `QueryTasksIntent` when querying by `displayId`
 - 3 new `QueryTasksIntentTests` covering displayId lookup with detailed output, not-found returning empty array, and displayId with non-matching filter

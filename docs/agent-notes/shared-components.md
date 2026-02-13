@@ -34,9 +34,10 @@
 - Used inside `Grid` containers for macOS Liquid Glass form layouts
 
 ### LiquidGlassSection (macOS only)
-- `VStack` with headline title + `.glassBackgroundEffect(displayMode: .automatic)` on content
+- `VStack` with headline title + `.background { RoundedRectangle.glassEffect(.regular, in:) }` on content
 - Used to group form sections with a glass container background
 - Glass is structural only — not applied to individual rows
+- Note: `glassBackgroundEffect(displayMode:)` is visionOS-only and does NOT compile on macOS
 
 ## TaskType.tintColor
 Added directly in `Transit/Transit/Models/TaskType.swift`. Required changing `import Foundation` to `import SwiftUI` since `Color` is a SwiftUI type.

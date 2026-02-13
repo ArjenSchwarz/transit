@@ -11,6 +11,7 @@
 - No status picker — always creates in `.idea` via `TaskService.createTask()`
 - When no projects exist, shows `EmptyStateView` directing to Settings
 - Default project selection: first project on appear
+- **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow`
 
 ## TaskDetailView
 `Views/TaskDetail/TaskDetailView.swift`
@@ -19,6 +20,7 @@
 - Edit button presents TaskEditView as a nested `.sheet`
 - Action section: Abandon button (for non-terminal tasks), Restore button (for abandoned tasks)
 - Uses `.presentationDetents([.medium, .large])`
+- **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow` for read-only detail fields. Toolbar and action buttons shared via extracted computed properties.
 
 ## TaskEditView
 `Views/TaskDetail/TaskEditView.swift`
@@ -27,7 +29,7 @@
 - Status changes go through `TaskService.updateStatus()` for side effects (completionDate, lastStatusChangeDate)
 - MetadataSection in editing mode
 - Loads task data into local `@State` on appear, saves back on Save
-- **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow` for right-aligned labels, constrained field widths (text maxWidth 320, pickers maxWidth 240), and a bottom-right Save button
+- **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow` for right-aligned labels, text fields fill row width, pickers use `.fixedSize()`, and a bottom-right Save button
 
 ## SettingsView
 `Views/Settings/SettingsView.swift`
@@ -46,6 +48,7 @@
 - Create mode: uses `ProjectService.createProject()`
 - Edit mode: directly mutates project properties
 - Pushed for edit (via NavigationDestination), presented as sheet for create
+- **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow`, with bottom-right Save button
 
 ## DashboardView Integration
 - `showAddTask: Bool` state triggers AddTaskSheet via `.sheet`
