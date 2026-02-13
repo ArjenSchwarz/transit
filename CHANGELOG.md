@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Smolspec and task list for MCP task ID filter feature (`specs/mcp-task-id-filter/`): adds `displayId` parameter to `query_tasks` MCP tool for single-task lookup with description and metadata in response
+
+### Added
+
 - Embedded MCP server (macOS only) using Hummingbird HTTP framework, exposing `create_task`, `update_task_status`, and `query_tasks` tools via Streamable HTTP transport (JSON-RPC 2.0 over `POST /mcp`)
 - MCP Settings section in Settings view (macOS) with enable toggle, port configuration, running status indicator, and copyable `claude mcp add` setup command
 - `MCPTypes.swift` with full JSON-RPC 2.0 and MCP protocol Codable types
