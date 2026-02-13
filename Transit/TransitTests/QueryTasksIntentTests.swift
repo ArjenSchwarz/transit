@@ -169,8 +169,6 @@ struct QueryTasksIntentTests {
         #expect(parsed.first?["type"] as? String == "bug")
     }
 
-    // MARK: - Response Format
-
     // MARK: - DisplayId Lookup
 
     @Test func displayIdLookupReturnsDetailedTask() throws {
