@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Smolspec and task list for App Intent displayId filter feature (`specs/intent-displayid-filter/`)
 - `displayId` parameter on `query_tasks` MCP tool for single-task lookup via predicate-based fetch
 - Detailed response fields (`description`, `metadata`) included when querying by `displayId`
 - Conjunctive filter composition: `displayId` works alongside `status`, `type`, and `projectId` filters
