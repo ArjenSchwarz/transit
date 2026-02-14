@@ -55,13 +55,7 @@ struct CommentsSection: View {
             }
 
             if !trimmedDisplayName.isEmpty {
-                HStack {
-                    TextField("Add a comment...", text: $newCommentText)
-                    Button { addComment() } label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                    }
-                    .disabled(!canAddComment)
-                }
+                commentInputField
             }
         }
         .onAppear { loadComments() }
@@ -101,20 +95,36 @@ struct CommentsSection: View {
 
                 if !trimmedDisplayName.isEmpty {
                     Divider().padding(.vertical, 4)
-                    HStack {
-                        TextField("Add a comment...", text: $newCommentText)
-                            .textFieldStyle(.plain)
-                        Button { addComment() } label: {
-                            Image(systemName: "arrow.up.circle.fill")
-                        }
-                        .disabled(!canAddComment)
-                    }
+                    commentInputField
                 }
             }
         }
         .onAppear { loadComments() }
     }
     #endif
+
+    // MARK: - Comment Input
+
+    private var commentInputField: some View {
+        HStack(alignment: .bottom) {
+            ZStack(alignment: .topLeading) {
+                if newCommentText.isEmpty {
+                    Text("Add a comment...")
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 8)
+                        .padding(.leading, 4)
+                }
+                TextEditor(text: $newCommentText)
+                    .frame(minHeight: 60, maxHeight: 120)
+                    .scrollContentBackground(.hidden)
+            }
+            Button { addComment() } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.title2)
+            }
+            .disabled(!canAddComment)
+        }
+    }
 
     // MARK: - Actions
 
