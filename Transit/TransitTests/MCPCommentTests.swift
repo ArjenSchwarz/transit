@@ -141,6 +141,31 @@ struct MCPCommentTests {
         #expect(comments.isEmpty)
     }
 
+    @Test func updateStatusWithWhitespaceOnlyCommentIgnoresComment() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let task = try await env.taskService.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "update_task_status",
+            arguments: [
+                "displayId": 1,
+                "status": "planning",
+                "comment": "   ",
+                "authorName": "Bot"
+            ]
+        ))
+
+        let result = try MCPTestHelpers.decodeResult(response)
+        #expect(result["status"] as? String == "planning")
+        #expect(result["comment"] == nil)
+
+        let comments = try env.commentService.fetchComments(for: task.id)
+        #expect(comments.isEmpty)
+    }
+
     // MARK: - query_tasks with comments
 
     @Test func queryTasksIncludesCommentsArray() async throws {

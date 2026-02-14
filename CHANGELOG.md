@@ -9,6 +9,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - SwiftLint configuration now excludes `specs/` directory to prevent linting orbit worktree files and DerivedData within spec directories
+- MCP `update_task_status` now trims whitespace on `comment` parameter before processing, preventing whitespace-only comments from causing dirty in-memory state when `addComment` validation rejects them after the status transition was already applied
+
+### Added
+
+- Implementation explanation document (`specs/add-comments/implementation.md`) with beginner/intermediate/expert level explanations, requirement traceability, and completeness assessment
+- Regression test for whitespace-only comment on `update_task_status` MCP tool
+
+### Changed
+
+- `MCPToolHandler.validateCommentArgs` and `hasComment` check in `appendCommentDetails` now trim whitespace before emptiness checks, consistent with `CommentService` validation
 
 ### Added
 

@@ -180,7 +180,8 @@ final class MCPToolHandler {
         }
 
         var response = statusResponse(task: task, previousStatus: previousStatus, newStatus: newStatus)
-        appendCommentDetails(to: &response, taskID: task.id, hasComment: commentText?.isEmpty == false)
+        let hasComment = commentText.map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? false
+        appendCommentDetails(to: &response, taskID: task.id, hasComment: hasComment)
         return textResult(IntentHelpers.encodeJSON(response))
     }
 
@@ -285,7 +286,7 @@ extension MCPToolHandler {
     // MARK: - Helpers
 
     private func validateCommentArgs(comment: String?, author: String?) -> MCPToolResult? {
-        guard let comment, !comment.isEmpty else { return nil }
+        guard let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         guard let author, !author.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return errorResult("authorName is required when comment is provided")
         }
