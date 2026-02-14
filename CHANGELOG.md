@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- SwiftLint configuration now excludes `specs/` directory to prevent linting orbit worktree files and DerivedData within spec directories
+
 ### Added
 
 - `CommentsSection` view for task detail with platform-specific layouts: iOS uses `Section` in Form with swipe-to-delete; macOS uses `LiquidGlassSection` with hover-to-delete via `CommentRowView`

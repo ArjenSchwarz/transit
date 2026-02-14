@@ -178,7 +178,7 @@ references:
 
 ## Wiring
 
-- [ ] 16. Wire CommentService in TransitApp and register dependencies <!-- id:8s2zs0n -->
+- [x] 16. Wire CommentService in TransitApp and register dependencies <!-- id:8s2zs0n -->
   - Create CommentService in TransitApp.init after TaskService/ProjectService
   - Inject into environment chain: .environment(commentService)
   - Pass to MCPToolHandler init: commentService parameter
@@ -188,7 +188,7 @@ references:
   - Requirements: [11.1](requirements.md#11.1), [1.4](requirements.md#1.4)
   - References: Transit/Transit/TransitApp.swift
 
-- [ ] 17. Build verification and lint <!-- id:8s2zs0o -->
+- [x] 17. Build verification and lint <!-- id:8s2zs0o -->
   - Run make build to verify both iOS and macOS compile
   - Run make test-quick for unit tests
   - Run make lint and fix any issues
