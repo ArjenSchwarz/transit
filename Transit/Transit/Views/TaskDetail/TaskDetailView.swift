@@ -26,6 +26,7 @@ struct TaskDetailView: View {
             iOSDetailSection
             iOSDescriptionSection
             MetadataSection(metadata: .constant(task.metadata), isEditing: false)
+            CommentsSection(task: task)
             iOSActionSection
         }
         .navigationTitle(task.displayID.formatted)
@@ -114,6 +115,8 @@ struct TaskDetailView: View {
                 LiquidGlassSection(title: "Metadata") {
                     MetadataSection(metadata: .constant(task.metadata), isEditing: false)
                 }
+
+                CommentsSection(task: task)
 
                 LiquidGlassSection(title: "Actions") {
                     actionButtons
