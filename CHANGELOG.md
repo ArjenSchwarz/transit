@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `CommentsSection` view for task detail with platform-specific layouts: iOS uses `Section` in Form with swipe-to-delete; macOS uses `LiquidGlassSection` with hover-to-delete via `CommentRowView`
+- Comment input field with send button, gated on display name being set in Settings
+- Optional `comment` and `authorName` parameters on `update_task_status` MCP tool for atomic status change + comment creation
+- `MCPCommentTests` suite (7 tests) covering add_comment validation, update_task_status with comment, and query_tasks comment inclusion
+- `AddCommentIntentTests` suite (8 tests) covering valid input, validation errors, isAgent defaults, and task identifier formats
+
+### Changed
+
+- `MCPToolHandler.handleUpdateStatus` now passes comment/authorName through to `TaskService.updateStatus` for atomic comment creation on status change
+- Extracted `validateCommentArgs`, `statusResponse`, and `appendCommentDetails` helpers in `MCPToolHandler` for readability and SwiftLint compliance
+
 - `CommentRowView` for displaying individual comments with agent/user visual distinction (purple tint, robot icon, "Agent" badge for agent comments; first-letter circle avatar for user comments), relative timestamps, and macOS hover-to-delete button
 - Comment count badge on `TaskCardView` dashboard cards showing a speech bubble icon with count when a task has comments
 - `add_comment` MCP tool for agents to add comments to tasks by displayId or taskId, with `isAgent: true`, content/authorName validation, and JSON response

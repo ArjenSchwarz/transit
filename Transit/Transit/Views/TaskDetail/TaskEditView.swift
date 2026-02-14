@@ -53,6 +53,7 @@ struct TaskEditView: View {
 
             iOSStatusSection
             MetadataSection(metadata: $metadata, isEditing: true)
+            CommentsSection(task: task)
         }
         .presentationDetents([.medium, .large], selection: $selectedDetent)
         .navigationTitle("Edit Task")
@@ -186,6 +187,8 @@ struct TaskEditView: View {
                 LiquidGlassSection(title: "Metadata") {
                     MetadataSection(metadata: $metadata, isEditing: true)
                 }
+
+                CommentsSection(task: task)
 
                 HStack {
                     Spacer()
