@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Full spec for Add Comments feature (T-46): requirements, design, decision log, and implementation tasks (`specs/add-comments/`)
+- Interactive HTML mockup of comments section UI approximating Liquid Glass aesthetic (`docs/mockups/comments-section.html`)
+
 ### Fixed
 
 - iOS description `TextEditor` in AddTaskSheet and TaskEditView now has `minHeight: 120` to prevent collapsing to a single line height inside Form sections
