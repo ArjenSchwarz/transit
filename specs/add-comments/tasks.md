@@ -8,7 +8,7 @@ references:
 
 ## Foundation
 
-- [ ] 1. Create Comment entity and update data model <!-- id:8s2zs08 -->
+- [x] 1. Create Comment entity and update data model <!-- id:8s2zs08 -->
   - Create Transit/Transit/Models/Comment.swift with @Model class (id, content, authorName, isAgent, creationDate, task)
   - Add @Relationship(deleteRule: .cascade, inverse: \Comment.task) var comments: [Comment]? to TransitTask.swift
   - Update schema in TransitApp.swift and TestModelContainer.swift to include Comment.self
@@ -16,7 +16,7 @@ references:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4)
   - References: Transit/Transit/Models/Comment.swift, Transit/Transit/Models/TransitTask.swift, Transit/Transit/TransitApp.swift, Transit/TransitTests/TestModelContainer.swift
 
-- [ ] 2. Implement CommentService <!-- id:8s2zs09 -->
+- [x] 2. Implement CommentService <!-- id:8s2zs09 -->
   - Create Transit/Transit/Services/CommentService.swift with @MainActor @Observable
   - Implement addComment(to:content:authorName:isAgent:save:) with whitespace validation and save: Bool = true parameter
   - Implement deleteComment(_:), fetchComments(for:), commentCount(for:)
@@ -27,7 +27,7 @@ references:
   - Requirements: [11.1](requirements.md#11.1), [11.2](requirements.md#11.2), [11.3](requirements.md#11.3), [11.4](requirements.md#11.4), [11.5](requirements.md#11.5)
   - References: Transit/Transit/Services/CommentService.swift, Transit/Transit/Services/TaskService.swift
 
-- [ ] 3. Write CommentService tests <!-- id:8s2zs0a -->
+- [x] 3. Write CommentService tests <!-- id:8s2zs0a -->
   - Create Transit/TransitTests/CommentServiceTests.swift with @Suite(.serialized)
   - Test addComment creates with correct fields, validates empty content/author, trims whitespace
   - Test deleteComment removes from store
@@ -64,7 +64,7 @@ references:
 
 ## UI
 
-- [ ] 6. Add Your Name field to SettingsView <!-- id:8s2zs0d -->
+- [x] 6. Add Your Name field to SettingsView <!-- id:8s2zs0d -->
   - Add @AppStorage("userDisplayName") to SettingsView
   - iOS: TextField in iOSGeneralSection before About Transit
   - macOS: FormRow in macOSGeneralSection before Version row

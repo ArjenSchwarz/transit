@@ -16,6 +16,9 @@ final class TransitTask {
 
     var project: Project?
 
+    @Relationship(deleteRule: .cascade, inverse: \Comment.task)
+    var comments: [Comment]?
+
     var status: TaskStatus {
         get { TaskStatus(rawValue: statusRawValue) ?? .idea }
         set { statusRawValue = newValue.rawValue }
