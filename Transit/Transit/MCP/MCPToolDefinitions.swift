@@ -37,7 +37,9 @@ nonisolated enum MCPToolDefinitions {
                 "status": .stringEnum(
                     "Target status (required)",
                     values: TaskStatus.allCases.map(\.rawValue)
-                )
+                ),
+                "comment": .string("Optional comment to add with status change"),
+                "authorName": .string("Author name (required when comment is provided)")
             ],
             required: ["status"]
         )

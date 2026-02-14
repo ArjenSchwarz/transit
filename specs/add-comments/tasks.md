@@ -84,7 +84,7 @@ references:
   - Requirements: [3.3](requirements.md#3.3), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.2](requirements.md#5.2)
   - References: Transit/Transit/Views/TaskDetail/CommentRowView.swift
 
-- [ ] 8. Create CommentsSection and integrate into TaskEditView <!-- id:8s2zs0f -->
+- [x] 8. Create CommentsSection and integrate into TaskEditView <!-- id:8s2zs0f -->
   - Create Transit/Transit/Views/TaskDetail/CommentsSection.swift
   - iOS: Section(Comments) inside Form with .onDelete for swipe
   - macOS: LiquidGlassSection(title: Comments) with VStack
@@ -108,7 +108,7 @@ references:
 
 ## Integration
 
-- [ ] 10. Implement MCP add_comment tool <!-- id:8s2zs0h -->
+- [x] 10. Implement MCP add_comment tool <!-- id:8s2zs0h -->
   - Add handleAddComment to MCPToolHandler
   - Add case add_comment to handleToolCall dispatch
   - Validate content and authorName, resolve task by displayId or taskId
@@ -120,7 +120,7 @@ references:
   - Requirements: [8.1](requirements.md#8.1), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3), [8.4](requirements.md#8.4), [8.5](requirements.md#8.5), [8.6](requirements.md#8.6)
   - References: Transit/Transit/MCP/MCPToolHandler.swift, Transit/Transit/MCP/MCPTypes.swift
 
-- [ ] 11. Modify MCP update_task_status for optional comment <!-- id:8s2zs0i -->
+- [x] 11. Modify MCP update_task_status for optional comment <!-- id:8s2zs0i -->
   - Extract optional comment and authorName from arguments
   - Validate authorName required when comment present
   - Pass comment params to taskService.updateStatus for atomic save
@@ -131,7 +131,7 @@ references:
   - Requirements: [9.1](requirements.md#9.1), [9.2](requirements.md#9.2), [9.3](requirements.md#9.3), [9.4](requirements.md#9.4), [9.5](requirements.md#9.5), [9.6](requirements.md#9.6)
   - References: Transit/Transit/MCP/MCPToolHandler.swift
 
-- [ ] 12. Modify MCP query_tasks to include comments <!-- id:8s2zs0j -->
+- [x] 12. Modify MCP query_tasks to include comments <!-- id:8s2zs0j -->
   - In taskToDict, add comments array via commentService.fetchComments
   - Each comment includes id, authorName, content, isAgent, creationDate
   - Comments ordered chronologically (oldest first)
@@ -141,7 +141,7 @@ references:
   - Requirements: [10.1](requirements.md#10.1), [10.2](requirements.md#10.2), [10.3](requirements.md#10.3), [10.4](requirements.md#10.4)
   - References: Transit/Transit/MCP/MCPToolHandler.swift
 
-- [ ] 13. Write MCP comment tests <!-- id:8s2zs0k -->
+- [x] 13. Write MCP comment tests <!-- id:8s2zs0k -->
   - Add tests to Transit/TransitTests/MCPToolHandlerTests.swift
   - Test add_comment: valid input, missing content/author, task not found, isAgent=true
   - Test update_task_status: with comment passes to TaskService, requires authorName, without comment unchanged
@@ -151,7 +151,7 @@ references:
   - Requirements: [8.1](requirements.md#8.1), [8.3](requirements.md#8.3), [8.4](requirements.md#8.4), [8.5](requirements.md#8.5), [9.2](requirements.md#9.2), [9.3](requirements.md#9.3), [9.5](requirements.md#9.5), [10.1](requirements.md#10.1), [10.3](requirements.md#10.3), [10.4](requirements.md#10.4)
   - References: Transit/TransitTests/MCPToolHandlerTests.swift
 
-- [ ] 14. Create AddCommentIntent <!-- id:8s2zs0l -->
+- [x] 14. Create AddCommentIntent <!-- id:8s2zs0l -->
   - Create Transit/Transit/Intents/AddCommentIntent.swift
   - Typed @Parameter: taskIdentifier (String), commentText (String), authorName (String), isAgent (Bool, default: true)
   - Resolve task by display ID or UUID
@@ -163,7 +163,7 @@ references:
   - Requirements: [7.1](requirements.md#7.1), [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4), [7.5](requirements.md#7.5)
   - References: Transit/Transit/Intents/AddCommentIntent.swift, Transit/Transit/Intents/CreateTaskIntent.swift
 
-- [ ] 15. Write AddCommentIntent tests <!-- id:8s2zs0m -->
+- [x] 15. Write AddCommentIntent tests <!-- id:8s2zs0m -->
   - Create Transit/TransitTests/AddCommentIntentTests.swift
   - Test valid input creates comment
   - Test task not found throws error

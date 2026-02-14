@@ -163,21 +163,24 @@ final class MCPToolHandler {
         case .failure(let message): return errorResult(message)
         }
 
+        let commentText = args["comment"] as? String
+        let commentAuthor = args["authorName"] as? String
+        if let error = validateCommentArgs(comment: commentText, author: commentAuthor) {
+            return error
+        }
+
         let previousStatus = task.statusRawValue
         do {
-            try taskService.updateStatus(task: task, to: newStatus)
+            try taskService.updateStatus(
+                task: task, to: newStatus,
+                comment: commentText, commentAuthor: commentAuthor, commentService: commentService
+            )
         } catch {
             return errorResult("Status update failed: \(error)")
         }
 
-        var response: [String: Any] = [
-            "taskId": task.id.uuidString,
-            "previousStatus": previousStatus,
-            "status": newStatus.rawValue
-        ]
-        if let displayId = task.permanentDisplayId {
-            response["displayId"] = displayId
-        }
+        var response = statusResponse(task: task, previousStatus: previousStatus, newStatus: newStatus)
+        appendCommentDetails(to: &response, taskID: task.id, hasComment: commentText?.isEmpty == false)
         return textResult(IntentHelpers.encodeJSON(response))
     }
 
@@ -281,6 +284,34 @@ extension MCPToolHandler {
 
     // MARK: - Helpers
 
+    private func validateCommentArgs(comment: String?, author: String?) -> MCPToolResult? {
+        guard let comment, !comment.isEmpty else { return nil }
+        guard let author, !author.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return errorResult("authorName is required when comment is provided")
+        }
+        return nil
+    }
+
+    private func statusResponse(
+        task: TransitTask, previousStatus: String, newStatus: TaskStatus
+    ) -> [String: Any] {
+        var res: [String: Any] = [
+            "taskId": task.id.uuidString, "previousStatus": previousStatus, "status": newStatus.rawValue
+        ]
+        if let displayId = task.permanentDisplayId { res["displayId"] = displayId }
+        return res
+    }
+
+    private func appendCommentDetails(to response: inout [String: Any], taskID: UUID, hasComment: Bool) {
+        guard hasComment,
+              let last = (try? commentService.fetchComments(for: taskID))?.last else { return }
+        let fmt = ISO8601DateFormatter()
+        response["comment"] = [
+            "id": last.id.uuidString, "authorName": last.authorName,
+            "content": last.content, "creationDate": fmt.string(from: last.creationDate)
+        ] as [String: Any]
+    }
+
     func resolveTask(from args: [String: Any]) -> Result<TransitTask, String> {
         if let displayId = args["displayId"] as? Int {
             do {
@@ -288,8 +319,7 @@ extension MCPToolHandler {
             } catch {
                 return .failure("No task with displayId \(displayId)")
             }
-        } else if let idStr = args["taskId"] as? String,
-                  let taskId = UUID(uuidString: idStr) {
+        } else if let idStr = args["taskId"] as? String, let taskId = UUID(uuidString: idStr) {
             do {
                 return .success(try taskService.findByID(taskId))
             } catch {
@@ -300,64 +330,35 @@ extension MCPToolHandler {
         }
     }
 
-    func textResult(_ text: String) -> MCPToolResult {
-        MCPToolResult(content: [.text(text)], isError: nil)
-    }
-
-    func errorResult(_ message: String) -> MCPToolResult {
-        MCPToolResult(content: [.text(message)], isError: true)
-    }
+    func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }
+    func errorResult(_ message: String) -> MCPToolResult { MCPToolResult(content: [.text(message)], isError: true) }
 
     func stringMetadata(from value: Any?) -> [String: String]? {
         guard let dict = value as? [String: Any] else { return nil }
         var result: [String: String] = [:]
-        for (key, val) in dict {
-            result[key] = "\(val)"
-        }
+        for (key, val) in dict { result[key] = "\(val)" }
         return result.isEmpty ? nil : result
     }
 
-    func taskToDict(
-        _ task: TransitTask,
-        formatter: ISO8601DateFormatter,
-        detailed: Bool = false
-    ) -> [String: Any] {
+    func taskToDict(_ task: TransitTask, formatter: ISO8601DateFormatter, detailed: Bool = false) -> [String: Any] {
         var dict: [String: Any] = [
-            "taskId": task.id.uuidString,
-            "name": task.name,
-            "status": task.statusRawValue,
-            "type": task.typeRawValue,
+            "taskId": task.id.uuidString, "name": task.name,
+            "status": task.statusRawValue, "type": task.typeRawValue,
             "lastStatusChangeDate": formatter.string(from: task.lastStatusChangeDate)
         ]
-        if let displayId = task.permanentDisplayId {
-            dict["displayId"] = displayId
-        }
-        if let projectId = task.project?.id.uuidString {
-            dict["projectId"] = projectId
-        }
-        if let projectName = task.project?.name {
-            dict["projectName"] = projectName
-        }
-        if let completionDate = task.completionDate {
-            dict["completionDate"] = formatter.string(from: completionDate)
-        }
+        if let displayId = task.permanentDisplayId { dict["displayId"] = displayId }
+        if let projectId = task.project?.id.uuidString { dict["projectId"] = projectId }
+        if let projectName = task.project?.name { dict["projectName"] = projectName }
+        if let completionDate = task.completionDate { dict["completionDate"] = formatter.string(from: completionDate) }
         if detailed {
             dict["description"] = task.taskDescription as Any
-            let metadata = task.metadata
-            if !metadata.isEmpty {
-                dict["metadata"] = metadata
-            }
+            if !task.metadata.isEmpty { dict["metadata"] = task.metadata }
         }
         let comments = (try? commentService.fetchComments(for: task.id)) ?? []
-        dict["comments"] = comments.map { comment -> [String: Any] in
-            [
-                "id": comment.id.uuidString,
-                "authorName": comment.authorName,
-                "content": comment.content,
-                "isAgent": comment.isAgent,
-                "creationDate": formatter.string(from: comment.creationDate)
-            ]
-        }
+        dict["comments"] = comments.map { [
+            "id": $0.id.uuidString, "authorName": $0.authorName, "content": $0.content,
+            "isAgent": $0.isAgent, "creationDate": formatter.string(from: $0.creationDate)
+        ] as [String: Any] }
         return dict
     }
 }
