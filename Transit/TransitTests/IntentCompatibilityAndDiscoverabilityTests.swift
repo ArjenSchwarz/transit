@@ -66,17 +66,19 @@ struct IntentCompatibilityTests {
         #expect(String(localized: UpdateStatusIntent.title) == "Transit: Update Status")
         #expect(String(localized: AddTaskIntent.title) == "Transit: Add Task")
         #expect(String(localized: FindTasksIntent.title) == "Transit: Find Tasks")
+        #expect(String(localized: AddCommentIntent.title) == "Transit: Add Comment")
 
         #expect(QueryTasksIntent.openAppWhenRun == true)
         #expect(CreateTaskIntent.openAppWhenRun == true)
         #expect(UpdateStatusIntent.openAppWhenRun == true)
+        #expect(AddCommentIntent.openAppWhenRun == true)
         #expect(AddTaskIntent.supportedModes.contains(.foreground))
         #expect(FindTasksIntent.supportedModes == [.background])
     }
 
     @Test func appShortcutsProviderIncludesAllIntents() {
         let shortcuts = TransitShortcuts.appShortcuts
-        #expect(shortcuts.count == 5)
+        #expect(shortcuts.count == 6)
     }
 
     @Test func createTaskIntentJsonContractRemainsCompatible() async throws {

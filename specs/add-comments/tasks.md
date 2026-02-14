@@ -43,7 +43,7 @@ references:
 
 ## Service Extension
 
-- [ ] 4. Extend TaskService.updateStatus with optional comment parameters <!-- id:8s2zs0b -->
+- [x] 4. Extend TaskService.updateStatus with optional comment parameters <!-- id:8s2zs0b -->
   - Add optional comment: String?, commentAuthor: String?, commentService: CommentService? parameters to updateStatus
   - When comment is provided, call commentService.addComment(save: false) before modelContext.save()
   - Without comment parameters, behaviour is identical to existing implementation
@@ -52,7 +52,7 @@ references:
   - Requirements: [9.4](requirements.md#9.4), [9.5](requirements.md#9.5)
   - References: Transit/Transit/Services/TaskService.swift
 
-- [ ] 5. Write TaskService comment tests <!-- id:8s2zs0c -->
+- [x] 5. Write TaskService comment tests <!-- id:8s2zs0c -->
   - Add tests to Transit/TransitTests/TaskServiceTests.swift
   - Test updateStatus with comment creates comment atomically
   - Test comment has isAgent = true
@@ -73,7 +73,7 @@ references:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.4](requirements.md#2.4)
   - References: Transit/Transit/Views/Settings/SettingsView.swift
 
-- [ ] 7. Create CommentRowView <!-- id:8s2zs0e -->
+- [x] 7. Create CommentRowView <!-- id:8s2zs0e -->
   - Create Transit/Transit/Views/TaskDetail/CommentRowView.swift
   - Show author name, relative timestamp, content
   - Agent comments: robot icon avatar, purple tint background, Agent badge
@@ -97,7 +97,7 @@ references:
   - Requirements: [2.3](requirements.md#2.3), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [3.6](requirements.md#3.6), [3.7](requirements.md#3.7), [3.8](requirements.md#3.8), [3.9](requirements.md#3.9), [5.1](requirements.md#5.1), [5.4](requirements.md#5.4)
   - References: Transit/Transit/Views/TaskDetail/CommentsSection.swift, Transit/Transit/Views/TaskDetail/TaskEditView.swift
 
-- [ ] 9. Add comment count badge to TaskCardView <!-- id:8s2zs0g -->
+- [x] 9. Add comment count badge to TaskCardView <!-- id:8s2zs0g -->
   - Add @Environment(CommentService.self) to TaskCardView
   - In badges HStack, show bubble.left icon with count when > 0
   - Use commentService.commentCount(for:) with fetchCount for efficiency

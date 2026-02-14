@@ -9,6 +9,7 @@ struct TransitApp: App {
     private let container: ModelContainer
     private let taskService: TaskService
     private let projectService: ProjectService
+    private let commentService: CommentService
     private let displayIDAllocator: DisplayIDAllocator
     private let syncManager: SyncManager
     private let connectivityMonitor: ConnectivityMonitor
@@ -59,13 +60,19 @@ struct TransitApp: App {
         }
         connectivityMonitor.start()
 
+        let commentService = CommentService(modelContext: context)
+        self.commentService = commentService
+
         AppDependencyManager.shared.add(dependency: taskService)
         AppDependencyManager.shared.add(dependency: projectService)
+        AppDependencyManager.shared.add(dependency: commentService)
 
         #if os(macOS)
         let mcpSettings = MCPSettings()
         self.mcpSettings = mcpSettings
-        let mcpToolHandler = MCPToolHandler(taskService: taskService, projectService: projectService)
+        let mcpToolHandler = MCPToolHandler(
+            taskService: taskService, projectService: projectService, commentService: commentService
+        )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
         #endif
     }
@@ -89,6 +96,7 @@ struct TransitApp: App {
             ))
             .environment(taskService)
             .environment(projectService)
+            .environment(commentService)
             .environment(syncManager)
             .environment(connectivityMonitor)
             #if os(macOS)

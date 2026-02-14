@@ -7,7 +7,7 @@ Embedded MCP server in the Transit macOS app using Hummingbird HTTP server. Expo
 ## Architecture
 
 ```
-Claude Code ←→ HTTP POST /mcp (localhost:3141) ←→ MCPServer ←→ MCPToolHandler ←→ TaskService/ProjectService ←→ SwiftData
+Claude Code ←→ HTTP POST /mcp (localhost:3141) ←→ MCPServer ←→ MCPToolHandler ←→ TaskService/ProjectService/CommentService ←→ SwiftData
 ```
 
 - **Transport**: Streamable HTTP, single `POST /mcp` endpoint, JSON-RPC 2.0
@@ -18,9 +18,10 @@ Claude Code ←→ HTTP POST /mcp (localhost:3141) ←→ MCPServer ←→ MCPTo
 
 - `Transit/Transit/MCP/MCPTypes.swift` — All Codable protocol types (JSON-RPC, MCP)
 - `Transit/Transit/MCP/MCPSettings.swift` — UserDefaults-backed settings (`isEnabled`, `port`)
-- `Transit/Transit/MCP/MCPToolHandler.swift` — Tool definitions, argument parsing, service calls
+- `Transit/Transit/MCP/MCPToolHandler.swift` — Tool dispatch, handler methods, helpers
+- `Transit/Transit/MCP/MCPToolDefinitions.swift` — Tool schema definitions (extracted for file length)
 - `Transit/Transit/MCP/MCPServer.swift` — Hummingbird server lifecycle and HTTP routing
-- `Transit/TransitTests/MCPToolHandlerTests.swift` — 17 unit tests
+- `Transit/TransitTests/MCPToolHandlerTests.swift` — Unit tests
 
 ## Actor Isolation Pattern
 
@@ -37,7 +38,8 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 |------|-------------|
 | `create_task` | Create a new task (name, type required; project, description optional) |
 | `update_task_status` | Change task status (by displayId or taskId) |
-| `query_tasks` | List tasks with optional status/type/project filters |
+| `query_tasks` | List tasks with optional status/type/project filters; includes comments |
+| `add_comment` | Add a comment to a task (by displayId or taskId); always sets `isAgent: true` |
 
 ## JSON-RPC Methods Handled
 

@@ -91,8 +91,28 @@ final class TaskService {
     // MARK: - Status Changes
 
     /// Transitions a task to a new status via StatusEngine.
-    func updateStatus(task: TransitTask, to newStatus: TaskStatus) throws {
+    /// When comment parameters are provided, creates a comment atomically
+    /// in the same save operation.
+    func updateStatus(
+        task: TransitTask,
+        to newStatus: TaskStatus,
+        comment: String? = nil,
+        commentAuthor: String? = nil,
+        commentService: CommentService? = nil
+    ) throws {
         StatusEngine.applyTransition(task: task, to: newStatus)
+
+        if let comment, !comment.isEmpty,
+           let commentAuthor, let commentService {
+            try commentService.addComment(
+                to: task,
+                content: comment,
+                authorName: commentAuthor,
+                isAgent: true,
+                save: false
+            )
+        }
+
         try modelContext.save()
     }
 
