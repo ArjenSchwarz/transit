@@ -87,7 +87,7 @@ struct AddTaskSheet: View {
                             .padding(.leading, 4)
                     }
                     TextEditor(text: $taskDescription)
-                        .frame(maxHeight: .infinity)
+                        .frame(minHeight: 120, maxHeight: .infinity)
                 }
             }
 
