@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- iOS description `TextEditor` in AddTaskSheet and TaskEditView now has `minHeight: 120` to prevent collapsing to a single line height inside Form sections
+
 ### Changed
 
 - Description field in AddTaskSheet and TaskEditView replaced with `TextEditor` for larger text input on both iOS and macOS
