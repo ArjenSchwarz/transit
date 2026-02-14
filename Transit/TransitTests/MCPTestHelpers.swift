@@ -8,6 +8,7 @@ struct MCPTestEnv {
     let handler: MCPToolHandler
     let taskService: TaskService
     let projectService: ProjectService
+    let commentService: CommentService
     let context: ModelContext
 }
 
@@ -20,8 +21,17 @@ enum MCPTestHelpers {
         let allocator = DisplayIDAllocator(store: store)
         let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let projectService = ProjectService(modelContext: context)
-        let handler = MCPToolHandler(taskService: taskService, projectService: projectService)
-        return MCPTestEnv(handler: handler, taskService: taskService, projectService: projectService, context: context)
+        let commentService = CommentService(modelContext: context)
+        let handler = MCPToolHandler(
+            taskService: taskService, projectService: projectService, commentService: commentService
+        )
+        return MCPTestEnv(
+            handler: handler,
+            taskService: taskService,
+            projectService: projectService,
+            commentService: commentService,
+            context: context
+        )
     }
 
     @discardableResult

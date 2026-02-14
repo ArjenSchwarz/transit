@@ -188,4 +188,64 @@ struct TaskServiceTests {
             try service.findByDisplayID(999)
         }
     }
+
+    // MARK: - updateStatus with comment
+
+    @Test func updateStatusWithCommentCreatesCommentAtomically() async throws {
+        let (service, context) = try makeService()
+        let commentService = CommentService(modelContext: context)
+        let project = makeProject(in: context)
+        let task = try await service.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+
+        try service.updateStatus(
+            task: task,
+            to: .planning,
+            comment: "Moving to planning",
+            commentAuthor: "Agent",
+            commentService: commentService
+        )
+
+        #expect(task.status == .planning)
+        let comments = try commentService.fetchComments(for: task.id)
+        #expect(comments.count == 1)
+        #expect(comments.first?.content == "Moving to planning")
+        #expect(comments.first?.authorName == "Agent")
+    }
+
+    @Test func updateStatusWithCommentSetsIsAgentTrue() async throws {
+        let (service, context) = try makeService()
+        let commentService = CommentService(modelContext: context)
+        let project = makeProject(in: context)
+        let task = try await service.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+
+        try service.updateStatus(
+            task: task,
+            to: .inProgress,
+            comment: "Starting work",
+            commentAuthor: "claude-code",
+            commentService: commentService
+        )
+
+        let comments = try commentService.fetchComments(for: task.id)
+        #expect(comments.first?.isAgent == true)
+    }
+
+    @Test func updateStatusWithoutCommentBehavesAsExisting() async throws {
+        let (service, context) = try makeService()
+        let commentService = CommentService(modelContext: context)
+        let project = makeProject(in: context)
+        let task = try await service.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+
+        try service.updateStatus(task: task, to: .planning)
+
+        #expect(task.status == .planning)
+        let comments = try commentService.fetchComments(for: task.id)
+        #expect(comments.isEmpty)
+    }
 }

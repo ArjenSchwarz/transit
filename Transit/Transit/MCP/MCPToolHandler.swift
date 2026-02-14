@@ -7,10 +7,12 @@ final class MCPToolHandler {
 
     private let taskService: TaskService
     private let projectService: ProjectService
+    private let commentService: CommentService
 
-    init(taskService: TaskService, projectService: ProjectService) {
+    init(taskService: TaskService, projectService: ProjectService, commentService: CommentService) {
         self.taskService = taskService
         self.projectService = projectService
+        self.commentService = commentService
     }
 
     // MARK: - JSON-RPC Dispatch
@@ -84,6 +86,8 @@ final class MCPToolHandler {
             result = handleUpdateStatus(arguments)
         case "query_tasks":
             result = handleQueryTasks(arguments)
+        case "add_comment":
+            result = handleAddComment(arguments)
         default:
             return JSONRPCResponse.error(
                 id: id,
@@ -154,21 +158,9 @@ final class MCPToolHandler {
         }
 
         let task: TransitTask
-        if let displayId = args["displayId"] as? Int {
-            do {
-                task = try taskService.findByDisplayID(displayId)
-            } catch {
-                return errorResult("No task with displayId \(displayId)")
-            }
-        } else if let idStr = args["taskId"] as? String,
-                  let taskId = UUID(uuidString: idStr) {
-            do {
-                task = try taskService.findByID(taskId)
-            } catch {
-                return errorResult("No task with taskId \(idStr)")
-            }
-        } else {
-            return errorResult("Provide either displayId (integer) or taskId (UUID string)")
+        switch resolveTask(from: args) {
+        case .success(let found): task = found
+        case .failure(let message): return errorResult(message)
         }
 
         let previousStatus = task.statusRawValue
@@ -221,7 +213,7 @@ final class MCPToolHandler {
 
         let filtered = allTasks.filter { filters.matches($0) }
         let isoFormatter = ISO8601DateFormatter()
-        let results = filtered.map { Self.taskToDict($0, formatter: isoFormatter) }
+        let results = filtered.map { taskToDict($0, formatter: isoFormatter) }
         return textResult(IntentHelpers.encodeJSONArray(results))
     }
 
@@ -240,21 +232,83 @@ final class MCPToolHandler {
         }
 
         let isoFormatter = ISO8601DateFormatter()
-        let dict = Self.taskToDict(task, formatter: isoFormatter, detailed: true)
+        let dict = taskToDict(task, formatter: isoFormatter, detailed: true)
         return textResult(IntentHelpers.encodeJSONArray([dict]))
+    }
+
+}
+
+// MARK: - add_comment & Helpers
+
+extension MCPToolHandler {
+
+    func handleAddComment(_ args: [String: Any]) -> MCPToolResult {
+        guard let content = args["content"] as? String, !content.isEmpty else {
+            return errorResult("Missing required argument: content")
+        }
+        guard let authorName = args["authorName"] as? String, !authorName.isEmpty else {
+            return errorResult("Missing required argument: authorName")
+        }
+
+        let task: TransitTask
+        switch resolveTask(from: args) {
+        case .success(let found): task = found
+        case .failure(let message): return errorResult(message)
+        }
+
+        let comment: Comment
+        do {
+            comment = try commentService.addComment(
+                to: task, content: content, authorName: authorName, isAgent: true
+            )
+        } catch CommentService.Error.emptyContent {
+            return errorResult("Comment content cannot be empty")
+        } catch CommentService.Error.emptyAuthorName {
+            return errorResult("Author name cannot be empty")
+        } catch {
+            return errorResult("Failed to add comment: \(error)")
+        }
+
+        let isoFormatter = ISO8601DateFormatter()
+        let response: [String: Any] = [
+            "id": comment.id.uuidString,
+            "authorName": comment.authorName,
+            "content": comment.content,
+            "creationDate": isoFormatter.string(from: comment.creationDate)
+        ]
+        return textResult(IntentHelpers.encodeJSON(response))
     }
 
     // MARK: - Helpers
 
-    private func textResult(_ text: String) -> MCPToolResult {
+    func resolveTask(from args: [String: Any]) -> Result<TransitTask, String> {
+        if let displayId = args["displayId"] as? Int {
+            do {
+                return .success(try taskService.findByDisplayID(displayId))
+            } catch {
+                return .failure("No task with displayId \(displayId)")
+            }
+        } else if let idStr = args["taskId"] as? String,
+                  let taskId = UUID(uuidString: idStr) {
+            do {
+                return .success(try taskService.findByID(taskId))
+            } catch {
+                return .failure("No task with taskId \(idStr)")
+            }
+        } else {
+            return .failure("Provide either displayId (integer) or taskId (UUID string)")
+        }
+    }
+
+    func textResult(_ text: String) -> MCPToolResult {
         MCPToolResult(content: [.text(text)], isError: nil)
     }
 
-    private func errorResult(_ message: String) -> MCPToolResult {
+    func errorResult(_ message: String) -> MCPToolResult {
         MCPToolResult(content: [.text(message)], isError: true)
     }
 
-    private func stringMetadata(from value: Any?) -> [String: String]? {
+    func stringMetadata(from value: Any?) -> [String: String]? {
         guard let dict = value as? [String: Any] else { return nil }
         var result: [String: String] = [:]
         for (key, val) in dict {
@@ -263,7 +317,7 @@ final class MCPToolHandler {
         return result.isEmpty ? nil : result
     }
 
-    private static func taskToDict(
+    func taskToDict(
         _ task: TransitTask,
         formatter: ISO8601DateFormatter,
         detailed: Bool = false
@@ -294,6 +348,16 @@ final class MCPToolHandler {
                 dict["metadata"] = metadata
             }
         }
+        let comments = (try? commentService.fetchComments(for: task.id)) ?? []
+        dict["comments"] = comments.map { comment -> [String: Any] in
+            [
+                "id": comment.id.uuidString,
+                "authorName": comment.authorName,
+                "content": comment.content,
+                "isAgent": comment.isAgent,
+                "creationDate": formatter.string(from: comment.creationDate)
+            ]
+        }
         return dict
     }
 }
@@ -311,73 +375,6 @@ private struct QueryFilters {
         if let projectId, task.project?.id != projectId { return false }
         return true
     }
-}
-
-// MARK: - Tool Definitions
-
-nonisolated enum MCPToolDefinitions {
-    static let all: [MCPToolDefinition] = [createTask, updateTaskStatus, queryTasks]
-
-    static let createTask = MCPToolDefinition(
-        name: "create_task",
-        description: "Create a new task in Transit. The task starts in Idea status.",
-        inputSchema: .object(
-            properties: [
-                "name": .string("Task name (required)"),
-                "type": .stringEnum(
-                    "Task type (required)",
-                    values: TaskType.allCases.map(\.rawValue)
-                ),
-                "projectId": .string("Project UUID (optional, precedence over name)"),
-                "project": .string("Project name (optional, case-insensitive)"),
-                "description": .string("Task description (optional)"),
-                "metadata": .object("Key-value metadata (optional, string values)")
-            ],
-            required: ["name", "type"]
-        )
-    )
-
-    // swiftlint:disable:next line_length
-    private static let updateTaskStatusDescription = "Move a task to a different status. Identify the task by displayId (e.g. 42 for T-42) or taskId (UUID)."
-
-    static let updateTaskStatus = MCPToolDefinition(
-        name: "update_task_status",
-        description: updateTaskStatusDescription,
-        inputSchema: .object(
-            properties: [
-                "displayId": .integer("Task display ID (e.g. 42 for T-42)"),
-                "taskId": .string("Task UUID"),
-                "status": .stringEnum(
-                    "Target status (required)",
-                    values: TaskStatus.allCases.map(\.rawValue)
-                )
-            ],
-            required: ["status"]
-        )
-    )
-
-    // swiftlint:disable:next line_length
-    private static let queryTasksDescription = "Search and filter tasks. All filters are optional — omit all to return every task. Use displayId for single-task lookup with full details."
-
-    static let queryTasks = MCPToolDefinition(
-        name: "query_tasks",
-        description: queryTasksDescription,
-        inputSchema: .object(
-            properties: [
-                "displayId": .integer("Task display ID for single-task lookup (e.g. 42 for T-42)"),
-                "status": .stringEnum(
-                    "Filter by status",
-                    values: TaskStatus.allCases.map(\.rawValue)
-                ),
-                "type": .stringEnum(
-                    "Filter by type",
-                    values: TaskType.allCases.map(\.rawValue)
-                ),
-                "projectId": .string("Filter by project UUID")
-            ],
-            required: []
-        )
-    )
 }
 
 private nonisolated struct EmptyResult: Encodable, Sendable {}

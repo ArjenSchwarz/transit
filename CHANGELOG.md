@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `CommentRowView` for displaying individual comments with agent/user visual distinction (purple tint, robot icon, "Agent" badge for agent comments; first-letter circle avatar for user comments), relative timestamps, and macOS hover-to-delete button
+- Comment count badge on `TaskCardView` dashboard cards showing a speech bubble icon with count when a task has comments
+- `add_comment` MCP tool for agents to add comments to tasks by displayId or taskId, with `isAgent: true`, content/authorName validation, and JSON response
+- Comments array included in `query_tasks` MCP responses for all tasks (id, authorName, content, isAgent, creationDate), ordered chronologically
+- `AddCommentIntent` App Intent with typed parameters (task identifier, comment text, author name, isAgent toggle) registered as a user-facing Shortcut
+- Optional `comment`, `commentAuthor`, and `commentService` parameters on `TaskService.updateStatus` for atomic status change + comment creation in a single save
+- TaskService comment tests (3 tests): atomic comment creation, isAgent flag, and backwards-compatible no-comment behaviour
+- `MCPToolDefinitions.swift` extracted from `MCPToolHandler.swift` with all tool definitions including new `addComment`
+- Refactored `MCPToolHandler` with shared `resolveTask(from:)` helper for task lookup by displayId/taskId
+
 - `Comment` SwiftData entity with `id`, `content`, `authorName`, `isAgent`, `creationDate`, and optional `TransitTask` relationship
 - Cascade delete relationship on `TransitTask` so deleting a task removes all its comments
 - `CommentService` (`@MainActor @Observable`) with `addComment`, `deleteComment`, `fetchComments`, and `commentCount` methods, whitespace validation, typed `Error` enum, and `save: false` parameter for atomic operations

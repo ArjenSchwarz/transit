@@ -50,6 +50,21 @@
 - Pushed for edit (via NavigationDestination), presented as sheet for create
 - **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow`, with bottom-right Save button
 
+## CommentRowView
+`Views/TaskDetail/CommentRowView.swift`
+- Displays a single comment with author avatar, name, relative timestamp, and content
+- Agent comments: `cpu` system image avatar with purple tint, purple background (`Color.purple.opacity(0.04)`), "Agent" capsule badge
+- User comments: first-letter circle avatar with blue tint
+- macOS-only: hover-reveal delete button (`xmark.circle.fill`) via `onHover`
+- Content text indented with `.padding(.leading, 26)` to align past the avatar
+- Takes `onDelete: (() -> Void)?` closure for delete action
+
+## TaskCardView Comment Badge
+`Views/Dashboard/TaskCardView.swift`
+- `@Environment(CommentService.self)` injected for comment count queries
+- In the badges HStack (after `TypeBadge`), shows `Label("\(count)", systemImage: "bubble.left")` when count > 0
+- Uses `commentService.commentCount(for: task.id)` with `try?` to silently handle errors
+
 ## DashboardView Integration
 - `showAddTask: Bool` state triggers AddTaskSheet via `.sheet`
 - `selectedTask: TransitTask?` triggers TaskDetailView via `.sheet(item:)`

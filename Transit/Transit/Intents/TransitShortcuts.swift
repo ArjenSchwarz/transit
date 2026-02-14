@@ -55,5 +55,15 @@ struct TransitShortcuts: AppShortcutsProvider {
             shortTitle: "Find Tasks",
             systemImageName: "magnifyingglass.circle.fill"
         )
+
+        AppShortcut(
+            intent: AddCommentIntent(),
+            phrases: [
+                "Add comment to \(.applicationName) task",
+                "Comment on a \(.applicationName) task"
+            ],
+            shortTitle: "Add Comment",
+            systemImageName: "text.bubble"
+        )
     }
 }
