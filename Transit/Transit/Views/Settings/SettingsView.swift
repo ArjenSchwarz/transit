@@ -7,6 +7,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("syncEnabled") private var syncEnabled = true
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
+    @AppStorage("userDisplayName") private var userDisplayName = ""
     @State private var showCreateProject = false
 
     #if os(macOS)
@@ -78,6 +79,7 @@ struct SettingsView: View {
 
     private var iOSGeneralSection: some View {
         Section("General") {
+            TextField("Your Name", text: $userDisplayName)
             LabeledContent("About Transit", value: appVersion)
             Toggle("iCloud Sync", isOn: $syncEnabled)
         }
@@ -220,6 +222,11 @@ struct SettingsView: View {
                 horizontalSpacing: 16,
                 verticalSpacing: 14
             ) {
+                FormRow("Your Name", labelWidth: Self.labelWidth) {
+                    TextField("", text: $userDisplayName)
+                        .frame(maxWidth: 200)
+                }
+
                 FormRow("Version", labelWidth: Self.labelWidth) {
                     Text(appVersion)
                         .foregroundStyle(.secondary)

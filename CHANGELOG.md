@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `Comment` SwiftData entity with `id`, `content`, `authorName`, `isAgent`, `creationDate`, and optional `TransitTask` relationship
+- Cascade delete relationship on `TransitTask` so deleting a task removes all its comments
+- `CommentService` (`@MainActor @Observable`) with `addComment`, `deleteComment`, `fetchComments`, and `commentCount` methods, whitespace validation, typed `Error` enum, and `save: false` parameter for atomic operations
+- "Your Name" display name field in Settings (both iOS and macOS) stored via `@AppStorage("userDisplayName")`
+- `CommentServiceTests` suite (14 tests) covering add/delete/fetch/count, validation, cascade delete, `isAgent` preservation, and deferred save
 - Full spec for Add Comments feature (T-46): requirements, design, decision log, and implementation tasks (`specs/add-comments/`)
 - Interactive HTML mockup of comments section UI approximating Liquid Glass aesthetic (`docs/mockups/comments-section.html`)
 

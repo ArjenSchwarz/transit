@@ -26,7 +26,7 @@ struct TransitApp: App {
         let syncManager = SyncManager()
         self.syncManager = syncManager
 
-        let schema = Schema([Project.self, TransitTask.self])
+        let schema = Schema([Project.self, TransitTask.self, Comment.self])
         let config: ModelConfiguration
         if Self.uiTestScenario != nil {
             config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)

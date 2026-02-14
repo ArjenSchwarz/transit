@@ -8,7 +8,7 @@ enum TestModelContainer {
     /// Returns a fresh ModelContext backed by its own in-memory container to
     /// avoid cross-test state leakage between suites.
     static func newContext() throws -> ModelContext {
-        let schema = Schema([Project.self, TransitTask.self])
+        let schema = Schema([Project.self, TransitTask.self, Comment.self])
         let config = ModelConfiguration(
             "TransitTests-\(UUID().uuidString)",
             schema: schema,
