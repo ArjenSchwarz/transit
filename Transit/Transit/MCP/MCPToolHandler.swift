@@ -160,7 +160,7 @@ final class MCPToolHandler {
         let task: TransitTask
         switch resolveTask(from: args) {
         case .success(let found): task = found
-        case .failure(let message): return errorResult(message)
+        case .failure(.message(let message)): return errorResult(message)
         }
 
         let commentText = args["comment"] as? String
@@ -257,7 +257,7 @@ extension MCPToolHandler {
         let task: TransitTask
         switch resolveTask(from: args) {
         case .success(let found): task = found
-        case .failure(let message): return errorResult(message)
+        case .failure(.message(let message)): return errorResult(message)
         }
 
         let comment: Comment
@@ -313,21 +313,25 @@ extension MCPToolHandler {
         ] as [String: Any]
     }
 
-    func resolveTask(from args: [String: Any]) -> Result<TransitTask, String> {
+    enum ResolveError: Error {
+        case message(String)
+    }
+
+    func resolveTask(from args: [String: Any]) -> Result<TransitTask, ResolveError> {
         if let displayId = args["displayId"] as? Int {
             do {
                 return .success(try taskService.findByDisplayID(displayId))
             } catch {
-                return .failure("No task with displayId \(displayId)")
+                return .failure(.message("No task with displayId \(displayId)"))
             }
         } else if let idStr = args["taskId"] as? String, let taskId = UUID(uuidString: idStr) {
             do {
                 return .success(try taskService.findByID(taskId))
             } catch {
-                return .failure("No task with taskId \(idStr)")
+                return .failure(.message("No task with taskId \(idStr)"))
             }
         } else {
-            return .failure("Provide either displayId (integer) or taskId (UUID string)")
+            return .failure(.message("Provide either displayId (integer) or taskId (UUID string)"))
         }
     }
 
