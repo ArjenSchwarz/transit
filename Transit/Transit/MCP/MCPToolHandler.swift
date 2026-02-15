@@ -165,8 +165,9 @@ final class MCPToolHandler {
 
         let commentText = args["comment"] as? String
         let commentAuthor = args["authorName"] as? String
-        if let error = validateCommentArgs(comment: commentText, author: commentAuthor) {
-            return error
+        let (commentError, hasComment) = validateCommentArgs(comment: commentText, author: commentAuthor)
+        if let commentError {
+            return commentError
         }
 
         let previousStatus = task.statusRawValue
@@ -180,7 +181,6 @@ final class MCPToolHandler {
         }
 
         var response = statusResponse(task: task, previousStatus: previousStatus, newStatus: newStatus)
-        let hasComment = commentText.map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? false
         appendCommentDetails(to: &response, taskID: task.id, hasComment: hasComment)
         return textResult(IntentHelpers.encodeJSON(response))
     }
@@ -285,12 +285,14 @@ extension MCPToolHandler {
 
     // MARK: - Helpers
 
-    private func validateCommentArgs(comment: String?, author: String?) -> MCPToolResult? {
-        guard let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
-        guard let author, !author.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return errorResult("authorName is required when comment is provided")
+    private func validateCommentArgs(comment: String?, author: String?) -> (MCPToolResult?, Bool) {
+        guard let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return (nil, false)
         }
-        return nil
+        guard let author, !author.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return (errorResult("authorName is required when comment is provided"), false)
+        }
+        return (nil, true)
     }
 
     private func statusResponse(

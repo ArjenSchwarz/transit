@@ -21,7 +21,7 @@ struct AddCommentIntent: AppIntent {
     @Parameter(title: "Author Name")
     var authorName: String
 
-    @Parameter(title: "Agent Comment", default: true)
+    @Parameter(title: "Agent Comment", default: false)
     var isAgent: Bool
 
     @Dependency
