@@ -54,6 +54,10 @@ final class TransitTask {
     }
 
     var shareText: String {
+        shareText(comments: [])
+    }
+
+    func shareText(comments: [Comment]) -> String {
         let typeName = type.rawValue.capitalized
         var text = "# \(displayID.formatted) \(name) (\(typeName))\n"
 
@@ -70,6 +74,20 @@ final class TransitTask {
             text += "\n"
             for (key, value) in metadata.sorted(by: { $0.key < $1.key }) {
                 text += "\(key): \(value)\n"
+            }
+        }
+
+        if !comments.isEmpty {
+            text += "\n## Comments\n\n"
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            for comment in comments {
+                let authorLabel = comment.isAgent
+                    ? "\(comment.authorName) [Agent]"
+                    : comment.authorName
+                let timestamp = formatter.string(from: comment.creationDate)
+                text += "**\(authorLabel)** (\(timestamp)):\n\(comment.content)\n\n"
             }
         }
 
