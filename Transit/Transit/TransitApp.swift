@@ -77,6 +77,8 @@ struct TransitApp: App {
         #endif
     }
 
+    @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
+
     var body: some Scene {
         WindowGroup {
             NavigationStack {
@@ -90,6 +92,9 @@ struct TransitApp: App {
                         }
                     }
             }
+            .preferredColorScheme(
+                (AppTheme(rawValue: appTheme) ?? .followSystem).preferredColorScheme
+            )
             .modifier(ScenePhaseModifier(
                 displayIDAllocator: displayIDAllocator,
                 modelContext: ModelContext(container)

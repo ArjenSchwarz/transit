@@ -15,6 +15,15 @@ enum AppTheme: String, CaseIterable {
         }
     }
 
+    var preferredColorScheme: ColorScheme? {
+        switch self {
+        case .followSystem: nil
+        case .universal: .light
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+
     func resolved(with colorScheme: ColorScheme) -> ResolvedTheme {
         switch self {
         case .followSystem:
