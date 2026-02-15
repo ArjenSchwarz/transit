@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `MCPToolHandler.resolveTask(from:)` now returns `Result<TransitTask, ResolveError>` with a typed `ResolveError` enum instead of `Result<TransitTask, String>`, which didn't compile since `String` doesn't conform to `Error`
+
 - SwiftLint configuration now excludes `specs/` directory to prevent linting orbit worktree files and DerivedData within spec directories
 - MCP `update_task_status` now trims whitespace on `comment` parameter before processing, preventing whitespace-only comments from causing dirty in-memory state when `addComment` validation rejects them after the status transition was already applied
 
