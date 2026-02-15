@@ -5,7 +5,9 @@ struct TaskDetailView: View {
     var dismissAll: () -> Void
     @Environment(TaskService.self) private var taskService
     @Environment(\.dismiss) private var dismiss
+    @Environment(CommentService.self) private var commentService
     @State private var showEdit = false
+    @State private var comments: [Comment] = []
 
     var body: some View {
         NavigationStack {
@@ -35,6 +37,7 @@ struct TaskDetailView: View {
         .sheet(isPresented: $showEdit) {
             TaskEditView(task: task, dismissAll: dismissAll)
         }
+        .onAppear { loadComments() }
     }
 
     private var iOSDetailSection: some View {
@@ -130,10 +133,15 @@ struct TaskDetailView: View {
         .sheet(isPresented: $showEdit) {
             TaskEditView(task: task, dismissAll: dismissAll)
         }
+        .onAppear { loadComments() }
     }
     #endif
 
     // MARK: - Shared
+
+    private var exportText: String {
+        task.shareText(comments: comments)
+    }
 
     @ToolbarContentBuilder
     private var detailToolbar: some ToolbarContent {
@@ -144,7 +152,7 @@ struct TaskDetailView: View {
         }
         ToolbarItem(placement: .confirmationAction) {
             HStack(spacing: 12) {
-                ShareLink(item: task.shareText, subject: Text(task.name)) {
+                ShareLink(item: exportText, subject: Text(task.name)) {
                     Image(systemName: "square.and.arrow.up")
                 }
                 Button { showEdit = true } label: {
@@ -152,6 +160,10 @@ struct TaskDetailView: View {
                 }
             }
         }
+    }
+
+    private func loadComments() {
+        comments = (try? commentService.fetchComments(for: task.id)) ?? []
     }
 
     @ViewBuilder

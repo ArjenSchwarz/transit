@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Share/export now always includes comments (with author name, agent tag, and timestamp) when present
+- `TransitTask.shareText` refactored into parameterized `shareText(comments:)` method; existing `shareText` property delegates with empty array for backward compatibility
+- `TaskDetailView` fetches comments on appear and passes them to `ShareLink` via `shareText(comments:)`
+
 ### Fixed
 
 - `MCPToolHandler.resolveTask(from:)` now returns `Result<TransitTask, ResolveError>` with a typed `ResolveError` enum instead of `Result<TransitTask, String>`, which didn't compile since `String` doesn't conform to `Error`
