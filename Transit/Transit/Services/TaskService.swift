@@ -102,18 +102,23 @@ final class TaskService {
     ) throws {
         StatusEngine.applyTransition(task: task, to: newStatus)
 
-        if let comment, !comment.isEmpty,
-           let commentAuthor, let commentService {
-            try commentService.addComment(
-                to: task,
-                content: comment,
-                authorName: commentAuthor,
-                isAgent: true,
-                save: false
-            )
-        }
+        do {
+            if let comment, !comment.isEmpty,
+               let commentAuthor, let commentService {
+                try commentService.addComment(
+                    to: task,
+                    content: comment,
+                    authorName: commentAuthor,
+                    isAgent: true,
+                    save: false
+                )
+            }
 
-        try modelContext.save()
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
     }
 
     /// Moves a task to `.abandoned` status.

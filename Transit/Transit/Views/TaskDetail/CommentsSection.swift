@@ -8,6 +8,7 @@ struct CommentsSection: View {
 
     @State private var comments: [Comment] = []
     @State private var newCommentText = ""
+    @State private var errorMessage: String?
 
     private var trimmedDisplayName: String {
         userDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -19,11 +20,23 @@ struct CommentsSection: View {
     }
 
     var body: some View {
-        #if os(macOS)
-        macOSLayout
-        #else
-        iOSLayout
-        #endif
+        Group {
+            #if os(macOS)
+            macOSLayout
+            #else
+            iOSLayout
+            #endif
+        }
+        .alert("Error", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("OK") { errorMessage = nil }
+        } message: {
+            if let errorMessage {
+                Text(errorMessage)
+            }
+        }
     }
 
     // MARK: - iOS Layout
@@ -134,18 +147,26 @@ struct CommentsSection: View {
 
     private func addComment() {
         guard canAddComment else { return }
-        _ = try? commentService.addComment(
-            to: task,
-            content: newCommentText,
-            authorName: trimmedDisplayName,
-            isAgent: false
-        )
-        newCommentText = ""
+        do {
+            _ = try commentService.addComment(
+                to: task,
+                content: newCommentText,
+                authorName: trimmedDisplayName,
+                isAgent: false
+            )
+            newCommentText = ""
+        } catch {
+            errorMessage = "Failed to add comment."
+        }
         loadComments()
     }
 
     private func deleteComment(_ comment: Comment) {
-        try? commentService.deleteComment(comment)
+        do {
+            try commentService.deleteComment(comment)
+        } catch {
+            errorMessage = "Failed to delete comment."
+        }
         loadComments()
     }
 }

@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `CommentsSection` now shows an error alert when adding or deleting a comment fails, instead of silently swallowing the error with `try?`
+- `TaskService.updateStatus` now rolls back in-memory changes when `addComment` or `save()` fails during atomic status + comment operations, preventing dirty state from persisting on a subsequent unrelated save
+- `AddCommentIntent` `isAgent` parameter default changed from `true` to `false` so human users invoking via Shortcuts get the correct default; agents should explicitly pass `true`
+- Redundant whitespace trim removed in `MCPToolHandler.handleUpdateStatus`: `validateCommentArgs` now returns a `hasComment` boolean alongside the optional error, eliminating the second trim on the comment string
+
 ### Changed
 
 - Share/export now always includes comments (with author name, agent tag, and timestamp) when present
