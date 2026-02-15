@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Theme selector now overrides the system color scheme via `.preferredColorScheme()` at the app root — selecting Light/Dark/Universal actually forces the entire UI (text, controls, materials) to follow the chosen theme instead of only changing custom gradients
+- Universal theme forces `.light` color scheme for a consistent appearance regardless of system dark/light setting
+
+### Fixed
+
 - `CommentsSection` now shows an error alert when adding or deleting a comment fails, instead of silently swallowing the error with `try?`
 - `TaskService.updateStatus` now rolls back in-memory changes when `addComment` or `save()` fails during atomic status + comment operations, preventing dirty state from persisting on a subsequent unrelated save
 - `AddCommentIntent` `isAgent` parameter default changed from `true` to `false` so human users invoking via Shortcuts get the correct default; agents should explicitly pass `true`
