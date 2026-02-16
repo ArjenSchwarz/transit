@@ -10,6 +10,11 @@ enum ProjectLookupError: Error {
     case noIdentifier
 }
 
+/// Errors returned by project mutation operations (create, rename).
+enum ProjectMutationError: Error {
+    case duplicateName(String)
+}
+
 /// Manages project creation, lookup, and task counting.
 @MainActor @Observable
 final class ProjectService {
@@ -23,9 +28,16 @@ final class ProjectService {
     // MARK: - Creation
 
     /// Creates and inserts a new project.
+    ///
+    /// Throws `ProjectMutationError.duplicateName` if a project with the same
+    /// name (case-insensitive) already exists.
     @discardableResult
-    func createProject(name: String, description: String, gitRepo: String?, colorHex: String) -> Project {
-        let project = Project(name: name, description: description, gitRepo: gitRepo, colorHex: colorHex)
+    func createProject(name: String, description: String, gitRepo: String?, colorHex: String) throws -> Project {
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        if projectNameExists(trimmedName) {
+            throw ProjectMutationError.duplicateName(trimmedName)
+        }
+        let project = Project(name: trimmedName, description: description, gitRepo: gitRepo, colorHex: colorHex)
         context.insert(project)
         try? context.save()
         return project
@@ -73,6 +85,23 @@ final class ProjectService {
         }
 
         return .failure(.noIdentifier)
+    }
+
+    // MARK: - Validation
+
+    /// Checks whether a project with the given name already exists (case-insensitive).
+    ///
+    /// When `excluding` is provided, the project with that ID is ignored — this
+    /// supports the rename scenario where the project's own current name should
+    /// not count as a conflict.
+    func projectNameExists(_ name: String, excluding projectId: UUID? = nil) -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        let descriptor = FetchDescriptor<Project>()
+        let allProjects = (try? context.fetch(descriptor)) ?? []
+        return allProjects.contains { project in
+            if let projectId, project.id == projectId { return false }
+            return project.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+        }
     }
 
     // MARK: - Queries

@@ -11,6 +11,7 @@ struct ProjectEditView: View {
     @State private var projectDescription: String = ""
     @State private var gitRepo: String = ""
     @State private var color: Color = .blue
+    @State private var errorMessage: String?
 
     private var isEditing: Bool { project != nil }
 
@@ -22,9 +23,26 @@ struct ProjectEditView: View {
     var body: some View {
         #if os(macOS)
         macOSForm
+            .alert("Duplicate Project", isPresented: showError) {
+                Button("OK") { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
         #else
         iOSForm
+            .alert("Duplicate Project", isPresented: showError) {
+                Button("OK") { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
         #endif
+    }
+
+    private var showError: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )
     }
 
     // MARK: - iOS Layout
@@ -150,18 +168,31 @@ struct ProjectEditView: View {
         let trimmedRepo = gitRepo.trimmingCharacters(in: .whitespaces)
 
         if let project {
+            // When renaming, check for conflicts with other projects.
+            if projectService.projectNameExists(trimmedName, excluding: project.id) {
+                errorMessage = "A project named \"\(trimmedName)\" already exists."
+                return
+            }
             project.name = trimmedName
             project.projectDescription = trimmedDesc
             project.gitRepo = trimmedRepo.isEmpty ? nil : trimmedRepo
             project.colorHex = color.hexString
             try? modelContext.save()
         } else {
-            projectService.createProject(
-                name: trimmedName,
-                description: trimmedDesc,
-                gitRepo: trimmedRepo.isEmpty ? nil : trimmedRepo,
-                colorHex: color.hexString
-            )
+            do {
+                try projectService.createProject(
+                    name: trimmedName,
+                    description: trimmedDesc,
+                    gitRepo: trimmedRepo.isEmpty ? nil : trimmedRepo,
+                    colorHex: color.hexString
+                )
+            } catch is ProjectMutationError {
+                errorMessage = "A project named \"\(trimmedName)\" already exists."
+                return
+            } catch {
+                errorMessage = "Failed to create project."
+                return
+            }
         }
         dismiss()
     }
