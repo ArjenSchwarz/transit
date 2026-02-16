@@ -103,7 +103,7 @@ final class TaskService {
         StatusEngine.applyTransition(task: task, to: newStatus)
 
         do {
-            if let comment, !comment.isEmpty,
+            if let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                let commentAuthor, let commentService {
                 try commentService.addComment(
                     to: task,

@@ -6,17 +6,17 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct AddCommentIntentTests {
-    private struct Services {
+    private struct TestServices {
         let task: TaskService
         let comment: CommentService
         let context: ModelContext
     }
 
-    private func makeServices() throws -> Services {
+    private func makeServices() throws -> TestServices {
         let context = try TestModelContainer.newContext()
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
-        return Services(
+        return TestServices(
             task: TaskService(modelContext: context, displayIDAllocator: allocator),
             comment: CommentService(modelContext: context),
             context: context
@@ -30,11 +30,15 @@ struct AddCommentIntentTests {
         return project
     }
 
-    private func makeTask(svc: Services) async throws -> TransitTask {
+    private func makeTask(svc: TestServices) async throws -> TransitTask {
         let project = makeProject(in: svc.context)
         return try await svc.task.createTask(
             name: "Test Task", description: nil, type: .feature, project: project
         )
+    }
+
+    private func intentServices(_ svc: TestServices) -> AddCommentIntent.Services {
+        AddCommentIntent.Services(taskService: svc.task, commentService: svc.comment)
     }
 
     // MARK: - Valid Input
@@ -43,15 +47,13 @@ struct AddCommentIntentTests {
         let svc = try makeServices()
         let task = try await makeTask(svc: svc)
 
-        var intent = AddCommentIntent()
-        intent.taskIdentifier = "\(task.permanentDisplayId!)" // swiftlint:disable:this force_unwrapping
-        intent.commentText = "Test comment"
-        intent.authorName = "TestBot"
-        intent.isAgent = true
-        intent.$taskService.wrappedValue = svc.task
-        intent.$commentService.wrappedValue = svc.comment
-
-        _ = try await intent.perform()
+        try AddCommentIntent.execute(
+            taskIdentifier: "\(task.permanentDisplayId!)", // swiftlint:disable:this force_unwrapping
+            commentText: "Test comment",
+            authorName: "TestBot",
+            isAgent: true,
+            services: intentServices(svc)
+        )
 
         let comments = try svc.comment.fetchComments(for: task.id)
         #expect(comments.count == 1)
@@ -64,16 +66,14 @@ struct AddCommentIntentTests {
     @Test func performTaskNotFoundThrowsError() async throws {
         let svc = try makeServices()
 
-        var intent = AddCommentIntent()
-        intent.taskIdentifier = "999"
-        intent.commentText = "Test comment"
-        intent.authorName = "TestBot"
-        intent.isAgent = true
-        intent.$taskService.wrappedValue = svc.task
-        intent.$commentService.wrappedValue = svc.comment
-
-        await #expect(throws: VisualIntentError.self) {
-            _ = try await intent.perform()
+        #expect(throws: VisualIntentError.self) {
+            try AddCommentIntent.execute(
+                taskIdentifier: "999",
+                commentText: "Test comment",
+                authorName: "TestBot",
+                isAgent: true,
+                services: intentServices(svc)
+            )
         }
     }
 
@@ -83,16 +83,14 @@ struct AddCommentIntentTests {
         let svc = try makeServices()
         let task = try await makeTask(svc: svc)
 
-        var intent = AddCommentIntent()
-        intent.taskIdentifier = "\(task.permanentDisplayId!)" // swiftlint:disable:this force_unwrapping
-        intent.commentText = "   "
-        intent.authorName = "TestBot"
-        intent.isAgent = true
-        intent.$taskService.wrappedValue = svc.task
-        intent.$commentService.wrappedValue = svc.comment
-
-        await #expect(throws: VisualIntentError.self) {
-            _ = try await intent.perform()
+        #expect(throws: VisualIntentError.self) {
+            try AddCommentIntent.execute(
+                taskIdentifier: "\(task.permanentDisplayId!)", // swiftlint:disable:this force_unwrapping
+                commentText: "   ",
+                authorName: "TestBot",
+                isAgent: true,
+                services: intentServices(svc)
+            )
         }
     }
 
@@ -102,34 +100,30 @@ struct AddCommentIntentTests {
         let svc = try makeServices()
         let task = try await makeTask(svc: svc)
 
-        var intent = AddCommentIntent()
-        intent.taskIdentifier = "\(task.permanentDisplayId!)" // swiftlint:disable:this force_unwrapping
-        intent.commentText = "Valid comment"
-        intent.authorName = "   "
-        intent.isAgent = true
-        intent.$taskService.wrappedValue = svc.task
-        intent.$commentService.wrappedValue = svc.comment
-
-        await #expect(throws: VisualIntentError.self) {
-            _ = try await intent.perform()
+        #expect(throws: VisualIntentError.self) {
+            try AddCommentIntent.execute(
+                taskIdentifier: "\(task.permanentDisplayId!)", // swiftlint:disable:this force_unwrapping
+                commentText: "Valid comment",
+                authorName: "   ",
+                isAgent: true,
+                services: intentServices(svc)
+            )
         }
     }
 
     // MARK: - isAgent Defaults
 
-    @Test func performDefaultsIsAgentTrue() async throws {
+    @Test func performIsAgentTrue() async throws {
         let svc = try makeServices()
         let task = try await makeTask(svc: svc)
 
-        var intent = AddCommentIntent()
-        intent.taskIdentifier = "\(task.permanentDisplayId!)" // swiftlint:disable:this force_unwrapping
-        intent.commentText = "Agent comment"
-        intent.authorName = "TestBot"
-        // isAgent defaults to true per @Parameter(default: true)
-        intent.$taskService.wrappedValue = svc.task
-        intent.$commentService.wrappedValue = svc.comment
-
-        _ = try await intent.perform()
+        try AddCommentIntent.execute(
+            taskIdentifier: "\(task.permanentDisplayId!)", // swiftlint:disable:this force_unwrapping
+            commentText: "Agent comment",
+            authorName: "TestBot",
+            isAgent: true,
+            services: intentServices(svc)
+        )
 
         let comments = try svc.comment.fetchComments(for: task.id)
         #expect(comments[0].isAgent == true)
@@ -139,15 +133,13 @@ struct AddCommentIntentTests {
         let svc = try makeServices()
         let task = try await makeTask(svc: svc)
 
-        var intent = AddCommentIntent()
-        intent.taskIdentifier = "\(task.permanentDisplayId!)" // swiftlint:disable:this force_unwrapping
-        intent.commentText = "User comment"
-        intent.authorName = "Human"
-        intent.isAgent = false
-        intent.$taskService.wrappedValue = svc.task
-        intent.$commentService.wrappedValue = svc.comment
-
-        _ = try await intent.perform()
+        try AddCommentIntent.execute(
+            taskIdentifier: "\(task.permanentDisplayId!)", // swiftlint:disable:this force_unwrapping
+            commentText: "User comment",
+            authorName: "Human",
+            isAgent: false,
+            services: intentServices(svc)
+        )
 
         let comments = try svc.comment.fetchComments(for: task.id)
         #expect(comments[0].isAgent == false)
@@ -159,15 +151,13 @@ struct AddCommentIntentTests {
         let svc = try makeServices()
         let task = try await makeTask(svc: svc)
 
-        var intent = AddCommentIntent()
-        intent.taskIdentifier = "1" // display ID
-        intent.commentText = "Comment via display ID"
-        intent.authorName = "TestBot"
-        intent.isAgent = true
-        intent.$taskService.wrappedValue = svc.task
-        intent.$commentService.wrappedValue = svc.comment
-
-        _ = try await intent.perform()
+        try AddCommentIntent.execute(
+            taskIdentifier: "1",
+            commentText: "Comment via display ID",
+            authorName: "TestBot",
+            isAgent: true,
+            services: intentServices(svc)
+        )
 
         let comments = try svc.comment.fetchComments(for: task.id)
         #expect(comments.count == 1)
@@ -177,15 +167,13 @@ struct AddCommentIntentTests {
         let svc = try makeServices()
         let task = try await makeTask(svc: svc)
 
-        var intent = AddCommentIntent()
-        intent.taskIdentifier = task.id.uuidString
-        intent.commentText = "Comment via UUID"
-        intent.authorName = "TestBot"
-        intent.isAgent = true
-        intent.$taskService.wrappedValue = svc.task
-        intent.$commentService.wrappedValue = svc.comment
-
-        _ = try await intent.perform()
+        try AddCommentIntent.execute(
+            taskIdentifier: task.id.uuidString,
+            commentText: "Comment via UUID",
+            authorName: "TestBot",
+            isAgent: true,
+            services: intentServices(svc)
+        )
 
         let comments = try svc.comment.fetchComments(for: task.id)
         #expect(comments.count == 1)

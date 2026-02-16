@@ -177,6 +177,48 @@ struct CommentServiceTests {
         #expect(count == 0)
     }
 
+    // MARK: - Cross-context (T-73 regression)
+
+    /// Reproduces the bug where a comment added via a task from a different
+    /// ModelContext (like mainContext from @Query) wouldn't appear in an
+    /// immediate fetchComments call on the service's own context.
+    @Test func addComment_taskFromDifferentContext_immediatelyFetchable() throws {
+        // Set up a shared container with two separate contexts,
+        // simulating how the app has a service context and a mainContext.
+        let schema = Schema([Project.self, TransitTask.self, Comment.self])
+        let config = ModelConfiguration(
+            "CrossContext-\(UUID().uuidString)",
+            schema: schema,
+            isStoredInMemoryOnly: true,
+            cloudKitDatabase: .none
+        )
+        let container = try ModelContainer(for: schema, configurations: [config])
+
+        // "mainContext" — analogous to the @Query context in the view layer
+        let mainContext = container.mainContext
+
+        // "serviceContext" — analogous to the separate ModelContext the service uses
+        let serviceContext = ModelContext(container)
+        let service = CommentService(modelContext: serviceContext)
+
+        // Create a task in mainContext (simulating @Query producing the task)
+        let project = Project(name: "Test", description: "", gitRepo: nil, colorHex: "#00FF00")
+        mainContext.insert(project)
+        let task = TransitTask(name: "Cross-context task", type: .bug, project: project, displayID: .permanent(99))
+        mainContext.insert(task)
+        try mainContext.save()
+
+        // Add comment via the service, passing the mainContext task
+        try service.addComment(
+            to: task, content: "Should appear immediately", authorName: "Tester", isAgent: false
+        )
+
+        // Fetch comments from the service — this must return the new comment
+        let comments = try service.fetchComments(for: task.id)
+        #expect(comments.count == 1)
+        #expect(comments[0].content == "Should appear immediately")
+    }
+
     // MARK: - Cascade Delete
 
     @Test func cascadeDelete_removesCommentsWhenTaskDeleted() throws {
