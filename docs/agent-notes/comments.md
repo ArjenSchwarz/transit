@@ -22,6 +22,10 @@ Fields: `id` (UUID), `content` (String), `authorName` (String), `isAgent` (Bool)
 
 The app uses a separate `ModelContext` for services (created in `TransitApp.init()`) vs `container.mainContext` used by `@Query` in views. When a view passes a task object from `@Query` to `CommentService.addComment()`, the task belongs to `mainContext` but the comment is inserted into the service's context. SwiftData does not immediately resolve cross-context relationships, so any fetch predicate on the relationship (`$0.task?.id`) will fail to find the newly inserted comment. The fix is to always resolve model objects in the service's own context before establishing relationships.
 
+### Shared comments state between views (T-86)
+
+`TaskDetailView` owns the `@State comments` array and passes it as a `@Binding` to `CommentsSection`. This ensures `ShareLink`'s `exportText` reflects the latest comments after add/delete operations. Previously both views had independent `@State` arrays, causing stale share export text. The pattern: parent owns the data, child mutates through a binding, parent re-renders with current data.
+
 ## Integration Points
 
 ### MCP (macOS only)

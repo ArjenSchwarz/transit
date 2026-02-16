@@ -2,11 +2,11 @@ import SwiftUI
 
 struct CommentsSection: View {
     let task: TransitTask
+    @Binding var comments: [Comment]
 
     @Environment(CommentService.self) private var commentService
     @AppStorage("userDisplayName") private var userDisplayName = ""
 
-    @State private var comments: [Comment] = []
     @State private var newCommentText = ""
     @State private var errorMessage: String?
 
@@ -69,7 +69,6 @@ struct CommentsSection: View {
                 commentInputField
             }
         }
-        .onAppear { loadComments() }
     }
     #endif
 
@@ -110,7 +109,6 @@ struct CommentsSection: View {
                 }
             }
         }
-        .onAppear { loadComments() }
     }
     #endif
 

@@ -111,6 +111,54 @@ struct ShareTextTests {
         #expect(text.hasSuffix("Project: My Project\n"))
     }
 
+    // MARK: - Comments (T-86 regression)
+
+    @Test func shareTextIncludesComments() throws {
+        let context = try makeContext()
+        let project = makeProject(in: context)
+        let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .permanent(10))
+        context.insert(task)
+
+        let comment = Comment(content: "This is a comment", authorName: "Alice", isAgent: false, task: task)
+        comment.creationDate = Date(timeIntervalSince1970: 1_700_000_000)
+        context.insert(comment)
+
+        let text = task.shareText(comments: [comment])
+        #expect(text.contains("## Comments"))
+        #expect(text.contains("**Alice**"))
+        #expect(text.contains("This is a comment"))
+    }
+
+    @Test func shareTextOmitsCommentsSectionWhenEmpty() throws {
+        let context = try makeContext()
+        let project = makeProject(in: context)
+        let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .permanent(10))
+        context.insert(task)
+
+        let text = task.shareText(comments: [])
+        #expect(!text.contains("## Comments"))
+    }
+
+    @Test func shareTextIncludesNewlyAddedComment() throws {
+        let context = try makeContext()
+        let project = makeProject(in: context)
+        let service = CommentService(modelContext: context)
+        let task = TransitTask(name: "Bug report", type: .bug, project: project, displayID: .permanent(86))
+        context.insert(task)
+
+        // Simulate the sequence: load comments, add a new one, re-fetch, then export.
+        // This verifies that freshly fetched comments appear in shareText.
+        let initialComments = try service.fetchComments(for: task.id)
+        let textBefore = task.shareText(comments: initialComments)
+        #expect(!textBefore.contains("## Comments"))
+
+        try service.addComment(to: task, content: "Just added", authorName: "Bob", isAgent: false)
+        let updatedComments = try service.fetchComments(for: task.id)
+        let textAfter = task.shareText(comments: updatedComments)
+        #expect(textAfter.contains("## Comments"))
+        #expect(textAfter.contains("Just added"))
+    }
+
     // MARK: - Full format
 
     @Test func shareTextFullFormat() throws {
