@@ -131,6 +131,15 @@ struct CommentsSection: View {
                     .frame(minHeight: 60, maxHeight: 120)
                     .scrollContentBackground(.hidden)
             }
+            #if os(macOS)
+            .padding(4)
+            .background(Color(.textBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.primary.opacity(0.15), lineWidth: 1)
+            )
+            #endif
             Button { addComment() } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.title2)
