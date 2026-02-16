@@ -15,7 +15,7 @@ struct CommentServiceTests {
     }
 
     private func makeTask(in context: ModelContext) -> TransitTask {
-        let project = Project(name: "Test", description: nil, gitRepo: nil, colorHex: "#FF0000")
+        let project = Project(name: "Test", description: "Test project", gitRepo: nil, colorHex: "#FF0000")
         context.insert(project)
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .permanent(1))
         context.insert(task)

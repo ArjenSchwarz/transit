@@ -25,10 +25,10 @@ struct AddCommentIntent: AppIntent {
     var isAgent: Bool
 
     @Dependency
-    private var taskService: TaskService
+    var taskService: TaskService
 
     @Dependency
-    private var commentService: CommentService
+    var commentService: CommentService
 
     @MainActor
     func perform() async throws -> some IntentResult {
