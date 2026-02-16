@@ -219,6 +219,39 @@ struct CommentServiceTests {
         #expect(comments[0].content == "Should appear immediately")
     }
 
+    // MARK: - Batch Delete (T-85 regression)
+
+    /// Reproduces the scenario where deleting multiple comments by IndexSet
+    /// offsets could crash or delete the wrong items if the array was mutated
+    /// between deletions. The fix uses `deleteComments(_:)` which collects
+    /// IDs up front and deletes in a single save.
+    @Test func deleteComments_batchRemovesCorrectItems() throws {
+        let (service, context) = try makeService()
+        let task = makeTask(in: context)
+
+        let commentA = try service.addComment(to: task, content: "A", authorName: "Alice", isAgent: false)
+        _ = try service.addComment(to: task, content: "B", authorName: "Alice", isAgent: false)
+        let commentC = try service.addComment(to: task, content: "C", authorName: "Alice", isAgent: false)
+
+        // Delete first and third comments (simulating IndexSet offsets 0 and 2)
+        try service.deleteComments([commentA, commentC])
+
+        let remaining = try service.fetchComments(for: task.id)
+        #expect(remaining.count == 1)
+        #expect(remaining[0].content == "B")
+    }
+
+    @Test func deleteComments_emptyArrayIsNoOp() throws {
+        let (service, context) = try makeService()
+        let task = makeTask(in: context)
+
+        try service.addComment(to: task, content: "Keep me", authorName: "Alice", isAgent: false)
+        try service.deleteComments([])
+
+        let remaining = try service.fetchComments(for: task.id)
+        #expect(remaining.count == 1)
+    }
+
     // MARK: - Cascade Delete
 
     @Test func cascadeDelete_removesCommentsWhenTaskDeleted() throws {

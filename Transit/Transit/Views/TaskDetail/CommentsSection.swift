@@ -61,9 +61,7 @@ struct CommentsSection: View {
                     CommentRowView(comment: comment)
                 }
                 .onDelete { offsets in
-                    for index in offsets {
-                        deleteComment(comments[index])
-                    }
+                    deleteComments(at: offsets)
                 }
             }
 
@@ -173,6 +171,18 @@ struct CommentsSection: View {
     private func deleteComment(_ comment: Comment) {
         do {
             try commentService.deleteComment(comment)
+        } catch {
+            errorMessage = "Failed to delete comment."
+        }
+        loadComments()
+    }
+
+    /// Deletes comments at the given offsets, mapping to objects before any
+    /// mutation to avoid indexing into a stale array. Reloads once at the end.
+    private func deleteComments(at offsets: IndexSet) {
+        let toDelete = offsets.map { comments[$0] }
+        do {
+            try commentService.deleteComments(toDelete)
         } catch {
             errorMessage = "Failed to delete comment."
         }
