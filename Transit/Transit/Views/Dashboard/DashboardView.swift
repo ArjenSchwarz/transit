@@ -5,6 +5,7 @@ struct DashboardView: View {
     @Query(sort: \TransitTask.lastStatusChangeDate, order: .reverse) private var allTasks: [TransitTask]
     @Query(sort: \Project.name) private var projects: [Project]
     @State private var selectedProjectIDs: Set<UUID> = []
+    @State private var selectedTypes: Set<TaskType> = []
     @State private var selectedColumn: DashboardColumn = .inProgress // [req 13.3]
     @State private var selectedTask: TransitTask?
     @State private var showFilter = false
@@ -29,7 +30,8 @@ struct DashboardView: View {
     private var filteredColumns: [DashboardColumn: [TransitTask]] {
         DashboardLogic.buildFilteredColumns(
             allTasks: allTasks,
-            selectedProjectIDs: selectedProjectIDs
+            selectedProjectIDs: selectedProjectIDs,
+            selectedTypes: selectedTypes
         )
     }
 
@@ -91,22 +93,31 @@ struct DashboardView: View {
 
     // MARK: - Toolbar Buttons
 
+    private var activeFilterCount: Int {
+        selectedProjectIDs.count + selectedTypes.count
+    }
+
+    private var activeFilterAccessibilityValue: String {
+        "\(activeFilterCount) active filter\(activeFilterCount == 1 ? "" : "s")"
+    }
+
     private var filterButton: some View {
         Button {
             showFilter.toggle()
         } label: {
-            if selectedProjectIDs.isEmpty {
+            if activeFilterCount == 0 {
                 Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
             } else {
-                Label("Filter (\(selectedProjectIDs.count))", systemImage: "line.3.horizontal.decrease.circle.fill")
+                Label("Filter (\(activeFilterCount))", systemImage: "line.3.horizontal.decrease.circle.fill")
             }
         }
         .accessibilityIdentifier("dashboard.filterButton")
-        .accessibilityValue("\(selectedProjectIDs.count)")
+        .accessibilityValue(activeFilterAccessibilityValue)
         .popover(isPresented: $showFilter) {
             FilterPopoverView(
                 projects: projects,
-                selectedProjectIDs: $selectedProjectIDs
+                selectedProjectIDs: $selectedProjectIDs,
+                selectedTypes: $selectedTypes
             )
         }
     }
@@ -141,21 +152,30 @@ struct DashboardView: View {
 
 enum DashboardLogic {
 
-    /// Testable column builder: groups tasks by column, applies project filter,
+    /// Testable column builder: groups tasks by column, applies project and type filters,
     /// 48-hour cutoff for terminal tasks, and sorting rules.
     static func buildFilteredColumns(
         allTasks: [TransitTask],
         selectedProjectIDs: Set<UUID>,
+        selectedTypes: Set<TaskType> = [],
         now: Date = .now
     ) -> [DashboardColumn: [TransitTask]] {
-        let filtered: [TransitTask]
-        if selectedProjectIDs.isEmpty {
-            filtered = allTasks.filter { $0.project != nil }
-        } else {
-            filtered = allTasks.filter { task in
-                guard let projectId = task.project?.id else { return false }
-                return selectedProjectIDs.contains(projectId)
+        let filtered = allTasks.filter { task in
+            // Exclude orphan tasks (no project)
+            guard task.project != nil else { return false }
+
+            // Project filter: non-empty set means only matching projects
+            if !selectedProjectIDs.isEmpty {
+                guard let projectId = task.project?.id,
+                      selectedProjectIDs.contains(projectId) else { return false }
             }
+
+            // Type filter: non-empty set means only matching types (AND with project)
+            if !selectedTypes.isEmpty {
+                guard selectedTypes.contains(task.type) else { return false }
+            }
+
+            return true
         }
 
         let cutoff = now.addingTimeInterval(-48 * 60 * 60)

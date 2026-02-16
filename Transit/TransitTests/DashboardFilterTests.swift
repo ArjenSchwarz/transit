@@ -189,6 +189,99 @@ struct DashboardFilterTests {
         #expect(ideaTasks[0].name == "Has Project")
     }
 
+    // MARK: - Type filter
+
+    @Test func typeFilterReducesToSelectedTypes() {
+        let project = makeProject()
+        let bugTask = makeTask(name: "Bug", status: .idea, type: .bug, project: project)
+        let featureTask = makeTask(name: "Feature", status: .idea, type: .feature, project: project)
+        let choreTask = makeTask(name: "Chore", status: .idea, type: .chore, project: project)
+
+        let columns = DashboardLogic.buildFilteredColumns(
+            allTasks: [bugTask, featureTask, choreTask],
+            selectedProjectIDs: [],
+            selectedTypes: [.bug],
+            now: .now
+        )
+
+        let ideaTasks = columns[.idea] ?? []
+        #expect(ideaTasks.count == 1)
+        #expect(ideaTasks[0].name == "Bug")
+    }
+
+    @Test func typeFilterWithMultipleTypesReturnsAll() {
+        let project = makeProject()
+        let bugTask = makeTask(name: "Bug", status: .idea, type: .bug, project: project)
+        let featureTask = makeTask(name: "Feature", status: .idea, type: .feature, project: project)
+        let choreTask = makeTask(name: "Chore", status: .idea, type: .chore, project: project)
+
+        let columns = DashboardLogic.buildFilteredColumns(
+            allTasks: [bugTask, featureTask, choreTask],
+            selectedProjectIDs: [],
+            selectedTypes: [.bug, .feature],
+            now: .now
+        )
+
+        let ideaTasks = columns[.idea] ?? []
+        #expect(ideaTasks.count == 2)
+        let names = Set(ideaTasks.map(\.name))
+        #expect(names == ["Bug", "Feature"])
+    }
+
+    @Test func emptyTypeFilterShowsAllTasks() {
+        let project = makeProject()
+        let bugTask = makeTask(name: "Bug", status: .idea, type: .bug, project: project)
+        let featureTask = makeTask(name: "Feature", status: .idea, type: .feature, project: project)
+
+        let columns = DashboardLogic.buildFilteredColumns(
+            allTasks: [bugTask, featureTask],
+            selectedProjectIDs: [],
+            selectedTypes: [],
+            now: .now
+        )
+
+        let ideaTasks = columns[.idea] ?? []
+        #expect(ideaTasks.count == 2)
+    }
+
+    // MARK: - Combined project + type filter
+
+    @Test func combinedProjectAndTypeFilterReturnsIntersection() {
+        let projectA = makeProject(name: "A")
+        let projectB = makeProject(name: "B")
+        let bugA = makeTask(name: "Bug A", status: .idea, type: .bug, project: projectA)
+        let featureA = makeTask(name: "Feature A", status: .idea, type: .feature, project: projectA)
+        let bugB = makeTask(name: "Bug B", status: .idea, type: .bug, project: projectB)
+
+        let columns = DashboardLogic.buildFilteredColumns(
+            allTasks: [bugA, featureA, bugB],
+            selectedProjectIDs: [projectA.id],
+            selectedTypes: [.bug],
+            now: .now
+        )
+
+        let ideaTasks = columns[.idea] ?? []
+        #expect(ideaTasks.count == 1)
+        #expect(ideaTasks[0].name == "Bug A")
+    }
+
+    @Test func combinedFilterWithNoMatchesProducesEmptyColumns() {
+        let project = makeProject()
+        let featureTask = makeTask(name: "Feature", status: .idea, type: .feature, project: project)
+
+        let columns = DashboardLogic.buildFilteredColumns(
+            allTasks: [featureTask],
+            selectedProjectIDs: [project.id],
+            selectedTypes: [.bug],
+            now: .now
+        )
+
+        for column in DashboardColumn.allCases {
+            #expect(columns[column] != nil, "Column \(column) should exist")
+            #expect(columns[column]?.isEmpty == true, "Column \(column) should be empty")
+        }
+    }
+
     // MARK: - Column counts include handoff tasks [req 5.9]
 
     @Test func columnCountsIncludeHandoffTasks() {

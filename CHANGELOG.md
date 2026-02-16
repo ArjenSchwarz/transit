@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Type filter UI in `FilterPopoverView`: "Types" section with checkmark toggles and tint color circles for each `TaskType`
+- Per-section "Clear" buttons in filter popover (Projects and Types sections) and "Clear All" button when any filter is active
+- `selectedTypes` state in `DashboardView` wired to `FilterPopoverView` and `buildFilteredColumns`
+- Filter toolbar button badge now shows total active filter count (project + type) with filled icon and updated accessibility value
+- Smolspec and task list for type filter feature (T-71) — filter dashboard tasks by type independently or combined with project filter
+- Type filter parameter on `DashboardLogic.buildFilteredColumns` with AND-combination logic (empty set = no filter, non-empty = intersection with project filter)
+- Type filter unit tests: type-only filtering, multi-type selection, empty set passthrough, combined project + type intersection, and zero-result case
+- Implementation explanation document (`specs/type-filter/implementation.md`) with beginner/intermediate/expert level explanations, requirement traceability, and completeness assessment
+
 ### Fixed
 
 - Theme selector now overrides the system color scheme via `.preferredColorScheme()` at the app root — selecting Light/Dark/Universal actually forces the entire UI (text, controls, materials) to follow the chosen theme instead of only changing custom gradients
