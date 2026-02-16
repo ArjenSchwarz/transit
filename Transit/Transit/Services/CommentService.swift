@@ -90,8 +90,8 @@ final class CommentService {
     /// Re-fetches a task from this service's ModelContext by UUID.
     /// If the task is already registered in this context, returns it directly.
     private func resolveTask(_ task: TransitTask) throws -> TransitTask {
-        if modelContext.registeredModel(for: task.persistentModelID) as TransitTask? != nil {
-            return task
+        if let registered = modelContext.registeredModel(for: task.persistentModelID) as TransitTask? {
+            return registered
         }
         let taskID = task.id
         let descriptor = FetchDescriptor<TransitTask>(
