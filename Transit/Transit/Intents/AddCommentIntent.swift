@@ -32,7 +32,34 @@ struct AddCommentIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        let task = try resolveTask()
+        try Self.execute(
+            taskIdentifier: taskIdentifier,
+            commentText: commentText,
+            authorName: authorName,
+            isAgent: isAgent,
+            services: Services(taskService: taskService, commentService: commentService)
+        )
+        return .result()
+    }
+
+    // MARK: - Logic (testable without @Dependency)
+
+    struct Services {
+        let taskService: TaskService
+        let commentService: CommentService
+    }
+
+    @MainActor
+    static func execute(
+        taskIdentifier: String,
+        commentText: String,
+        authorName: String,
+        isAgent: Bool,
+        services: Services
+    ) throws {
+        let task = try resolveTask(
+            identifier: taskIdentifier, taskService: services.taskService
+        )
 
         let trimmed = commentText
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -45,39 +72,39 @@ struct AddCommentIntent: AppIntent {
             throw VisualIntentError.invalidInput("Author name is empty.")
         }
 
-        try commentService.addComment(
+        try services.commentService.addComment(
             to: task,
             content: trimmed,
             authorName: trimmedAuthor,
             isAgent: isAgent
         )
-
-        return .result()
     }
 
     // MARK: - Private
 
     @MainActor
-    private func resolveTask() throws -> TransitTask {
-        if let displayId = Int(taskIdentifier) {
+    private static func resolveTask(
+        identifier: String, taskService: TaskService
+    ) throws -> TransitTask {
+        if let displayId = Int(identifier) {
             do {
                 return try taskService.findByDisplayID(displayId)
             } catch {
                 throw VisualIntentError.taskNotFound(
-                    "No task with display ID \(taskIdentifier)."
+                    "No task with display ID \(identifier)."
                 )
             }
-        } else if let uuid = UUID(uuidString: taskIdentifier) {
+        } else if let uuid = UUID(uuidString: identifier) {
             do {
                 return try taskService.findByID(uuid)
             } catch {
                 throw VisualIntentError.taskNotFound(
-                    "No task with ID \(taskIdentifier)."
+                    "No task with ID \(identifier)."
                 )
             }
         } else {
             throw VisualIntentError.invalidInput(
-                "'\(taskIdentifier)' is not a valid display ID or UUID."
+                "'\(identifier)' is not a valid display ID or UUID."
             )
         }
     }

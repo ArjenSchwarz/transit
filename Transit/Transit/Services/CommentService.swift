@@ -8,6 +8,7 @@ final class CommentService {
         case emptyContent
         case emptyAuthorName
         case commentNotFound
+        case taskNotFound
     }
 
     private let modelContext: ModelContext
@@ -18,6 +19,11 @@ final class CommentService {
 
     /// Creates a comment on a task. Validates content and authorName are
     /// non-empty after trimming whitespace.
+    ///
+    /// The task is re-fetched from this service's own `ModelContext` to avoid
+    /// cross-context relationship issues (e.g. the view passes a task from
+    /// `mainContext` but this service uses a separate context).
+    ///
     /// When `save` is false, the caller is responsible for calling
     /// modelContext.save(). Used for atomic operations where multiple
     /// mutations must be saved together (e.g. status update + comment).
@@ -35,11 +41,15 @@ final class CommentService {
         let trimmedAuthor = authorName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedAuthor.isEmpty else { throw Error.emptyAuthorName }
 
+        // Resolve the task in this service's context to ensure the
+        // relationship is established within a single ModelContext.
+        let resolvedTask = try resolveTask(task)
+
         let comment = Comment(
             content: trimmedContent,
             authorName: trimmedAuthor,
             isAgent: isAgent,
-            task: task
+            task: resolvedTask
         )
         modelContext.insert(comment)
         if save {
@@ -73,5 +83,23 @@ final class CommentService {
             predicate: #Predicate { $0.task?.id == taskID }
         )
         return try modelContext.fetchCount(descriptor)
+    }
+
+    // MARK: - Private
+
+    /// Re-fetches a task from this service's ModelContext by UUID.
+    /// If the task is already registered in this context, returns it directly.
+    private func resolveTask(_ task: TransitTask) throws -> TransitTask {
+        if modelContext.registeredModel(for: task.persistentModelID) as TransitTask? != nil {
+            return task
+        }
+        let taskID = task.id
+        let descriptor = FetchDescriptor<TransitTask>(
+            predicate: #Predicate { $0.id == taskID }
+        )
+        guard let resolved = try modelContext.fetch(descriptor).first else {
+            throw Error.taskNotFound
+        }
+        return resolved
     }
 }
