@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Smolspec and task list for type filter feature (T-71) — filter dashboard tasks by type independently or combined with project filter
+- Type filter parameter on `DashboardLogic.buildFilteredColumns` with AND-combination logic (empty set = no filter, non-empty = intersection with project filter)
+- Type filter unit tests: type-only filtering, multi-type selection, empty set passthrough, combined project + type intersection, and zero-result case
 
 ### Fixed
 

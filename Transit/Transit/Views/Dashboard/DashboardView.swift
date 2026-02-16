@@ -141,21 +141,30 @@ struct DashboardView: View {
 
 enum DashboardLogic {
 
-    /// Testable column builder: groups tasks by column, applies project filter,
+    /// Testable column builder: groups tasks by column, applies project and type filters,
     /// 48-hour cutoff for terminal tasks, and sorting rules.
     static func buildFilteredColumns(
         allTasks: [TransitTask],
         selectedProjectIDs: Set<UUID>,
+        selectedTypes: Set<TaskType> = [],
         now: Date = .now
     ) -> [DashboardColumn: [TransitTask]] {
-        let filtered: [TransitTask]
-        if selectedProjectIDs.isEmpty {
-            filtered = allTasks.filter { $0.project != nil }
-        } else {
-            filtered = allTasks.filter { task in
-                guard let projectId = task.project?.id else { return false }
-                return selectedProjectIDs.contains(projectId)
+        let filtered = allTasks.filter { task in
+            // Exclude orphan tasks (no project)
+            guard task.project != nil else { return false }
+
+            // Project filter: non-empty set means only matching projects
+            if !selectedProjectIDs.isEmpty {
+                guard let projectId = task.project?.id,
+                      selectedProjectIDs.contains(projectId) else { return false }
             }
+
+            // Type filter: non-empty set means only matching types (AND with project)
+            if !selectedTypes.isEmpty {
+                guard selectedTypes.contains(task.type) else { return false }
+            }
+
+            return true
         }
 
         let cutoff = now.addingTimeInterval(-48 * 60 * 60)

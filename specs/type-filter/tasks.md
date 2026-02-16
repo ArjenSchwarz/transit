@@ -6,11 +6,11 @@ references:
 
 ## Core Logic
 
-- [ ] 1. Type filter parameter added to buildFilteredColumns with AND-combination logic
+- [x] 1. Type filter parameter added to buildFilteredColumns with AND-combination logic
 
-- [ ] 2. Type-only filtering returns only tasks matching selected types; empty set returns all tasks
+- [x] 2. Type-only filtering returns only tasks matching selected types; empty set returns all tasks
 
-- [ ] 3. Combined project + type filtering returns intersection (both must match); zero-result case produces empty columns
+- [x] 3. Combined project + type filtering returns intersection (both must match); zero-result case produces empty columns
 
 ## UI
 
