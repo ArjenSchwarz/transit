@@ -3,37 +3,94 @@ import SwiftUI
 struct FilterPopoverView: View {
     let projects: [Project]
     @Binding var selectedProjectIDs: Set<UUID>
+    @Binding var selectedTypes: Set<TaskType>
     @Environment(\.dismiss) private var dismiss
+
+    private var hasAnyFilter: Bool {
+        !selectedProjectIDs.isEmpty || !selectedTypes.isEmpty
+    }
 
     var body: some View {
         NavigationStack {
             List {
-                ForEach(projects) { (project: Project) in
-                    Button {
-                        if selectedProjectIDs.contains(project.id) {
-                            selectedProjectIDs.remove(project.id)
-                        } else {
-                            selectedProjectIDs.insert(project.id)
-                        }
-                    } label: {
-                        HStack {
-                            ProjectColorDot(color: Color(hex: project.colorHex))
-                            Text(project.name)
-                                .foregroundStyle(.primary)
-                            Spacer()
+                Section {
+                    ForEach(projects) { (project: Project) in
+                        Button {
                             if selectedProjectIDs.contains(project.id) {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.tint)
+                                selectedProjectIDs.remove(project.id)
+                            } else {
+                                selectedProjectIDs.insert(project.id)
                             }
+                        } label: {
+                            HStack {
+                                ProjectColorDot(color: Color(hex: project.colorHex))
+                                Text(project.name)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if selectedProjectIDs.contains(project.id) {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
+                                }
+                            }
+                            .contentShape(Rectangle())
                         }
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                } header: {
+                    HStack {
+                        Text("Projects")
+                        Spacer()
+                        if !selectedProjectIDs.isEmpty {
+                            Button("Clear") {
+                                selectedProjectIDs.removeAll()
+                            }
+                            .font(.caption)
+                        }
+                    }
                 }
 
-                if !selectedProjectIDs.isEmpty {
-                    Button("Clear", role: .destructive) {
+                Section {
+                    ForEach(TaskType.allCases, id: \.self) { type in
+                        Button {
+                            if selectedTypes.contains(type) {
+                                selectedTypes.remove(type)
+                            } else {
+                                selectedTypes.insert(type)
+                            }
+                        } label: {
+                            HStack {
+                                Circle()
+                                    .fill(type.tintColor)
+                                    .frame(width: 12, height: 12)
+                                Text(type.rawValue.capitalized)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if selectedTypes.contains(type) {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    HStack {
+                        Text("Types")
+                        Spacer()
+                        if !selectedTypes.isEmpty {
+                            Button("Clear") {
+                                selectedTypes.removeAll()
+                            }
+                            .font(.caption)
+                        }
+                    }
+                }
+
+                if hasAnyFilter {
+                    Button("Clear All", role: .destructive) {
                         selectedProjectIDs.removeAll()
+                        selectedTypes.removeAll()
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                 }

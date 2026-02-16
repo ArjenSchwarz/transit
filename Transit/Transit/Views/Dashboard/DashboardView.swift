@@ -5,6 +5,7 @@ struct DashboardView: View {
     @Query(sort: \TransitTask.lastStatusChangeDate, order: .reverse) private var allTasks: [TransitTask]
     @Query(sort: \Project.name) private var projects: [Project]
     @State private var selectedProjectIDs: Set<UUID> = []
+    @State private var selectedTypes: Set<TaskType> = []
     @State private var selectedColumn: DashboardColumn = .inProgress // [req 13.3]
     @State private var selectedTask: TransitTask?
     @State private var showFilter = false
@@ -29,7 +30,8 @@ struct DashboardView: View {
     private var filteredColumns: [DashboardColumn: [TransitTask]] {
         DashboardLogic.buildFilteredColumns(
             allTasks: allTasks,
-            selectedProjectIDs: selectedProjectIDs
+            selectedProjectIDs: selectedProjectIDs,
+            selectedTypes: selectedTypes
         )
     }
 
@@ -91,22 +93,27 @@ struct DashboardView: View {
 
     // MARK: - Toolbar Buttons
 
+    private var activeFilterCount: Int {
+        selectedProjectIDs.count + selectedTypes.count
+    }
+
     private var filterButton: some View {
         Button {
             showFilter.toggle()
         } label: {
-            if selectedProjectIDs.isEmpty {
+            if activeFilterCount == 0 {
                 Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
             } else {
-                Label("Filter (\(selectedProjectIDs.count))", systemImage: "line.3.horizontal.decrease.circle.fill")
+                Label("Filter (\(activeFilterCount))", systemImage: "line.3.horizontal.decrease.circle.fill")
             }
         }
         .accessibilityIdentifier("dashboard.filterButton")
-        .accessibilityValue("\(selectedProjectIDs.count)")
+        .accessibilityValue("\(activeFilterCount)")
         .popover(isPresented: $showFilter) {
             FilterPopoverView(
                 projects: projects,
-                selectedProjectIDs: $selectedProjectIDs
+                selectedProjectIDs: $selectedProjectIDs,
+                selectedTypes: $selectedTypes
             )
         }
     }
