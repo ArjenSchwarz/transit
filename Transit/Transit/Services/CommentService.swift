@@ -64,6 +64,17 @@ final class CommentService {
         try modelContext.save()
     }
 
+    /// Deletes multiple comments in a single save operation.
+    /// Safe for batch deletion — collects all deletes before saving,
+    /// avoiding array-mutation issues when called from `onDelete`.
+    func deleteComments(_ comments: [Comment]) throws {
+        guard !comments.isEmpty else { return }
+        for comment in comments {
+            modelContext.delete(comment)
+        }
+        try modelContext.save()
+    }
+
     /// Fetches comments for a task, querying from the Comment side.
     /// Sorted by creationDate ascending, UUID as tiebreaker.
     func fetchComments(for taskID: UUID) throws -> [Comment] {
