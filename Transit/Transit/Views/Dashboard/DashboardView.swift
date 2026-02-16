@@ -97,6 +97,10 @@ struct DashboardView: View {
         selectedProjectIDs.count + selectedTypes.count
     }
 
+    private var activeFilterAccessibilityValue: String {
+        "\(activeFilterCount) active filter\(activeFilterCount == 1 ? "" : "s")"
+    }
+
     private var filterButton: some View {
         Button {
             showFilter.toggle()
@@ -108,7 +112,7 @@ struct DashboardView: View {
             }
         }
         .accessibilityIdentifier("dashboard.filterButton")
-        .accessibilityValue("\(activeFilterCount)")
+        .accessibilityValue(activeFilterAccessibilityValue)
         .popover(isPresented: $showFilter) {
             FilterPopoverView(
                 projects: projects,

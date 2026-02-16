@@ -73,6 +73,7 @@ struct FilterPopoverView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("filter.type.\(taskType.rawValue)")
                     }
                 } header: {
                     HStack {
