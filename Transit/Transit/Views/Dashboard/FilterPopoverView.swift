@@ -50,22 +50,22 @@ struct FilterPopoverView: View {
                 }
 
                 Section {
-                    ForEach(TaskType.allCases, id: \.self) { type in
+                    ForEach(TaskType.allCases, id: \.self) { taskType in
                         Button {
-                            if selectedTypes.contains(type) {
-                                selectedTypes.remove(type)
+                            if selectedTypes.contains(taskType) {
+                                selectedTypes.remove(taskType)
                             } else {
-                                selectedTypes.insert(type)
+                                selectedTypes.insert(taskType)
                             }
                         } label: {
                             HStack {
                                 Circle()
-                                    .fill(type.tintColor)
+                                    .fill(taskType.tintColor)
                                     .frame(width: 12, height: 12)
-                                Text(type.rawValue.capitalized)
+                                Text(taskType.rawValue.capitalized)
                                     .foregroundStyle(.primary)
                                 Spacer()
-                                if selectedTypes.contains(type) {
+                                if selectedTypes.contains(taskType) {
                                     Image(systemName: "checkmark")
                                         .foregroundStyle(.tint)
                                 }
@@ -88,11 +88,13 @@ struct FilterPopoverView: View {
                 }
 
                 if hasAnyFilter {
-                    Button("Clear All", role: .destructive) {
-                        selectedProjectIDs.removeAll()
-                        selectedTypes.removeAll()
+                    Section {
+                        Button("Clear All", role: .destructive) {
+                            selectedProjectIDs.removeAll()
+                            selectedTypes.removeAll()
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
                     }
-                    .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
             .navigationTitle("Filter")
