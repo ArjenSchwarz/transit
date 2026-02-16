@@ -134,6 +134,13 @@ struct TaskEditView: View {
                                     .frame(minHeight: 120)
                                     .scrollContentBackground(.hidden)
                             }
+                            .padding(4)
+                            .background(Color(.textBackgroundColor))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(Color.primary.opacity(0.15), lineWidth: 1)
+                            )
                         }
 
                         FormRow("Type", labelWidth: Self.labelWidth) {
