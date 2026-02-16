@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Smolspec and task list for type filter feature (T-71) — filter dashboard tasks by type independently or combined with project filter
+
 ### Fixed
 
 - Theme selector now overrides the system color scheme via `.preferredColorScheme()` at the app root — selecting Light/Dark/Universal actually forces the entire UI (text, controls, materials) to follow the chosen theme instead of only changing custom gradients
