@@ -65,6 +65,14 @@
 - In the badges HStack (after `TypeBadge`), shows `Label("\(count)", systemImage: "bubble.left")` when count > 0
 - Uses `commentService.commentCount(for: task.id)` with `try?` to silently handle errors
 
+## macOS TextEditor Styling Pattern
+
+On macOS, TextEditor inside LiquidGlassSection requires explicit background styling. The pattern:
+1. `.scrollContentBackground(.hidden)` removes the default NSScrollView background
+2. Must add replacement: `.padding(4)`, `.background(Color(.textBackgroundColor))`, `.clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))`, and a subtle border overlay
+
+Applied to: AddTaskSheet (macOS description), TaskEditView (macOS description), CommentsSection (comment input, `#if os(macOS)` conditional). Without this, TextEditor blends invisibly into the glass section background.
+
 ## DashboardView Integration
 - `showAddTask: Bool` state triggers AddTaskSheet via `.sheet`
 - `selectedTask: TransitTask?` triggers TaskDetailView via `.sheet(item:)`
