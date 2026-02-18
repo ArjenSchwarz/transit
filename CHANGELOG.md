@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `ReportLogic.buildReport()` stateless function for generating report data from SwiftData tasks: filters terminal tasks by date range, groups by project (alphabetical), sorts by completionDate/displayId/UUID
+- `ReportMarkdownFormatter.format()` for converting `ReportData` to GitHub Flavored Markdown with GFM metacharacter escaping, newline normalization, strikethrough for abandoned tasks, and per-project summary counts
+- `ReportLogicTests` (3 suites, 20+ tests) covering grouping, sorting, filtering, boundary timestamps, all 8 date ranges, orphan/nil exclusion, and provisional display ID handling
+- `ReportMarkdownFormatterTests` (14 tests) covering template structure, summary counts, zero-count omission, strikethrough format, GFM escaping, newline normalization, and empty state
+
 - 5 new date range cases in `DateFilterHelpers`: yesterday, lastWeek, lastMonth, thisYear, lastYear with locale-aware boundaries
 - `ReportDateRange` enum with `AppEnum` conformance for Shortcuts picker and in-app menu
 - `ReportData`, `ProjectGroup`, and `ReportTask` structs for transient report data model

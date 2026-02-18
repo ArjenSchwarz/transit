@@ -8,7 +8,7 @@ references:
 
 ## Foundation
 
-- [ ] 1. Extend DateFilterHelpers with new date range cases <!-- id:1vyyl45 -->
+- [x] 1. Extend DateFilterHelpers with new date range cases <!-- id:1vyyl45 -->
   - Add 5 new cases to DateRange enum: yesterday, lastWeek, lastMonth, thisYear, lastYear
   - Implement dateInRange for each new case using Calendar.current
   - Boundary rule: Last X ranges use exclusive upper bound (date < interval.end), This X use inclusive (date <= now)
@@ -18,7 +18,7 @@ references:
   - Requirements: [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4)
   - References: specs/reports/design.md#1-datefilterhelpers-extension
 
-- [ ] 2. Write DateFilterHelpers tests for new date range cases <!-- id:1vyyl46 -->
+- [x] 2. Write DateFilterHelpers tests for new date range cases <!-- id:1vyyl46 -->
   - Extend existing DateFilterHelpersTests with tests for each new range
   - Test yesterday boundaries (inclusive start, exclusive end at midnight)
   - Test lastWeek uses locale-aware week start and exclusive upper bound
@@ -33,7 +33,7 @@ references:
   - Stream: 1
   - Requirements: [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4)
 
-- [ ] 3. Create ReportDateRange enum with AppEnum conformance <!-- id:1vyyl47 -->
+- [x] 3. Create ReportDateRange enum with AppEnum conformance <!-- id:1vyyl47 -->
   - Create ReportDateRange: String, AppEnum, CaseIterable, Identifiable
   - 8 cases with raw values matching canonical JSON tokens
   - Add nonisolated(unsafe) static var typeDisplayRepresentation and caseDisplayRepresentations for Shortcuts picker
@@ -45,7 +45,7 @@ references:
   - Requirements: [1.2](requirements.md#1.2), [4.2](requirements.md#4.2)
   - References: specs/reports/design.md#2-reportdaterange-enum
 
-- [ ] 4. Create ReportData model structs <!-- id:1vyyl48 -->
+- [x] 4. Create ReportData model structs <!-- id:1vyyl48 -->
   - Create ReportData struct: dateRangeLabel, projectGroups, totalDone, totalAbandoned, computed totalTasks and isEmpty
   - Create ProjectGroup struct: Identifiable, id (UUID), projectName, tasks, computed doneCount and abandonedCount
   - Create ReportTask struct: Identifiable, id (UUID), displayID (String), name, isAbandoned, completionDate, permanentDisplayId (Int? for sorting)
@@ -57,7 +57,7 @@ references:
 
 ## Core Logic
 
-- [ ] 5. Write ReportLogic tests <!-- id:1vyyl49 -->
+- [x] 5. Write ReportLogic tests <!-- id:1vyyl49 -->
   - Create ReportLogicTests using @Suite(.serialized) and TestModelContainer
   - Test tasks grouped by project (req 1.5)
   - Test projects sorted alphabetically case-insensitive (req 1.6)
@@ -75,7 +75,7 @@ references:
   - Stream: 1
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [1.7](requirements.md#1.7), [1.8](requirements.md#1.8), [1.9](requirements.md#1.9), [5.1](requirements.md#5.1)
 
-- [ ] 6. Implement ReportLogic.buildReport() <!-- id:1vyyl4a -->
+- [x] 6. Implement ReportLogic.buildReport() <!-- id:1vyyl4a -->
   - Create enum ReportLogic with static func buildReport(tasks:dateRange:now:) -> ReportData
   - Algorithm: 1) Exclude orphan tasks, 2) Filter terminal statuses with non-nil completionDate, 3) Filter by DateFilterHelpers.dateInRange, 4) Group by project ID, 5) Sort groups by name (case-insensitive), 6) Sort tasks by completionDate asc then permanentDisplayId asc (nil last) then UUID, 7) Compute counts, 8) Return ReportData
   - Map TransitTask to ReportTask using DisplayID.formatted for display
@@ -87,7 +87,7 @@ references:
 
 ## Markdown Formatter
 
-- [ ] 7. Write ReportMarkdownFormatter tests <!-- id:1vyyl4b -->
+- [x] 7. Write ReportMarkdownFormatter tests <!-- id:1vyyl4b -->
   - Create ReportMarkdownFormatterTests
   - Test output matches template structure from req 2.8
   - Test title includes date range label (req 2.2)
@@ -102,7 +102,7 @@ references:
   - Stream: 2
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [2.6](requirements.md#2.6), [2.7](requirements.md#2.7), [2.8](requirements.md#2.8), [1.8](requirements.md#1.8)
 
-- [ ] 8. Implement ReportMarkdownFormatter.format() <!-- id:1vyyl4c -->
+- [x] 8. Implement ReportMarkdownFormatter.format() <!-- id:1vyyl4c -->
   - Create enum ReportMarkdownFormatter with static func format(_ data: ReportData) -> String
   - Implement GFM metacharacter escaping for user content
   - Strip/normalize newlines in project names and task names
