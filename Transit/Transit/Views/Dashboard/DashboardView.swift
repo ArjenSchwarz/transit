@@ -75,6 +75,12 @@ struct DashboardView: View {
                 filterButton
                 addButton
             }
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink(value: NavigationDestination.report) {
+                    Label("Report", systemImage: "chart.bar.doc.horizontal")
+                }
+                .accessibilityIdentifier("dashboard.reportButton")
+            }
             ToolbarSpacer(.fixed)
             ToolbarItem(placement: .primaryAction) {
                 NavigationLink(value: NavigationDestination.settings) {

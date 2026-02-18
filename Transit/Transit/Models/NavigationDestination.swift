@@ -4,4 +4,5 @@ import Foundation
 enum NavigationDestination: Hashable {
     case settings
     case projectEdit(Project)
+    case report
 }

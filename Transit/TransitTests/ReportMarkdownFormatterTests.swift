@@ -244,7 +244,7 @@ struct ReportMarkdownFormatterTests {
         #expect(output.contains(#"under\_"#))
         #expect(output.contains(#"tilde\~"#))
         #expect(output.contains(#"\[bracket\]"#))
-        #expect(output.contains(#"\#hash"#))
+        #expect(output.contains(##"\#hash"##))
         #expect(output.contains(#"\<angle\>"#))
         #expect(output.contains(#"\|pipe"#))
     }

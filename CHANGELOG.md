@@ -8,6 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `ReportView` native SwiftUI view for in-app report display with date range picker, per-project task grouping, abandoned task strikethrough, empty state, and copy-to-clipboard via `ReportMarkdownFormatter`
+- `GenerateReportIntent` App Intent for generating Markdown reports via Shortcuts with native `ReportDateRange` picker, registered in `TransitShortcuts`
+- Report button in dashboard toolbar (before settings gear) navigating to `ReportView` via `NavigationDestination.report`
+- `GenerateReportIntentTests` (3 tests) covering date range output, empty state, and all 8 range cases
+
+### Changed
+
+- `TaskService.modelContext` access changed from private to internal for intent testability
+- `IntentCompatibilityAndDiscoverabilityTests` shortcut count updated from 6 to 7
+
+### Fixed
+
+- `ReportLogicDateRangeTests` build error: replaced non-existent `ModelContext.registeredObjects` with `FetchDescriptor` fetch
+- `ReportMarkdownFormatterTests` string literal escaping for hash character assertion
+
+### Added
+
 - `ReportLogic.buildReport()` stateless function for generating report data from SwiftData tasks: filters terminal tasks by date range, groups by project (alphabetical), sorts by completionDate/displayId/UUID
 - `ReportMarkdownFormatter.format()` for converting `ReportData` to GitHub Flavored Markdown with GFM metacharacter escaping, newline normalization, strikethrough for abandoned tasks, and per-project summary counts
 - `ReportLogicTests` (3 suites, 20+ tests) covering grouping, sorting, filtering, boundary timestamps, all 8 date ranges, orphan/nil exclusion, and provisional display ID handling

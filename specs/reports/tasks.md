@@ -118,7 +118,7 @@ references:
 
 ## UI Integration
 
-- [ ] 9. Add NavigationDestination.report and wire routing in TransitApp <!-- id:1vyyl4d -->
+- [x] 9. Add NavigationDestination.report and wire routing in TransitApp <!-- id:1vyyl4d -->
   - Add case report to NavigationDestination enum
   - Add .report case to navigationDestination switch in TransitApp.swift routing to ReportView()
   - Files: Transit/Transit/Models/NavigationDestination.swift, Transit/Transit/TransitApp.swift
@@ -126,7 +126,7 @@ references:
   - Requirements: [3.2](requirements.md#3.2)
   - References: specs/reports/design.md#7-navigation-integration
 
-- [ ] 10. Implement ReportView <!-- id:1vyyl4e -->
+- [x] 10. Implement ReportView <!-- id:1vyyl4e -->
   - Create ReportView with @Query filtering terminal tasks
   - @State selectedRange: ReportDateRange = .thisWeek (default per req 3.7)
   - Toolbar: Menu picker for date range, copy-to-clipboard button
@@ -143,7 +143,7 @@ references:
   - Requirements: [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [3.6](requirements.md#3.6), [3.7](requirements.md#3.7)
   - References: specs/reports/design.md#6-reportview
 
-- [ ] 11. Add report button to DashboardView toolbar <!-- id:1vyyl4f -->
+- [x] 11. Add report button to DashboardView toolbar <!-- id:1vyyl4f -->
   - Add NavigationLink(value: NavigationDestination.report) to toolbar
   - Use Label(Report, systemImage: chart.bar.doc.horizontal)
   - Place before the settings gear button
@@ -155,7 +155,7 @@ references:
 
 ## Shortcuts Integration
 
-- [ ] 12. Implement GenerateReportIntent <!-- id:1vyyl4g -->
+- [x] 12. Implement GenerateReportIntent <!-- id:1vyyl4g -->
   - Create GenerateReportIntent: AppIntent with nonisolated(unsafe) static properties
   - title: Transit: Generate Report, openAppWhenRun: false
   - Add IntentDescription with categoryName: Reports
@@ -169,7 +169,7 @@ references:
   - Requirements: [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4)
   - References: specs/reports/design.md#8-generatereportintent
 
-- [ ] 13. Register GenerateReportIntent in TransitShortcuts and write intent tests <!-- id:1vyyl4h -->
+- [x] 13. Register GenerateReportIntent in TransitShortcuts and write intent tests <!-- id:1vyyl4h -->
   - Add GenerateReportIntent to appShortcuts array in TransitShortcuts.swift
   - Create GenerateReportIntentTests with @Suite(.serialized)
   - Test each date range returns non-empty Markdown for matching tasks

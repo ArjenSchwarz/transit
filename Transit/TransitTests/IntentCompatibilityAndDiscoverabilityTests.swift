@@ -78,7 +78,7 @@ struct IntentCompatibilityTests {
 
     @Test func appShortcutsProviderIncludesAllIntents() {
         let shortcuts = TransitShortcuts.appShortcuts
-        #expect(shortcuts.count == 6)
+        #expect(shortcuts.count == 7)
     }
 
     @Test func createTaskIntentJsonContractRemainsCompatible() async throws {

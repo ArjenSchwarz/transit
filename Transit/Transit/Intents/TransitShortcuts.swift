@@ -65,5 +65,16 @@ struct TransitShortcuts: AppShortcutsProvider {
             shortTitle: "Add Comment",
             systemImageName: "text.bubble"
         )
+
+        AppShortcut(
+            intent: GenerateReportIntent(),
+            phrases: [
+                "Generate report in \(.applicationName)",
+                "Show \(.applicationName) report",
+                "Get \(.applicationName) task report"
+            ],
+            shortTitle: "Generate Report",
+            systemImageName: "chart.bar.doc.horizontal"
+        )
     }
 }

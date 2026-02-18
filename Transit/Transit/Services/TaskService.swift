@@ -14,7 +14,7 @@ final class TaskService {
         case restoreRequiresAbandonedTask
     }
 
-    private let modelContext: ModelContext
+    let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
 
     init(modelContext: ModelContext, displayIDAllocator: DisplayIDAllocator) {

@@ -18,9 +18,10 @@ struct ReportLogicDateRangeTests {
         makeTerminalTask(name: "Yesterday", project: project, completionDate: yesterdayDate, context: ctx)
 
         let report = ReportLogic.buildReport(tasks: [today], dateRange: .today, now: now)
-        // Passing only today's task since we want to verify the filter; also test with both:
+        // Passing both tasks to verify the filter excludes yesterday's task:
+        let allTasks = try ctx.fetch(FetchDescriptor<TransitTask>())
         let fullReport = ReportLogic.buildReport(
-            tasks: ctx.registeredObjects.compactMap { $0 as? TransitTask },
+            tasks: allTasks,
             dateRange: .today, now: now
         )
 

@@ -32,11 +32,36 @@ Backslash must be escaped first, then other GFM metacharacters. The full set: `\
 ### Empty State
 When `ReportData.isEmpty` is true, outputs title + "No tasks completed or abandoned in this period." with no summary or project sections.
 
+## ReportView
+
+Native SwiftUI view at `Transit/Transit/Views/Reports/ReportView.swift`.
+
+- Uses `@Query` with `#Predicate` filtering on `statusRawValue` for terminal tasks
+- `@State private var selectedRange: ReportDateRange = .thisWeek` (default per req 3.7)
+- Calls `ReportLogic.buildReport()` inline in `body` — report regenerates on range change
+- Copy button uses `ReportMarkdownFormatter.format()` with platform-conditional clipboard code
+- Accessibility identifiers: `report.dateRangePicker`, `report.copyButton`, `report.emptyState`
+- Navigation: `NavigationDestination.report` case, routed in `TransitApp.swift`
+- Dashboard toolbar button placed before the settings gear
+
+## GenerateReportIntent
+
+App Intent that generates a markdown report via Shortcuts. Located at `Transit/Transit/Intents/GenerateReportIntent.swift`.
+
+- `openAppWhenRun = false` — runs entirely in the background
+- Has a static `execute(dateRange:modelContext:)` method for testability (avoids `@Dependency`)
+- Fetches terminal tasks (done/abandoned) via `FetchDescriptor` with a predicate on `statusRawValue`
+- Delegates to `ReportLogic.buildReport()` then `ReportMarkdownFormatter.format()`
+- Registered in `TransitShortcuts.swift` with shortcut phrases
+- `TaskService.modelContext` was changed from `private` to internal access to support this intent
+
 ## Test Infrastructure
 - `ReportMarkdownFormatterTests` uses `@MainActor` (no `@Suite(.serialized)` needed — no SwiftData)
 - `ReportLogicTests` uses `@Suite(.serialized)` with `TestModelContainer` since it needs SwiftData
 - Test helpers in `ReportLogicTestHelpers.swift` for SwiftData-based tests
 - Formatter tests construct `ReportData`/`ProjectGroup`/`ReportTask` directly via local helpers
+- `GenerateReportIntentTests` uses `makeReportTestContext()` and tests the static `execute` method directly
+- `IntentCompatibilityAndDiscoverabilityTests` checks shortcut count — must be updated when adding new shortcuts
 
 ## SwiftLint
 This project enforces no trailing commas in collection literals (trailing_comma rule). Always omit trailing commas in array/dictionary literals.
