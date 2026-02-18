@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- 5 new date range cases in `DateFilterHelpers`: yesterday, lastWeek, lastMonth, thisYear, lastYear with locale-aware boundaries
+- `ReportDateRange` enum with `AppEnum` conformance for Shortcuts picker and in-app menu
+- `ReportData`, `ProjectGroup`, and `ReportTask` structs for transient report data model
+- 15 new `DateFilterHelpersTests` covering all new date ranges with boundary verification and token parsing
+
+### Changed
+
+- `DateFilterHelpers.parseDateFilter` refactored to use dictionary lookup instead of switch for relative tokens
+- `DateFilterHelpers.dateInRange` refactored into helper methods (`dateInCurrentPeriod`, `dateInPreviousPeriod`) to reduce cyclomatic complexity
+
+### Added
+
 - Spec for report functionality (T-37): requirements, design, decision log, and task list in `specs/reports/`
   - Generate Markdown reports of completed/abandoned tasks grouped by project for configurable date ranges
   - 8 predefined date ranges: today, yesterday, this/last week, this/last month, this/last year
