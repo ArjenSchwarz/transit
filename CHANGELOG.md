@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `IntentCompatibilityAndDiscoverabilityTests` now verifies `GenerateReportIntent` title and `openAppWhenRun` stability
+
+### Added
+
+- Implementation explanation document (`specs/reports/implementation.md`) with beginner/intermediate/expert level explanations, requirement traceability, and completeness assessment
+
 ### Added
 
 - `ReportView` native SwiftUI view for in-app report display with date range picker, per-project task grouping, abandoned task strikethrough, empty state, and copy-to-clipboard via `ReportMarkdownFormatter`
