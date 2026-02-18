@@ -7,7 +7,7 @@ struct ReportView: View {
     }) private var terminalTasks: [TransitTask]
 
     @State private var selectedRange: ReportDateRange = .thisWeek
-    @State private var copied = false
+    @State private var showCopyConfirmation = false
 
     var body: some View {
         let report = ReportLogic.buildReport(
@@ -29,17 +29,12 @@ struct ReportView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    ForEach(ReportDateRange.allCases) { range in
-                        Button {
-                            selectedRange = range
-                        } label: {
-                            if range == selectedRange {
-                                Label(range.label, systemImage: "checkmark")
-                            } else {
-                                Text(range.label)
-                            }
+                    Picker("Date Range", selection: $selectedRange) {
+                        ForEach(ReportDateRange.allCases) { range in
+                            Text(range.label).tag(range)
                         }
                     }
+                    .pickerStyle(.inline)
                 } label: {
                     Label(selectedRange.label, systemImage: "calendar")
                 }
@@ -49,12 +44,14 @@ struct ReportView: View {
                 Button {
                     copyToClipboard(report)
                 } label: {
-                    Label(
-                        copied ? "Copied" : "Copy",
-                        systemImage: copied ? "checkmark" : "doc.on.doc"
-                    )
+                    Label("Copy", systemImage: "doc.on.doc")
                 }
                 .accessibilityIdentifier("report.copyButton")
+            }
+        }
+        .overlay(alignment: .top) {
+            if showCopyConfirmation {
+                copyConfirmationBanner
             }
         }
     }
@@ -92,16 +89,15 @@ struct ReportView: View {
     }
 
     private func projectSection(_ group: ProjectGroup) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(group.projectName)
-                .font(.headline)
+        LiquidGlassSection(title: group.projectName) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(summaryText(done: group.doneCount, abandoned: group.abandonedCount))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            Text(summaryText(done: group.doneCount, abandoned: group.abandonedCount))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            ForEach(group.tasks) { task in
-                taskRow(task)
+                ForEach(group.tasks) { task in
+                    taskRow(task)
+                }
             }
         }
     }
@@ -123,6 +119,25 @@ struct ReportView: View {
                 Text(task.name)
             }
         }
+    }
+
+    // MARK: - Copy Confirmation
+
+    private var copyConfirmationBanner: some View {
+        Text("Copied to clipboard")
+            .font(.subheadline)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(.thinMaterial, in: Capsule())
+            .padding(.top, 8)
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    withAnimation {
+                        showCopyConfirmation = false
+                    }
+                }
+            }
     }
 
     // MARK: - Helpers
@@ -149,9 +164,8 @@ struct ReportView: View {
         NSPasteboard.general.setString(markdown, forType: .string)
         #endif
 
-        copied = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            copied = false
+        withAnimation {
+            showCopyConfirmation = true
         }
     }
 }

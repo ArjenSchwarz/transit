@@ -55,23 +55,28 @@ enum ReportMarkdownFormatter {
     }
 
     private static func sanitize(_ text: String) -> String {
-        var result = text
-        // Normalize newlines first
-        result = result.replacingOccurrences(of: "\r\n", with: " ")
-        result = result.replacingOccurrences(of: "\r", with: " ")
-        result = result.replacingOccurrences(of: "\n", with: " ")
-        // Escape GFM metacharacters — backslash first
-        result = result.replacingOccurrences(of: "\\", with: "\\\\")
-        result = result.replacingOccurrences(of: "`", with: "\\`")
-        result = result.replacingOccurrences(of: "*", with: "\\*")
-        result = result.replacingOccurrences(of: "_", with: "\\_")
-        result = result.replacingOccurrences(of: "~", with: "\\~")
-        result = result.replacingOccurrences(of: "[", with: "\\[")
-        result = result.replacingOccurrences(of: "]", with: "\\]")
-        result = result.replacingOccurrences(of: "#", with: "\\#")
-        result = result.replacingOccurrences(of: "<", with: "\\<")
-        result = result.replacingOccurrences(of: ">", with: "\\>")
-        result = result.replacingOccurrences(of: "|", with: "\\|")
-        return result
+        escape(normalize(text))
+    }
+
+    private static func normalize(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+    }
+
+    private static func escape(_ text: String) -> String {
+        var output = String()
+        output.reserveCapacity(text.count)
+        for character in text {
+            switch character {
+            case "\\", "`", "*", "_", "~", "[", "]", "#", "<", ">", "|":
+                output.append("\\")
+                output.append(character)
+            default:
+                output.append(character)
+            }
+        }
+        return output
     }
 }
