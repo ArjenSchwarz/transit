@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Spec for report functionality (T-37): requirements, design, decision log, and task list in `specs/reports/`
+  - Generate Markdown reports of completed/abandoned tasks grouped by project for configurable date ranges
+  - 8 predefined date ranges: today, yesterday, this/last week, this/last month, this/last year
+  - Available via dashboard toolbar button and Shortcuts App Intent with native picker
+  - 14 implementation tasks across 2 parallel work streams
+
+### Added
+
 - Type filter UI in `FilterPopoverView`: "Types" section with checkmark toggles and tint color circles for each `TaskType`
 - Per-section "Clear" buttons in filter popover (Projects and Types sections) and "Clear All" button when any filter is active
 - `selectedTypes` state in `DashboardView` wired to `FilterPopoverView` and `buildFilteredColumns`
