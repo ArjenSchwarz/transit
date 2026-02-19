@@ -90,6 +90,7 @@ struct ReportView: View {
             }
         }
         .padding()
+        .frame(maxWidth: .infinity)
     }
 
     private func summarySection(_ report: ReportData) -> some View {

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Report view background and scrollbar not spanning full window width on macOS — content VStack now uses `frame(maxWidth: .infinity)` to fill available space
+
 ### Added
 
 - Task type displayed in reports: coloured `TypeBadge` in the in-app view and `Type: Title` format in Markdown output (e.g. `T-42: Feature: Implement login`)
