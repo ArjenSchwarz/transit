@@ -1,5 +1,6 @@
 import AppIntents
 import Foundation
+import os
 import SwiftData
 
 struct GenerateReportIntent: AppIntent {
@@ -39,6 +40,8 @@ struct GenerateReportIntent: AppIntent {
         do {
             tasks = try modelContext.fetch(descriptor)
         } catch {
+            Logger(subsystem: "com.transit", category: "report")
+                .error("Failed to fetch tasks for report: \(error.localizedDescription)")
             let emptyData = ReportData(
                 dateRangeLabel: dateRange.labelWithDates(),
                 projectGroups: [],

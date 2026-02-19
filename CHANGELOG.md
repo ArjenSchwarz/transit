@@ -31,7 +31,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- `TaskService.modelContext` access changed from private to internal for intent testability
 - `IntentCompatibilityAndDiscoverabilityTests` shortcut count updated from 6 to 7
 
 ### Fixed

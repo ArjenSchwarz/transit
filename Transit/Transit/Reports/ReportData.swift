@@ -8,6 +8,19 @@ struct ReportData {
 
     var totalTasks: Int { totalDone + totalAbandoned }
     var isEmpty: Bool { projectGroups.isEmpty }
+
+    static func summaryText(done: Int, abandoned: Int) -> String {
+        switch (done > 0, abandoned > 0) {
+        case (true, true):
+            "\(done) done, \(abandoned) abandoned"
+        case (true, false):
+            "\(done) done"
+        case (false, true):
+            "\(abandoned) abandoned"
+        case (false, false):
+            "0 done"
+        }
+    }
 }
 
 struct ProjectGroup: Identifiable {

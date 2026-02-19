@@ -13,14 +13,15 @@ enum ReportMarkdownFormatter {
         }
 
         lines.append("")
-        let summary = summaryParts(done: data.totalDone, abandoned: data.totalAbandoned)
-        lines.append("**\(data.totalTasks) tasks** (\(summary))")
+        let summary = ReportData.summaryText(done: data.totalDone, abandoned: data.totalAbandoned)
+        let taskWord = data.totalTasks == 1 ? "task" : "tasks"
+        lines.append("**\(data.totalTasks) \(taskWord)** (\(summary))")
 
         for group in data.projectGroups {
             lines.append("")
             lines.append("## \(sanitize(group.projectName))")
             lines.append("")
-            lines.append(summaryParts(done: group.doneCount, abandoned: group.abandonedCount))
+            lines.append(ReportData.summaryText(done: group.doneCount, abandoned: group.abandonedCount))
             lines.append("")
 
             for task in group.tasks {
@@ -40,19 +41,6 @@ enum ReportMarkdownFormatter {
             return "- ~~\(task.displayID): \(typeLabel): \(name)~~ (Abandoned)"
         }
         return "- \(task.displayID): \(typeLabel): \(name)"
-    }
-
-    private static func summaryParts(done: Int, abandoned: Int) -> String {
-        switch (done > 0, abandoned > 0) {
-        case (true, true):
-            return "\(done) done, \(abandoned) abandoned"
-        case (true, false):
-            return "\(done) done"
-        case (false, true):
-            return "\(abandoned) abandoned"
-        case (false, false):
-            return "0 done"
-        }
     }
 
     private static func sanitize(_ text: String) -> String {

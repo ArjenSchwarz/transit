@@ -130,7 +130,7 @@ struct ReportMarkdownFormatterTests {
         )
 
         let output = ReportMarkdownFormatter.format(data)
-        #expect(output.contains("**1 tasks** (1 abandoned)"))
+        #expect(output.contains("**1 task** (1 abandoned)"))
     }
 
     @Test("Per-project summary shows both counts when non-zero")

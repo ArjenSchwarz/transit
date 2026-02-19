@@ -98,7 +98,7 @@ struct ReportView: View {
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text(summaryText(done: report.totalDone, abandoned: report.totalAbandoned))
+            Text(ReportData.summaryText(done: report.totalDone, abandoned: report.totalAbandoned))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -107,7 +107,7 @@ struct ReportView: View {
     private func projectSection(_ group: ProjectGroup) -> some View {
         LiquidGlassSection(title: group.projectName) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(summaryText(done: group.doneCount, abandoned: group.abandonedCount))
+                Text(ReportData.summaryText(done: group.doneCount, abandoned: group.abandonedCount))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -149,29 +149,15 @@ struct ReportView: View {
             .background(.thinMaterial, in: Capsule())
             .padding(.top, 8)
             .transition(.move(edge: .top).combined(with: .opacity))
-            .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    withAnimation {
-                        showCopyConfirmation = false
-                    }
+            .task {
+                try? await Task.sleep(for: .seconds(2))
+                withAnimation {
+                    showCopyConfirmation = false
                 }
             }
     }
 
     // MARK: - Helpers
-
-    private func summaryText(done: Int, abandoned: Int) -> String {
-        switch (done > 0, abandoned > 0) {
-        case (true, true):
-            "\(done) done, \(abandoned) abandoned"
-        case (true, false):
-            "\(done) done"
-        case (false, true):
-            "\(abandoned) abandoned"
-        case (false, false):
-            "0 done"
-        }
-    }
 
     private func copyToClipboard(_ report: ReportData) {
         let markdown = ReportMarkdownFormatter.format(report)
