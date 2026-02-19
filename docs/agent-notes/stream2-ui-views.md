@@ -29,6 +29,7 @@
 - Status changes go through `TaskService.updateStatus()` for side effects (completionDate, lastStatusChangeDate)
 - MetadataSection in editing mode
 - Loads task data into local `@State` on appear, saves back on Save
+- **Error handling (T-148)**: `save()` uses `do/catch` with `modelContext.rollback()` on failure. Shows "Save Failed" alert via `errorMessage` state and `showError` binding (same pattern as CommentsSection/ProjectEditView). Editor stays open on failure so user can retry.
 - **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow` for right-aligned labels, text fields fill row width, pickers use `.fixedSize()`, and a bottom-right Save button
 
 ## SettingsView
