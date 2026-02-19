@@ -30,7 +30,11 @@ enum ReportDateRange: String, AppEnum, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var label: String {
-        String(localized: Self.caseDisplayRepresentations[self]!.title)
+        guard let representation = Self.caseDisplayRepresentations[self] else {
+            assertionFailure("Missing display representation for \(self)")
+            return rawValue
+        }
+        return String(localized: representation.title)
     }
 
     var dateRange: DateFilterHelpers.DateRange {
