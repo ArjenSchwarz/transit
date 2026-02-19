@@ -8,6 +8,63 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Task type displayed in reports: coloured `TypeBadge` in the in-app view and `Type: Title` format in Markdown output (e.g. `T-42: Feature: Implement login`)
+- Actual date range shown in report title (e.g. "This Week (Feb 16 – 18, 2026)") via `ReportDateRange.labelWithDates(now:)` for both in-app and Markdown reports
+- Report title rendered as `.title2` bold header in the in-app `ReportView` summary section
+- `BoardBackground` gradient applied to `ReportView`, matching the dashboard background
+- `.scrollContentBackground(.hidden)` on macOS `ReportView` to remove default scroll material, inset scrollbar, and focus drop shadow
+
+### Changed
+
+- `IntentCompatibilityAndDiscoverabilityTests` now verifies `GenerateReportIntent` title and `openAppWhenRun` stability
+
+### Added
+
+- Implementation explanation document (`specs/reports/implementation.md`) with beginner/intermediate/expert level explanations, requirement traceability, and completeness assessment
+
+### Added
+
+- `ReportView` native SwiftUI view for in-app report display with date range picker, per-project task grouping, abandoned task strikethrough, empty state, and copy-to-clipboard via `ReportMarkdownFormatter`
+- `GenerateReportIntent` App Intent for generating Markdown reports via Shortcuts with native `ReportDateRange` picker, registered in `TransitShortcuts`
+- Report button in dashboard toolbar (before settings gear) navigating to `ReportView` via `NavigationDestination.report`
+- `GenerateReportIntentTests` (3 tests) covering date range output, empty state, and all 8 range cases
+
+### Changed
+
+- `IntentCompatibilityAndDiscoverabilityTests` shortcut count updated from 6 to 7
+
+### Fixed
+
+- `ReportLogicDateRangeTests` build error: replaced non-existent `ModelContext.registeredObjects` with `FetchDescriptor` fetch
+- `ReportMarkdownFormatterTests` string literal escaping for hash character assertion
+
+### Added
+
+- `ReportLogic.buildReport()` stateless function for generating report data from SwiftData tasks: filters terminal tasks by date range, groups by project (alphabetical), sorts by completionDate/displayId/UUID
+- `ReportMarkdownFormatter.format()` for converting `ReportData` to GitHub Flavored Markdown with GFM metacharacter escaping, newline normalization, strikethrough for abandoned tasks, and per-project summary counts
+- `ReportLogicTests` (3 suites, 20+ tests) covering grouping, sorting, filtering, boundary timestamps, all 8 date ranges, orphan/nil exclusion, and provisional display ID handling
+- `ReportMarkdownFormatterTests` (14 tests) covering template structure, summary counts, zero-count omission, strikethrough format, GFM escaping, newline normalization, and empty state
+
+- 5 new date range cases in `DateFilterHelpers`: yesterday, lastWeek, lastMonth, thisYear, lastYear with locale-aware boundaries
+- `ReportDateRange` enum with `AppEnum` conformance for Shortcuts picker and in-app menu
+- `ReportData`, `ProjectGroup`, and `ReportTask` structs for transient report data model
+- 15 new `DateFilterHelpersTests` covering all new date ranges with boundary verification and token parsing
+
+### Changed
+
+- `DateFilterHelpers.parseDateFilter` refactored to use dictionary lookup instead of switch for relative tokens
+- `DateFilterHelpers.dateInRange` refactored into helper methods (`dateInCurrentPeriod`, `dateInPreviousPeriod`) to reduce cyclomatic complexity
+
+### Added
+
+- Spec for report functionality (T-37): requirements, design, decision log, and task list in `specs/reports/`
+  - Generate Markdown reports of completed/abandoned tasks grouped by project for configurable date ranges
+  - 8 predefined date ranges: today, yesterday, this/last week, this/last month, this/last year
+  - Available via dashboard toolbar button and Shortcuts App Intent with native picker
+  - 14 implementation tasks across 2 parallel work streams
+
+### Added
+
 - Type filter UI in `FilterPopoverView`: "Types" section with checkmark toggles and tint color circles for each `TaskType`
 - Per-section "Clear" buttons in filter popover (Projects and Types sections) and "Clear All" button when any filter is active
 - `selectedTypes` state in `DashboardView` wired to `FilterPopoverView` and `buildFilteredColumns`

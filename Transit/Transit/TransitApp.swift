@@ -89,6 +89,8 @@ struct TransitApp: App {
                             SettingsView()
                         case .projectEdit(let project):
                             ProjectEditView(project: project)
+                        case .report:
+                            ReportView()
                         }
                     }
             }
