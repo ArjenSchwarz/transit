@@ -23,26 +23,19 @@ struct ProjectEditView: View {
     var body: some View {
         #if os(macOS)
         macOSForm
-            .alert("Error", isPresented: showError) {
+            .alert("Error", isPresented: $errorMessage.isPresent) {
                 Button("OK") { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }
         #else
         iOSForm
-            .alert("Error", isPresented: showError) {
+            .alert("Error", isPresented: $errorMessage.isPresent) {
                 Button("OK") { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }
         #endif
-    }
-
-    private var showError: Binding<Bool> {
-        Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )
     }
 
     // MARK: - iOS Layout

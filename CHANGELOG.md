@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `Binding<String?>.isPresent` extension (`Binding+IsPresent.swift`) returning a `Binding<Bool>` for driving `.alert(isPresented:)` from optional error state
+
+### Changed
+
+- `TaskEditView`, `ProjectEditView`, and `CommentsSection` use `$errorMessage.isPresent` instead of duplicated `Binding(get:set:)` boilerplate
+- `ColumnView.columnPanel` refactored from three identical switch cases to data-driven local variables with a single view construction
+- `DashboardLogic.buildFilteredColumns` now uses `Date.isWithin48Hours(of:)` extension instead of inline `addingTimeInterval` cutoff
+- `ReportDateRange.label` derives its value from `caseDisplayRepresentations` instead of duplicating all display strings
+
 ### Fixed
 
 - Report view background and scrollbar not spanning full window width on macOS — content VStack now uses `frame(maxWidth: .infinity)` to fill available space

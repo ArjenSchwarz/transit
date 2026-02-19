@@ -30,16 +30,7 @@ enum ReportDateRange: String, AppEnum, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var label: String {
-        switch self {
-        case .today: "Today"
-        case .yesterday: "Yesterday"
-        case .thisWeek: "This Week"
-        case .lastWeek: "Last Week"
-        case .thisMonth: "This Month"
-        case .lastMonth: "Last Month"
-        case .thisYear: "This Year"
-        case .lastYear: "Last Year"
-        }
+        String(localized: Self.caseDisplayRepresentations[self]!.title)
     }
 
     var dateRange: DateFilterHelpers.DateRange {
