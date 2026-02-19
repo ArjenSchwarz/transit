@@ -16,9 +16,17 @@ struct TaskEditView: View {
     @State private var selectedProjectID: UUID?
     @State private var metadata: [String: String] = [:]
     @State private var selectedDetent: PresentationDetent = .large
+    @State private var errorMessage: String?
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedProjectID != nil
+    }
+
+    private var showError: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )
     }
 
     var body: some View {
@@ -28,6 +36,11 @@ struct TaskEditView: View {
             #else
             iOSForm
             #endif
+        }
+        .alert("Save Failed", isPresented: showError) {
+            Button("OK") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
         }
     }
 
@@ -246,13 +259,17 @@ struct TaskEditView: View {
             task.project = projects.first { $0.id == newProjectID }
         }
 
-        // Status change goes through TaskService for side effects (which saves internally)
-        if selectedStatus != task.status {
-            try? taskService.updateStatus(task: task, to: selectedStatus)
-        } else {
-            try? modelContext.save()
+        do {
+            // Status change goes through TaskService for side effects (which saves internally)
+            if selectedStatus != task.status {
+                try taskService.updateStatus(task: task, to: selectedStatus)
+            } else {
+                try modelContext.save()
+            }
+            dismissAll()
+        } catch {
+            modelContext.rollback()
+            errorMessage = "Could not save task. Please try again."
         }
-
-        dismissAll()
     }
 }
