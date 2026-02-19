@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Smolspec and task list for settings background feature (T-149): apply `BoardBackground` to Settings view on both platforms with immediate theme reactivity
+
+### Added
+
 - `Binding<String?>.isPresent` extension (`Binding+IsPresent.swift`) returning a `Binding<Bool>` for driving `.alert(isPresented:)` from optional error state
 
 ### Changed
