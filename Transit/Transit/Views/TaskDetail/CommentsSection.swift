@@ -27,10 +27,7 @@ struct CommentsSection: View {
             iOSLayout
             #endif
         }
-        .alert("Error", isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )) {
+        .alert("Error", isPresented: $errorMessage.isPresent) {
             Button("OK") { errorMessage = nil }
         } message: {
             if let errorMessage {

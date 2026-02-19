@@ -22,13 +22,6 @@ struct TaskEditView: View {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedProjectID != nil
     }
 
-    private var showError: Binding<Bool> {
-        Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )
-    }
-
     var body: some View {
         NavigationStack {
             #if os(macOS)
@@ -37,7 +30,7 @@ struct TaskEditView: View {
             iOSForm
             #endif
         }
-        .alert("Save Failed", isPresented: showError) {
+        .alert("Save Failed", isPresented: $errorMessage.isPresent) {
             Button("OK") { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")

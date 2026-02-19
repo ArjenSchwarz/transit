@@ -184,8 +184,6 @@ enum DashboardLogic {
             return true
         }
 
-        let cutoff = now.addingTimeInterval(-48 * 60 * 60)
-
         var grouped = Dictionary(grouping: filtered) { $0.status.column }
 
         // Ensure all columns exist (even if empty)
@@ -197,7 +195,7 @@ enum DashboardLogic {
             tasks.filter { task in
                 if task.status.isTerminal {
                     // Defensive: nil completionDate treated as just-completed [req 5.6]
-                    return (task.completionDate ?? now) > cutoff
+                    return task.completionDate?.isWithin48Hours(of: now) ?? true
                 }
                 return true
             }

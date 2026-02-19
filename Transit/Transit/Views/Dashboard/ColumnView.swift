@@ -80,43 +80,23 @@ struct ColumnView: View {
 
     // MARK: - Column Panel
 
-    @ViewBuilder
     private var columnPanel: some View {
-        switch resolvedTheme {
-        case .universal:
-            RoundedRectangle(cornerRadius: 14)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(.white.opacity(0.07))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(.white.opacity(0.12), lineWidth: 0.5)
-                )
-        case .light:
-            RoundedRectangle(cornerRadius: 14)
-                .fill(.thinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(.white.opacity(0.55))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(.white.opacity(0.4), lineWidth: 0.5)
-                )
-        case .dark:
-            RoundedRectangle(cornerRadius: 14)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(.black.opacity(0.15))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
-                )
+        let material: Material = resolvedTheme == .light ? .thinMaterial : .ultraThinMaterial
+        let fill: Color = switch resolvedTheme {
+        case .universal: .white.opacity(0.07)
+        case .light: .white.opacity(0.55)
+        case .dark: .black.opacity(0.15)
         }
+        let border: Color = switch resolvedTheme {
+        case .universal: .white.opacity(0.12)
+        case .light: .white.opacity(0.4)
+        case .dark: .white.opacity(0.08)
+        }
+
+        return RoundedRectangle(cornerRadius: 14)
+            .fill(material)
+            .overlay(RoundedRectangle(cornerRadius: 14).fill(fill))
+            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(border, lineWidth: 0.5))
     }
 
     /// Whether this task is the first abandoned task in the list.
