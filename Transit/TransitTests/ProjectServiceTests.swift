@@ -61,6 +61,30 @@ struct ProjectServiceTests {
         }
     }
 
+    // MARK: - createProject persists via save (T-117)
+
+    @Test func createProjectPersistsViaSave() throws {
+        let (service, context) = try makeService()
+        let project = try service.createProject(
+            name: "Persisted",
+            description: "Should be saved",
+            gitRepo: nil,
+            colorHex: "#000000"
+        )
+
+        // Verify the project is fetchable from the context after creation,
+        // confirming that createProject calls context.save() (not try?).
+        let descriptor = FetchDescriptor<Project>(
+            predicate: #Predicate { $0.id == project.id }
+        )
+        let fetched = try context.fetch(descriptor)
+        #expect(fetched.count == 1)
+        #expect(fetched.first?.name == "Persisted")
+
+        // Verify no pending changes remain — the save was committed.
+        #expect(context.hasChanges == false)
+    }
+
     @Test func createProjectWithDifferentNameSucceeds() throws {
         let (service, _) = try makeService()
         try service.createProject(name: "Transit", description: "First", gitRepo: nil, colorHex: "#000000")

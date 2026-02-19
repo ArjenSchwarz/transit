@@ -39,7 +39,12 @@ final class ProjectService {
         }
         let project = Project(name: trimmedName, description: description, gitRepo: gitRepo, colorHex: colorHex)
         context.insert(project)
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            context.delete(project)
+            throw error
+        }
         return project
     }
 

@@ -23,14 +23,14 @@ struct ProjectEditView: View {
     var body: some View {
         #if os(macOS)
         macOSForm
-            .alert("Duplicate Project", isPresented: showError) {
+            .alert("Error", isPresented: showError) {
                 Button("OK") { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }
         #else
         iOSForm
-            .alert("Duplicate Project", isPresented: showError) {
+            .alert("Error", isPresented: showError) {
                 Button("OK") { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
