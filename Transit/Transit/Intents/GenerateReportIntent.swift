@@ -40,7 +40,7 @@ struct GenerateReportIntent: AppIntent {
             tasks = try modelContext.fetch(descriptor)
         } catch {
             let emptyData = ReportData(
-                dateRangeLabel: dateRange.label,
+                dateRangeLabel: dateRange.labelWithDates(),
                 projectGroups: [],
                 totalDone: 0,
                 totalAbandoned: 0

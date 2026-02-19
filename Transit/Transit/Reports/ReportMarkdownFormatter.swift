@@ -35,10 +35,11 @@ enum ReportMarkdownFormatter {
 
     private static func formatTask(_ task: ReportTask) -> String {
         let name = sanitize(task.name)
+        let typeLabel = task.taskType.rawValue.capitalized
         if task.isAbandoned {
-            return "- ~~\(task.displayID): \(name)~~ (Abandoned)"
+            return "- ~~\(task.displayID): \(typeLabel): \(name)~~ (Abandoned)"
         }
-        return "- \(task.displayID): \(name)"
+        return "- \(task.displayID): \(typeLabel): \(name)"
     }
 
     private static func summaryParts(done: Int, abandoned: Int) -> String {

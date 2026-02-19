@@ -8,6 +8,12 @@ struct ReportView: View {
 
     @State private var selectedRange: ReportDateRange = .thisWeek
     @State private var showCopyConfirmation = false
+    @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var resolvedTheme: ResolvedTheme {
+        (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
+    }
 
     var body: some View {
         let report = ReportLogic.buildReport(
@@ -21,6 +27,12 @@ struct ReportView: View {
             } else {
                 reportContent(report)
             }
+        }
+        #if os(macOS)
+        .scrollContentBackground(.hidden)
+        #endif
+        .background {
+            BoardBackground(theme: resolvedTheme)
         }
         .navigationTitle("Report")
         #if os(iOS)
@@ -82,6 +94,10 @@ struct ReportView: View {
 
     private func summarySection(_ report: ReportData) -> some View {
         VStack(alignment: .leading, spacing: 4) {
+            Text(report.dateRangeLabel)
+                .font(.title2)
+                .fontWeight(.bold)
+
             Text(summaryText(done: report.totalDone, abandoned: report.totalAbandoned))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -107,6 +123,8 @@ struct ReportView: View {
             Text(task.displayID)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
+
+            TypeBadge(type: task.taskType)
 
             if task.isAbandoned {
                 Text(task.name)

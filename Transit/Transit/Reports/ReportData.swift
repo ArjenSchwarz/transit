@@ -22,6 +22,7 @@ struct ReportTask: Identifiable {
     let id: UUID
     let displayID: String
     let name: String
+    let taskType: TaskType
     let isAbandoned: Bool
     let completionDate: Date
     let permanentDisplayId: Int?

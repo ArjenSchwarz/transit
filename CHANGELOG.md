@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Task type displayed in reports: coloured `TypeBadge` in the in-app view and `Type: Title` format in Markdown output (e.g. `T-42: Feature: Implement login`)
+- Actual date range shown in report title (e.g. "This Week (Feb 16 – 18, 2026)") via `ReportDateRange.labelWithDates(now:)` for both in-app and Markdown reports
+- Report title rendered as `.title2` bold header in the in-app `ReportView` summary section
+- `BoardBackground` gradient applied to `ReportView`, matching the dashboard background
+- `.scrollContentBackground(.hidden)` on macOS `ReportView` to remove default scroll material, inset scrollbar, and focus drop shadow
+
 ### Changed
 
 - `IntentCompatibilityAndDiscoverabilityTests` now verifies `GenerateReportIntent` title and `openAppWhenRun` stability

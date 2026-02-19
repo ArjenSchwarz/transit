@@ -49,6 +49,7 @@ enum ReportLogic {
                     id: task.id,
                     displayID: task.displayID.formatted,
                     name: task.name,
+                    taskType: task.type,
                     isAbandoned: task.status == .abandoned,
                     completionDate: task.completionDate!,
                     permanentDisplayId: task.permanentDisplayId
@@ -64,7 +65,7 @@ enum ReportLogic {
         let totalAbandoned = projectGroups.flatMap(\.tasks).filter(\.isAbandoned).count
 
         return ReportData(
-            dateRangeLabel: dateRange.label,
+            dateRangeLabel: dateRange.labelWithDates(now: now),
             projectGroups: projectGroups,
             totalDone: totalDone,
             totalAbandoned: totalAbandoned

@@ -276,9 +276,10 @@ struct ReportLogicFilterTests {
         #expect(reportTask.permanentDisplayId == 42)
     }
 
-    @Test("dateRangeLabel matches ReportDateRange.label")
+    @Test("dateRangeLabel includes label and actual dates")
     func dateRangeLabel() throws {
         let report = ReportLogic.buildReport(tasks: [], dateRange: .thisWeek, now: reportTestNow)
-        #expect(report.dateRangeLabel == "This Week")
+        #expect(report.dateRangeLabel.hasPrefix("This Week ("))
+        #expect(report.dateRangeLabel.hasSuffix(")"))
     }
 }

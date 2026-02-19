@@ -33,6 +33,7 @@ private func makeGroup(
 private func makeTask(
     displayID: String = "T-1",
     name: String = "Task",
+    taskType: TaskType = .feature,
     isAbandoned: Bool = false,
     completionDate: Date = .now,
     permanentDisplayId: Int? = 1
@@ -41,6 +42,7 @@ private func makeTask(
         id: UUID(),
         displayID: displayID,
         name: name,
+        taskType: taskType,
         isAbandoned: isAbandoned,
         completionDate: completionDate,
         permanentDisplayId: permanentDisplayId
@@ -74,9 +76,9 @@ struct ReportMarkdownFormatterTests {
         #expect(output.contains("**3 tasks**"))
         #expect(output.contains("## Alpha"))
         #expect(output.contains("## Beta"))
-        #expect(output.contains("- T-42: Implement login"))
-        #expect(output.contains("- ~~T-5: Old feature~~ (Abandoned)"))
-        #expect(output.contains("- T-17: Fix dashboard layout"))
+        #expect(output.contains("- T-42: Feature: Implement login"))
+        #expect(output.contains("- ~~T-5: Feature: Old feature~~ (Abandoned)"))
+        #expect(output.contains("- T-17: Feature: Fix dashboard layout"))
     }
 
     @Test("Title includes date range label")
@@ -208,7 +210,7 @@ struct ReportMarkdownFormatterTests {
         )
 
         let output = ReportMarkdownFormatter.format(data)
-        #expect(output.contains("- ~~T-5: Old feature~~ (Abandoned)"))
+        #expect(output.contains("- ~~T-5: Feature: Old feature~~ (Abandoned)"))
     }
 
     @Test("Normal tasks rendered without strikethrough")
@@ -222,7 +224,7 @@ struct ReportMarkdownFormatterTests {
         )
 
         let output = ReportMarkdownFormatter.format(data)
-        #expect(output.contains("- T-42: Implement login"))
+        #expect(output.contains("- T-42: Feature: Implement login"))
         #expect(!output.contains("~~"))
         #expect(!output.contains("(Abandoned)"))
     }
@@ -274,7 +276,7 @@ struct ReportMarkdownFormatterTests {
         )
 
         let output = ReportMarkdownFormatter.format(data)
-        #expect(output.contains("T-1: Line one Line two Line three"))
+        #expect(output.contains("T-1: Feature: Line one Line two Line three"))
     }
 
     @Test("Newlines in project names normalized to spaces")
