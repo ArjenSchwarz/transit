@@ -3,7 +3,7 @@
 // MARK: - Tool Definitions
 
 nonisolated enum MCPToolDefinitions {
-    static let all: [MCPToolDefinition] = [createTask, updateTaskStatus, queryTasks, addComment]
+    static let all: [MCPToolDefinition] = [createTask, updateTaskStatus, queryTasks, addComment, getProjects]
 
     static let createTask = MCPToolDefinition(
         name: "create_task",
@@ -82,6 +82,11 @@ nonisolated enum MCPToolDefinitions {
             ],
             required: ["content", "authorName"]
         )
+    )
+    static let getProjects = MCPToolDefinition(
+        name: "get_projects",
+        description: "List all projects with metadata. Returns an array of project objects sorted by name.",
+        inputSchema: .object(properties: [:], required: [])
     )
 }
 

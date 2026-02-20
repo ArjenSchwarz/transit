@@ -26,7 +26,7 @@ struct MCPToolHandlerTests {
 
     // MARK: - Tools List
 
-    @Test func toolsListReturnsFourTools() async throws {
+    @Test func toolsListReturnsFiveTools() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let response = try #require(await env.handler.handle(MCPTestHelpers.request(method: "tools/list")))
 
@@ -35,12 +35,13 @@ struct MCPToolHandlerTests {
         let result = try #require(json["result"] as? [String: Any])
         let tools = try #require(result["tools"] as? [[String: Any]])
 
-        #expect(tools.count == 4)
+        #expect(tools.count == 5)
         let names = tools.compactMap { $0["name"] as? String }
         #expect(names.contains("create_task"))
         #expect(names.contains("update_task_status"))
         #expect(names.contains("query_tasks"))
         #expect(names.contains("add_comment"))
+        #expect(names.contains("get_projects"))
     }
 
     // MARK: - Ping
@@ -259,6 +260,69 @@ struct MCPToolHandlerTests {
         let first = try #require(results.first)
         #expect(first["projectName"] as? String == "Alpha")
         #expect(first["projectId"] is String)
+    }
+    // MARK: - get_projects
+
+    @Test func getProjectsReturnsCorrectFieldsAndSortOrder() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let bravo = MCPTestHelpers.makeProject(in: env.context, name: "Bravo")
+        let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        _ = try await env.taskService.createTask(name: "T1", description: nil, type: .feature, project: alpha)
+        _ = try await env.taskService.createTask(name: "T2", description: nil, type: .bug, project: bravo)
+        _ = try await env.taskService.createTask(name: "T3", description: nil, type: .chore, project: bravo)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "get_projects", arguments: [:]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.count == 2)
+
+        let first = try #require(results.first)
+        #expect(first["name"] as? String == "Alpha")
+        #expect(first["projectId"] is String)
+        #expect(first["description"] is String)
+        #expect(first["colorHex"] is String)
+        #expect(first["activeTaskCount"] as? Int == 1)
+
+        let second = try #require(results.last)
+        #expect(second["name"] as? String == "Bravo")
+        #expect(second["activeTaskCount"] as? Int == 2)
+    }
+
+    @Test func getProjectsReturnsEmptyArrayWhenNoProjects() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "get_projects", arguments: [:]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.isEmpty)
+    }
+
+    @Test func getProjectsActiveTaskCountExcludesTerminalTasks() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let doneTask = try await env.taskService.createTask(
+            name: "Done", description: nil, type: .feature, project: project
+        )
+        try env.taskService.updateStatus(task: doneTask, to: .done)
+        let abandonedTask = try await env.taskService.createTask(
+            name: "Abandoned", description: nil, type: .bug, project: project
+        )
+        try env.taskService.updateStatus(task: abandonedTask, to: .abandoned)
+        _ = try await env.taskService.createTask(
+            name: "Active", description: nil, type: .chore, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "get_projects", arguments: [:]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let first = try #require(results.first)
+        #expect(first["activeTaskCount"] as? Int == 1)
     }
 }
 

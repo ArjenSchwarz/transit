@@ -88,6 +88,8 @@ final class MCPToolHandler {
             result = handleQueryTasks(arguments)
         case "add_comment":
             result = handleAddComment(arguments)
+        case "get_projects":
+            result = handleGetProjects()
         default:
             return JSONRPCResponse.error(
                 id: id,
@@ -114,13 +116,10 @@ final class MCPToolHandler {
         }
 
         let projectId = (args["projectId"] as? String).flatMap(UUID.init)
-        let projectName = args["project"] as? String
         let project: Project
-        switch projectService.findProject(id: projectId, name: projectName) {
-        case .success(let found):
-            project = found
-        case .failure(let error):
-            return errorResult(IntentHelpers.mapProjectLookupError(error).hint)
+        switch projectService.findProject(id: projectId, name: args["project"] as? String) {
+        case .success(let found): project = found
+        case .failure(let error): return errorResult(IntentHelpers.mapProjectLookupError(error).hint)
         }
 
         let task: TransitTask
@@ -136,13 +135,8 @@ final class MCPToolHandler {
             return errorResult("Task creation failed: \(error)")
         }
 
-        var response: [String: Any] = [
-            "taskId": task.id.uuidString,
-            "status": task.statusRawValue
-        ]
-        if let displayId = task.permanentDisplayId {
-            response["displayId"] = displayId
-        }
+        var response: [String: Any] = ["taskId": task.id.uuidString, "status": task.statusRawValue]
+        if let displayId = task.permanentDisplayId { response["displayId"] = displayId }
         return textResult(IntentHelpers.encodeJSON(response))
     }
 
@@ -242,9 +236,29 @@ final class MCPToolHandler {
 
 }
 
-// MARK: - add_comment & Helpers
+// MARK: - get_projects, add_comment & Helpers
 
 extension MCPToolHandler {
+
+    func handleGetProjects() -> MCPToolResult {
+        let descriptor = FetchDescriptor<Project>(sortBy: [SortDescriptor(\Project.name)])
+        let projects: [Project]
+        do {
+            projects = try projectService.context.fetch(descriptor)
+        } catch {
+            return errorResult("Failed to fetch projects: \(error)")
+        }
+        let results: [[String: Any]] = projects.map { project in
+            var dict: [String: Any] = [
+                "projectId": project.id.uuidString, "name": project.name,
+                "description": project.projectDescription, "colorHex": project.colorHex,
+                "activeTaskCount": projectService.activeTaskCount(for: project)
+            ]
+            if let gitRepo = project.gitRepo { dict["gitRepo"] = gitRepo }
+            return dict
+        }
+        return textResult(IntentHelpers.encodeJSONArray(results))
+    }
 
     func handleAddComment(_ args: [String: Any]) -> MCPToolResult {
         guard let content = args["content"] as? String, !content.isEmpty else {
@@ -273,17 +287,13 @@ extension MCPToolHandler {
             return errorResult("Failed to add comment: \(error)")
         }
 
-        let isoFormatter = ISO8601DateFormatter()
+        let fmt = ISO8601DateFormatter()
         let response: [String: Any] = [
-            "id": comment.id.uuidString,
-            "authorName": comment.authorName,
-            "content": comment.content,
-            "creationDate": isoFormatter.string(from: comment.creationDate)
+            "id": comment.id.uuidString, "authorName": comment.authorName,
+            "content": comment.content, "creationDate": fmt.string(from: comment.creationDate)
         ]
         return textResult(IntentHelpers.encodeJSON(response))
     }
-
-    // MARK: - Helpers
 
     private func validateCommentArgs(comment: String?, author: String?) -> (MCPToolResult?, Bool) {
         guard let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
