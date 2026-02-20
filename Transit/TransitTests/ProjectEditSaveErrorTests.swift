@@ -6,9 +6,10 @@ import Testing
 /// Regression tests for T-154: ProjectEditView must not silently discard save
 /// failures when editing an existing project.
 ///
-/// The fix ensures save() uses do/catch instead of try?, surfaces errors via an
-/// alert, and rolls back the model context on failure so in-memory state is not
-/// left inconsistent.
+/// These tests verify SwiftData's `modelContext.rollback()` correctly reverts
+/// property mutations on a `Project` — the mechanism the fix relies on. They do
+/// not exercise the view's `save()` method or its error-alert path directly,
+/// since that requires a full SwiftUI test harness.
 @MainActor @Suite(.serialized)
 struct ProjectEditSaveErrorTests {
 

@@ -23,14 +23,14 @@ struct ProjectEditView: View {
     var body: some View {
         #if os(macOS)
         macOSForm
-            .alert("Error", isPresented: $errorMessage.isPresent) {
+            .alert("Save Failed", isPresented: $errorMessage.isPresent) {
                 Button("OK") { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }
         #else
         iOSForm
-            .alert("Error", isPresented: $errorMessage.isPresent) {
+            .alert("Save Failed", isPresented: $errorMessage.isPresent) {
                 Button("OK") { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
@@ -173,6 +173,9 @@ struct ProjectEditView: View {
             do {
                 try modelContext.save()
             } catch {
+                // Rollback reverts the model to its last-persisted values. The @State
+                // variables (name, projectDescription, etc.) are unaffected, so the form
+                // keeps the user's in-progress edits for retry.
                 modelContext.rollback()
                 errorMessage = "Could not save project. Please try again."
                 return
