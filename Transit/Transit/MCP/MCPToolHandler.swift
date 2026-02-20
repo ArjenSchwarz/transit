@@ -196,6 +196,12 @@ final class MCPToolHandler {
                 return errorResult("Invalid projectId: expected a UUID string")
             }
             projectFilter = pid
+        } else if let name = args["project"] as? String,
+                  !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            switch projectService.findProject(id: nil, name: name) {
+            case .success(let found): projectFilter = found.id
+            case .failure(let err): return errorResult(IntentHelpers.mapProjectLookupError(err).hint)
+            }
         }
 
         let filters = MCPQueryFilters(
@@ -363,10 +369,8 @@ extension MCPToolHandler {
     func errorResult(_ message: String) -> MCPToolResult { MCPToolResult(content: [.text(message)], isError: true) }
 
     func stringMetadata(from value: Any?) -> [String: String]? {
-        guard let dict = value as? [String: Any] else { return nil }
-        var result: [String: String] = [:]
-        for (key, val) in dict { result[key] = "\(val)" }
-        return result.isEmpty ? nil : result
+        guard let dict = value as? [String: Any], !dict.isEmpty else { return nil }
+        return dict.reduce(into: [:]) { result, pair in result[pair.key] = "\(pair.value)" }
     }
 
     func taskToDict(_ task: TransitTask, formatter: ISO8601DateFormatter, detailed: Bool = false) -> [String: Any] {
