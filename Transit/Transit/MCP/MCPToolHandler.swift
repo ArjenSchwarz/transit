@@ -88,6 +88,8 @@ final class MCPToolHandler {
             result = handleQueryTasks(arguments)
         case "add_comment":
             result = handleAddComment(arguments)
+        case "get_projects":
+            result = handleGetProjects()
         default:
             return JSONRPCResponse.error(
                 id: id,
@@ -242,9 +244,29 @@ final class MCPToolHandler {
 
 }
 
-// MARK: - add_comment & Helpers
+// MARK: - get_projects, add_comment & Helpers
 
 extension MCPToolHandler {
+
+    func handleGetProjects() -> MCPToolResult {
+        let descriptor = FetchDescriptor<Project>(sortBy: [SortDescriptor(\Project.name)])
+        let projects: [Project]
+        do {
+            projects = try projectService.context.fetch(descriptor)
+        } catch {
+            return errorResult("Failed to fetch projects: \(error)")
+        }
+        let results: [[String: Any]] = projects.map { project in
+            var dict: [String: Any] = [
+                "projectId": project.id.uuidString, "name": project.name,
+                "description": project.projectDescription, "colorHex": project.colorHex,
+                "activeTaskCount": projectService.activeTaskCount(for: project)
+            ]
+            if let gitRepo = project.gitRepo { dict["gitRepo"] = gitRepo }
+            return dict
+        }
+        return textResult(IntentHelpers.encodeJSONArray(results))
+    }
 
     func handleAddComment(_ args: [String: Any]) -> MCPToolResult {
         guard let content = args["content"] as? String, !content.isEmpty else {
@@ -369,22 +391,5 @@ extension MCPToolHandler {
         return dict
     }
 }
-
-// MARK: - Query Filters
-
-private struct QueryFilters {
-    let status: String?
-    let type: String?
-    let projectId: UUID?
-
-    func matches(_ task: TransitTask) -> Bool {
-        if let status, task.statusRawValue != status { return false }
-        if let type, task.typeRawValue != type { return false }
-        if let projectId, task.project?.id != projectId { return false }
-        return true
-    }
-}
-
-private nonisolated struct EmptyResult: Encodable, Sendable {}
 
 #endif
