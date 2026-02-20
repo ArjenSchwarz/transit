@@ -3,7 +3,7 @@ import Foundation
 
 // MARK: - Query Filters
 
-struct QueryFilters {
+struct MCPQueryFilters {
     let status: String?
     let type: String?
     let projectId: UUID?

@@ -198,7 +198,7 @@ final class MCPToolHandler {
             projectFilter = pid
         }
 
-        let filters = QueryFilters(
+        let filters = MCPQueryFilters(
             status: args["status"] as? String,
             type: args["type"] as? String,
             projectId: projectFilter
@@ -223,7 +223,7 @@ final class MCPToolHandler {
         return textResult(IntentHelpers.encodeJSONArray(results))
     }
 
-    private func handleDisplayIdLookup(_ displayId: Int, filters: QueryFilters) -> MCPToolResult {
+    private func handleDisplayIdLookup(_ displayId: Int, filters: MCPQueryFilters) -> MCPToolResult {
         let task: TransitTask
         do {
             task = try taskService.findByDisplayID(displayId)
