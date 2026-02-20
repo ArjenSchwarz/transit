@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- Settings `BoardBackground` not filling full window width on macOS — added outer `.frame(maxWidth: .infinity)` on content to match ReportView pattern (T-149)
+- Settings `BoardBackground` not filling full window width on macOS — added outer `.frame(maxWidth: .infinity)` on content with centered alignment to match ReportView pattern (T-149)
 - Report view background and scrollbar not spanning full window width on macOS — content VStack now uses `frame(maxWidth: .infinity)` to fill available space
 
 ### Added

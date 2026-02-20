@@ -107,8 +107,8 @@ struct SettingsView: View {
                 macOSGeneralSection
             }
             .padding(32)
-            .frame(maxWidth: 760, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: 760)
+            .frame(maxWidth: .infinity)
         }
         .scrollContentBackground(.hidden)
         .background { BoardBackground(theme: resolvedTheme) }
