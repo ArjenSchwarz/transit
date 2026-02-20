@@ -99,9 +99,9 @@ The unrelated code reformatting in the same commit (collapsing switch arms in `h
 | `toolsListReturnsFiveTools` | Tool appears in tools/list, count is 5 |
 | `getProjectsReturnsCorrectFieldsAndSortOrder` | All required fields present, alphabetical ordering, correct activeTaskCount per project |
 | `getProjectsReturnsEmptyArrayWhenNoProjects` | Empty array returned with no projects |
+| `getProjectsIncludesGitRepoWhenSetAndOmitsWhenNil` | `gitRepo` present with value when set, absent when nil |
 | `getProjectsActiveTaskCountExcludesTerminalTasks` | Done and Abandoned tasks excluded from count |
 
 ### Not Tested (Low Risk)
 
-- `gitRepo` conditional inclusion (simple `if let`, hard to get wrong)
 - Fetch failure error path (would require mocking SwiftData internals)

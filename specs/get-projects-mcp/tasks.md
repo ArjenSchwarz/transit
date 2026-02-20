@@ -36,3 +36,11 @@ references:
 - [x] 7. Verify tests and lint pass <!-- id:9yxyrpt -->
   - Run `make test-quick` and `make lint` to confirm everything passes.
   - Blocked-by: 9yxyrpp (Update tools/list test for 5 tools), 9yxyrpq (Test: projects returned with correct fields and sort order), 9yxyrpr (Test: empty array when no projects exist), 9yxyrps (Test: activeTaskCount excludes terminal tasks)
+
+- [x] 8. Add test for gitRepo conditional inclusion <!-- id:review1a -->
+  - Add test verifying `gitRepo` is present with correct value when set and absent when nil.
+  - Blocked-by: 9yxyrpo (Implement `handleGetProjects` handler)
+
+- [x] 9. Revert unrelated cosmetic changes <!-- id:review1b -->
+  - Revert cosmetic reformatting in `handleCreateTask` (switch arm collapsing, response dict collapsing, local variable removal) and `handleAddComment` (`isoFormatter` → `fmt` rename, dict collapsing, MARK removal).
+  - Extract `QueryFilters` and `EmptyResult` to `MCPHelperTypes.swift` and move get_projects tests to `MCPGetProjectsTests.swift` to resolve lint violations caused by the reverts.

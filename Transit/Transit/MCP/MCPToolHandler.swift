@@ -116,10 +116,13 @@ final class MCPToolHandler {
         }
 
         let projectId = (args["projectId"] as? String).flatMap(UUID.init)
+        let projectName = args["project"] as? String
         let project: Project
-        switch projectService.findProject(id: projectId, name: args["project"] as? String) {
-        case .success(let found): project = found
-        case .failure(let error): return errorResult(IntentHelpers.mapProjectLookupError(error).hint)
+        switch projectService.findProject(id: projectId, name: projectName) {
+        case .success(let found):
+            project = found
+        case .failure(let error):
+            return errorResult(IntentHelpers.mapProjectLookupError(error).hint)
         }
 
         let task: TransitTask
@@ -135,8 +138,13 @@ final class MCPToolHandler {
             return errorResult("Task creation failed: \(error)")
         }
 
-        var response: [String: Any] = ["taskId": task.id.uuidString, "status": task.statusRawValue]
-        if let displayId = task.permanentDisplayId { response["displayId"] = displayId }
+        var response: [String: Any] = [
+            "taskId": task.id.uuidString,
+            "status": task.statusRawValue
+        ]
+        if let displayId = task.permanentDisplayId {
+            response["displayId"] = displayId
+        }
         return textResult(IntentHelpers.encodeJSON(response))
     }
 
@@ -287,13 +295,17 @@ extension MCPToolHandler {
             return errorResult("Failed to add comment: \(error)")
         }
 
-        let fmt = ISO8601DateFormatter()
+        let isoFormatter = ISO8601DateFormatter()
         let response: [String: Any] = [
-            "id": comment.id.uuidString, "authorName": comment.authorName,
-            "content": comment.content, "creationDate": fmt.string(from: comment.creationDate)
+            "id": comment.id.uuidString,
+            "authorName": comment.authorName,
+            "content": comment.content,
+            "creationDate": isoFormatter.string(from: comment.creationDate)
         ]
         return textResult(IntentHelpers.encodeJSON(response))
     }
+
+    // MARK: - Helpers
 
     private func validateCommentArgs(comment: String?, author: String?) -> (MCPToolResult?, Bool) {
         guard let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -379,22 +391,5 @@ extension MCPToolHandler {
         return dict
     }
 }
-
-// MARK: - Query Filters
-
-private struct QueryFilters {
-    let status: String?
-    let type: String?
-    let projectId: UUID?
-
-    func matches(_ task: TransitTask) -> Bool {
-        if let status, task.statusRawValue != status { return false }
-        if let type, task.typeRawValue != type { return false }
-        if let projectId, task.project?.id != projectId { return false }
-        return true
-    }
-}
-
-private nonisolated struct EmptyResult: Encodable, Sendable {}
 
 #endif

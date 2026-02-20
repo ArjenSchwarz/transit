@@ -35,8 +35,10 @@ enum MCPTestHelpers {
     }
 
     @discardableResult
-    static func makeProject(in context: ModelContext, name: String = "Test Project") -> Project {
-        let project = Project(name: name, description: "A test project", gitRepo: nil, colorHex: "#FF0000")
+    static func makeProject(
+        in context: ModelContext, name: String = "Test Project", gitRepo: String? = nil
+    ) -> Project {
+        let project = Project(name: name, description: "A test project", gitRepo: gitRepo, colorHex: "#FF0000")
         context.insert(project)
         return project
     }
