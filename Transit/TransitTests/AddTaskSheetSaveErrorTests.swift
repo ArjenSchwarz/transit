@@ -55,6 +55,9 @@ struct AddTaskSheetSaveErrorTests {
         }
     }
 
+    /// Verifies the service rejects empty names even though AddTaskSheet.save()
+    /// guards this before calling createTask. Documents the service-level contract
+    /// so callers that skip view-level validation still get a clear error.
     @Test func createTaskWithEmptyNameThrowsInvalidName() async throws {
         let (service, context) = try makeService()
         let project = makeProject(in: context)

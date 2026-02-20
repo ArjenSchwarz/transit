@@ -55,6 +55,7 @@ struct AddTaskSheet: View {
                 }
             }
         }
+        .interactiveDismissDisabled(isSaving)
         .presentationDetents([.medium, .large], selection: $selectedDetent)
         .alert("Save Failed", isPresented: $errorMessage.isPresent) {
             Button("OK") { errorMessage = nil }
