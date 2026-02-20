@@ -11,6 +11,7 @@
 - No status picker — always creates in `.idea` via `TaskService.createTask()`
 - When no projects exist, shows `EmptyStateView` directing to Settings
 - Default project selection: first project on appear
+- **Error handling (T-153)**: `save()` is async, awaits `createTask` before dismissing. On failure, shows "Save Failed" alert via `errorMessage` state (same pattern as TaskEditView/ProjectEditView). `isSaving` state disables the save button during the async operation to prevent double-taps. Sheet stays open on failure so user can retry.
 - **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow`
 
 ## TaskDetailView

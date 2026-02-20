@@ -12,6 +12,8 @@ struct AddTaskSheet: View {
     @State private var selectedType: TaskType = .feature
     @State private var selectedProjectID: UUID?
     @State private var selectedDetent: PresentationDetent = .large
+    @State private var isSaving = false
+    @State private var errorMessage: String?
 
     private var selectedProject: Project? {
         guard let id = selectedProjectID else { return nil }
@@ -44,14 +46,23 @@ struct AddTaskSheet: View {
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
                     }
+                    .disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save", systemImage: "checkmark") { save() }
-                        .disabled(!canSave)
+                    Button("Save", systemImage: "checkmark") {
+                        Task { await save() }
+                    }
+                    .disabled(!canSave || isSaving)
                 }
             }
         }
+        .interactiveDismissDisabled(isSaving)
         .presentationDetents([.medium, .large], selection: $selectedDetent)
+        .alert("Save Failed", isPresented: $errorMessage.isPresent) {
+            Button("OK") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
         .onAppear {
             if selectedProjectID == nil {
                 selectedProjectID = projects.first?.id
@@ -185,7 +196,7 @@ struct AddTaskSheet: View {
 
     // MARK: - Actions
 
-    private func save() {
+    private func save() async {
         guard let project = selectedProject else { return }
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         guard !trimmedName.isEmpty else { return }
@@ -194,15 +205,19 @@ struct AddTaskSheet: View {
         let type = selectedType
         let projectID = project.id
 
-        dismiss()
+        isSaving = true
+        defer { isSaving = false }
 
-        Task {
+        do {
             _ = try await taskService.createTask(
                 name: trimmedName,
                 description: description.isEmpty ? nil : description,
                 type: type,
                 projectID: projectID
             )
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }

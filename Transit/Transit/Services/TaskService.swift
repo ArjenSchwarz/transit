@@ -6,12 +6,27 @@ import SwiftData
 @MainActor @Observable
 final class TaskService {
 
-    enum Error: Swift.Error, Equatable {
+    enum Error: Swift.Error, LocalizedError, Equatable {
         case invalidName
         case taskNotFound
         case projectNotFound
         case duplicateDisplayID
         case restoreRequiresAbandonedTask
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidName:
+                "Task name cannot be empty."
+            case .taskNotFound:
+                "The specified task could not be found."
+            case .projectNotFound:
+                "The selected project could not be found."
+            case .duplicateDisplayID:
+                "A duplicate task identifier was detected."
+            case .restoreRequiresAbandonedTask:
+                "Only abandoned tasks can be restored."
+            }
+        }
     }
 
     private let modelContext: ModelContext
