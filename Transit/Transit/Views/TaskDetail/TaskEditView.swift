@@ -30,7 +30,7 @@ struct TaskEditView: View {
             iOSForm
             #endif
         }
-        .alert("Save Failed", isPresented: $errorMessage.isPresent) {
+        .alert("Error", isPresented: $errorMessage.isPresent) {
             Button("OK") { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")

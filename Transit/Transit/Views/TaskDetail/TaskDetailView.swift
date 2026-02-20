@@ -8,6 +8,7 @@ struct TaskDetailView: View {
     @Environment(CommentService.self) private var commentService
     @State private var showEdit = false
     @State private var comments: [Comment] = []
+    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -18,6 +19,11 @@ struct TaskDetailView: View {
             #endif
         }
         .presentationDetents([.medium, .large])
+        .alert("Error", isPresented: $errorMessage.isPresent) {
+            Button("OK") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
     }
 
     // MARK: - iOS Layout
@@ -163,6 +169,8 @@ struct TaskDetailView: View {
     }
 
     private func loadComments() {
+        // Read-only fetch: showing an empty list on failure is acceptable,
+        // unlike write operations where silent errors would lose data.
         comments = (try? commentService.fetchComments(for: task.id)) ?? []
     }
 
@@ -170,14 +178,22 @@ struct TaskDetailView: View {
     private var actionButtons: some View {
         if task.status == .abandoned {
             Button("Restore to Idea") {
-                try? taskService.restore(task: task)
-                dismiss()
+                do {
+                    try taskService.restore(task: task)
+                    dismiss()
+                } catch {
+                    errorMessage = "Could not restore task. Please try again."
+                }
             }
         } else {
             // Abandon from any status including Done [req 4.5]
             Button("Abandon", role: .destructive) {
-                try? taskService.abandon(task: task)
-                dismiss()
+                do {
+                    try taskService.abandon(task: task)
+                    dismiss()
+                } catch {
+                    errorMessage = "Could not abandon task. Please try again."
+                }
             }
         }
     }
