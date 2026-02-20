@@ -5,7 +5,6 @@ struct TaskCardView: View {
 
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(CommentService.self) private var commentService
 
     private var resolvedTheme: ResolvedTheme {
         (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
@@ -64,7 +63,7 @@ struct TaskCardView: View {
 
                 TypeBadge(type: task.type)
 
-                if let count = try? commentService.commentCount(for: task.id), count > 0 {
+                if let count = task.comments?.count, count > 0 {
                     Label("\(count)", systemImage: "bubble.left")
                         .font(.caption2)
                         .foregroundStyle(.secondary)

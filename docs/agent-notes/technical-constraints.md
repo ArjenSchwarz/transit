@@ -59,6 +59,14 @@
 - SwiftData uses zone `com.apple.coredata.cloudkit.zone`.
 - Push notifications do not work on Simulator — test on physical devices.
 
+## ModelContext: mainContext vs ModelContext(container)
+
+`ModelContext(container)` creates an **independent** context with its own change tracking. `container.mainContext` is the shared main-actor-bound context that `@Query` and `@Environment(\.modelContext)` use (when `.modelContainer(container)` is set on the scene).
+
+Services that accept model objects from views **must** use `container.mainContext` -- otherwise mutations happen on the view's context but `save()` targets the service's separate context, silently losing changes. See T-173 for the full bug.
+
+Rule: Never use `ModelContext(container)` for services that interact with view-provided model objects. Always use `container.mainContext`.
+
 ## SwiftData Test Container
 
 Creating multiple `ModelContainer` instances for the same schema in one process causes `loadIssueModelContainer` errors. The app's CloudKit entitlements trigger auto-discovery of `@Model` types at test host launch, conflicting with test containers.

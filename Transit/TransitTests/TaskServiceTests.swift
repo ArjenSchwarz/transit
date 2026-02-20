@@ -189,6 +189,54 @@ struct TaskServiceTests {
         }
     }
 
+    // MARK: - Context persistence (T-173 regression)
+
+    /// Regression test for T-173: Status updates must persist when the service
+    /// uses the same ModelContext as the caller (container.mainContext).
+    /// Before the fix, TaskService used a separate ModelContext(container) while
+    /// views used container.mainContext via @Query. Status mutations happened on
+    /// the view's context but save() was called on the service's context, so
+    /// changes were never written to disk.
+    @Test func updateStatusPersistsWhenUsingSharedContext() async throws {
+        // Create a container — mimics the app setup
+        let schema = Schema([Project.self, TransitTask.self, Comment.self])
+        let config = ModelConfiguration(
+            "T173-regression-\(UUID().uuidString)",
+            schema: schema,
+            isStoredInMemoryOnly: true,
+            cloudKitDatabase: .none
+        )
+        let container = try ModelContainer(for: schema, configurations: [config])
+
+        // Use container.mainContext for the service — this is the fix
+        let context = container.mainContext
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        let service = TaskService(modelContext: context, displayIDAllocator: allocator)
+
+        // Create a task via the shared context (simulates @Query providing the task)
+        let project = Project(
+            name: "Test", description: "Test", gitRepo: nil, colorHex: "#FF0000"
+        )
+        context.insert(project)
+        let task = try await service.createTask(
+            name: "Persist Check", description: nil, type: .feature, project: project
+        )
+        #expect(task.status == .idea)
+
+        // Update status — this must be saved to the store
+        try service.updateStatus(task: task, to: .inProgress)
+
+        // Verify the change persisted by re-fetching from a fresh context
+        let verifyContext = ModelContext(container)
+        let taskID = task.id
+        let descriptor = FetchDescriptor<TransitTask>(
+            predicate: #Predicate { $0.id == taskID }
+        )
+        let refetched = try verifyContext.fetch(descriptor).first
+        #expect(refetched?.statusRawValue == TaskStatus.inProgress.rawValue)
+    }
+
     // MARK: - updateStatus with comment
 
     @Test func updateStatusWithCommentCreatesCommentAtomically() async throws {

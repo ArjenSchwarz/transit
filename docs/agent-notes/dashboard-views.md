@@ -21,7 +21,8 @@
 - Theme-aware material background (ultraThin for universal/dark, thin for light)
 - Top-edge accent stripe (2.5pt, project colour) instead of full border
 - Subtle border + shadow adapted per theme
-- Shows: project name, task name (strikethrough if abandoned), display ID, type badge
+- Shows: project name, task name (strikethrough if abandoned), display ID, type badge, comment count badge
+- Comment count uses `task.comments?.count` (relationship) — not a CommentService query. No CommentService dependency in this view (T-151).
 - Abandoned tasks render at 50% opacity
 - `.draggable(task.id.uuidString)` for drag-and-drop
 - Reads theme via `@AppStorage("appTheme")` + `@Environment(\.colorScheme)`
