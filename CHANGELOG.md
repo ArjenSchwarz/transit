@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Smolspec and task list for MCP status filter improvements (T-58): multi-status inclusion, status exclusion, and `unfinished` shorthand flag for `query_tasks` MCP tool
 - `project` name parameter on `query_tasks` MCP tool for case-insensitive project filtering, matching `create_task` behavior (T-179). `projectId` takes precedence when both are provided; empty/whitespace strings are treated as absent.
 - 8 tests for `query_tasks` project name filter: match, case-insensitive, unknown project error, ambiguous project error, projectId precedence, empty string, combined with status, combined with type (T-179)
 - Smolspec and task list for MCP project name filter (T-179): add `project` name parameter to `query_tasks` tool for case-insensitive filtering, matching `create_task` behavior
