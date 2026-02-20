@@ -19,6 +19,7 @@
 - Read-only display: display ID as nav title, name, type (TypeBadge), status, project (with color dot), description, metadata
 - Edit button presents TaskEditView as a nested `.sheet`
 - Action section: Abandon button (for non-terminal tasks), Restore button (for abandoned tasks)
+- **Error handling (T-150)**: Action buttons use `do/catch` — on failure, show "Action Failed" alert via `errorMessage` state. View stays open so user sees the error. Same pattern as TaskEditView (T-148).
 - Uses `.presentationDetents([.medium, .large])`
 - **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow` for read-only detail fields. Toolbar and action buttons shared via extracted computed properties.
 
@@ -47,7 +48,7 @@
 - Fields: name, description (multiline), git repo URL (optional), ColorPicker
 - Save disabled until name and description are non-empty
 - Create mode: uses `ProjectService.createProject()`
-- Edit mode: directly mutates project properties
+- Edit mode: directly mutates project properties, uses `do/catch` with `modelContext.rollback()` on save failure (T-150)
 - Pushed for edit (via NavigationDestination), presented as sheet for create
 - **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow`, with bottom-right Save button
 

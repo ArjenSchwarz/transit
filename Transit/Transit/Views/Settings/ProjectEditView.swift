@@ -170,7 +170,13 @@ struct ProjectEditView: View {
             project.projectDescription = trimmedDesc
             project.gitRepo = trimmedRepo.isEmpty ? nil : trimmedRepo
             project.colorHex = color.hexString
-            try? modelContext.save()
+            do {
+                try modelContext.save()
+            } catch {
+                modelContext.rollback()
+                errorMessage = "Could not save project. Please try again."
+                return
+            }
         } else {
             do {
                 try projectService.createProject(
