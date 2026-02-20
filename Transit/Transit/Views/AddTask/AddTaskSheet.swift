@@ -46,6 +46,7 @@ struct AddTaskSheet: View {
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
                     }
+                    .disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", systemImage: "checkmark") {
