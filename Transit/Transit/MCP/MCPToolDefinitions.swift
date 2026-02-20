@@ -46,7 +46,7 @@ nonisolated enum MCPToolDefinitions {
     )
 
     // swiftlint:disable:next line_length
-    private static let queryTasksDescription = "Search and filter tasks. All filters are optional — omit all to return every task. Use displayId for single-task lookup with full details."
+    private static let queryTasksDescription = "Search and filter tasks. All filters are optional — omit all to return every task. Use displayId for single-task lookup with full details. Use project for case-insensitive name filtering."
 
     static let queryTasks = MCPToolDefinition(
         name: "query_tasks",
@@ -62,7 +62,8 @@ nonisolated enum MCPToolDefinitions {
                     "Filter by type",
                     values: TaskType.allCases.map(\.rawValue)
                 ),
-                "projectId": .string("Filter by project UUID")
+                "projectId": .string("Filter by project UUID"),
+                "project": .string("Project name (optional, case-insensitive)")
             ],
             required: []
         )
