@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Smolspec and task list for get_projects MCP command (T-110): new MCP tool to list all projects with metadata so agents can discover project names
+
+### Added
+
 - Smolspec and task list for settings background feature (T-149): apply `BoardBackground` to Settings view on both platforms with immediate theme reactivity
 - `Binding<String?>.isPresent` extension (`Binding+IsPresent.swift`) returning a `Binding<Bool>` for driving `.alert(isPresented:)` from optional error state
 
