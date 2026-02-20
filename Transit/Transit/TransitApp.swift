@@ -141,7 +141,7 @@ struct TransitApp: App {
 
     private func seedBoardScenario() {
         let now = Date()
-        let ctx = container.mainContext
+        let ctx = sharedModelContext
 
         let alpha = Project(
             name: "Alpha", description: "Primary project", gitRepo: nil, colorHex: "#0A84FF"

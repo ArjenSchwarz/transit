@@ -15,7 +15,6 @@ struct SharedContextPromotionTests {
         let context = try TestModelContainer.newContext()
         let store = InMemoryCounterStore(initialNextDisplayID: 1)
         let allocator = DisplayIDAllocator(store: store)
-        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
 
         let project = Project(name: "P", description: "Test", gitRepo: nil, colorHex: "#000000")
         context.insert(project)
