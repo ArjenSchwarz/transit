@@ -7,6 +7,7 @@ import SwiftUI
 struct TransitApp: App {
 
     private let container: ModelContainer
+    private let sharedModelContext: ModelContext
     private let taskService: TaskService
     private let projectService: ProjectService
     private let commentService: CommentService
@@ -43,6 +44,7 @@ struct TransitApp: App {
         }
 
         let context = ModelContext(container)
+        self.sharedModelContext = context
         let allocator = DisplayIDAllocator()
         self.displayIDAllocator = allocator
 
@@ -99,7 +101,7 @@ struct TransitApp: App {
             )
             .modifier(ScenePhaseModifier(
                 displayIDAllocator: displayIDAllocator,
-                modelContext: ModelContext(container)
+                modelContext: sharedModelContext
             ))
             .environment(taskService)
             .environment(projectService)
