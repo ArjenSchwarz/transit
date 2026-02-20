@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Settings view now displays `BoardBackground` gradient mesh behind content on both iOS and macOS, matching the dashboard appearance (T-149)
+- macOS settings toolbar is now transparent so the background gradient shows through
+- Extracted shared SettingsView helpers into an extension to satisfy type body length lint rule
+
 ### Added
 
 - Smolspec and task list for settings background feature (T-149): apply `BoardBackground` to Settings view on both platforms with immediate theme reactivity
