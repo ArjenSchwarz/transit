@@ -42,7 +42,7 @@ struct TransitApp: App {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
 
-        let context = ModelContext(container)
+        let context = container.mainContext
         let allocator = DisplayIDAllocator()
         self.displayIDAllocator = allocator
 
@@ -99,7 +99,7 @@ struct TransitApp: App {
             )
             .modifier(ScenePhaseModifier(
                 displayIDAllocator: displayIDAllocator,
-                modelContext: ModelContext(container)
+                modelContext: container.mainContext
             ))
             .environment(taskService)
             .environment(projectService)

@@ -20,9 +20,10 @@ final class CommentService {
     /// Creates a comment on a task. Validates content and authorName are
     /// non-empty after trimming whitespace.
     ///
-    /// The task is re-fetched from this service's own `ModelContext` to avoid
-    /// cross-context relationship issues (e.g. the view passes a task from
-    /// `mainContext` but this service uses a separate context).
+    /// The task is resolved via `resolveTask(_:)` to ensure the relationship
+    /// is established within this service's `ModelContext`. All services share
+    /// `container.mainContext`, so the fast-path (`registeredModel`) will
+    /// normally succeed.
     ///
     /// When `save` is false, the caller is responsible for calling
     /// modelContext.save(). Used for atomic operations where multiple
@@ -98,8 +99,9 @@ final class CommentService {
 
     // MARK: - Private
 
-    /// Re-fetches a task from this service's ModelContext by UUID.
-    /// If the task is already registered in this context, returns it directly.
+    /// Resolves a task within this service's ModelContext.
+    /// Returns the task directly if already registered (the common case when
+    /// all services share `mainContext`), otherwise falls back to a UUID fetch.
     private func resolveTask(_ task: TransitTask) throws -> TransitTask {
         if let registered = modelContext.registeredModel(for: task.persistentModelID) as TransitTask? {
             return registered
