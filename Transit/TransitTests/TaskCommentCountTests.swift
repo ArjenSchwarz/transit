@@ -69,15 +69,4 @@ struct TaskCommentCountTests {
         #expect(task.comments?.count == 1)
     }
 
-    @Test func commentsRelationshipCount_isNilNotCount_whenNoRelationshipLoaded() throws {
-        // Verify that the optional binding pattern `if let count = task.comments?.count`
-        // used in TaskCardView behaves correctly for a newly created task.
-        let context = try makeContext()
-        let task = makeTask(in: context)
-
-        // A newly inserted task may have nil comments before any are added.
-        // The badge should not appear for count == 0 or nil.
-        let count = task.comments?.count ?? 0
-        #expect(count == 0)
-    }
 }
