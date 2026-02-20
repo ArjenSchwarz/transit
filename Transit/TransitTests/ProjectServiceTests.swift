@@ -74,8 +74,9 @@ struct ProjectServiceTests {
 
         // Verify the project is fetchable from the context after creation,
         // confirming that createProject calls context.save() (not try?).
+        let projectID = project.id
         let descriptor = FetchDescriptor<Project>(
-            predicate: #Predicate { $0.id == project.id }
+            predicate: #Predicate { $0.id == projectID }
         )
         let fetched = try context.fetch(descriptor)
         #expect(fetched.count == 1)
