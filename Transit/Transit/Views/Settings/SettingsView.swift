@@ -108,6 +108,7 @@ struct SettingsView: View {
             }
             .padding(32)
             .frame(maxWidth: 760, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollContentBackground(.hidden)
         .background { BoardBackground(theme: resolvedTheme) }
