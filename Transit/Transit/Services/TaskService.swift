@@ -124,7 +124,12 @@ final class TaskService {
     /// Moves a task to `.abandoned` status.
     func abandon(task: TransitTask) throws {
         StatusEngine.applyTransition(task: task, to: .abandoned)
-        try modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
     }
 
     /// Restores an abandoned task back to `.idea` status.
@@ -133,7 +138,12 @@ final class TaskService {
             throw Error.restoreRequiresAbandonedTask
         }
         StatusEngine.applyTransition(task: task, to: .idea)
-        try modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
     }
 
     // MARK: - Lookup

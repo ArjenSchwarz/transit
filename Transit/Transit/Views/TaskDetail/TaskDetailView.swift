@@ -19,7 +19,7 @@ struct TaskDetailView: View {
             #endif
         }
         .presentationDetents([.medium, .large])
-        .alert("Action Failed", isPresented: $errorMessage.isPresent) {
+        .alert("Error", isPresented: $errorMessage.isPresent) {
             Button("OK") { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
@@ -169,6 +169,8 @@ struct TaskDetailView: View {
     }
 
     private func loadComments() {
+        // Read-only fetch: showing an empty list on failure is acceptable,
+        // unlike write operations where silent errors would lose data.
         comments = (try? commentService.fetchComments(for: task.id)) ?? []
     }
 

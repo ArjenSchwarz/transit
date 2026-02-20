@@ -92,9 +92,9 @@ struct ActionButtonSaveErrorTests {
         #expect(task.completionDate != nil)
     }
 
-    // MARK: - Error propagation contract
+    // MARK: - Throwing contract (documents that abandon/restore use `try`, not `try?`)
 
-    @Test func abandonIsThrowingAndPropagatesErrors() async throws {
+    @Test func abandonIsDeclaredThrowingAndSucceedsNormally() async throws {
         let (service, context) = try makeService()
         let project = makeProject(in: context)
         let task = try await service.createTask(
@@ -104,13 +104,13 @@ struct ActionButtonSaveErrorTests {
             project: project
         )
 
-        // Verify abandon is a throwing function that succeeds normally.
-        // If the view called this with try? (the old bug), errors would be lost.
+        // Verify abandon is a throwing function that succeeds on the happy path.
+        // The view must call this with `try` (not `try?`) so errors surface.
         try service.abandon(task: task)
         #expect(task.status == .abandoned)
     }
 
-    @Test func restoreIsThrowingAndPropagatesErrors() async throws {
+    @Test func restoreIsDeclaredThrowingAndSucceedsNormally() async throws {
         let (service, context) = try makeService()
         let project = makeProject(in: context)
         let task = try await service.createTask(
@@ -121,7 +121,7 @@ struct ActionButtonSaveErrorTests {
         )
         try service.abandon(task: task)
 
-        // Verify restore is a throwing function that succeeds normally.
+        // Verify restore is a throwing function that succeeds on the happy path.
         try service.restore(task: task)
         #expect(task.status == .idea)
     }
