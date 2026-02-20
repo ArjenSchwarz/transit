@@ -101,6 +101,22 @@ struct MCPQueryProjectNameTests {
         #expect(results.first?["name"] as? String == "Planned")
     }
 
+    @Test func queryByAmbiguousProjectNameReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        // Insert duplicates directly to simulate pre-existing data (e.g. from CloudKit sync).
+        let first = Project(name: "Alpha", description: "", gitRepo: nil, colorHex: "#000000")
+        let second = Project(name: "alpha", description: "", gitRepo: nil, colorHex: "#111111")
+        env.context.insert(first)
+        env.context.insert(second)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["project": "Alpha"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+    }
+
     @Test func queryByProjectNameCombinedWithTypeFilter() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
