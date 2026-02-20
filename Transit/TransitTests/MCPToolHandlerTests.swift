@@ -261,6 +261,7 @@ struct MCPToolHandlerTests {
         #expect(first["projectName"] as? String == "Alpha")
         #expect(first["projectId"] is String)
     }
+
     // MARK: - get_projects
 
     @Test func getProjectsReturnsCorrectFieldsAndSortOrder() async throws {
