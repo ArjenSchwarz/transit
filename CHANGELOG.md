@@ -8,10 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Smolspec and task list for settings background feature (T-149): apply `BoardBackground` to Settings view on both platforms with immediate theme reactivity
 - `Binding<String?>.isPresent` extension (`Binding+IsPresent.swift`) returning a `Binding<Bool>` for driving `.alert(isPresented:)` from optional error state
 
 ### Changed
 
+- Settings view now displays `BoardBackground` gradient mesh behind content on both iOS and macOS, matching the dashboard appearance (T-149)
+- macOS settings toolbar is now transparent so the background gradient shows through
+- Extracted shared SettingsView helpers into an extension to satisfy type body length lint rule
 - `TaskEditView`, `ProjectEditView`, and `CommentsSection` use `$errorMessage.isPresent` instead of duplicated `Binding(get:set:)` boilerplate
 - `ColumnView.columnPanel` refactored from three identical switch cases to data-driven local variables with a single view construction
 - `DashboardLogic.buildFilteredColumns` now uses `Date.isWithin48Hours(of:)` extension instead of inline `addingTimeInterval` cutoff
@@ -19,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Settings `BoardBackground` not filling full window width on macOS — added outer `.frame(maxWidth: .infinity)` on content with centered alignment to match ReportView pattern (T-149)
 - Report view background and scrollbar not spanning full window width on macOS — content VStack now uses `frame(maxWidth: .infinity)` to fill available space
 
 ### Added

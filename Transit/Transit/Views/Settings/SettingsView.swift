@@ -8,6 +8,11 @@ struct SettingsView: View {
     @AppStorage("syncEnabled") private var syncEnabled = true
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @AppStorage("userDisplayName") private var userDisplayName = ""
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var resolvedTheme: ResolvedTheme {
+        (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
+    }
     @State private var showCreateProject = false
 
     #if os(macOS)
@@ -32,6 +37,8 @@ struct SettingsView: View {
             iOSProjectsSection
             iOSGeneralSection
         }
+        .scrollContentBackground(.hidden)
+        .background { BoardBackground(theme: resolvedTheme) }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
         .navigationBarBackButtonHidden(true)
@@ -100,10 +107,14 @@ struct SettingsView: View {
                 macOSGeneralSection
             }
             .padding(32)
-            .frame(maxWidth: 760, alignment: .leading)
+            .frame(maxWidth: 760)
+            .frame(maxWidth: .infinity)
         }
+        .scrollContentBackground(.hidden)
+        .background { BoardBackground(theme: resolvedTheme) }
         .navigationTitle("Settings")
         .navigationBarBackButtonHidden(true)
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .toolbar { settingsToolbar }
         .sheet(isPresented: $showCreateProject) {
             NavigationStack {
@@ -241,10 +252,14 @@ struct SettingsView: View {
     }
     #endif
 
-    // MARK: - Shared
+}
+
+// MARK: - Shared Helpers
+
+extension SettingsView {
 
     @ToolbarContentBuilder
-    private var settingsToolbar: some ToolbarContent {
+    fileprivate var settingsToolbar: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
             Button {
                 dismiss()
@@ -254,7 +269,7 @@ struct SettingsView: View {
         }
     }
 
-    private func projectRow(_ project: Project) -> some View {
+    fileprivate func projectRow(_ project: Project) -> some View {
         HStack(spacing: 12) {
             projectSwatch(project)
             Text(project.name)
@@ -264,7 +279,7 @@ struct SettingsView: View {
         }
     }
 
-    private func projectSwatch(_ project: Project) -> some View {
+    fileprivate func projectSwatch(_ project: Project) -> some View {
         RoundedRectangle(cornerRadius: 6)
             .fill(Color(hex: project.colorHex))
             .frame(width: 28, height: 28)
@@ -276,7 +291,7 @@ struct SettingsView: View {
             }
     }
 
-    private var appVersion: String {
+    fileprivate var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     }
 }
