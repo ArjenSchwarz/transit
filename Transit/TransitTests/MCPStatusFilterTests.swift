@@ -199,6 +199,7 @@ struct MCPStatusFilterTests {
         let results = try MCPTestHelpers.decodeArrayResult(response)
         #expect(results.count == 2)
     }
+
 }
 
 #endif

@@ -23,7 +23,7 @@ references:
 
 ## Handler Integration and Tool Schema
 
-- [ ] 3. Handler parses new status filter parameters <!-- id:o3z0o8y -->
+- [x] 3. Handler parses new status filter parameters <!-- id:o3z0o8y -->
   - handleQueryTasks extracts status accepting both String and [String]
   - Extracts not_status as [String] and unfinished as Bool
   - When unfinished is true, merges [done, abandoned] into not-statuses
@@ -31,7 +31,7 @@ references:
   - Verified: unit tests cover backward compat, array input, unfinished flag, merge, empty arrays
   - Blocked-by: o3z0o8x (MCPQueryFilters handles multi-status inclusion and exclusion)
 
-- [ ] 4. query_tasks tool schema and description updated <!-- id:o3z0o8z -->
+- [x] 4. query_tasks tool schema and description updated <!-- id:o3z0o8z -->
   - status uses .array() with string enum items for all TaskStatus raw values
   - not_status uses .array() with same enum items
   - unfinished uses .boolean()
@@ -39,7 +39,7 @@ references:
   - Verified: build succeeds, tools/list response includes updated schema
   - Blocked-by: o3z0o8w (JSONSchemaProperty supports boolean and array types)
 
-- [ ] 5. Integration tests for combined filter scenarios <!-- id:o3z0o90 -->
+- [x] 5. Integration tests for combined filter scenarios <!-- id:o3z0o90 -->
   - Multi-status with project filter returns correct subset
   - Exclusion filter with type filter composes correctly
   - Unfinished flag with displayId lookup still works

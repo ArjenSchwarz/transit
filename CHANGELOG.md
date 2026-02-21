@@ -6,8 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `query_tasks` MCP tool schema: `status` parameter changed from `stringEnum` to `array` type with enum items, added `not_status` array parameter and `unfinished` boolean parameter (T-58)
+- `queryTasksDescription` updated to document new `status`, `not_status`, and `unfinished` parameters and their interaction (T-58)
+
 ### Added
 
+- `MCPStatusFilterIntegrationTests` suite (5 tests) covering multi-status with project filter, exclusion with type filter, unfinished flag with displayId lookup (include and exclude), and single-string backward compat with project filter (T-58)
 - `JSONSchemaItems` struct and `items` property on `JSONSchemaProperty` for JSON Schema array type support, plus `.boolean()` and `.array()` static factories (T-58)
 - `MCPQueryFilters.from(args:type:projectId:)` factory method parsing multi-status inclusion (`status` as string or array), exclusion (`not_status`), and `unfinished` boolean flag with backward-compatible single-string handling (T-58)
 - `MCPStatusFilterTests` suite (8 tests) covering multi-status inclusion, single-string backward compat, status exclusion, unfinished flag, merged exclusions, combined inclusion+exclusion, contradictory filters, and empty arrays (T-58)
