@@ -6,12 +6,12 @@ references:
 
 ## Dashboard Search
 
-- [ ] 1. Text search filters tasks in DashboardLogic.buildFilteredColumns() <!-- id:53q1716 -->
+- [x] 1. Text search filters tasks in DashboardLogic.buildFilteredColumns() <!-- id:53q1716 -->
 
-- [ ] 2. Dashboard displays .searchable() bar and passes search text to filter logic <!-- id:53q1717 -->
+- [x] 2. Dashboard displays .searchable() bar and passes search text to filter logic <!-- id:53q1717 -->
   - Blocked-by: 53q1716 (Text search filters tasks in DashboardLogic.buildFilteredColumns())
 
-- [ ] 3. Active filter count includes non-empty search text and unit tests pass for dashboard text filtering <!-- id:53q1718 -->
+- [x] 3. Active filter count includes non-empty search text and unit tests pass for dashboard text filtering <!-- id:53q1718 -->
   - Blocked-by: 53q1717 (Dashboard displays .searchable() bar and passes search text to filter logic)
 
 ## MCP and App Intent

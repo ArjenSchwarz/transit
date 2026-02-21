@@ -315,4 +315,5 @@ struct DashboardFilterTests {
             #expect(columns[column]?.isEmpty == true)
         }
     }
+
 }

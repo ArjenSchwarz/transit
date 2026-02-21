@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Dashboard text search via `.searchable()` modifier: filters kanban board tasks by case-insensitive substring match on name and description, combines with existing project/type filters, counts as one active filter in the badge (T-180)
+- `DashboardSearchTests` suite (7 tests) covering name match, description match, nil description, empty search, whitespace-only search, combined filters, and name-or-description matching (T-180)
 - Smolspec and task list for text filter feature (T-180): `.searchable()` search bar on the dashboard and `search` parameter on the `query_tasks` MCP tool and App Intent, both using case-insensitive substring matching on task name and description
 
 - `MCPStatusFilterIntegrationTests` suite (5 tests) covering multi-status with project filter, exclusion with type filter, unfinished flag with displayId lookup (include and exclude), and single-string backward compat with project filter (T-58)
