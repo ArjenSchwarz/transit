@@ -10,6 +10,7 @@ struct DashboardView: View {
     @State private var selectedTask: TransitTask?
     @State private var showFilter = false
     @State private var showAddTask = false
+    @State private var searchText = ""
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @Environment(TaskService.self) private var taskService
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -27,11 +28,16 @@ struct DashboardView: View {
         verticalSizeClass == .compact
     }
 
+    private var effectiveSearchText: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var filteredColumns: [DashboardColumn: [TransitTask]] {
         DashboardLogic.buildFilteredColumns(
             allTasks: allTasks,
             selectedProjectIDs: selectedProjectIDs,
-            selectedTypes: selectedTypes
+            selectedTypes: selectedTypes,
+            searchText: effectiveSearchText
         )
     }
 
@@ -66,6 +72,7 @@ struct DashboardView: View {
             }
         }
         .navigationTitle("Transit")
+        .searchable(text: $searchText)
         .toolbarTitleDisplayMode(.inline)
         #if os(macOS)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
@@ -100,7 +107,7 @@ struct DashboardView: View {
     // MARK: - Toolbar Buttons
 
     private var activeFilterCount: Int {
-        selectedProjectIDs.count + selectedTypes.count
+        selectedProjectIDs.count + selectedTypes.count + (effectiveSearchText.isEmpty ? 0 : 1)
     }
 
     private var activeFilterAccessibilityValue: String {
@@ -158,30 +165,24 @@ struct DashboardView: View {
 
 enum DashboardLogic {
 
-    /// Testable column builder: groups tasks by column, applies project and type filters,
+    /// Testable column builder: groups tasks by column, applies project, type, and text search filters,
     /// 48-hour cutoff for terminal tasks, and sorting rules.
     static func buildFilteredColumns(
         allTasks: [TransitTask],
         selectedProjectIDs: Set<UUID>,
         selectedTypes: Set<TaskType> = [],
+        searchText: String = "",
         now: Date = .now
     ) -> [DashboardColumn: [TransitTask]] {
+        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
         let filtered = allTasks.filter { task in
-            // Exclude orphan tasks (no project)
-            guard task.project != nil else { return false }
-
-            // Project filter: non-empty set means only matching projects
-            if !selectedProjectIDs.isEmpty {
-                guard let projectId = task.project?.id,
-                      selectedProjectIDs.contains(projectId) else { return false }
-            }
-
-            // Type filter: non-empty set means only matching types (AND with project)
-            if !selectedTypes.isEmpty {
-                guard selectedTypes.contains(task.type) else { return false }
-            }
-
-            return true
+            matchesFilters(
+                task: task,
+                selectedProjectIDs: selectedProjectIDs,
+                selectedTypes: selectedTypes,
+                searchText: trimmedSearch
+            )
         }
 
         var grouped = Dictionary(grouping: filtered) { $0.status.column }
@@ -212,6 +213,32 @@ enum DashboardLogic {
                 return lhs.lastStatusChangeDate > rhs.lastStatusChangeDate
             }
         }
+    }
+
+    private static func matchesFilters(
+        task: TransitTask,
+        selectedProjectIDs: Set<UUID>,
+        selectedTypes: Set<TaskType>,
+        searchText: String
+    ) -> Bool {
+        guard task.project != nil else { return false }
+
+        if !selectedProjectIDs.isEmpty {
+            guard let projectId = task.project?.id,
+                  selectedProjectIDs.contains(projectId) else { return false }
+        }
+
+        if !selectedTypes.isEmpty {
+            guard selectedTypes.contains(task.type) else { return false }
+        }
+
+        if !searchText.isEmpty {
+            let nameMatch = task.name.localizedCaseInsensitiveContains(searchText)
+            let descMatch = task.taskDescription?.localizedCaseInsensitiveContains(searchText) ?? false
+            guard nameMatch || descMatch else { return false }
+        }
+
+        return true
     }
 
     /// Applies a drag-drop status change via the task service.

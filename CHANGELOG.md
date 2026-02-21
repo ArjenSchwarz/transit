@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `search` parameter on `query_tasks` MCP tool for case-insensitive substring matching on task name and description, combining conjunctively with all existing filters (T-180)
+- `search` field on `QueryTasksIntent` App Intent JSON input with the same matching behavior (T-180)
+- `MCPSearchFilterTests` suite (9 tests) covering search by name, description, case insensitivity, combined filters (type, status), whitespace trimming, nil description, name-or-description matching, and empty search (T-180)
+- Dashboard text search via `.searchable()` modifier: filters kanban board tasks by case-insensitive substring match on name and description, combines with existing project/type filters, counts as one active filter in the badge (T-180)
+- `DashboardSearchTests` suite (7 tests) covering name match, description match, nil description, empty search, whitespace-only search, combined filters, and name-or-description matching (T-180)
+- Smolspec and task list for text filter feature (T-180): `.searchable()` search bar on the dashboard and `search` parameter on the `query_tasks` MCP tool and App Intent, both using case-insensitive substring matching on task name and description
+
 - `MCPStatusFilterIntegrationTests` suite (5 tests) covering multi-status with project filter, exclusion with type filter, unfinished flag with displayId lookup (include and exclude), and single-string backward compat with project filter (T-58)
 - `JSONSchemaItems` struct and `items` property on `JSONSchemaProperty` for JSON Schema array type support, plus `.boolean()` and `.array()` static factories (T-58)
 - `MCPQueryFilters.from(args:type:projectId:)` factory method parsing multi-status inclusion (`status` as string or array), exclusion (`not_status`), and `unfinished` boolean flag with backward-compatible single-string handling (T-58)
