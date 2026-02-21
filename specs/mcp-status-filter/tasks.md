@@ -6,14 +6,14 @@ references:
 
 ## Schema and Filter Infrastructure
 
-- [ ] 1. JSONSchemaProperty supports boolean and array types <!-- id:o3z0o8w -->
+- [x] 1. JSONSchemaProperty supports boolean and array types <!-- id:o3z0o8w -->
   - JSONSchemaItems struct exists with type and enumValues
   - JSONSchemaProperty has items: JSONSchemaItems? property
   - .boolean() and .array() static factories produce correct JSON Schema output
   - Existing schema factories still encode correctly with items as nil
   - Verified: build succeeds, existing MCP tool definitions unchanged
 
-- [ ] 2. MCPQueryFilters handles multi-status inclusion and exclusion <!-- id:o3z0o8x -->
+- [x] 2. MCPQueryFilters handles multi-status inclusion and exclusion <!-- id:o3z0o8x -->
   - MCPQueryFilters accepts statuses: [String]? and notStatuses: [String]? instead of status: String?
   - matches() returns true when task status is in statuses list (or statuses is nil/empty)
   - matches() returns false when task status is in notStatuses list

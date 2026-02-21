@@ -204,10 +204,8 @@ final class MCPToolHandler {
             }
         }
 
-        let filters = MCPQueryFilters(
-            status: args["status"] as? String,
-            type: args["type"] as? String,
-            projectId: projectFilter
+        let filters = MCPQueryFilters.from(
+            args: args, type: args["type"] as? String, projectId: projectFilter
         )
 
         // Single-task lookup by displayId — returns early with detailed response

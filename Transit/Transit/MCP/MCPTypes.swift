@@ -146,30 +146,56 @@ nonisolated struct JSONSchema: Encodable, Sendable {
     }
 }
 
+nonisolated struct JSONSchemaItems: Encodable, Sendable {
+    let type: String?
+    let enumValues: [String]?
+
+    nonisolated enum CodingKeys: String, CodingKey {
+        case type
+        case enumValues = "enum"
+    }
+}
+
 nonisolated struct JSONSchemaProperty: Encodable, Sendable {
     let type: String?
     let description: String?
     let enumValues: [String]?
+    let items: JSONSchemaItems?
 
     nonisolated enum CodingKeys: String, CodingKey {
-        case type, description
+        case type, description, items
         case enumValues = "enum"
     }
 
     static func string(_ description: String) -> JSONSchemaProperty {
-        JSONSchemaProperty(type: "string", description: description, enumValues: nil)
+        JSONSchemaProperty(type: "string", description: description, enumValues: nil, items: nil)
     }
 
     static func integer(_ description: String) -> JSONSchemaProperty {
-        JSONSchemaProperty(type: "integer", description: description, enumValues: nil)
+        JSONSchemaProperty(type: "integer", description: description, enumValues: nil, items: nil)
     }
 
     static func object(_ description: String) -> JSONSchemaProperty {
-        JSONSchemaProperty(type: "object", description: description, enumValues: nil)
+        JSONSchemaProperty(type: "object", description: description, enumValues: nil, items: nil)
     }
 
     static func stringEnum(_ description: String, values: [String]) -> JSONSchemaProperty {
-        JSONSchemaProperty(type: "string", description: description, enumValues: values)
+        JSONSchemaProperty(type: "string", description: description, enumValues: values, items: nil)
+    }
+
+    static func boolean(_ description: String) -> JSONSchemaProperty {
+        JSONSchemaProperty(type: "boolean", description: description, enumValues: nil, items: nil)
+    }
+
+    static func array(
+        _ description: String, itemType: String = "string", enumValues: [String]? = nil
+    ) -> JSONSchemaProperty {
+        JSONSchemaProperty(
+            type: "array",
+            description: description,
+            enumValues: nil,
+            items: JSONSchemaItems(type: itemType, enumValues: enumValues)
+        )
     }
 }
 

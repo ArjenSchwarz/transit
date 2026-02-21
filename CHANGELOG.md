@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `JSONSchemaItems` struct and `items` property on `JSONSchemaProperty` for JSON Schema array type support, plus `.boolean()` and `.array()` static factories (T-58)
+- `MCPQueryFilters.from(args:type:projectId:)` factory method parsing multi-status inclusion (`status` as string or array), exclusion (`not_status`), and `unfinished` boolean flag with backward-compatible single-string handling (T-58)
+- `MCPStatusFilterTests` suite (8 tests) covering multi-status inclusion, single-string backward compat, status exclusion, unfinished flag, merged exclusions, combined inclusion+exclusion, contradictory filters, and empty arrays (T-58)
+
+### Changed
+
+- `MCPQueryFilters.status: String?` replaced with `statuses: [String]?` and `notStatuses: [String]?` for multi-status filtering (T-58)
+- `MCPToolHandler.handleQueryTasks` delegates status filter parsing to `MCPQueryFilters.from(args:)` factory (T-58)
+
+### Added
+
 - Smolspec and task list for MCP status filter improvements (T-58): multi-status inclusion, status exclusion, and `unfinished` shorthand flag for `query_tasks` MCP tool
 - `project` name parameter on `query_tasks` MCP tool for case-insensitive project filtering, matching `create_task` behavior (T-179). `projectId` takes precedence when both are provided; empty/whitespace strings are treated as absent.
 - 8 tests for `query_tasks` project name filter: match, case-insensitive, unknown project error, ambiguous project error, projectId precedence, empty string, combined with status, combined with type (T-179)
