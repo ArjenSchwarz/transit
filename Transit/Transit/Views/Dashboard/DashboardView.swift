@@ -29,7 +29,7 @@ struct DashboardView: View {
     }
 
     private var effectiveSearchText: String {
-        searchText.trimmingCharacters(in: .whitespaces)
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var filteredColumns: [DashboardColumn: [TransitTask]] {
@@ -174,7 +174,7 @@ enum DashboardLogic {
         searchText: String = "",
         now: Date = .now
     ) -> [DashboardColumn: [TransitTask]] {
-        let trimmedSearch = searchText.trimmingCharacters(in: .whitespaces)
+        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let filtered = allTasks.filter { task in
             matchesFilters(

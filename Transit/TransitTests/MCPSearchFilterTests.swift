@@ -163,6 +163,39 @@ struct MCPSearchFilterTests {
         #expect(names == ["Auth task", "Update docs"])
     }
 
+    @Test func searchWithDisplayIdMatchReturnsTask() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.taskService.createTask(
+            name: "Fix login bug", description: nil, type: .bug, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["displayId": 1, "search": "login"]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.count == 1)
+        #expect(results.first?["name"] as? String == "Fix login bug")
+    }
+
+    @Test func searchWithDisplayIdNonMatchReturnsEmpty() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.taskService.createTask(
+            name: "Fix login bug", description: nil, type: .bug, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["displayId": 1, "search": "dashboard"]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.isEmpty)
+    }
+
     @Test func emptySearchStringReturnsAllTasks() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
