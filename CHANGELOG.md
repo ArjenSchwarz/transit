@@ -6,26 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Changed
-
-- `query_tasks` MCP tool schema: `status` parameter changed from `stringEnum` to `array` type with enum items, added `not_status` array parameter and `unfinished` boolean parameter (T-58)
-- `queryTasksDescription` updated to document new `status`, `not_status`, and `unfinished` parameters and their interaction (T-58)
-
 ### Added
 
 - `MCPStatusFilterIntegrationTests` suite (5 tests) covering multi-status with project filter, exclusion with type filter, unfinished flag with displayId lookup (include and exclude), and single-string backward compat with project filter (T-58)
 - `JSONSchemaItems` struct and `items` property on `JSONSchemaProperty` for JSON Schema array type support, plus `.boolean()` and `.array()` static factories (T-58)
 - `MCPQueryFilters.from(args:type:projectId:)` factory method parsing multi-status inclusion (`status` as string or array), exclusion (`not_status`), and `unfinished` boolean flag with backward-compatible single-string handling (T-58)
 - `MCPStatusFilterTests` suite (8 tests) covering multi-status inclusion, single-string backward compat, status exclusion, unfinished flag, merged exclusions, combined inclusion+exclusion, contradictory filters, and empty arrays (T-58)
+- Smolspec and task list for MCP status filter improvements (T-58): multi-status inclusion, status exclusion, and `unfinished` shorthand flag for `query_tasks` MCP tool
 
 ### Changed
 
+- `query_tasks` MCP tool schema: `status` parameter changed from `stringEnum` to `array` type with enum items, added `not_status` array parameter and `unfinished` boolean parameter (T-58)
+- `queryTasksDescription` updated to document new `status`, `not_status`, and `unfinished` parameters and their interaction (T-58)
 - `MCPQueryFilters.status: String?` replaced with `statuses: [String]?` and `notStatuses: [String]?` for multi-status filtering (T-58)
 - `MCPToolHandler.handleQueryTasks` delegates status filter parsing to `MCPQueryFilters.from(args:)` factory (T-58)
-
-### Added
-
-- Smolspec and task list for MCP status filter improvements (T-58): multi-status inclusion, status exclusion, and `unfinished` shorthand flag for `query_tasks` MCP tool
 - `project` name parameter on `query_tasks` MCP tool for case-insensitive project filtering, matching `create_task` behavior (T-179). `projectId` takes precedence when both are provided; empty/whitespace strings are treated as absent.
 - 8 tests for `query_tasks` project name filter: match, case-insensitive, unknown project error, ambiguous project error, projectId precedence, empty string, combined with status, combined with type (T-179)
 - Smolspec and task list for MCP project name filter (T-179): add `project` name parameter to `query_tasks` tool for case-insensitive filtering, matching `create_task` behavior
