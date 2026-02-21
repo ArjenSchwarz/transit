@@ -46,7 +46,7 @@ nonisolated enum MCPToolDefinitions {
     )
 
     // swiftlint:disable:next line_length
-    private static let queryTasksDescription = "Search and filter tasks. All filters are optional — omit all to return every task. Use displayId for single-task lookup with full details. Use project for case-insensitive name filtering."
+    private static let queryTasksDescription = "Search and filter tasks. All filters are optional — omit all to return every task. Use displayId for single-task lookup with full details. Use project for case-insensitive name filtering. status accepts an array of statuses to include. not_status accepts an array of statuses to exclude. unfinished=true excludes done and abandoned tasks (merged with not_status if both provided)."
 
     static let queryTasks = MCPToolDefinition(
         name: "query_tasks",
@@ -54,10 +54,15 @@ nonisolated enum MCPToolDefinitions {
         inputSchema: .object(
             properties: [
                 "displayId": .integer("Task display ID for single-task lookup (e.g. 42 for T-42)"),
-                "status": .stringEnum(
-                    "Filter by status",
-                    values: TaskStatus.allCases.map(\.rawValue)
+                "status": .array(
+                    "Filter by status (include tasks matching any listed status)",
+                    enumValues: TaskStatus.allCases.map(\.rawValue)
                 ),
+                "not_status": .array(
+                    "Exclude tasks matching any listed status",
+                    enumValues: TaskStatus.allCases.map(\.rawValue)
+                ),
+                "unfinished": .boolean("When true, exclude done and abandoned tasks"),
                 "type": .stringEnum(
                     "Filter by type",
                     values: TaskType.allCases.map(\.rawValue)
