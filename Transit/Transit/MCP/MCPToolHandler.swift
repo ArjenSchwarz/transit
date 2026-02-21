@@ -204,8 +204,10 @@ final class MCPToolHandler {
             }
         }
 
+        let search = (args["search"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let filters = MCPQueryFilters.from(
-            args: args, type: args["type"] as? String, projectId: projectFilter
+            args: args, type: args["type"] as? String, projectId: projectFilter,
+            search: search?.isEmpty == true ? nil : search
         )
 
         // Single-task lookup by displayId — returns early with detailed response

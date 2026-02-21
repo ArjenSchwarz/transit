@@ -25,6 +25,7 @@ private struct QueryFilters: Codable {
     var status: String?
     var type: String?
     var projectId: String?
+    var search: String?
     var completionDate: DateRangeFilter?
     var lastStatusChangeDate: DateRangeFilter?
 
@@ -33,6 +34,7 @@ private struct QueryFilters: Codable {
         status: String? = nil,
         type: String? = nil,
         projectId: String? = nil,
+        search: String? = nil,
         completionDate: DateRangeFilter? = nil,
         lastStatusChangeDate: DateRangeFilter? = nil
     ) {
@@ -40,6 +42,7 @@ private struct QueryFilters: Codable {
         self.status = status
         self.type = type
         self.projectId = projectId
+        self.search = search
         self.completionDate = completionDate
         self.lastStatusChangeDate = lastStatusChangeDate
     }
@@ -64,11 +67,12 @@ struct QueryTasksIntent: AppIntent {
         JSON object with optional filters: "displayId" (integer, for single-task lookup with detailed output \
         including description and metadata), "status" (idea | planning | spec | ready-for-implementation | \
         in-progress | ready-for-review | done | abandoned), "type" (bug | feature | chore | research | \
-        documentation), "projectId" (UUID), "completionDate", "lastStatusChangeDate". \
+        documentation), "projectId" (UUID), "search" (case-insensitive substring match on name and description), \
+        "completionDate", "lastStatusChangeDate". \
         Date filters accept {"relative":"today|this-week|this-month"} or {"from":"YYYY-MM-DD","to":"YYYY-MM-DD"} \
         (from/to optional and inclusive; relative takes precedence if both are present). \
         All filters are optional. Example: {"displayId":42} or {"status":"in-progress"} or \
-        {"completionDate":{"relative":"today"}} or {"lastStatusChangeDate":{"from":"2026-02-01","to":"2026-02-11"}}.
+        {"search":"login bug"} or {"completionDate":{"relative":"today"}}.
         """
     )
     var input: String
@@ -170,6 +174,9 @@ struct QueryTasksIntent: AppIntent {
         let completionRange = filters.completionDate.flatMap(dateRange)
         let lastStatusChangeRange = filters.lastStatusChangeDate.flatMap(dateRange)
         let projectId = filters.projectId.flatMap(UUID.init)
+        let searchText = filters.search?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let effectiveSearch = (searchText?.isEmpty == true) ? nil : searchText
 
         var result: [TransitTask] = []
         result.reserveCapacity(tasks.count)
@@ -183,6 +190,11 @@ struct QueryTasksIntent: AppIntent {
             }
             if let type = filters.type, task.typeRawValue != type {
                 continue
+            }
+            if let search = effectiveSearch {
+                let nameMatch = task.name.localizedCaseInsensitiveContains(search)
+                let descMatch = task.taskDescription?.localizedCaseInsensitiveContains(search) ?? false
+                if !nameMatch && !descMatch { continue }
             }
             if let completionRange {
                 guard let completionDate = task.completionDate,
