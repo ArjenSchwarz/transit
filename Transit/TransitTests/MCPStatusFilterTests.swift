@@ -181,6 +181,55 @@ struct MCPStatusFilterTests {
         #expect(results.isEmpty)
     }
 
+    @Test func emptyStatusArrayWithNonEmptyNotStatus() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.taskService.createTask(
+            name: "Idea", description: nil, type: .feature, project: project
+        )
+        let doneTask = try await env.taskService.createTask(
+            name: "Done", description: nil, type: .feature, project: project
+        )
+        try env.taskService.updateStatus(task: doneTask, to: .planning)
+        try env.taskService.updateStatus(task: doneTask, to: .spec)
+        try env.taskService.updateStatus(task: doneTask, to: .inProgress)
+        try env.taskService.updateStatus(task: doneTask, to: .done)
+
+        // Empty status (treated as absent = all statuses) + not_status excludes done
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["status": [String](), "not_status": ["done"]]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.count == 1)
+        #expect(results.first?["name"] as? String == "Idea")
+    }
+
+    @Test func singleStringNotStatusStillWorks() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.taskService.createTask(
+            name: "Idea", description: nil, type: .feature, project: project
+        )
+        let doneTask = try await env.taskService.createTask(
+            name: "Done", description: nil, type: .feature, project: project
+        )
+        try env.taskService.updateStatus(task: doneTask, to: .planning)
+        try env.taskService.updateStatus(task: doneTask, to: .spec)
+        try env.taskService.updateStatus(task: doneTask, to: .inProgress)
+        try env.taskService.updateStatus(task: doneTask, to: .done)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["not_status": "done"]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.count == 1)
+        #expect(results.first?["name"] as? String == "Idea")
+    }
+
     @Test func emptyStatusArrayTreatedAsAbsent() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)

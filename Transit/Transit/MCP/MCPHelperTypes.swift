@@ -10,8 +10,13 @@ struct MCPQueryFilters {
     let projectId: UUID?
 
     /// Build filters from raw MCP arguments (status parsing + unfinished flag resolution).
+    ///
+    /// `type` and `projectId` are pre-parsed by the caller (`handleQueryTasks`) because they
+    /// involve complex logic (UUID validation, project name lookup with error handling).
+    /// This factory only handles status-related parsing from the raw args dict.
     static func from(args: [String: Any], type: String?, projectId: UUID?) -> MCPQueryFilters {
-        // Accept single string (backward compat) or array
+        // The schema declares status/not_status as type "array", but we defensively accept
+        // a single string for backward compatibility with callers that don't wrap in an array.
         let statuses: [String]?
         if let array = args["status"] as? [String] {
             statuses = array
@@ -21,12 +26,20 @@ struct MCPQueryFilters {
             statuses = nil
         }
 
-        let notStatusesArg = args["not_status"] as? [String]
+        let notStatusesArg: [String]?
+        if let array = args["not_status"] as? [String] {
+            notStatusesArg = array
+        } else if let single = args["not_status"] as? String {
+            notStatusesArg = [single]
+        } else {
+            notStatusesArg = nil
+        }
         let unfinished = args["unfinished"] as? Bool ?? false
         let resolvedNotStatuses: [String]?
         if unfinished {
             let terminal = [TaskStatus.done.rawValue, TaskStatus.abandoned.rawValue]
-            resolvedNotStatuses = Array(Set(terminal).union(notStatusesArg ?? []))
+            let extra = (notStatusesArg ?? []).filter { !terminal.contains($0) }
+            resolvedNotStatuses = terminal + extra
         } else {
             resolvedNotStatuses = notStatusesArg
         }
