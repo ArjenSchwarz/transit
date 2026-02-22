@@ -76,11 +76,20 @@ struct IntentCompatibilityTests {
         #expect(GenerateReportIntent.openAppWhenRun == false)
         #expect(AddTaskIntent.supportedModes.contains(.foreground))
         #expect(FindTasksIntent.supportedModes == [.background])
+
+        #expect(String(localized: CreateMilestoneIntent.title) == "Transit: Create Milestone")
+        #expect(String(localized: QueryMilestonesIntent.title) == "Transit: Query Milestones")
+        #expect(String(localized: UpdateMilestoneIntent.title) == "Transit: Update Milestone")
+        #expect(String(localized: UpdateTaskIntent.title) == "Transit: Update Task")
+        #expect(CreateMilestoneIntent.openAppWhenRun == true)
+        #expect(QueryMilestonesIntent.openAppWhenRun == true)
+        #expect(UpdateMilestoneIntent.openAppWhenRun == true)
+        #expect(UpdateTaskIntent.openAppWhenRun == true)
     }
 
     @Test func appShortcutsProviderIncludesAllIntents() {
         let shortcuts = TransitShortcuts.appShortcuts
-        #expect(shortcuts.count == 7)
+        #expect(shortcuts.count == 10)
     }
 
     @Test func createTaskIntentJsonContractRemainsCompatible() async throws {

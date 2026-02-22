@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `IntentCompatibilityTests` shortcut count updated from 7 to 10 and added milestone intent name/mode stability assertions for `CreateMilestoneIntent`, `QueryMilestonesIntent`, `UpdateMilestoneIntent`, and `UpdateTaskIntent` (T-137)
+
 ### Added
 
 - 4 new milestone App Intents: `CreateMilestoneIntent`, `QueryMilestonesIntent`, `UpdateMilestoneIntent`, `DeleteMilestoneIntent` with JSON input/output following existing intent patterns (T-137)

@@ -353,12 +353,12 @@ references:
 
 ## Verification
 
-- [ ] 19. Final verification <!-- id:mv1vn19 -->
+- [x] 19. Final verification <!-- id:mv1vn19 -->
   - Blocked-by: mv1vmzu (Add milestone clearing to TaskService on project change), mv1vn06 (Implement MCP tool handlers for milestones), mv1vn0h (Implement task milestone assignment App Intents), mv1vn0l (Add milestone info to share text), mv1vn0o (Add milestone data to reports), mv1vn0t (Add milestone badge to task card), mv1vn0v (Add milestone row to task detail view), mv1vn0x (Add milestone picker to task edit view), mv1vn0z (Add milestone picker to add task sheet), mv1vn11 (Add milestone filter to dashboard), mv1vn15 (Add milestone management to settings)
   - Stream: 1
-  - [ ] 19.1. Run make test-quick — all unit tests pass <!-- id:mv1vn1a -->
+  - [x] 19.1. Run make test-quick — all unit tests pass <!-- id:mv1vn1a -->
     - Stream: 1
-  - [ ] 19.2. Run make test — full iOS simulator test suite passes <!-- id:mv1vn1b -->
+  - [x] 19.2. Run make test — full iOS simulator test suite passes <!-- id:mv1vn1b -->
     - Stream: 1
-  - [ ] 19.3. Run make lint — no warnings <!-- id:mv1vn1c -->
+  - [x] 19.3. Run make lint — no warnings <!-- id:mv1vn1c -->
     - Stream: 1
