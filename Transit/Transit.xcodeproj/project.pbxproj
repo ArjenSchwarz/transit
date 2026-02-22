@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		964919FC2F4B2C8D002D5489 /* Hummingbird in Frameworks */ = {isa = PBXBuildFile; productRef = A1MCP00022F5A000000000002 /* Hummingbird */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		D48D3EBB2F3A033100139F85 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				964919FC2F4B2C8D002D5489 /* Hummingbird in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -209,11 +214,11 @@
 			);
 			mainGroup = D48D3EA02F3A033000139F85;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
-			productRefGroup = D48D3EAA2F3A033000139F85 /* Products */;
 			packageReferences = (
 				A1MCP00012F5A000000000001 /* XCRemoteSwiftPackageReference "hummingbird" */,
 			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D48D3EAA2F3A033000139F85 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
