@@ -2,17 +2,27 @@
 import Foundation
 import SwiftData
 
+// swiftlint:disable file_length
+
 @MainActor
+// swiftlint:disable:next type_body_length
 final class MCPToolHandler {
 
     private let taskService: TaskService
     private let projectService: ProjectService
     private let commentService: CommentService
+    private let milestoneService: MilestoneService
 
-    init(taskService: TaskService, projectService: ProjectService, commentService: CommentService) {
+    init(
+        taskService: TaskService,
+        projectService: ProjectService,
+        commentService: CommentService,
+        milestoneService: MilestoneService
+    ) {
         self.taskService = taskService
         self.projectService = projectService
         self.commentService = commentService
+        self.milestoneService = milestoneService
     }
 
     // MARK: - JSON-RPC Dispatch
@@ -63,6 +73,7 @@ final class MCPToolHandler {
 
     // MARK: - Tools Call
 
+    // swiftlint:disable:next cyclomatic_complexity
     private func handleToolCall(
         id: JSONRPCId?,
         params: AnyCodable?
@@ -90,6 +101,16 @@ final class MCPToolHandler {
             result = handleAddComment(arguments)
         case "get_projects":
             result = handleGetProjects()
+        case "create_milestone":
+            result = await handleCreateMilestone(arguments)
+        case "query_milestones":
+            result = handleQueryMilestones(arguments)
+        case "update_milestone":
+            result = handleUpdateMilestone(arguments)
+        case "delete_milestone":
+            result = handleDeleteMilestone(arguments)
+        case "update_task":
+            result = handleUpdateTask(arguments)
         default:
             return JSONRPCResponse.error(
                 id: id,
@@ -103,6 +124,7 @@ final class MCPToolHandler {
 
     // MARK: - create_task
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func handleCreateTask(_ args: [String: Any]) async -> MCPToolResult {
         guard let name = args["name"] as? String, !name.isEmpty else {
             return errorResult("Missing required argument: name")
@@ -138,12 +160,45 @@ final class MCPToolHandler {
             return errorResult("Task creation failed: \(error)")
         }
 
+        // Assign milestone if specified
+        if let milestoneDisplayId = args["milestoneDisplayId"] as? Int {
+            do {
+                let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)
+                try milestoneService.setMilestone(milestone, on: task)
+            } catch MilestoneService.Error.milestoneNotFound {
+                return errorResult("No milestone with displayId \(milestoneDisplayId)")
+            } catch MilestoneService.Error.projectMismatch {
+                return errorResult("Milestone and task must belong to the same project")
+            } catch {
+                return errorResult("Failed to set milestone: \(error)")
+            }
+        } else if let milestoneName = args["milestone"] as? String {
+            guard let milestone = milestoneService.findByName(milestoneName, in: project) else {
+                return errorResult("No milestone named '\(milestoneName)' in project '\(project.name)'")
+            }
+            do {
+                try milestoneService.setMilestone(milestone, on: task)
+            } catch {
+                return errorResult("Failed to set milestone: \(error)")
+            }
+        }
+
         var response: [String: Any] = [
             "taskId": task.id.uuidString,
             "status": task.statusRawValue
         ]
         if let displayId = task.permanentDisplayId {
             response["displayId"] = displayId
+        }
+        if let milestone = task.milestone {
+            var milestoneDict: [String: Any] = [
+                "milestoneId": milestone.id.uuidString,
+                "name": milestone.name
+            ]
+            if let mDisplayId = milestone.permanentDisplayId {
+                milestoneDict["displayId"] = mDisplayId
+            }
+            response["milestone"] = milestoneDict
         }
         return textResult(IntentHelpers.encodeJSON(response))
     }
@@ -189,6 +244,7 @@ final class MCPToolHandler {
 
     // MARK: - query_tasks
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func handleQueryTasks(_ args: [String: Any]) -> MCPToolResult {
         var projectFilter: UUID?
         if let pidStr = args["projectId"] as? String {
@@ -210,9 +266,42 @@ final class MCPToolHandler {
             search: search?.isEmpty == true ? nil : search
         )
 
+        // Resolve milestone filter
+        var milestoneFilter: UUID?
+        if let milestoneDisplayId = args["milestoneDisplayId"] as? Int {
+            do {
+                milestoneFilter = try milestoneService.findByDisplayID(milestoneDisplayId).id
+            } catch {
+                return textResult(IntentHelpers.encodeJSONArray([]))
+            }
+        } else if let milestoneName = args["milestone"] as? String,
+                  !milestoneName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Need a project context to look up by name
+            if let projectFilter {
+                let projects = (try? projectService.context.fetch(FetchDescriptor<Project>())) ?? []
+                if let project = projects.first(where: { $0.id == projectFilter }),
+                   let milestone = milestoneService.findByName(milestoneName, in: project) {
+                    milestoneFilter = milestone.id
+                } else {
+                    return textResult(IntentHelpers.encodeJSONArray([]))
+                }
+            } else {
+                // Search across all milestones by name
+                let allMilestones = (try? projectService.context.fetch(FetchDescriptor<Milestone>())) ?? []
+                let matching = allMilestones.filter {
+                    $0.name.localizedCaseInsensitiveCompare(milestoneName) == .orderedSame
+                }
+                if let first = matching.first {
+                    milestoneFilter = first.id
+                } else {
+                    return textResult(IntentHelpers.encodeJSONArray([]))
+                }
+            }
+        }
+
         // Single-task lookup by displayId — returns early with detailed response
         if let displayId = args["displayId"] as? Int {
-            return handleDisplayIdLookup(displayId, filters: filters)
+            return handleDisplayIdLookup(displayId, filters: filters, milestoneFilter: milestoneFilter)
         }
 
         // Full-table query
@@ -223,13 +312,19 @@ final class MCPToolHandler {
             return errorResult("Failed to fetch tasks: \(error)")
         }
 
-        let filtered = allTasks.filter { filters.matches($0) }
+        var filtered = allTasks.filter { filters.matches($0) }
+        if let milestoneFilter {
+            filtered = filtered.filter { $0.milestone?.id == milestoneFilter
+            }
+        }
         let isoFormatter = ISO8601DateFormatter()
         let results = filtered.map { taskToDict($0, formatter: isoFormatter) }
         return textResult(IntentHelpers.encodeJSONArray(results))
     }
 
-    private func handleDisplayIdLookup(_ displayId: Int, filters: MCPQueryFilters) -> MCPToolResult {
+    private func handleDisplayIdLookup(
+        _ displayId: Int, filters: MCPQueryFilters, milestoneFilter: UUID? = nil
+    ) -> MCPToolResult {
         let task: TransitTask
         do {
             task = try taskService.findByDisplayID(displayId)
@@ -242,12 +337,255 @@ final class MCPToolHandler {
         guard filters.matches(task) else {
             return textResult(IntentHelpers.encodeJSONArray([]))
         }
+        if let milestoneFilter, task.milestone?.id != milestoneFilter {
+            return textResult(IntentHelpers.encodeJSONArray([]))
+        }
 
         let isoFormatter = ISO8601DateFormatter()
         let dict = taskToDict(task, formatter: isoFormatter, detailed: true)
         return textResult(IntentHelpers.encodeJSONArray([dict]))
     }
 
+}
+
+// MARK: - create_milestone
+
+extension MCPToolHandler {
+
+    private func handleCreateMilestone(_ args: [String: Any]) async -> MCPToolResult {
+        guard let name = args["name"] as? String, !name.isEmpty else {
+            return errorResult("Missing required argument: name")
+        }
+
+        let projectId = (args["projectId"] as? String).flatMap(UUID.init)
+        let projectName = args["project"] as? String
+        let project: Project
+        switch projectService.findProject(id: projectId, name: projectName) {
+        case .success(let found):
+            project = found
+        case .failure(let error):
+            return errorResult(IntentHelpers.mapProjectLookupError(error).hint)
+        }
+
+        let milestone: Milestone
+        do {
+            milestone = try await milestoneService.createMilestone(
+                name: name,
+                description: args["description"] as? String,
+                project: project
+            )
+        } catch MilestoneService.Error.duplicateName {
+            return errorResult("A milestone with this name already exists in the project")
+        } catch MilestoneService.Error.invalidName {
+            return errorResult("Milestone name cannot be empty")
+        } catch {
+            return errorResult("Milestone creation failed: \(error)")
+        }
+
+        let formatter = ISO8601DateFormatter()
+        return textResult(IntentHelpers.encodeJSON(milestoneToDict(milestone, formatter: formatter)))
+    }
+}
+
+// MARK: - query_milestones
+
+extension MCPToolHandler {
+
+    private func handleQueryMilestones(_ args: [String: Any]) -> MCPToolResult {
+        // Single-milestone lookup by displayId
+        if let displayId = args["displayId"] as? Int {
+            do {
+                let milestone = try milestoneService.findByDisplayID(displayId)
+                let formatter = ISO8601DateFormatter()
+                let dict = milestoneToDict(milestone, formatter: formatter, detailed: true)
+                return textResult(IntentHelpers.encodeJSONArray([dict]))
+            } catch {
+                return textResult(IntentHelpers.encodeJSONArray([]))
+            }
+        }
+
+        // Full query with filters
+        let allMilestones: [Milestone]
+        do {
+            allMilestones = try projectService.context.fetch(FetchDescriptor<Milestone>())
+        } catch {
+            return errorResult("Failed to fetch milestones: \(error)")
+        }
+
+        // Apply filters
+        var filtered = allMilestones
+
+        // Project filter
+        if let pidStr = args["projectId"] as? String, let pid = UUID(uuidString: pidStr) {
+            filtered = filtered.filter { $0.project?.id == pid }
+        } else if let name = args["project"] as? String,
+                  !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            switch projectService.findProject(id: nil, name: name) {
+            case .success(let found):
+                filtered = filtered.filter { $0.project?.id == found.id }
+            case .failure(let err):
+                return errorResult(IntentHelpers.mapProjectLookupError(err).hint)
+            }
+        }
+
+        // Status filter
+        if let statusArray = args["status"] as? [String] {
+            filtered = filtered.filter { statusArray.contains($0.statusRawValue) }
+        } else if let statusSingle = args["status"] as? String {
+            filtered = filtered.filter { $0.statusRawValue == statusSingle }
+        }
+
+        // Search filter
+        if let search = args["search"] as? String,
+           !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            filtered = filtered.filter {
+                $0.name.localizedCaseInsensitiveContains(search)
+                    || ($0.milestoneDescription?.localizedCaseInsensitiveContains(search) ?? false)
+            }
+        }
+
+        let formatter = ISO8601DateFormatter()
+        let results = filtered.map { milestoneToDict($0, formatter: formatter) }
+        return textResult(IntentHelpers.encodeJSONArray(results))
+    }
+}
+
+// MARK: - update_milestone
+
+extension MCPToolHandler {
+
+    private func handleUpdateMilestone(_ args: [String: Any]) -> MCPToolResult {
+        let milestone: Milestone
+        switch resolveMilestone(from: args) {
+        case .success(let found): milestone = found
+        case .failure(.message(let message)): return errorResult(message)
+        }
+
+        let previousStatus = milestone.statusRawValue
+
+        // Update status if provided
+        if let statusRaw = args["status"] as? String {
+            guard let newStatus = MilestoneStatus(rawValue: statusRaw) else {
+                let valid = MilestoneStatus.allCases.map(\.rawValue).joined(separator: ", ")
+                return errorResult("Invalid status: \(statusRaw). Must be one of: \(valid)")
+            }
+            do {
+                try milestoneService.updateStatus(milestone, to: newStatus)
+            } catch {
+                return errorResult("Status update failed: \(error)")
+            }
+        }
+
+        // Update name/description if provided
+        let newName = args["name"] as? String
+        let newDescription = args["description"] as? String
+        if newName != nil || newDescription != nil {
+            do {
+                try milestoneService.updateMilestone(milestone, name: newName, description: newDescription)
+            } catch MilestoneService.Error.duplicateName {
+                return errorResult("A milestone with this name already exists in the project")
+            } catch MilestoneService.Error.invalidName {
+                return errorResult("Milestone name cannot be empty")
+            } catch {
+                return errorResult("Update failed: \(error)")
+            }
+        }
+
+        let formatter = ISO8601DateFormatter()
+        var response = milestoneToDict(milestone, formatter: formatter)
+        response["previousStatus"] = previousStatus
+        return textResult(IntentHelpers.encodeJSON(response))
+    }
+}
+
+// MARK: - delete_milestone
+
+extension MCPToolHandler {
+
+    private func handleDeleteMilestone(_ args: [String: Any]) -> MCPToolResult {
+        let milestone: Milestone
+        switch resolveMilestone(from: args) {
+        case .success(let found): milestone = found
+        case .failure(.message(let message)): return errorResult(message)
+        }
+
+        let milestoneId = milestone.id.uuidString
+        let displayId = milestone.permanentDisplayId
+        let name = milestone.name
+        let affectedTasks = (milestone.tasks ?? []).count
+
+        do {
+            try milestoneService.deleteMilestone(milestone)
+        } catch {
+            return errorResult("Delete failed: \(error)")
+        }
+
+        var response: [String: Any] = [
+            "deleted": true,
+            "milestoneId": milestoneId,
+            "name": name,
+            "affectedTasks": affectedTasks
+        ]
+        if let displayId { response["displayId"] = displayId }
+        return textResult(IntentHelpers.encodeJSON(response))
+    }
+}
+
+// MARK: - update_task
+
+extension MCPToolHandler {
+
+    // swiftlint:disable:next cyclomatic_complexity
+    private func handleUpdateTask(_ args: [String: Any]) -> MCPToolResult {
+        let task: TransitTask
+        switch resolveTask(from: args) {
+        case .success(let found): task = found
+        case .failure(.message(let message)): return errorResult(message)
+        }
+
+        // Handle milestone assignment
+        if args["clearMilestone"] as? Bool == true {
+            do {
+                try milestoneService.setMilestone(nil, on: task)
+            } catch {
+                return errorResult("Failed to clear milestone: \(error)")
+            }
+        } else if let milestoneDisplayId = args["milestoneDisplayId"] as? Int {
+            do {
+                let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)
+                try milestoneService.setMilestone(milestone, on: task)
+            } catch MilestoneService.Error.milestoneNotFound {
+                return errorResult("No milestone with displayId \(milestoneDisplayId)")
+            } catch MilestoneService.Error.projectMismatch {
+                return errorResult("Milestone and task must belong to the same project")
+            } catch MilestoneService.Error.projectRequired {
+                return errorResult("Task must belong to a project before assigning a milestone")
+            } catch {
+                return errorResult("Failed to set milestone: \(error)")
+            }
+        } else if let milestoneName = args["milestone"] as? String {
+            guard let project = task.project else {
+                return errorResult("Task must belong to a project before assigning a milestone")
+            }
+            guard let milestone = milestoneService.findByName(milestoneName, in: project) else {
+                return errorResult("No milestone named '\(milestoneName)' in project '\(project.name)'")
+            }
+            do {
+                try milestoneService.setMilestone(milestone, on: task)
+            } catch {
+                return errorResult("Failed to set milestone: \(error)")
+            }
+        }
+
+        do {
+            try projectService.context.save()
+        } catch {
+            return errorResult("Failed to save: \(error)")
+        }
+
+        let formatter = ISO8601DateFormatter()
+        return textResult(IntentHelpers.encodeJSON(taskToDict(task, formatter: formatter)))
+    }
 }
 
 // MARK: - get_projects, add_comment & Helpers
@@ -269,6 +607,10 @@ extension MCPToolHandler {
                 "activeTaskCount": projectService.activeTaskCount(for: project)
             ]
             if let gitRepo = project.gitRepo { dict["gitRepo"] = gitRepo }
+            let milestones = milestoneService.milestonesForProject(project)
+            if !milestones.isEmpty {
+                dict["milestones"] = milestones.map { milestoneSummaryDict($0) }
+            }
             return dict
         }
         return textResult(IntentHelpers.encodeJSONArray(results))
@@ -373,6 +715,68 @@ extension MCPToolHandler {
         return dict.reduce(into: [:]) { result, pair in result[pair.key] = "\(pair.value)" }
     }
 
+    func resolveMilestone(from args: [String: Any]) -> Result<Milestone, ResolveError> {
+        if let displayId = args["displayId"] as? Int {
+            do {
+                return .success(try milestoneService.findByDisplayID(displayId))
+            } catch {
+                return .failure(.message("No milestone with displayId \(displayId)"))
+            }
+        } else if let idStr = args["milestoneId"] as? String, let milestoneId = UUID(uuidString: idStr) {
+            do {
+                return .success(try milestoneService.findByID(milestoneId))
+            } catch {
+                return .failure(.message("No milestone with milestoneId \(idStr)"))
+            }
+        } else {
+            return .failure(.message("Provide either displayId (integer) or milestoneId (UUID string)"))
+        }
+    }
+
+    func milestoneToDict(
+        _ milestone: Milestone, formatter: ISO8601DateFormatter, detailed: Bool = false
+    ) -> [String: Any] {
+        var dict: [String: Any] = [
+            "milestoneId": milestone.id.uuidString,
+            "name": milestone.name,
+            "status": milestone.statusRawValue,
+            "creationDate": formatter.string(from: milestone.creationDate),
+            "lastStatusChangeDate": formatter.string(from: milestone.lastStatusChangeDate)
+        ]
+        if let displayId = milestone.permanentDisplayId { dict["displayId"] = displayId }
+        if let description = milestone.milestoneDescription { dict["description"] = description }
+        if let projectId = milestone.project?.id.uuidString { dict["projectId"] = projectId }
+        if let projectName = milestone.project?.name { dict["projectName"] = projectName }
+        if let completionDate = milestone.completionDate {
+            dict["completionDate"] = formatter.string(from: completionDate)
+        }
+        let tasks = milestone.tasks ?? []
+        dict["taskCount"] = tasks.count
+        if detailed {
+            dict["tasks"] = tasks.map { task in
+                var taskDict: [String: Any] = [
+                    "name": task.name,
+                    "status": task.statusRawValue,
+                    "type": task.typeRawValue
+                ]
+                if let displayId = task.permanentDisplayId { taskDict["displayId"] = displayId }
+                return taskDict
+            }
+        }
+        return dict
+    }
+
+    func milestoneSummaryDict(_ milestone: Milestone) -> [String: Any] {
+        var dict: [String: Any] = [
+            "milestoneId": milestone.id.uuidString,
+            "name": milestone.name,
+            "status": milestone.statusRawValue,
+            "taskCount": (milestone.tasks ?? []).count
+        ]
+        if let displayId = milestone.permanentDisplayId { dict["displayId"] = displayId }
+        return dict
+    }
+
     func taskToDict(_ task: TransitTask, formatter: ISO8601DateFormatter, detailed: Bool = false) -> [String: Any] {
         var dict: [String: Any] = [
             "taskId": task.id.uuidString, "name": task.name,
@@ -383,6 +787,16 @@ extension MCPToolHandler {
         if let projectId = task.project?.id.uuidString { dict["projectId"] = projectId }
         if let projectName = task.project?.name { dict["projectName"] = projectName }
         if let completionDate = task.completionDate { dict["completionDate"] = formatter.string(from: completionDate) }
+        if let milestone = task.milestone {
+            var milestoneDict: [String: Any] = [
+                "milestoneId": milestone.id.uuidString,
+                "name": milestone.name
+            ]
+            if let milestoneDisplayId = milestone.permanentDisplayId {
+                milestoneDict["displayId"] = milestoneDisplayId
+            }
+            dict["milestone"] = milestoneDict
+        }
         if detailed {
             dict["description"] = task.taskDescription as Any
             if !task.metadata.isEmpty { dict["metadata"] = task.metadata }

@@ -55,8 +55,11 @@ struct MilestoneServiceTests {
         let (service, context) = try makeService()
         let project = makeProject(in: context)
 
-        await #expect(throws: MilestoneService.Error.invalidName) {
-            try await service.createMilestone(name: "   ", description: nil, project: project)
+        do {
+            _ = try await service.createMilestone(name: "   ", description: nil, project: project)
+            Issue.record("Expected invalidName error")
+        } catch let error as MilestoneService.Error {
+            #expect(error == .invalidName)
         }
 
         let milestone = try await service.createMilestone(name: "  Trimmed  ", description: nil, project: project)
@@ -68,8 +71,11 @@ struct MilestoneServiceTests {
         let project = makeProject(in: context)
         _ = try await service.createMilestone(name: "v1.0", description: nil, project: project)
 
-        await #expect(throws: MilestoneService.Error.duplicateName) {
-            try await service.createMilestone(name: "V1.0", description: nil, project: project)
+        do {
+            _ = try await service.createMilestone(name: "V1.0", description: nil, project: project)
+            Issue.record("Expected duplicateName error")
+        } catch let error as MilestoneService.Error {
+            #expect(error == .duplicateName)
         }
     }
 

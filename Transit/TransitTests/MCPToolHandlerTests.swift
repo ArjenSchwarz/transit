@@ -26,7 +26,7 @@ struct MCPToolHandlerTests {
 
     // MARK: - Tools List
 
-    @Test func toolsListReturnsFiveTools() async throws {
+    @Test func toolsListReturnsTenTools() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let response = try #require(await env.handler.handle(MCPTestHelpers.request(method: "tools/list")))
 
@@ -35,13 +35,18 @@ struct MCPToolHandlerTests {
         let result = try #require(json["result"] as? [String: Any])
         let tools = try #require(result["tools"] as? [[String: Any]])
 
-        #expect(tools.count == 5)
+        #expect(tools.count == 10)
         let names = tools.compactMap { $0["name"] as? String }
         #expect(names.contains("create_task"))
         #expect(names.contains("update_task_status"))
         #expect(names.contains("query_tasks"))
         #expect(names.contains("add_comment"))
         #expect(names.contains("get_projects"))
+        #expect(names.contains("create_milestone"))
+        #expect(names.contains("query_milestones"))
+        #expect(names.contains("update_milestone"))
+        #expect(names.contains("delete_milestone"))
+        #expect(names.contains("update_task"))
     }
 
     // MARK: - Ping

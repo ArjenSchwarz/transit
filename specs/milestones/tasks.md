@@ -136,11 +136,11 @@ references:
 
 ## MCP Tools
 
-- [ ] 7. Add MCP tool definitions for milestones <!-- id:mv1vn02 -->
+- [x] 7. Add MCP tool definitions for milestones <!-- id:mv1vn02 -->
   - Blocked-by: mv1vmzp (Implement MilestoneService)
   - Stream: 2
   - Requirements: [12.1](requirements.md#12.1), [12.2](requirements.md#12.2), [12.3](requirements.md#12.3), [12.4](requirements.md#12.4), [12.5](requirements.md#12.5), [12.6](requirements.md#12.6), [12.7](requirements.md#12.7)
-  - [ ] 7.1. Add create_milestone, query_milestones, update_milestone, delete_milestone, update_task tool definitions <!-- id:mv1vn03 -->
+  - [x] 7.1. Add create_milestone, query_milestones, update_milestone, delete_milestone, update_task tool definitions <!-- id:mv1vn03 -->
     - create_milestone: name (required string), project (string), description (string)
     - query_milestones: project (string), status (string), search (string), displayId (integer)
     - update_milestone: displayId (integer) or id (string UUID), name/description/status optional
@@ -148,17 +148,17 @@ references:
     - update_task: displayId (integer) or id (string UUID), milestone (string name/displayId or null to clear)
     - Stream: 2
     - References: Transit/Transit/MCP/MCPToolDefinitions.swift
-  - [ ] 7.2. Add milestone/milestoneDisplayId parameters to create_task and query_tasks schemas <!-- id:mv1vn04 -->
+  - [x] 7.2. Add milestone/milestoneDisplayId parameters to create_task and query_tasks schemas <!-- id:mv1vn04 -->
     - Stream: 2
-  - [ ] 7.3. Add all new tools to MCPToolDefinitions.all array <!-- id:mv1vn05 -->
+  - [x] 7.3. Add all new tools to MCPToolDefinitions.all array <!-- id:mv1vn05 -->
     - Blocked-by: mv1vn03 (Add create_milestone, query_milestones, update_milestone, delete_milestone, update_task tool definitions)
     - Stream: 2
 
-- [ ] 8. Implement MCP tool handlers for milestones <!-- id:mv1vn06 -->
+- [x] 8. Implement MCP tool handlers for milestones <!-- id:mv1vn06 -->
   - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point), mv1vn02 (Add MCP tool definitions for milestones)
   - Stream: 2
   - Requirements: [12.1](requirements.md#12.1), [12.2](requirements.md#12.2), [12.3](requirements.md#12.3), [12.4](requirements.md#12.4), [12.5](requirements.md#12.5), [12.6](requirements.md#12.6), [12.7](requirements.md#12.7), [12.8](requirements.md#12.8), [12.9](requirements.md#12.9)
-  - [ ] 8.1. Write MCPMilestoneToolTests (create/query/update/delete milestone, update_task, milestone on create_task, filter on query_tasks, milestone in get_projects, error cases) <!-- id:mv1vn07 -->
+  - [x] 8.1. Write MCPMilestoneToolTests (create/query/update/delete milestone, update_task, milestone on create_task, filter on query_tasks, milestone in get_projects, error cases) <!-- id:mv1vn07 -->
     - Test create/query/update/delete milestone tools
     - Test update_task tool for milestone assignment
     - Test milestone parameter on create_task
@@ -167,9 +167,9 @@ references:
     - Test error cases: not found, duplicate name, project mismatch
     - Stream: 2
     - References: Transit/TransitTests/MCPMilestoneToolTests.swift
-  - [ ] 8.2. Add MilestoneService dependency to MCPToolHandler and implement milestoneToDict/milestoneSummaryDict helpers <!-- id:mv1vn08 -->
+  - [x] 8.2. Add MilestoneService dependency to MCPToolHandler and implement milestoneToDict/milestoneSummaryDict helpers <!-- id:mv1vn08 -->
     - Stream: 2
-  - [ ] 8.3. Implement handleCreateMilestone, handleQueryMilestones, handleUpdateMilestone, handleDeleteMilestone <!-- id:mv1vn09 -->
+  - [x] 8.3. Implement handleCreateMilestone, handleQueryMilestones, handleUpdateMilestone, handleDeleteMilestone <!-- id:mv1vn09 -->
     - handleCreateMilestone: resolve project by name/ID, create via MilestoneService, return milestoneToDict
     - handleQueryMilestones: apply project/status/search/displayId filters, return list or detail
     - handleUpdateMilestone: resolve by displayId or UUID, apply name/description/status updates, return with previousStatus
@@ -177,13 +177,13 @@ references:
     - Blocked-by: mv1vn07 (Write MCPMilestoneToolTests (create/query/update/delete milestone, update_task, milestone on create_task, filter on query_tasks, milestone in get_projects, error cases)), mv1vn08 (Add MilestoneService dependency to MCPToolHandler and implement milestoneToDict/milestoneSummaryDict helpers)
     - Stream: 2
     - References: Transit/Transit/MCP/MCPToolHandler.swift
-  - [ ] 8.4. Implement handleUpdateTask for milestone assignment <!-- id:mv1vn0a -->
+  - [x] 8.4. Implement handleUpdateTask for milestone assignment <!-- id:mv1vn0a -->
     - Blocked-by: mv1vn08 (Add MilestoneService dependency to MCPToolHandler and implement milestoneToDict/milestoneSummaryDict helpers)
     - Stream: 2
-  - [ ] 8.5. Modify handleCreateTask, handleQueryTasks, handleGetProjects for milestone support <!-- id:mv1vn0b -->
+  - [x] 8.5. Modify handleCreateTask, handleQueryTasks, handleGetProjects for milestone support <!-- id:mv1vn0b -->
     - Blocked-by: mv1vn08 (Add MilestoneService dependency to MCPToolHandler and implement milestoneToDict/milestoneSummaryDict helpers)
     - Stream: 2
-  - [ ] 8.6. Add all new tool names to dispatch switch <!-- id:mv1vn0c -->
+  - [x] 8.6. Add all new tool names to dispatch switch <!-- id:mv1vn0c -->
     - Blocked-by: mv1vn09 (Implement handleCreateMilestone, handleQueryMilestones, handleUpdateMilestone, handleDeleteMilestone), mv1vn0a (Implement handleUpdateTask for milestone assignment), mv1vn0b (Modify handleCreateTask, handleQueryTasks, handleGetProjects for milestone support)
     - Stream: 2
 

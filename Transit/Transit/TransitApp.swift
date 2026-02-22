@@ -81,7 +81,8 @@ struct TransitApp: App {
         let mcpSettings = MCPSettings()
         self.mcpSettings = mcpSettings
         let mcpToolHandler = MCPToolHandler(
-            taskService: taskService, projectService: projectService, commentService: commentService
+            taskService: taskService, projectService: projectService,
+            commentService: commentService, milestoneService: milestoneService
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
         #endif

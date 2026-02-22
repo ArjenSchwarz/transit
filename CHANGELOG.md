@@ -8,6 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- 5 new MCP tools for milestone management: `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `update_task` (T-137)
+- Milestone parameters on existing MCP tools: `milestone`/`milestoneDisplayId` on `create_task` and `query_tasks`, milestone info in `get_projects` responses (T-137)
+- `MCPMilestoneToolTests` suite (17 tests) covering milestone CRUD tools: create, query (all/project/status/search/displayId), update (status/name), delete, and error cases (T-137)
+- `MCPMilestoneIntegrationTests` suite (10 tests) covering milestone integration in existing tools: update_task assignment (by displayId/name/clear/mismatch/not-found), create_task with milestone, query_tasks milestone filter, and get_projects milestone inclusion (T-137)
+
+### Changed
+
+- `MCPToolHandler` accepts `MilestoneService` dependency for milestone resolution and assignment (T-137)
+- Task objects returned by all MCP tools now include milestone info (name, displayId) when assigned (T-137)
+- `MCPTestHelpers.MCPTestEnv` includes `milestoneService` with separate display ID allocator (T-137)
+
+### Fixed
+
+- `MilestoneServiceTests` build error: replaced `#expect(throws:)` with do/catch pattern to avoid actor-boundary crossing of `Milestone` values (T-137)
+
+### Added
+
 - `Milestone` SwiftData model with UUID, permanentDisplayId, name, description, status, creation/completion dates, project relationship, and tasks relationship (T-137)
 - `MilestoneStatus` nonisolated enum with `open`/`done`/`abandoned` cases, `isTerminal` and `displayName` computed properties (T-137)
 - `DisplayID.formatted(prefix:)` method for custom prefix formatting (e.g. "M" for milestones); existing `formatted` property delegates to it with "T" prefix (T-137)

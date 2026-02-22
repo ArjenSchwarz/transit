@@ -9,6 +9,7 @@ struct MCPTestEnv {
     let taskService: TaskService
     let projectService: ProjectService
     let commentService: CommentService
+    let milestoneService: MilestoneService
     let context: ModelContext
 }
 
@@ -22,14 +23,18 @@ enum MCPTestHelpers {
         let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let projectService = ProjectService(modelContext: context)
         let commentService = CommentService(modelContext: context)
+        let milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
+        let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator)
         let handler = MCPToolHandler(
-            taskService: taskService, projectService: projectService, commentService: commentService
+            taskService: taskService, projectService: projectService,
+            commentService: commentService, milestoneService: milestoneService
         )
         return MCPTestEnv(
             handler: handler,
             taskService: taskService,
             projectService: projectService,
             commentService: commentService,
+            milestoneService: milestoneService,
             context: context
         )
     }
