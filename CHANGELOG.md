@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `AddTaskSheet` now explicitly saves model context after milestone assignment via `setMilestone`, preventing milestone assignment from being lost on dismiss (T-137)
+
+### Added
+
+- Implementation explanation document at `specs/milestones/implementation.md` with beginner/intermediate/expert level explanations and completeness assessment (T-137)
+
 ### Changed
 
 - `IntentCompatibilityTests` shortcut count updated from 7 to 10 and added milestone intent name/mode stability assertions for `CreateMilestoneIntent`, `QueryMilestonesIntent`, `UpdateMilestoneIntent`, and `UpdateTaskIntent` (T-137)

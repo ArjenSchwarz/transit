@@ -5,6 +5,7 @@ struct AddTaskSheet: View {
     @Environment(TaskService.self) private var taskService
     @Environment(ProjectService.self) private var projectService
     @Environment(MilestoneService.self) private var milestoneService
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Project.name) private var projects: [Project]
 
@@ -249,6 +250,7 @@ struct AddTaskSheet: View {
             )
             if let milestone = selectedMilestone {
                 try milestoneService.setMilestone(milestone, on: task)
+                try modelContext.save()
             }
             dismiss()
         } catch {
