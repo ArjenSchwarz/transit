@@ -189,18 +189,18 @@ references:
 
 ## App Intents
 
-- [ ] 9. Implement milestone CRUD App Intents <!-- id:mv1vn0d -->
+- [x] 9. Implement milestone CRUD App Intents <!-- id:mv1vn0d -->
   - Blocked-by: mv1vmzp (Implement MilestoneService)
   - Stream: 3
   - Requirements: [13.1](requirements.md#13.1), [13.2](requirements.md#13.2), [13.3](requirements.md#13.3), [13.4](requirements.md#13.4), [13.8](requirements.md#13.8), [13.9](requirements.md#13.9)
-  - [ ] 9.1. Write intent tests (CreateMilestoneIntentTests, QueryMilestonesIntentTests, UpdateMilestoneIntentTests, DeleteMilestoneIntentTests) <!-- id:mv1vn0e -->
+  - [x] 9.1. Write intent tests (CreateMilestoneIntentTests, QueryMilestonesIntentTests, UpdateMilestoneIntentTests, DeleteMilestoneIntentTests) <!-- id:mv1vn0e -->
     - Stream: 3
-  - [ ] 9.2. Add MILESTONE_NOT_FOUND, DUPLICATE_MILESTONE_NAME, MILESTONE_PROJECT_MISMATCH error codes to IntentError <!-- id:mv1vn0f -->
+  - [x] 9.2. Add MILESTONE_NOT_FOUND, DUPLICATE_MILESTONE_NAME, MILESTONE_PROJECT_MISMATCH error codes to IntentError <!-- id:mv1vn0f -->
     - MILESTONE_NOT_FOUND, DUPLICATE_MILESTONE_NAME, MILESTONE_PROJECT_MISMATCH error codes
     - Follow existing JSON error response pattern — errors encoded in return string, not thrown
     - Stream: 3
     - References: Transit/Transit/Intents/IntentError.swift
-  - [ ] 9.3. Implement CreateMilestoneIntent, QueryMilestonesIntent, UpdateMilestoneIntent, DeleteMilestoneIntent <!-- id:mv1vn0g -->
+  - [x] 9.3. Implement CreateMilestoneIntent, QueryMilestonesIntent, UpdateMilestoneIntent, DeleteMilestoneIntent <!-- id:mv1vn0g -->
     - Follow existing intent pattern: JSON input via single @Parameter, static execute() for testability
     - CreateMilestoneIntent: name (required), project (required), description (optional)
     - QueryMilestonesIntent: optional displayId/project/status/search filters
@@ -210,16 +210,16 @@ references:
     - Stream: 3
     - References: Transit/Transit/Intents/CreateMilestoneIntent.swift, Transit/Transit/Intents/QueryMilestonesIntent.swift, Transit/Transit/Intents/UpdateMilestoneIntent.swift, Transit/Transit/Intents/DeleteMilestoneIntent.swift
 
-- [ ] 10. Implement task milestone assignment App Intents <!-- id:mv1vn0h -->
+- [x] 10. Implement task milestone assignment App Intents <!-- id:mv1vn0h -->
   - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point), mv1vn0d (Implement milestone CRUD App Intents)
   - Stream: 3
   - Requirements: [13.5](requirements.md#13.5), [13.6](requirements.md#13.6), [13.7](requirements.md#13.7)
-  - [ ] 10.1. Write UpdateTaskIntentTests and milestone-related tests for existing intent suites <!-- id:mv1vn0i -->
+  - [x] 10.1. Write UpdateTaskIntentTests and milestone-related tests for existing intent suites <!-- id:mv1vn0i -->
     - Stream: 3
-  - [ ] 10.2. Create UpdateTaskIntent for milestone assignment <!-- id:mv1vn0j -->
+  - [x] 10.2. Create UpdateTaskIntent for milestone assignment <!-- id:mv1vn0j -->
     - Blocked-by: mv1vn0i (Write UpdateTaskIntentTests and milestone-related tests for existing intent suites)
     - Stream: 3
-  - [ ] 10.3. Modify CreateTaskIntent and QueryTasksIntent for optional milestone parameter <!-- id:mv1vn0k -->
+  - [x] 10.3. Modify CreateTaskIntent and QueryTasksIntent for optional milestone parameter <!-- id:mv1vn0k -->
     - Blocked-by: mv1vn0i (Write UpdateTaskIntentTests and milestone-related tests for existing intent suites)
     - Stream: 3
 

@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- 4 new milestone App Intents: `CreateMilestoneIntent`, `QueryMilestonesIntent`, `UpdateMilestoneIntent`, `DeleteMilestoneIntent` with JSON input/output following existing intent patterns (T-137)
+- `UpdateTaskIntent` for milestone assignment/removal on tasks via `milestoneDisplayId`, `milestone` name, or `clearMilestone` (T-137)
+- Milestone parameters on `CreateTaskIntent`: optional `milestone` (name) and `milestoneDisplayId` (integer) for assignment at creation (T-137)
+- Milestone filters on `QueryTasksIntent`: `milestone` (name) and `milestoneDisplayId` (integer) filter parameters, milestone info in task responses (T-137)
+- 3 new App Shortcuts for milestone operations: Create Milestone, Query Milestones, Update Task (T-137)
+- `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `MILESTONE_PROJECT_MISMATCH` error codes in `IntentError` (T-137)
+- Shared helpers in `IntentHelpers`: `resolveMilestone`, `resolveTask`, `milestoneInfoDict`, `assignMilestone`, `mapMilestoneError` for cross-intent reuse (T-137)
+- 7 new test suites (50+ tests): `CreateMilestoneIntentTests`, `QueryMilestonesIntentTests`, `UpdateMilestoneIntentTests`, `DeleteMilestoneIntentTests`, `UpdateTaskIntentTests`, `CreateTaskIntentMilestoneTests`, `QueryTasksIntentMilestoneTests` (T-137)
+
 - 5 new MCP tools for milestone management: `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `update_task` (T-137)
 - Milestone parameters on existing MCP tools: `milestone`/`milestoneDisplayId` on `create_task` and `query_tasks`, milestone info in `get_projects` responses (T-137)
 - `MCPMilestoneToolTests` suite (17 tests) covering milestone CRUD tools: create, query (all/project/status/search/displayId), update (status/name), delete, and error cases (T-137)

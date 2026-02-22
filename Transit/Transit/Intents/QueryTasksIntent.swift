@@ -28,6 +28,8 @@ private struct QueryFilters: Codable {
     var search: String?
     var completionDate: DateRangeFilter?
     var lastStatusChangeDate: DateRangeFilter?
+    var milestone: String?
+    var milestoneDisplayId: Int?
 
     init(
         displayId: Int? = nil,
@@ -36,7 +38,9 @@ private struct QueryFilters: Codable {
         projectId: String? = nil,
         search: String? = nil,
         completionDate: DateRangeFilter? = nil,
-        lastStatusChangeDate: DateRangeFilter? = nil
+        lastStatusChangeDate: DateRangeFilter? = nil,
+        milestone: String? = nil,
+        milestoneDisplayId: Int? = nil
     ) {
         self.displayId = displayId
         self.status = status
@@ -45,6 +49,8 @@ private struct QueryFilters: Codable {
         self.search = search
         self.completionDate = completionDate
         self.lastStatusChangeDate = lastStatusChangeDate
+        self.milestone = milestone
+        self.milestoneDisplayId = milestoneDisplayId
     }
 }
 
@@ -68,11 +74,11 @@ struct QueryTasksIntent: AppIntent {
         including description and metadata), "status" (idea | planning | spec | ready-for-implementation | \
         in-progress | ready-for-review | done | abandoned), "type" (bug | feature | chore | research | \
         documentation), "projectId" (UUID), "search" (case-insensitive substring match on name and description), \
-        "completionDate", "lastStatusChangeDate". \
+        "milestone" (name), "milestoneDisplayId" (integer), "completionDate", "lastStatusChangeDate". \
         Date filters accept {"relative":"today|this-week|this-month"} or {"from":"YYYY-MM-DD","to":"YYYY-MM-DD"} \
         (from/to optional and inclusive; relative takes precedence if both are present). \
         All filters are optional. Example: {"displayId":42} or {"status":"in-progress"} or \
-        {"search":"login bug"} or {"completionDate":{"relative":"today"}}.
+        {"search":"login bug"} or {"milestoneDisplayId":1}.
         """
     )
     var input: String
@@ -196,19 +202,31 @@ struct QueryTasksIntent: AppIntent {
                 let descMatch = task.taskDescription?.localizedCaseInsensitiveContains(search) ?? false
                 if !nameMatch && !descMatch { continue }
             }
-            if let completionRange {
-                guard let completionDate = task.completionDate,
-                      DateFilterHelpers.dateInRange(completionDate, range: completionRange) else {
-                    continue
-                }
-            }
-            if let lastStatusChangeRange,
-               !DateFilterHelpers.dateInRange(task.lastStatusChangeDate, range: lastStatusChangeRange) {
-                continue
-            }
+            if !matchesDateFilter(task.completionDate, range: completionRange) { continue }
+            if !matchesDateFilter(task.lastStatusChangeDate, range: lastStatusChangeRange) { continue }
+            if !matchesMilestoneFilter(task, filters: filters) { continue }
             result.append(task)
         }
         return result
+    }
+
+    private static func matchesDateFilter(_ date: Date?, range: DateFilterHelpers.DateRange?) -> Bool {
+        guard let range else { return true }
+        guard let date else { return false }
+        return DateFilterHelpers.dateInRange(date, range: range)
+    }
+
+    @MainActor private static func matchesMilestoneFilter(
+        _ task: TransitTask, filters: QueryFilters
+    ) -> Bool {
+        if let milestoneDisplayId = filters.milestoneDisplayId {
+            return task.milestone?.permanentDisplayId == milestoneDisplayId
+        }
+        if let milestoneName = filters.milestone {
+            guard let taskMilestone = task.milestone else { return false }
+            return taskMilestone.name.localizedCaseInsensitiveCompare(milestoneName) == .orderedSame
+        }
+        return true
     }
 
     @MainActor private static func dateRange(from filter: DateRangeFilter) -> DateFilterHelpers.DateRange? {
@@ -239,6 +257,17 @@ struct QueryTasksIntent: AppIntent {
         }
         if let completionDate = task.completionDate {
             dict["completionDate"] = isoFormatter.string(from: completionDate)
+        }
+        // Include milestone info when assigned [req 13.7]
+        if let milestone = task.milestone {
+            var milestoneInfo: [String: Any] = [
+                "milestoneId": milestone.id.uuidString,
+                "name": milestone.name
+            ]
+            if let milestoneDisplayId = milestone.permanentDisplayId {
+                milestoneInfo["displayId"] = milestoneDisplayId
+            }
+            dict["milestone"] = milestoneInfo
         }
         if detailed {
             dict["description"] = task.taskDescription as Any
