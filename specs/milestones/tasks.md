@@ -225,38 +225,38 @@ references:
 
 ## Model Enhancements
 
-- [ ] 11. Add milestone info to share text <!-- id:mv1vn0l -->
+- [x] 11. Add milestone info to share text <!-- id:mv1vn0l -->
   - Blocked-by: mv1vmzd (Create data model and DisplayID changes)
   - Stream: 1
   - Requirements: [11.1](requirements.md#11.1)
-  - [ ] 11.1. Write test verifying share text includes milestone info <!-- id:mv1vn0m -->
+  - [x] 11.1. Write test verifying share text includes milestone info <!-- id:mv1vn0m -->
     - Stream: 1
-  - [ ] 11.2. Update shareText(comments:) to include Milestone line when assigned <!-- id:mv1vn0n -->
+  - [x] 11.2. Update shareText(comments:) to include Milestone line when assigned <!-- id:mv1vn0n -->
     - Add Milestone: {name} ({M-id}) line to shareText output when task.milestone is non-nil
     - Blocked-by: mv1vn0m (Write test verifying share text includes milestone info)
     - Stream: 1
     - References: Transit/Transit/Models/TransitTask.swift
 
-- [ ] 12. Add milestone data to reports <!-- id:mv1vn0o -->
+- [x] 12. Add milestone data to reports <!-- id:mv1vn0o -->
   - Blocked-by: mv1vmzp (Implement MilestoneService)
   - Stream: 1
   - Requirements: [10.1](requirements.md#10.1), [10.2](requirements.md#10.2), [10.3](requirements.md#10.3), [10.4](requirements.md#10.4)
-  - [ ] 12.1. Write ReportMilestoneTests (milestone inclusion, markdown formatting, empty case) <!-- id:mv1vn0p -->
+  - [x] 12.1. Write ReportMilestoneTests (milestone inclusion, markdown formatting, empty case) <!-- id:mv1vn0p -->
     - Stream: 1
-  - [ ] 12.2. Add milestoneName to ReportTask, create ReportMilestone struct, add milestones to ProjectGroup <!-- id:mv1vn0q -->
+  - [x] 12.2. Add milestoneName to ReportTask, create ReportMilestone struct, add milestones to ProjectGroup <!-- id:mv1vn0q -->
     - Add milestoneName: String? to ReportTask
     - Create ReportMilestone struct with id, displayID, name, isAbandoned, taskCount
     - Add milestones: [ReportMilestone] to ProjectGroup
     - Blocked-by: mv1vn0p (Write ReportMilestoneTests (milestone inclusion, markdown formatting, empty case))
     - Stream: 1
     - References: Transit/Transit/Reports/ReportData.swift
-  - [ ] 12.3. Update ReportLogic.buildReport to query and include completed milestones <!-- id:mv1vn0r -->
+  - [x] 12.3. Update ReportLogic.buildReport to query and include completed milestones <!-- id:mv1vn0r -->
     - Query milestones completed (Done or Abandoned) within the report date range
     - Include in project groups, populate milestoneName on task rows
     - Blocked-by: mv1vn0q (Add milestoneName to ReportTask, create ReportMilestone struct, add milestones to ProjectGroup)
     - Stream: 1
     - References: Transit/Transit/Reports/ReportLogic.swift
-  - [ ] 12.4. Update ReportView and ReportMarkdownFormatter for milestone rendering <!-- id:mv1vn0s -->
+  - [x] 12.4. Update ReportView and ReportMarkdownFormatter for milestone rendering <!-- id:mv1vn0s -->
     - ReportView: render completed milestones before task rows with divider in projectSection
     - ReportMarkdownFormatter: include milestones section and [milestone-name] suffix on task lines
     - Blocked-by: mv1vn0q (Add milestoneName to ReportTask, create ReportMilestone struct, add milestones to ProjectGroup)
