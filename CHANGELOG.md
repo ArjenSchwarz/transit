@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Milestones feature spec (T-137): requirements, design, decision log, and task list in `specs/milestones/`
+  - Project-scoped milestones with display IDs (M-1, M-2) and three-state lifecycle (Open/Done/Abandoned)
+  - 13 requirement sections, 9 architectural decisions, 19 implementation tasks across 4 parallel streams
+  - Covers data model, service layer, MCP tools, App Intents, UI (card badges, filters, pickers, settings), reports, and share text
+
+### Added
+
 - `search` parameter on `query_tasks` MCP tool for case-insensitive substring matching on task name and description, combining conjunctively with all existing filters (T-180)
 - `search` field on `QueryTasksIntent` App Intent JSON input with the same matching behavior (T-180)
 - `MCPSearchFilterTests` suite (9 tests) covering search by name, description, case insensitivity, combined filters (type, status), whitespace trimming, nil description, name-or-description matching, and empty search (T-180)

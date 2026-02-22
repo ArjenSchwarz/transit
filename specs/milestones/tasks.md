@@ -1,0 +1,364 @@
+---
+references:
+    - specs/milestones/requirements.md
+    - specs/milestones/design.md
+    - specs/milestones/decision_log.md
+---
+# Milestones
+
+## Data Model & Infrastructure
+
+- [ ] 1. Create data model and DisplayID changes <!-- id:mv1vmzd -->
+  - Stream: 1
+  - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2)
+  - [ ] 1.1. Write MilestoneStatus and DisplayID tests <!-- id:mv1vmze -->
+    - Test MilestoneStatus: isTerminal (open=false, done/abandoned=true), displayName values, raw string values
+    - Test DisplayID.formatted backward compatibility (still returns T-N) and formatted(prefix: "M") returns M-N
+    - Stream: 1
+  - [ ] 1.2. Implement MilestoneStatus enum and Milestone model <!-- id:mv1vmzf -->
+    - MilestoneStatus: nonisolated enum with open/done/abandoned cases
+    - Milestone @Model: id (UUID), permanentDisplayId (Int?), name (String), milestoneDescription (String?), statusRawValue (String), creationDate (Date), lastStatusChangeDate (Date), completionDate (Date?), project (Project?), tasks ([TransitTask]?)
+    - Use @Relationship(deleteRule: .nullify, inverse: \TransitTask.milestone) for tasks
+    - Blocked-by: mv1vmze (Write MilestoneStatus and DisplayID tests)
+    - Stream: 1
+    - References: Transit/Transit/Models/MilestoneStatus.swift, Transit/Transit/Models/Milestone.swift
+  - [ ] 1.3. Add milestone relationship to TransitTask and Project <!-- id:mv1vmzg -->
+    - Add var milestone: Milestone? to TransitTask
+    - Add @Relationship(deleteRule: .cascade, inverse: \Milestone.project) var milestones: [Milestone]? to Project
+    - Blocked-by: mv1vmzf (Implement MilestoneStatus enum and Milestone model)
+    - Stream: 1
+    - References: Transit/Transit/Models/TransitTask.swift, Transit/Transit/Models/Project.swift
+  - [ ] 1.4. Add DisplayID.formatted(prefix:) method <!-- id:mv1vmzh -->
+    - Add nonisolated func formatted(prefix: String) -> String method
+    - Update existing var formatted to call formatted(prefix: "T")
+    - Decision 9: preserve property, add method alongside
+    - Blocked-by: mv1vmze (Write MilestoneStatus and DisplayID tests)
+    - Stream: 1
+    - References: Transit/Transit/Models/DisplayID.swift
+
+- [ ] 2. Update schemas and verify compilation <!-- id:mv1vmzi -->
+  - Blocked-by: mv1vmzd (Create data model and DisplayID changes)
+  - Stream: 1
+  - Requirements: [1.1](requirements.md#1.1)
+  - [ ] 2.1. Add Milestone.self to production Schema in TransitApp.swift <!-- id:mv1vmzj -->
+    - Stream: 1
+  - [ ] 2.2. Add Milestone.self to TestModelContainer.schema and all inline test schemas <!-- id:mv1vmzk -->
+    - Update inline Schema definitions in: TaskServiceTests, TaskEntityTests, ProjectEntityTests, CommentServiceTests, ReportLogicTestHelpers, TaskCreationResultTests, TaskEntityQueryTests
+    - Stream: 1
+    - References: Transit/TransitTests/TestModelContainer.swift
+  - [ ] 2.3. Run make test-quick to verify no crashes <!-- id:mv1vmzl -->
+    - Blocked-by: mv1vmzj (Add Milestone.self to production Schema in TransitApp.swift), mv1vmzk (Add Milestone.self to TestModelContainer.schema and all inline test schemas)
+    - Stream: 1
+
+- [ ] 3. Parameterise DisplayIDAllocator for milestone counter <!-- id:mv1vmzm -->
+  - Stream: 1
+  - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3)
+  - [ ] 3.1. Add counterRecordName parameter to CloudKitCounterStore and DisplayIDAllocator <!-- id:mv1vmzn -->
+    - Parameterise CloudKitCounterStore.init to accept recordName: String = "global-counter"
+    - Add convenience init(container:counterRecordName:retryLimit:) to DisplayIDAllocator
+    - counterRecordName defaults to "global-counter" — existing init stays unchanged
+    - Stream: 1
+    - References: Transit/Transit/Services/DisplayIDAllocator.swift
+  - [ ] 3.2. Verify backward compatibility with existing DisplayIDAllocatorTests <!-- id:mv1vmzo -->
+    - Blocked-by: mv1vmzn (Add counterRecordName parameter to CloudKitCounterStore and DisplayIDAllocator)
+    - Stream: 1
+
+## Service Layer
+
+- [ ] 4. Implement MilestoneService <!-- id:mv1vmzp -->
+  - Blocked-by: mv1vmzd (Create data model and DisplayID changes), mv1vmzm (Parameterise DisplayIDAllocator for milestone counter)
+  - Stream: 1
+  - Requirements: [1.4](requirements.md#1.4), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [3.6](requirements.md#3.6), [4.3](requirements.md#4.3), [4.5](requirements.md#4.5)
+  - [ ] 4.1. Write MilestoneService tests (CRUD, uniqueness, status transitions, setMilestone validation, promotion) <!-- id:mv1vmzq -->
+    - Test CRUD operations, case-insensitive name uniqueness within project
+    - Test status transitions with timestamp checks (lastStatusChangeDate, completionDate set/cleared)
+    - Test setMilestone validation: project mismatch throws .projectMismatch, nil project throws .projectRequired
+    - Test promoteProvisionalMilestones, test delete nullifies task.milestone
+    - Stream: 1
+  - [ ] 4.2. Implement MilestoneService with Error enum, createMilestone, updateMilestone, updateStatus, deleteMilestone <!-- id:mv1vmzr -->
+    - @MainActor @Observable class with typed Error enum
+    - createMilestone: validate name non-empty, check case-insensitive uniqueness, allocate display ID (provisional on failure), insert, save
+    - updateMilestone: validate name if provided, check uniqueness excluding self, save with rollback
+    - updateStatus: update statusRawValue/lastStatusChangeDate/completionDate, save with rollback (per T-150 pattern)
+    - deleteMilestone: delete from context, save
+    - Blocked-by: mv1vmzq (Write MilestoneService tests (CRUD, uniqueness, status transitions, setMilestone validation, promotion))
+    - Stream: 1
+    - References: Transit/Transit/Services/MilestoneService.swift
+  - [ ] 4.3. Implement setMilestone(_:on:) with project validation (Decision 8) <!-- id:mv1vmzs -->
+    - Central validation entry point (Decision 8) — all consumers call this instead of setting task.milestone directly
+    - Validates task has a project (.projectRequired), validates milestone.project matches task.project (.projectMismatch)
+    - Passing nil clears the milestone assignment
+    - Blocked-by: mv1vmzq (Write MilestoneService tests (CRUD, uniqueness, status transitions, setMilestone validation, promotion))
+    - Stream: 1
+    - References: Transit/Transit/Services/MilestoneService.swift
+  - [ ] 4.4. Implement promoteProvisionalMilestones() and lookup methods <!-- id:mv1vmzt -->
+    - findByID, findByDisplayID, findByName (case-insensitive within project)
+    - milestonesForProject (filterable by status), milestoneNameExists
+    - promoteProvisionalMilestones: fetch where permanentDisplayId == nil, allocate via dedicated allocator
+    - Blocked-by: mv1vmzr (Implement MilestoneService with Error enum, createMilestone, updateMilestone, updateStatus, deleteMilestone)
+    - Stream: 1
+
+- [ ] 5. Add milestone clearing to TaskService on project change <!-- id:mv1vmzu -->
+  - Blocked-by: mv1vmzd (Create data model and DisplayID changes)
+  - Stream: 1
+  - Requirements: [4.4](requirements.md#4.4)
+  - [ ] 5.1. Write test verifying milestone is cleared when task project changes <!-- id:mv1vmzv -->
+    - Stream: 1
+  - [ ] 5.2. Add milestone = nil before project reassignment in TaskService methods (Decision 6) <!-- id:mv1vmzw -->
+    - Clear milestone BEFORE project reassignment to preserve old project ID for comparison (Decision 6)
+    - Apply to all TaskService methods that change a task project
+    - Blocked-by: mv1vmzv (Write test verifying milestone is cleared when task project changes)
+    - Stream: 1
+    - References: Transit/Transit/Services/TaskService.swift
+
+- [ ] 6. Wire MilestoneService into app entry point <!-- id:mv1vmzx -->
+  - Blocked-by: mv1vmzp (Implement MilestoneService), mv1vmzi (Update schemas and verify compilation)
+  - Stream: 1
+  - Requirements: [2.5](requirements.md#2.5)
+  - [ ] 6.1. Create milestone DisplayIDAllocator instance and MilestoneService in TransitApp <!-- id:mv1vmzy -->
+    - Create DisplayIDAllocator(container: .default(), counterRecordName: "milestone-counter")
+    - Create MilestoneService(context: container.mainContext, allocator: milestoneAllocator)
+    - Inject MilestoneService into environment
+    - Stream: 1
+    - References: Transit/Transit/TransitApp.swift
+  - [ ] 6.2. Wire promoteProvisionalMilestones into ConnectivityMonitor.onRestore and ScenePhaseModifier <!-- id:mv1vmzz -->
+    - Add milestoneService.promoteProvisionalMilestones() to ConnectivityMonitor.onRestore closure
+    - Update ScenePhaseModifier to accept MilestoneService and call promoteProvisionalMilestones() in .task and .onChange(of: scenePhase)
+    - Blocked-by: mv1vmzy (Create milestone DisplayIDAllocator instance and MilestoneService in TransitApp)
+    - Stream: 1
+    - References: Transit/Transit/TransitApp.swift
+  - [ ] 6.3. Update seedBoardScenario() with sample milestones for UI testing <!-- id:mv1vn00 -->
+    - Blocked-by: mv1vmzy (Create milestone DisplayIDAllocator instance and MilestoneService in TransitApp)
+    - Stream: 1
+  - [ ] 6.4. Run make build to verify compilation <!-- id:mv1vn01 -->
+    - Blocked-by: mv1vmzz (Wire promoteProvisionalMilestones into ConnectivityMonitor.onRestore and ScenePhaseModifier), mv1vn00 (Update seedBoardScenario() with sample milestones for UI testing)
+    - Stream: 1
+
+## MCP Tools
+
+- [ ] 7. Add MCP tool definitions for milestones <!-- id:mv1vn02 -->
+  - Blocked-by: mv1vmzp (Implement MilestoneService)
+  - Stream: 2
+  - Requirements: [12.1](requirements.md#12.1), [12.2](requirements.md#12.2), [12.3](requirements.md#12.3), [12.4](requirements.md#12.4), [12.5](requirements.md#12.5), [12.6](requirements.md#12.6), [12.7](requirements.md#12.7)
+  - [ ] 7.1. Add create_milestone, query_milestones, update_milestone, delete_milestone, update_task tool definitions <!-- id:mv1vn03 -->
+    - create_milestone: name (required string), project (string), description (string)
+    - query_milestones: project (string), status (string), search (string), displayId (integer)
+    - update_milestone: displayId (integer) or id (string UUID), name/description/status optional
+    - delete_milestone: displayId (integer) or id (string UUID)
+    - update_task: displayId (integer) or id (string UUID), milestone (string name/displayId or null to clear)
+    - Stream: 2
+    - References: Transit/Transit/MCP/MCPToolDefinitions.swift
+  - [ ] 7.2. Add milestone/milestoneDisplayId parameters to create_task and query_tasks schemas <!-- id:mv1vn04 -->
+    - Stream: 2
+  - [ ] 7.3. Add all new tools to MCPToolDefinitions.all array <!-- id:mv1vn05 -->
+    - Blocked-by: mv1vn03 (Add create_milestone, query_milestones, update_milestone, delete_milestone, update_task tool definitions)
+    - Stream: 2
+
+- [ ] 8. Implement MCP tool handlers for milestones <!-- id:mv1vn06 -->
+  - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point), mv1vn02 (Add MCP tool definitions for milestones)
+  - Stream: 2
+  - Requirements: [12.1](requirements.md#12.1), [12.2](requirements.md#12.2), [12.3](requirements.md#12.3), [12.4](requirements.md#12.4), [12.5](requirements.md#12.5), [12.6](requirements.md#12.6), [12.7](requirements.md#12.7), [12.8](requirements.md#12.8), [12.9](requirements.md#12.9)
+  - [ ] 8.1. Write MCPMilestoneToolTests (create/query/update/delete milestone, update_task, milestone on create_task, filter on query_tasks, milestone in get_projects, error cases) <!-- id:mv1vn07 -->
+    - Test create/query/update/delete milestone tools
+    - Test update_task tool for milestone assignment
+    - Test milestone parameter on create_task
+    - Test milestone filter on query_tasks
+    - Test milestone info in get_projects response
+    - Test error cases: not found, duplicate name, project mismatch
+    - Stream: 2
+    - References: Transit/TransitTests/MCPMilestoneToolTests.swift
+  - [ ] 8.2. Add MilestoneService dependency to MCPToolHandler and implement milestoneToDict/milestoneSummaryDict helpers <!-- id:mv1vn08 -->
+    - Stream: 2
+  - [ ] 8.3. Implement handleCreateMilestone, handleQueryMilestones, handleUpdateMilestone, handleDeleteMilestone <!-- id:mv1vn09 -->
+    - handleCreateMilestone: resolve project by name/ID, create via MilestoneService, return milestoneToDict
+    - handleQueryMilestones: apply project/status/search/displayId filters, return list or detail
+    - handleUpdateMilestone: resolve by displayId or UUID, apply name/description/status updates, return with previousStatus
+    - handleDeleteMilestone: resolve milestone, count tasks, delete, return count
+    - Blocked-by: mv1vn07 (Write MCPMilestoneToolTests (create/query/update/delete milestone, update_task, milestone on create_task, filter on query_tasks, milestone in get_projects, error cases)), mv1vn08 (Add MilestoneService dependency to MCPToolHandler and implement milestoneToDict/milestoneSummaryDict helpers)
+    - Stream: 2
+    - References: Transit/Transit/MCP/MCPToolHandler.swift
+  - [ ] 8.4. Implement handleUpdateTask for milestone assignment <!-- id:mv1vn0a -->
+    - Blocked-by: mv1vn08 (Add MilestoneService dependency to MCPToolHandler and implement milestoneToDict/milestoneSummaryDict helpers)
+    - Stream: 2
+  - [ ] 8.5. Modify handleCreateTask, handleQueryTasks, handleGetProjects for milestone support <!-- id:mv1vn0b -->
+    - Blocked-by: mv1vn08 (Add MilestoneService dependency to MCPToolHandler and implement milestoneToDict/milestoneSummaryDict helpers)
+    - Stream: 2
+  - [ ] 8.6. Add all new tool names to dispatch switch <!-- id:mv1vn0c -->
+    - Blocked-by: mv1vn09 (Implement handleCreateMilestone, handleQueryMilestones, handleUpdateMilestone, handleDeleteMilestone), mv1vn0a (Implement handleUpdateTask for milestone assignment), mv1vn0b (Modify handleCreateTask, handleQueryTasks, handleGetProjects for milestone support)
+    - Stream: 2
+
+## App Intents
+
+- [ ] 9. Implement milestone CRUD App Intents <!-- id:mv1vn0d -->
+  - Blocked-by: mv1vmzp (Implement MilestoneService)
+  - Stream: 3
+  - Requirements: [13.1](requirements.md#13.1), [13.2](requirements.md#13.2), [13.3](requirements.md#13.3), [13.4](requirements.md#13.4), [13.8](requirements.md#13.8), [13.9](requirements.md#13.9)
+  - [ ] 9.1. Write intent tests (CreateMilestoneIntentTests, QueryMilestonesIntentTests, UpdateMilestoneIntentTests, DeleteMilestoneIntentTests) <!-- id:mv1vn0e -->
+    - Stream: 3
+  - [ ] 9.2. Add MILESTONE_NOT_FOUND, DUPLICATE_MILESTONE_NAME, MILESTONE_PROJECT_MISMATCH error codes to IntentError <!-- id:mv1vn0f -->
+    - MILESTONE_NOT_FOUND, DUPLICATE_MILESTONE_NAME, MILESTONE_PROJECT_MISMATCH error codes
+    - Follow existing JSON error response pattern — errors encoded in return string, not thrown
+    - Stream: 3
+    - References: Transit/Transit/Intents/IntentError.swift
+  - [ ] 9.3. Implement CreateMilestoneIntent, QueryMilestonesIntent, UpdateMilestoneIntent, DeleteMilestoneIntent <!-- id:mv1vn0g -->
+    - Follow existing intent pattern: JSON input via single @Parameter, static execute() for testability
+    - CreateMilestoneIntent: name (required), project (required), description (optional)
+    - QueryMilestonesIntent: optional displayId/project/status/search filters
+    - UpdateMilestoneIntent: resolve by displayId, UUID, or name+project — apply name/description/status
+    - DeleteMilestoneIntent: resolve by displayId or UUID, return affected task count
+    - Blocked-by: mv1vn0e (Write intent tests (CreateMilestoneIntentTests, QueryMilestonesIntentTests, UpdateMilestoneIntentTests, DeleteMilestoneIntentTests)), mv1vn0f (Add MILESTONE_NOT_FOUND, DUPLICATE_MILESTONE_NAME, MILESTONE_PROJECT_MISMATCH error codes to IntentError)
+    - Stream: 3
+    - References: Transit/Transit/Intents/CreateMilestoneIntent.swift, Transit/Transit/Intents/QueryMilestonesIntent.swift, Transit/Transit/Intents/UpdateMilestoneIntent.swift, Transit/Transit/Intents/DeleteMilestoneIntent.swift
+
+- [ ] 10. Implement task milestone assignment App Intents <!-- id:mv1vn0h -->
+  - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point), mv1vn0d (Implement milestone CRUD App Intents)
+  - Stream: 3
+  - Requirements: [13.5](requirements.md#13.5), [13.6](requirements.md#13.6), [13.7](requirements.md#13.7)
+  - [ ] 10.1. Write UpdateTaskIntentTests and milestone-related tests for existing intent suites <!-- id:mv1vn0i -->
+    - Stream: 3
+  - [ ] 10.2. Create UpdateTaskIntent for milestone assignment <!-- id:mv1vn0j -->
+    - Blocked-by: mv1vn0i (Write UpdateTaskIntentTests and milestone-related tests for existing intent suites)
+    - Stream: 3
+  - [ ] 10.3. Modify CreateTaskIntent and QueryTasksIntent for optional milestone parameter <!-- id:mv1vn0k -->
+    - Blocked-by: mv1vn0i (Write UpdateTaskIntentTests and milestone-related tests for existing intent suites)
+    - Stream: 3
+
+## Model Enhancements
+
+- [ ] 11. Add milestone info to share text <!-- id:mv1vn0l -->
+  - Blocked-by: mv1vmzd (Create data model and DisplayID changes)
+  - Stream: 1
+  - Requirements: [11.1](requirements.md#11.1)
+  - [ ] 11.1. Write test verifying share text includes milestone info <!-- id:mv1vn0m -->
+    - Stream: 1
+  - [ ] 11.2. Update shareText(comments:) to include Milestone line when assigned <!-- id:mv1vn0n -->
+    - Add Milestone: {name} ({M-id}) line to shareText output when task.milestone is non-nil
+    - Blocked-by: mv1vn0m (Write test verifying share text includes milestone info)
+    - Stream: 1
+    - References: Transit/Transit/Models/TransitTask.swift
+
+- [ ] 12. Add milestone data to reports <!-- id:mv1vn0o -->
+  - Blocked-by: mv1vmzp (Implement MilestoneService)
+  - Stream: 1
+  - Requirements: [10.1](requirements.md#10.1), [10.2](requirements.md#10.2), [10.3](requirements.md#10.3), [10.4](requirements.md#10.4)
+  - [ ] 12.1. Write ReportMilestoneTests (milestone inclusion, markdown formatting, empty case) <!-- id:mv1vn0p -->
+    - Stream: 1
+  - [ ] 12.2. Add milestoneName to ReportTask, create ReportMilestone struct, add milestones to ProjectGroup <!-- id:mv1vn0q -->
+    - Add milestoneName: String? to ReportTask
+    - Create ReportMilestone struct with id, displayID, name, isAbandoned, taskCount
+    - Add milestones: [ReportMilestone] to ProjectGroup
+    - Blocked-by: mv1vn0p (Write ReportMilestoneTests (milestone inclusion, markdown formatting, empty case))
+    - Stream: 1
+    - References: Transit/Transit/Reports/ReportData.swift
+  - [ ] 12.3. Update ReportLogic.buildReport to query and include completed milestones <!-- id:mv1vn0r -->
+    - Query milestones completed (Done or Abandoned) within the report date range
+    - Include in project groups, populate milestoneName on task rows
+    - Blocked-by: mv1vn0q (Add milestoneName to ReportTask, create ReportMilestone struct, add milestones to ProjectGroup)
+    - Stream: 1
+    - References: Transit/Transit/Reports/ReportLogic.swift
+  - [ ] 12.4. Update ReportView and ReportMarkdownFormatter for milestone rendering <!-- id:mv1vn0s -->
+    - ReportView: render completed milestones before task rows with divider in projectSection
+    - ReportMarkdownFormatter: include milestones section and [milestone-name] suffix on task lines
+    - Blocked-by: mv1vn0q (Add milestoneName to ReportTask, create ReportMilestone struct, add milestones to ProjectGroup)
+    - Stream: 1
+    - References: Transit/Transit/Views/Reports/ReportView.swift, Transit/Transit/Reports/ReportMarkdownFormatter.swift
+
+## UI
+
+- [ ] 13. Add milestone badge to task card <!-- id:mv1vn0t -->
+  - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
+  - Stream: 4
+  - Requirements: [6.1](requirements.md#6.1), [6.2](requirements.md#6.2)
+  - [ ] 13.1. Add milestone name badge to TaskCardView (caption2, secondary, capsule background) <!-- id:mv1vn0u -->
+    - Show milestone name as badge when task.milestone is non-nil
+    - Style: .font(.caption2), .foregroundStyle(.secondary), capsule background
+    - Stream: 4
+    - References: Transit/Transit/Views/Dashboard/TaskCardView.swift
+
+- [ ] 14. Add milestone row to task detail view <!-- id:mv1vn0v -->
+  - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
+  - Stream: 4
+  - Requirements: [7.1](requirements.md#7.1)
+  - [ ] 14.1. Add Milestone row showing name (M-id) or None to TaskDetailView <!-- id:mv1vn0w -->
+    - Add Milestone row showing milestone.name (M-<displayId>) or None
+    - Stream: 4
+    - References: Transit/Transit/Views/TaskDetail/TaskDetailView.swift
+
+- [ ] 15. Add milestone picker to task edit view <!-- id:mv1vn0x -->
+  - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
+  - Stream: 4
+  - Requirements: [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4)
+  - [ ] 15.1. Add milestone menu picker after project picker, load open milestones, reset on project change, save via setMilestone <!-- id:mv1vn0y -->
+    - Add milestone picker after project picker (menu style)
+    - Load open milestones via MilestoneService.milestonesForProject
+    - Include None option to unassign
+    - Reset milestone selection to nil when project changes
+    - Save via MilestoneService.setMilestone(_:on:) in save action
+    - Stream: 4
+    - References: Transit/Transit/Views/TaskDetail/TaskEditView.swift
+
+- [ ] 16. Add milestone picker to add task sheet <!-- id:mv1vn0z -->
+  - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
+  - Stream: 4
+  - Requirements: [8.1](requirements.md#8.1), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3)
+  - [ ] 16.1. Add milestone picker after project picker, filter to open milestones, reset on project change, pass to task creation <!-- id:mv1vn10 -->
+    - Same pattern as TaskEditView milestone picker
+    - Filter to open milestones for selected project
+    - Reset on project change
+    - Pass selected milestone to task creation flow
+    - Stream: 4
+    - References: Transit/Transit/Views/AddTask/AddTaskSheet.swift
+
+- [ ] 17. Add milestone filter to dashboard <!-- id:mv1vn11 -->
+  - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
+  - Stream: 4
+  - Requirements: [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5)
+  - [ ] 17.1. Add selectedMilestones state to DashboardView and milestone section to FilterPopoverView <!-- id:mv1vn12 -->
+    - Add @State private var selectedMilestones: Set<UUID> to DashboardView
+    - Add Milestones section to FilterPopoverView
+    - Show milestones scoped by project filter (or all open milestones if no project filtered)
+    - Stream: 4
+    - References: Transit/Transit/Views/Dashboard/DashboardView.swift, Transit/Transit/Views/Dashboard/FilterPopoverView.swift
+  - [ ] 17.2. Handle stale milestone state (dimmed indicator) and clear on project filter change <!-- id:mv1vn13 -->
+    - Dimmed indicator for selected milestones that are no longer open
+    - Clear milestone selection when project filter changes
+    - Blocked-by: mv1vn12 (Add selectedMilestones state to DashboardView and milestone section to FilterPopoverView)
+    - Stream: 4
+    - References: Transit/Transit/Views/Dashboard/FilterPopoverView.swift
+  - [ ] 17.3. Add in-memory milestone filter to DashboardView task filtering <!-- id:mv1vn14 -->
+    - Blocked-by: mv1vn12 (Add selectedMilestones state to DashboardView and milestone section to FilterPopoverView)
+    - Stream: 4
+
+- [ ] 18. Add milestone management to settings <!-- id:mv1vn15 -->
+  - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
+  - Stream: 4
+  - Requirements: [9.1](requirements.md#9.1), [9.2](requirements.md#9.2), [9.3](requirements.md#9.3), [9.4](requirements.md#9.4), [9.5](requirements.md#9.5)
+  - [ ] 18.1. Add .milestoneEdit case to NavigationDestination and create MilestoneEditView <!-- id:mv1vn16 -->
+    - Add .milestoneEdit(Milestone?) case to NavigationDestination enum
+    - Create MilestoneEditView with platform-specific form (iOS Form / macOS LiquidGlassSection) for name + description
+    - Stream: 4
+    - References: Transit/Transit/Models/NavigationDestination.swift, Transit/Transit/Views/Settings/MilestoneEditView.swift
+  - [ ] 18.2. Create MilestoneListSection with add/status-change/delete actions and delete confirmation alert <!-- id:mv1vn17 -->
+    - Reusable list of milestones for a project
+    - Add/status-change/delete actions
+    - Delete confirmation alert showing affected task count
+    - Stream: 4
+    - References: Transit/Transit/Views/Settings/MilestoneListSection.swift
+  - [ ] 18.3. Add MilestoneListSection to ProjectEditView and navigationDestination for .milestoneEdit <!-- id:mv1vn18 -->
+    - Add MilestoneListSection to ProjectEditView
+    - Add navigationDestination for .milestoneEdit in TransitApp.swift
+    - Blocked-by: mv1vn16 (Add .milestoneEdit case to NavigationDestination and create MilestoneEditView), mv1vn17 (Create MilestoneListSection with add/status-change/delete actions and delete confirmation alert)
+    - Stream: 4
+    - References: Transit/Transit/Views/Settings/ProjectEditView.swift, Transit/Transit/TransitApp.swift
+
+## Verification
+
+- [ ] 19. Final verification <!-- id:mv1vn19 -->
+  - Blocked-by: mv1vmzu (Add milestone clearing to TaskService on project change), mv1vn06 (Implement MCP tool handlers for milestones), mv1vn0h (Implement task milestone assignment App Intents), mv1vn0l (Add milestone info to share text), mv1vn0o (Add milestone data to reports), mv1vn0t (Add milestone badge to task card), mv1vn0v (Add milestone row to task detail view), mv1vn0x (Add milestone picker to task edit view), mv1vn0z (Add milestone picker to add task sheet), mv1vn11 (Add milestone filter to dashboard), mv1vn15 (Add milestone management to settings)
+  - Stream: 1
+  - [ ] 19.1. Run make test-quick — all unit tests pass <!-- id:mv1vn1a -->
+    - Stream: 1
+  - [ ] 19.2. Run make test — full iOS simulator test suite passes <!-- id:mv1vn1b -->
+    - Stream: 1
+  - [ ] 19.3. Run make lint — no warnings <!-- id:mv1vn1c -->
+    - Stream: 1
