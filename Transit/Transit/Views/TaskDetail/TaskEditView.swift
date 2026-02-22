@@ -247,8 +247,9 @@ struct TaskEditView: View {
         task.type = selectedType
         task.metadata = metadata
 
-        // Update project if changed
+        // Update project if changed — clear milestone before reassignment (Decision 6)
         if let newProjectID = selectedProjectID, task.project?.id != newProjectID {
+            task.milestone = nil
             task.project = projects.first { $0.id == newProjectID }
         }
 

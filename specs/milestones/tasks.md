@@ -65,17 +65,17 @@ references:
 
 ## Service Layer
 
-- [ ] 4. Implement MilestoneService <!-- id:mv1vmzp -->
+- [x] 4. Implement MilestoneService <!-- id:mv1vmzp -->
   - Blocked-by: mv1vmzd (Create data model and DisplayID changes), mv1vmzm (Parameterise DisplayIDAllocator for milestone counter)
   - Stream: 1
   - Requirements: [1.4](requirements.md#1.4), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [3.6](requirements.md#3.6), [4.3](requirements.md#4.3), [4.5](requirements.md#4.5)
-  - [ ] 4.1. Write MilestoneService tests (CRUD, uniqueness, status transitions, setMilestone validation, promotion) <!-- id:mv1vmzq -->
+  - [x] 4.1. Write MilestoneService tests (CRUD, uniqueness, status transitions, setMilestone validation, promotion) <!-- id:mv1vmzq -->
     - Test CRUD operations, case-insensitive name uniqueness within project
     - Test status transitions with timestamp checks (lastStatusChangeDate, completionDate set/cleared)
     - Test setMilestone validation: project mismatch throws .projectMismatch, nil project throws .projectRequired
     - Test promoteProvisionalMilestones, test delete nullifies task.milestone
     - Stream: 1
-  - [ ] 4.2. Implement MilestoneService with Error enum, createMilestone, updateMilestone, updateStatus, deleteMilestone <!-- id:mv1vmzr -->
+  - [x] 4.2. Implement MilestoneService with Error enum, createMilestone, updateMilestone, updateStatus, deleteMilestone <!-- id:mv1vmzr -->
     - @MainActor @Observable class with typed Error enum
     - createMilestone: validate name non-empty, check case-insensitive uniqueness, allocate display ID (provisional on failure), insert, save
     - updateMilestone: validate name if provided, check uniqueness excluding self, save with rollback
@@ -84,53 +84,53 @@ references:
     - Blocked-by: mv1vmzq (Write MilestoneService tests (CRUD, uniqueness, status transitions, setMilestone validation, promotion))
     - Stream: 1
     - References: Transit/Transit/Services/MilestoneService.swift
-  - [ ] 4.3. Implement setMilestone(_:on:) with project validation (Decision 8) <!-- id:mv1vmzs -->
+  - [x] 4.3. Implement setMilestone(_:on:) with project validation (Decision 8) <!-- id:mv1vmzs -->
     - Central validation entry point (Decision 8) — all consumers call this instead of setting task.milestone directly
     - Validates task has a project (.projectRequired), validates milestone.project matches task.project (.projectMismatch)
     - Passing nil clears the milestone assignment
     - Blocked-by: mv1vmzq (Write MilestoneService tests (CRUD, uniqueness, status transitions, setMilestone validation, promotion))
     - Stream: 1
     - References: Transit/Transit/Services/MilestoneService.swift
-  - [ ] 4.4. Implement promoteProvisionalMilestones() and lookup methods <!-- id:mv1vmzt -->
+  - [x] 4.4. Implement promoteProvisionalMilestones() and lookup methods <!-- id:mv1vmzt -->
     - findByID, findByDisplayID, findByName (case-insensitive within project)
     - milestonesForProject (filterable by status), milestoneNameExists
     - promoteProvisionalMilestones: fetch where permanentDisplayId == nil, allocate via dedicated allocator
     - Blocked-by: mv1vmzr (Implement MilestoneService with Error enum, createMilestone, updateMilestone, updateStatus, deleteMilestone)
     - Stream: 1
 
-- [ ] 5. Add milestone clearing to TaskService on project change <!-- id:mv1vmzu -->
+- [x] 5. Add milestone clearing to TaskService on project change <!-- id:mv1vmzu -->
   - Blocked-by: mv1vmzd (Create data model and DisplayID changes)
   - Stream: 1
   - Requirements: [4.4](requirements.md#4.4)
-  - [ ] 5.1. Write test verifying milestone is cleared when task project changes <!-- id:mv1vmzv -->
+  - [x] 5.1. Write test verifying milestone is cleared when task project changes <!-- id:mv1vmzv -->
     - Stream: 1
-  - [ ] 5.2. Add milestone = nil before project reassignment in TaskService methods (Decision 6) <!-- id:mv1vmzw -->
+  - [x] 5.2. Add milestone = nil before project reassignment in TaskService methods (Decision 6) <!-- id:mv1vmzw -->
     - Clear milestone BEFORE project reassignment to preserve old project ID for comparison (Decision 6)
     - Apply to all TaskService methods that change a task project
     - Blocked-by: mv1vmzv (Write test verifying milestone is cleared when task project changes)
     - Stream: 1
     - References: Transit/Transit/Services/TaskService.swift
 
-- [ ] 6. Wire MilestoneService into app entry point <!-- id:mv1vmzx -->
+- [x] 6. Wire MilestoneService into app entry point <!-- id:mv1vmzx -->
   - Blocked-by: mv1vmzp (Implement MilestoneService), mv1vmzi (Update schemas and verify compilation)
   - Stream: 1
   - Requirements: [2.5](requirements.md#2.5)
-  - [ ] 6.1. Create milestone DisplayIDAllocator instance and MilestoneService in TransitApp <!-- id:mv1vmzy -->
+  - [x] 6.1. Create milestone DisplayIDAllocator instance and MilestoneService in TransitApp <!-- id:mv1vmzy -->
     - Create DisplayIDAllocator(container: .default(), counterRecordName: "milestone-counter")
     - Create MilestoneService(context: container.mainContext, allocator: milestoneAllocator)
     - Inject MilestoneService into environment
     - Stream: 1
     - References: Transit/Transit/TransitApp.swift
-  - [ ] 6.2. Wire promoteProvisionalMilestones into ConnectivityMonitor.onRestore and ScenePhaseModifier <!-- id:mv1vmzz -->
+  - [x] 6.2. Wire promoteProvisionalMilestones into ConnectivityMonitor.onRestore and ScenePhaseModifier <!-- id:mv1vmzz -->
     - Add milestoneService.promoteProvisionalMilestones() to ConnectivityMonitor.onRestore closure
     - Update ScenePhaseModifier to accept MilestoneService and call promoteProvisionalMilestones() in .task and .onChange(of: scenePhase)
     - Blocked-by: mv1vmzy (Create milestone DisplayIDAllocator instance and MilestoneService in TransitApp)
     - Stream: 1
     - References: Transit/Transit/TransitApp.swift
-  - [ ] 6.3. Update seedBoardScenario() with sample milestones for UI testing <!-- id:mv1vn00 -->
+  - [x] 6.3. Update seedBoardScenario() with sample milestones for UI testing <!-- id:mv1vn00 -->
     - Blocked-by: mv1vmzy (Create milestone DisplayIDAllocator instance and MilestoneService in TransitApp)
     - Stream: 1
-  - [ ] 6.4. Run make build to verify compilation <!-- id:mv1vn01 -->
+  - [x] 6.4. Run make build to verify compilation <!-- id:mv1vn01 -->
     - Blocked-by: mv1vmzz (Wire promoteProvisionalMilestones into ConnectivityMonitor.onRestore and ScenePhaseModifier), mv1vn00 (Update seedBoardScenario() with sample milestones for UI testing)
     - Stream: 1
 
