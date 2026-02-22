@@ -4,6 +4,7 @@ import SwiftUI
 struct AddTaskSheet: View {
     @Environment(TaskService.self) private var taskService
     @Environment(ProjectService.self) private var projectService
+    @Environment(MilestoneService.self) private var milestoneService
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Project.name) private var projects: [Project]
 
@@ -11,6 +12,7 @@ struct AddTaskSheet: View {
     @State private var taskDescription = ""
     @State private var selectedType: TaskType = .feature
     @State private var selectedProjectID: UUID?
+    @State private var selectedMilestone: Milestone?
     @State private var selectedDetent: PresentationDetent = .large
     @State private var isSaving = false
     @State private var errorMessage: String?
@@ -18,6 +20,11 @@ struct AddTaskSheet: View {
     private var selectedProject: Project? {
         guard let id = selectedProjectID else { return nil }
         return projects.first { $0.id == id }
+    }
+
+    private var openMilestones: [Milestone] {
+        guard let project = selectedProject else { return [] }
+        return milestoneService.milestonesForProject(project, status: .open)
     }
 
     private var canSave: Bool {
@@ -85,6 +92,16 @@ struct AddTaskSheet: View {
                         .tag(Optional(project.id))
                     }
                 }
+                .onChange(of: selectedProjectID) { _, _ in
+                    selectedMilestone = nil
+                }
+
+                Picker("Milestone", selection: $selectedMilestone) {
+                    Text("None").tag(nil as Milestone?)
+                    ForEach(openMilestones) { milestone in
+                        Text(milestone.name).tag(milestone as Milestone?)
+                    }
+                }
 
                 TextField("Name", text: $name)
             }
@@ -135,6 +152,21 @@ struct AddTaskSheet: View {
                                         Text(project.name)
                                     }
                                     .tag(Optional(project.id))
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .fixedSize()
+                            .onChange(of: selectedProjectID) { _, _ in
+                                selectedMilestone = nil
+                            }
+                        }
+
+                        FormRow("Milestone", labelWidth: Self.labelWidth) {
+                            Picker("", selection: $selectedMilestone) {
+                                Text("None").tag(nil as Milestone?)
+                                ForEach(openMilestones) { milestone in
+                                    Text(milestone.name).tag(milestone as Milestone?)
                                 }
                             }
                             .labelsHidden()
@@ -209,12 +241,15 @@ struct AddTaskSheet: View {
         defer { isSaving = false }
 
         do {
-            _ = try await taskService.createTask(
+            let task = try await taskService.createTask(
                 name: trimmedName,
                 description: description.isEmpty ? nil : description,
                 type: type,
                 projectID: projectID
             )
+            if let milestone = selectedMilestone {
+                try milestoneService.setMilestone(milestone, on: task)
+            }
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

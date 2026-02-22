@@ -265,30 +265,30 @@ references:
 
 ## UI
 
-- [ ] 13. Add milestone badge to task card <!-- id:mv1vn0t -->
+- [x] 13. Add milestone badge to task card <!-- id:mv1vn0t -->
   - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
   - Stream: 4
   - Requirements: [6.1](requirements.md#6.1), [6.2](requirements.md#6.2)
-  - [ ] 13.1. Add milestone name badge to TaskCardView (caption2, secondary, capsule background) <!-- id:mv1vn0u -->
+  - [x] 13.1. Add milestone name badge to TaskCardView (caption2, secondary, capsule background) <!-- id:mv1vn0u -->
     - Show milestone name as badge when task.milestone is non-nil
     - Style: .font(.caption2), .foregroundStyle(.secondary), capsule background
     - Stream: 4
     - References: Transit/Transit/Views/Dashboard/TaskCardView.swift
 
-- [ ] 14. Add milestone row to task detail view <!-- id:mv1vn0v -->
+- [x] 14. Add milestone row to task detail view <!-- id:mv1vn0v -->
   - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
   - Stream: 4
   - Requirements: [7.1](requirements.md#7.1)
-  - [ ] 14.1. Add Milestone row showing name (M-id) or None to TaskDetailView <!-- id:mv1vn0w -->
+  - [x] 14.1. Add Milestone row showing name (M-id) or None to TaskDetailView <!-- id:mv1vn0w -->
     - Add Milestone row showing milestone.name (M-<displayId>) or None
     - Stream: 4
     - References: Transit/Transit/Views/TaskDetail/TaskDetailView.swift
 
-- [ ] 15. Add milestone picker to task edit view <!-- id:mv1vn0x -->
+- [x] 15. Add milestone picker to task edit view <!-- id:mv1vn0x -->
   - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
   - Stream: 4
   - Requirements: [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4)
-  - [ ] 15.1. Add milestone menu picker after project picker, load open milestones, reset on project change, save via setMilestone <!-- id:mv1vn0y -->
+  - [x] 15.1. Add milestone menu picker after project picker, load open milestones, reset on project change, save via setMilestone <!-- id:mv1vn0y -->
     - Add milestone picker after project picker (menu style)
     - Load open milestones via MilestoneService.milestonesForProject
     - Include None option to unassign
@@ -297,11 +297,11 @@ references:
     - Stream: 4
     - References: Transit/Transit/Views/TaskDetail/TaskEditView.swift
 
-- [ ] 16. Add milestone picker to add task sheet <!-- id:mv1vn0z -->
+- [x] 16. Add milestone picker to add task sheet <!-- id:mv1vn0z -->
   - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
   - Stream: 4
   - Requirements: [8.1](requirements.md#8.1), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3)
-  - [ ] 16.1. Add milestone picker after project picker, filter to open milestones, reset on project change, pass to task creation <!-- id:mv1vn10 -->
+  - [x] 16.1. Add milestone picker after project picker, filter to open milestones, reset on project change, pass to task creation <!-- id:mv1vn10 -->
     - Same pattern as TaskEditView milestone picker
     - Filter to open milestones for selected project
     - Reset on project change
@@ -309,42 +309,42 @@ references:
     - Stream: 4
     - References: Transit/Transit/Views/AddTask/AddTaskSheet.swift
 
-- [ ] 17. Add milestone filter to dashboard <!-- id:mv1vn11 -->
+- [x] 17. Add milestone filter to dashboard <!-- id:mv1vn11 -->
   - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
   - Stream: 4
   - Requirements: [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5)
-  - [ ] 17.1. Add selectedMilestones state to DashboardView and milestone section to FilterPopoverView <!-- id:mv1vn12 -->
+  - [x] 17.1. Add selectedMilestones state to DashboardView and milestone section to FilterPopoverView <!-- id:mv1vn12 -->
     - Add @State private var selectedMilestones: Set<UUID> to DashboardView
     - Add Milestones section to FilterPopoverView
     - Show milestones scoped by project filter (or all open milestones if no project filtered)
     - Stream: 4
     - References: Transit/Transit/Views/Dashboard/DashboardView.swift, Transit/Transit/Views/Dashboard/FilterPopoverView.swift
-  - [ ] 17.2. Handle stale milestone state (dimmed indicator) and clear on project filter change <!-- id:mv1vn13 -->
+  - [x] 17.2. Handle stale milestone state (dimmed indicator) and clear on project filter change <!-- id:mv1vn13 -->
     - Dimmed indicator for selected milestones that are no longer open
     - Clear milestone selection when project filter changes
     - Blocked-by: mv1vn12 (Add selectedMilestones state to DashboardView and milestone section to FilterPopoverView)
     - Stream: 4
     - References: Transit/Transit/Views/Dashboard/FilterPopoverView.swift
-  - [ ] 17.3. Add in-memory milestone filter to DashboardView task filtering <!-- id:mv1vn14 -->
+  - [x] 17.3. Add in-memory milestone filter to DashboardView task filtering <!-- id:mv1vn14 -->
     - Blocked-by: mv1vn12 (Add selectedMilestones state to DashboardView and milestone section to FilterPopoverView)
     - Stream: 4
 
-- [ ] 18. Add milestone management to settings <!-- id:mv1vn15 -->
+- [x] 18. Add milestone management to settings <!-- id:mv1vn15 -->
   - Blocked-by: mv1vmzx (Wire MilestoneService into app entry point)
   - Stream: 4
   - Requirements: [9.1](requirements.md#9.1), [9.2](requirements.md#9.2), [9.3](requirements.md#9.3), [9.4](requirements.md#9.4), [9.5](requirements.md#9.5)
-  - [ ] 18.1. Add .milestoneEdit case to NavigationDestination and create MilestoneEditView <!-- id:mv1vn16 -->
+  - [x] 18.1. Add .milestoneEdit case to NavigationDestination and create MilestoneEditView <!-- id:mv1vn16 -->
     - Add .milestoneEdit(Milestone?) case to NavigationDestination enum
     - Create MilestoneEditView with platform-specific form (iOS Form / macOS LiquidGlassSection) for name + description
     - Stream: 4
     - References: Transit/Transit/Models/NavigationDestination.swift, Transit/Transit/Views/Settings/MilestoneEditView.swift
-  - [ ] 18.2. Create MilestoneListSection with add/status-change/delete actions and delete confirmation alert <!-- id:mv1vn17 -->
+  - [x] 18.2. Create MilestoneListSection with add/status-change/delete actions and delete confirmation alert <!-- id:mv1vn17 -->
     - Reusable list of milestones for a project
     - Add/status-change/delete actions
     - Delete confirmation alert showing affected task count
     - Stream: 4
     - References: Transit/Transit/Views/Settings/MilestoneListSection.swift
-  - [ ] 18.3. Add MilestoneListSection to ProjectEditView and navigationDestination for .milestoneEdit <!-- id:mv1vn18 -->
+  - [x] 18.3. Add MilestoneListSection to ProjectEditView and navigationDestination for .milestoneEdit <!-- id:mv1vn18 -->
     - Add MilestoneListSection to ProjectEditView
     - Add navigationDestination for .milestoneEdit in TransitApp.swift
     - Blocked-by: mv1vn16 (Add .milestoneEdit case to NavigationDestination and create MilestoneEditView), mv1vn17 (Create MilestoneListSection with add/status-change/delete actions and delete confirmation alert)

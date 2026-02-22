@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated enum IntentError {
+nonisolated enum IntentError: Error {
     case taskNotFound(hint: String)
     case projectNotFound(hint: String)
     case ambiguousProject(hint: String)

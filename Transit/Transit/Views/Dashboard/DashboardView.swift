@@ -6,6 +6,7 @@ struct DashboardView: View {
     @Query(sort: \Project.name) private var projects: [Project]
     @State private var selectedProjectIDs: Set<UUID> = []
     @State private var selectedTypes: Set<TaskType> = []
+    @State private var selectedMilestones: Set<UUID> = []
     @State private var selectedColumn: DashboardColumn = .inProgress // [req 13.3]
     @State private var selectedTask: TransitTask?
     @State private var showFilter = false
@@ -37,6 +38,7 @@ struct DashboardView: View {
             allTasks: allTasks,
             selectedProjectIDs: selectedProjectIDs,
             selectedTypes: selectedTypes,
+            selectedMilestones: selectedMilestones,
             searchText: effectiveSearchText
         )
     }
@@ -107,7 +109,8 @@ struct DashboardView: View {
     // MARK: - Toolbar Buttons
 
     private var activeFilterCount: Int {
-        selectedProjectIDs.count + selectedTypes.count + (effectiveSearchText.isEmpty ? 0 : 1)
+        selectedProjectIDs.count + selectedTypes.count + selectedMilestones.count
+            + (effectiveSearchText.isEmpty ? 0 : 1)
     }
 
     private var activeFilterAccessibilityValue: String {
@@ -130,7 +133,8 @@ struct DashboardView: View {
             FilterPopoverView(
                 projects: projects,
                 selectedProjectIDs: $selectedProjectIDs,
-                selectedTypes: $selectedTypes
+                selectedTypes: $selectedTypes,
+                selectedMilestones: $selectedMilestones
             )
         }
     }
@@ -165,12 +169,13 @@ struct DashboardView: View {
 
 enum DashboardLogic {
 
-    /// Testable column builder: groups tasks by column, applies project, type, and text search filters,
-    /// 48-hour cutoff for terminal tasks, and sorting rules.
+    /// Testable column builder: groups tasks by column, applies project, type, milestone,
+    /// and text search filters, 48-hour cutoff for terminal tasks, and sorting rules.
     static func buildFilteredColumns(
         allTasks: [TransitTask],
         selectedProjectIDs: Set<UUID>,
         selectedTypes: Set<TaskType> = [],
+        selectedMilestones: Set<UUID> = [],
         searchText: String = "",
         now: Date = .now
     ) -> [DashboardColumn: [TransitTask]] {
@@ -181,6 +186,7 @@ enum DashboardLogic {
                 task: task,
                 selectedProjectIDs: selectedProjectIDs,
                 selectedTypes: selectedTypes,
+                selectedMilestones: selectedMilestones,
                 searchText: trimmedSearch
             )
         }
@@ -219,6 +225,7 @@ enum DashboardLogic {
         task: TransitTask,
         selectedProjectIDs: Set<UUID>,
         selectedTypes: Set<TaskType>,
+        selectedMilestones: Set<UUID>,
         searchText: String
     ) -> Bool {
         guard task.project != nil else { return false }
@@ -230,6 +237,12 @@ enum DashboardLogic {
 
         if !selectedTypes.isEmpty {
             guard selectedTypes.contains(task.type) else { return false }
+        }
+
+        // In-memory milestone filter (can't use #Predicate for optional relationships)
+        if !selectedMilestones.isEmpty {
+            guard let milestoneId = task.milestone?.id,
+                  selectedMilestones.contains(milestoneId) else { return false }
         }
 
         if !searchText.isEmpty {

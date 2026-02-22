@@ -55,6 +55,10 @@ struct ProjectEditView: View {
             Section {
                 ColorPicker("Color", selection: $color, supportsOpacity: false)
             }
+
+            if let project {
+                MilestoneListSection(project: project)
+            }
         }
         .navigationTitle(isEditing ? "Edit Project" : "New Project")
         .navigationBarTitleDisplayMode(.inline)
@@ -106,6 +110,10 @@ struct ProjectEditView: View {
                                 .fixedSize()
                         }
                     }
+                }
+
+                if let project {
+                    MilestoneListSection(project: project)
                 }
 
                 HStack {

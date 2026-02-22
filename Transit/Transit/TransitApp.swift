@@ -100,6 +100,8 @@ struct TransitApp: App {
                             SettingsView()
                         case .projectEdit(let project):
                             ProjectEditView(project: project)
+                        case .milestoneEdit(let project, let milestone):
+                            MilestoneEditView(project: project, milestone: milestone)
                         case .report:
                             ReportView()
                         }

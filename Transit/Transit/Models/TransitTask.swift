@@ -66,6 +66,10 @@ final class TransitTask {
             text += "Project: \(project.name)\n"
         }
 
+        if let milestone {
+            text += "Milestone: \(milestone.name) (\(milestone.displayID.formatted(prefix: "M")))\n"
+        }
+
         if let taskDescription, !taskDescription.isEmpty {
             text += "\n\(taskDescription)\n"
         }

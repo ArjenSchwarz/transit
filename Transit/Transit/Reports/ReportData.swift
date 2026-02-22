@@ -27,8 +27,17 @@ struct ProjectGroup: Identifiable {
     let id: UUID
     let projectName: String
     let tasks: [ReportTask]
+    let milestones: [ReportMilestone]
     var doneCount: Int { tasks.filter { !$0.isAbandoned }.count }
     var abandonedCount: Int { tasks.filter { $0.isAbandoned }.count }
+}
+
+struct ReportMilestone: Identifiable {
+    let id: UUID
+    let displayID: String
+    let name: String
+    let isAbandoned: Bool
+    let taskCount: Int
 }
 
 struct ReportTask: Identifiable {
@@ -39,4 +48,5 @@ struct ReportTask: Identifiable {
     let isAbandoned: Bool
     let completionDate: Date
     let permanentDisplayId: Int?
+    let milestoneName: String?
 }

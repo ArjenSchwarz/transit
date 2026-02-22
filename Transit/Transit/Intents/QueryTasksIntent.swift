@@ -210,7 +210,7 @@ struct QueryTasksIntent: AppIntent {
         return result
     }
 
-    private static func matchesDateFilter(_ date: Date?, range: DateFilterHelpers.DateRange?) -> Bool {
+    @MainActor private static func matchesDateFilter(_ date: Date?, range: DateFilterHelpers.DateRange?) -> Bool {
         guard let range else { return true }
         guard let date else { return false }
         return DateFilterHelpers.dateInRange(date, range: range)

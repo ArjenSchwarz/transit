@@ -3,6 +3,7 @@ import Foundation
 enum ReportLogic {
     static func buildReport(
         tasks: [TransitTask],
+        milestones: [Milestone] = [],
         dateRange: ReportDateRange,
         now: Date = .now
     ) -> ReportData {
@@ -16,21 +17,40 @@ enum ReportLogic {
             return DateFilterHelpers.dateInRange(completionDate, range: range, now: now)
         }
 
-        // 2. Group by project ID, skipping any task whose project became nil after filtering
+        // 2. Filter milestones with terminal status and completionDate in range
+        let filteredMilestones = milestones.filter { milestone in
+            guard milestone.project != nil else { return false }
+            guard milestone.status.isTerminal else { return false }
+            guard let completionDate = milestone.completionDate else { return false }
+            return DateFilterHelpers.dateInRange(completionDate, range: range, now: now)
+        }
+        let milestonesByProject = Dictionary(grouping: filteredMilestones) { $0.project?.id ?? $0.id }
+
+        // 3. Group tasks by project ID, skipping any task whose project became nil after filtering
         let grouped = Dictionary(grouping: filtered) { $0.project?.id ?? $0.id }
 
-        // 3. Build project groups sorted alphabetically (case-insensitive)
-        let projectGroups = grouped.compactMap { (_, tasks) -> ProjectGroup? in
-            guard let firstProject = tasks[0].project else { return nil }
+        // 4. Collect all project IDs from both tasks and milestones
+        let allProjectIDs = Set(grouped.keys).union(milestonesByProject.keys)
+
+        // 5. Build project groups sorted alphabetically (case-insensitive)
+        let projectGroups = allProjectIDs.compactMap { projectID -> ProjectGroup? in
+            let projectTasks = grouped[projectID] ?? []
+            let projectMilestones = milestonesByProject[projectID] ?? []
+
+            // Find the project from either tasks or milestones
+            let project = projectTasks.first?.project ?? projectMilestones.first?.project
+            guard let project else { return nil }
+
             return ProjectGroup(
-                id: firstProject.id,
-                projectName: firstProject.name,
-                tasks: buildReportTasks(from: tasks)
+                id: project.id,
+                projectName: project.name,
+                tasks: buildReportTasks(from: projectTasks),
+                milestones: buildReportMilestones(from: projectMilestones)
             )
         }
         .sorted { $0.projectName.localizedCaseInsensitiveCompare($1.projectName) == .orderedAscending }
 
-        // 4. Compute summary counts from group-level counts
+        // 6. Compute summary counts from group-level counts
         let totalDone = projectGroups.reduce(0) { $0 + $1.doneCount }
         let totalAbandoned = projectGroups.reduce(0) { $0 + $1.abandonedCount }
 
@@ -43,6 +63,20 @@ enum ReportLogic {
     }
 
     // MARK: - Private
+
+    private static func buildReportMilestones(from milestones: [Milestone]) -> [ReportMilestone] {
+        milestones
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            .map { milestone in
+                ReportMilestone(
+                    id: milestone.id,
+                    displayID: milestone.displayID.formatted(prefix: "M"),
+                    name: milestone.name,
+                    isAbandoned: milestone.status == .abandoned,
+                    taskCount: milestone.tasks?.count ?? 0
+                )
+            }
+    }
 
     private static func buildReportTasks(from tasks: [TransitTask]) -> [ReportTask] {
         let sorted = tasks.sorted { lhs, rhs in
@@ -73,7 +107,8 @@ enum ReportLogic {
                 taskType: task.type,
                 isAbandoned: task.status == .abandoned,
                 completionDate: task.completionDate ?? .distantPast,
-                permanentDisplayId: task.permanentDisplayId
+                permanentDisplayId: task.permanentDisplayId,
+                milestoneName: task.milestone?.name
             )
         }
     }

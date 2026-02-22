@@ -111,6 +111,46 @@ struct ShareTextTests {
         #expect(text.hasSuffix("Project: My Project\n"))
     }
 
+    // MARK: - Milestone
+
+    @Test func shareTextIncludesMilestoneWhenAssigned() throws {
+        let context = try makeContext()
+        let project = makeProject(in: context)
+        let milestone = Milestone(name: "v1.0 Release", project: project, displayID: .permanent(3))
+        context.insert(milestone)
+        let task = TransitTask(name: "Add feature", type: .feature, project: project, displayID: .permanent(7))
+        task.milestone = milestone
+        context.insert(task)
+
+        let text = task.shareText
+        #expect(text.contains("Milestone: v1.0 Release (M-3)\n"))
+    }
+
+    @Test func shareTextOmitsMilestoneWhenNil() throws {
+        let context = try makeContext()
+        let project = makeProject(in: context)
+        let task = TransitTask(name: "Add feature", type: .feature, project: project, displayID: .permanent(7))
+        context.insert(task)
+
+        let text = task.shareText
+        #expect(!text.contains("Milestone:"))
+    }
+
+    @Test func shareTextMilestoneAppearsAfterProject() throws {
+        let context = try makeContext()
+        let project = makeProject(in: context, name: "Transit")
+        let milestone = Milestone(name: "Beta", project: project, displayID: .permanent(1))
+        context.insert(milestone)
+        let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .permanent(1))
+        task.milestone = milestone
+        context.insert(task)
+
+        let text = task.shareText
+        let projectPos = text.range(of: "Project: Transit")!.lowerBound
+        let milestonePos = text.range(of: "Milestone: Beta")!.lowerBound
+        #expect(projectPos < milestonePos)
+    }
+
     // MARK: - Comments (T-86 regression)
 
     @Test func shareTextIncludesComments() throws {

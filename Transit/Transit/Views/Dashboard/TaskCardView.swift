@@ -63,6 +63,15 @@ struct TaskCardView: View {
 
                 TypeBadge(type: task.type)
 
+                if let milestone = task.milestone {
+                    Text(milestone.name)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.fill.tertiary, in: Capsule())
+                }
+
                 if let count = task.comments?.count, count > 0 {
                     Label("\(count)", systemImage: "bubble.left")
                         .font(.caption2)

@@ -24,9 +24,10 @@ private func makeReportData(
 @MainActor
 private func makeGroup(
     name: String,
-    tasks: [ReportTask]
+    tasks: [ReportTask],
+    milestones: [ReportMilestone] = []
 ) -> ProjectGroup {
-    ProjectGroup(id: UUID(), projectName: name, tasks: tasks)
+    ProjectGroup(id: UUID(), projectName: name, tasks: tasks, milestones: milestones)
 }
 
 @MainActor
@@ -36,7 +37,8 @@ private func makeTask(
     taskType: TaskType = .feature,
     isAbandoned: Bool = false,
     completionDate: Date = .now,
-    permanentDisplayId: Int? = 1
+    permanentDisplayId: Int? = 1,
+    milestoneName: String? = nil
 ) -> ReportTask {
     ReportTask(
         id: UUID(),
@@ -45,7 +47,8 @@ private func makeTask(
         taskType: taskType,
         isAbandoned: isAbandoned,
         completionDate: completionDate,
-        permanentDisplayId: permanentDisplayId
+        permanentDisplayId: permanentDisplayId,
+        milestoneName: milestoneName
     )
 }
 
