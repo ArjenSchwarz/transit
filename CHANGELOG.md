@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `Milestone` SwiftData model with UUID, permanentDisplayId, name, description, status, creation/completion dates, project relationship, and tasks relationship (T-137)
+- `MilestoneStatus` nonisolated enum with `open`/`done`/`abandoned` cases, `isTerminal` and `displayName` computed properties (T-137)
+- `DisplayID.formatted(prefix:)` method for custom prefix formatting (e.g. "M" for milestones); existing `formatted` property delegates to it with "T" prefix (T-137)
+- `MilestoneStatusTests` suite (7 tests) covering isTerminal, displayName, rawValue, and init from raw value (T-137)
+- `DisplayIDTests` expanded with 4 tests for `formatted(prefix:)` method and backward compatibility (T-137)
+
+### Changed
+
+- `DisplayIDAllocator` convenience init now accepts `counterRecordName` parameter (defaults to "global-counter") for separate milestone counter support (T-137)
+- `CloudKitCounterStore` parameterised with `recordName` instead of hardcoded record name (T-137)
+- `TransitTask` model has new optional `milestone: Milestone?` relationship (T-137)
+- `Project` model has new `@Relationship(deleteRule: .cascade)` milestones array (T-137)
+- All `Schema` definitions (production and 8 test files) include `Milestone.self` (T-137)
+
 - Milestones feature spec (T-137): requirements, design, decision log, and task list in `specs/milestones/`
   - Project-scoped milestones with display IDs (M-1, M-2) and three-state lifecycle (Open/Done/Abandoned)
   - 13 requirement sections, 9 architectural decisions, 19 implementation tasks across 4 parallel streams

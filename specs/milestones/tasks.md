@@ -8,27 +8,27 @@ references:
 
 ## Data Model & Infrastructure
 
-- [ ] 1. Create data model and DisplayID changes <!-- id:mv1vmzd -->
+- [x] 1. Create data model and DisplayID changes <!-- id:mv1vmzd -->
   - Stream: 1
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2)
-  - [ ] 1.1. Write MilestoneStatus and DisplayID tests <!-- id:mv1vmze -->
+  - [x] 1.1. Write MilestoneStatus and DisplayID tests <!-- id:mv1vmze -->
     - Test MilestoneStatus: isTerminal (open=false, done/abandoned=true), displayName values, raw string values
     - Test DisplayID.formatted backward compatibility (still returns T-N) and formatted(prefix: "M") returns M-N
     - Stream: 1
-  - [ ] 1.2. Implement MilestoneStatus enum and Milestone model <!-- id:mv1vmzf -->
+  - [x] 1.2. Implement MilestoneStatus enum and Milestone model <!-- id:mv1vmzf -->
     - MilestoneStatus: nonisolated enum with open/done/abandoned cases
     - Milestone @Model: id (UUID), permanentDisplayId (Int?), name (String), milestoneDescription (String?), statusRawValue (String), creationDate (Date), lastStatusChangeDate (Date), completionDate (Date?), project (Project?), tasks ([TransitTask]?)
     - Use @Relationship(deleteRule: .nullify, inverse: \TransitTask.milestone) for tasks
     - Blocked-by: mv1vmze (Write MilestoneStatus and DisplayID tests)
     - Stream: 1
     - References: Transit/Transit/Models/MilestoneStatus.swift, Transit/Transit/Models/Milestone.swift
-  - [ ] 1.3. Add milestone relationship to TransitTask and Project <!-- id:mv1vmzg -->
+  - [x] 1.3. Add milestone relationship to TransitTask and Project <!-- id:mv1vmzg -->
     - Add var milestone: Milestone? to TransitTask
     - Add @Relationship(deleteRule: .cascade, inverse: \Milestone.project) var milestones: [Milestone]? to Project
     - Blocked-by: mv1vmzf (Implement MilestoneStatus enum and Milestone model)
     - Stream: 1
     - References: Transit/Transit/Models/TransitTask.swift, Transit/Transit/Models/Project.swift
-  - [ ] 1.4. Add DisplayID.formatted(prefix:) method <!-- id:mv1vmzh -->
+  - [x] 1.4. Add DisplayID.formatted(prefix:) method <!-- id:mv1vmzh -->
     - Add nonisolated func formatted(prefix: String) -> String method
     - Update existing var formatted to call formatted(prefix: "T")
     - Decision 9: preserve property, add method alongside
@@ -36,30 +36,30 @@ references:
     - Stream: 1
     - References: Transit/Transit/Models/DisplayID.swift
 
-- [ ] 2. Update schemas and verify compilation <!-- id:mv1vmzi -->
+- [x] 2. Update schemas and verify compilation <!-- id:mv1vmzi -->
   - Blocked-by: mv1vmzd (Create data model and DisplayID changes)
   - Stream: 1
   - Requirements: [1.1](requirements.md#1.1)
-  - [ ] 2.1. Add Milestone.self to production Schema in TransitApp.swift <!-- id:mv1vmzj -->
+  - [x] 2.1. Add Milestone.self to production Schema in TransitApp.swift <!-- id:mv1vmzj -->
     - Stream: 1
-  - [ ] 2.2. Add Milestone.self to TestModelContainer.schema and all inline test schemas <!-- id:mv1vmzk -->
+  - [x] 2.2. Add Milestone.self to TestModelContainer.schema and all inline test schemas <!-- id:mv1vmzk -->
     - Update inline Schema definitions in: TaskServiceTests, TaskEntityTests, ProjectEntityTests, CommentServiceTests, ReportLogicTestHelpers, TaskCreationResultTests, TaskEntityQueryTests
     - Stream: 1
     - References: Transit/TransitTests/TestModelContainer.swift
-  - [ ] 2.3. Run make test-quick to verify no crashes <!-- id:mv1vmzl -->
+  - [x] 2.3. Run make test-quick to verify no crashes <!-- id:mv1vmzl -->
     - Blocked-by: mv1vmzj (Add Milestone.self to production Schema in TransitApp.swift), mv1vmzk (Add Milestone.self to TestModelContainer.schema and all inline test schemas)
     - Stream: 1
 
-- [ ] 3. Parameterise DisplayIDAllocator for milestone counter <!-- id:mv1vmzm -->
+- [x] 3. Parameterise DisplayIDAllocator for milestone counter <!-- id:mv1vmzm -->
   - Stream: 1
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3)
-  - [ ] 3.1. Add counterRecordName parameter to CloudKitCounterStore and DisplayIDAllocator <!-- id:mv1vmzn -->
+  - [x] 3.1. Add counterRecordName parameter to CloudKitCounterStore and DisplayIDAllocator <!-- id:mv1vmzn -->
     - Parameterise CloudKitCounterStore.init to accept recordName: String = "global-counter"
     - Add convenience init(container:counterRecordName:retryLimit:) to DisplayIDAllocator
     - counterRecordName defaults to "global-counter" — existing init stays unchanged
     - Stream: 1
     - References: Transit/Transit/Services/DisplayIDAllocator.swift
-  - [ ] 3.2. Verify backward compatibility with existing DisplayIDAllocatorTests <!-- id:mv1vmzo -->
+  - [x] 3.2. Verify backward compatibility with existing DisplayIDAllocatorTests <!-- id:mv1vmzo -->
     - Blocked-by: mv1vmzn (Add counterRecordName parameter to CloudKitCounterStore and DisplayIDAllocator)
     - Stream: 1
 

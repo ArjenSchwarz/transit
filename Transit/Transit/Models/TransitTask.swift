@@ -15,6 +15,7 @@ final class TransitTask {
     var metadataJSON: String?
 
     var project: Project?
+    var milestone: Milestone?
 
     @Relationship(deleteRule: .cascade, inverse: \Comment.task)
     var comments: [Comment]?
