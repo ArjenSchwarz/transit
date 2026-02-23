@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - Same-column drag-and-drop no longer mutates task status or timestamps: abandoned tasks stay abandoned when dropped on Done/Abandoned, and done tasks preserve their `completionDate` (T-192)
+- Reports now include terminal tasks and milestones with nil `completionDate` by falling back to `lastStatusChangeDate` (T-208)
+
 
 ### Added
 

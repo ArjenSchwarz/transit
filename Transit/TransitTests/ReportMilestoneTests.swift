@@ -76,8 +76,8 @@ struct ReportMilestoneTests {
         #expect(report.projectGroups[0].milestones.isEmpty)
     }
 
-    @Test("Milestones without completionDate excluded")
-    func milestonesWithoutCompletionDateExcluded() throws {
+    @Test("Milestones without completionDate fall back to lastStatusChangeDate")
+    func milestonesWithoutCompletionDateFallBack() throws {
         let ctx = try makeReportTestContext()
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
@@ -85,6 +85,7 @@ struct ReportMilestoneTests {
         let milestone = Milestone(name: "No Date", project: project, displayID: .permanent(1))
         ctx.insert(milestone)
         milestone.statusRawValue = MilestoneStatus.done.rawValue
+        milestone.lastStatusChangeDate = now
         // completionDate left nil
 
         let task = makeTerminalTask(name: "Task1", project: project, completionDate: now, context: ctx)
@@ -93,7 +94,8 @@ struct ReportMilestoneTests {
             tasks: [task], milestones: [milestone], dateRange: .thisYear, now: now
         )
 
-        #expect(report.projectGroups[0].milestones.isEmpty)
+        #expect(report.projectGroups[0].milestones.count == 1)
+        #expect(report.projectGroups[0].milestones[0].name == "No Date")
     }
 
     @Test("Milestone taskCount reflects assigned tasks")
