@@ -15,6 +15,15 @@ The reports feature generates markdown summaries of completed/abandoned tasks gr
 - `Transit/Transit/Reports/ReportLogic.swift` — Filtering, grouping, sorting logic
 - `Transit/Transit/Reports/ReportMarkdownFormatter.swift` — GFM markdown rendering
 
+## Effective Completion Date Pattern
+
+When `completionDate` is nil on a terminal task or milestone (legacy data), `ReportLogic` falls back to `lastStatusChangeDate`. This applies in three places:
+1. Task/milestone filtering (date range check)
+2. Task sorting within a project group
+3. `ReportTask.completionDate` field
+
+The dashboard uses a similar defensive pattern: `task.completionDate?.isWithin48Hours(of: now) ?? true`.
+
 ## ReportMarkdownFormatter
 
 ### Escape Order

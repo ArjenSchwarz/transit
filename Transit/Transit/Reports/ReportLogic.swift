@@ -9,20 +9,22 @@ enum ReportLogic {
     ) -> ReportData {
         let range = dateRange.dateRange
 
-        // 1. Filter to terminal tasks with valid project and completionDate in range
+        // 1. Filter to terminal tasks with valid project and effective completion date in range.
+        //    Falls back to lastStatusChangeDate when completionDate is nil (legacy data).
         let filtered = tasks.filter { task in
             guard task.project != nil else { return false }
             guard task.status.isTerminal else { return false }
-            guard let completionDate = task.completionDate else { return false }
-            return DateFilterHelpers.dateInRange(completionDate, range: range, now: now)
+            let effectiveDate = task.completionDate ?? task.lastStatusChangeDate
+            return DateFilterHelpers.dateInRange(effectiveDate, range: range, now: now)
         }
 
-        // 2. Filter milestones with terminal status and completionDate in range
+        // 2. Filter milestones with terminal status and effective completion date in range.
+        //    Falls back to lastStatusChangeDate when completionDate is nil (legacy data).
         let filteredMilestones = milestones.filter { milestone in
             guard milestone.project != nil else { return false }
             guard milestone.status.isTerminal else { return false }
-            guard let completionDate = milestone.completionDate else { return false }
-            return DateFilterHelpers.dateInRange(completionDate, range: range, now: now)
+            let effectiveDate = milestone.completionDate ?? milestone.lastStatusChangeDate
+            return DateFilterHelpers.dateInRange(effectiveDate, range: range, now: now)
         }
         let milestonesByProject = Dictionary(grouping: filteredMilestones) { $0.project?.id ?? $0.id }
 
@@ -81,8 +83,8 @@ enum ReportLogic {
 
     private static func buildReportTasks(from tasks: [TransitTask]) -> [ReportTask] {
         let sorted = tasks.sorted { lhs, rhs in
-            let lhsDate = lhs.completionDate ?? .distantPast
-            let rhsDate = rhs.completionDate ?? .distantPast
+            let lhsDate = lhs.completionDate ?? lhs.lastStatusChangeDate
+            let rhsDate = rhs.completionDate ?? rhs.lastStatusChangeDate
 
             if lhsDate != rhsDate {
                 return lhsDate < rhsDate
@@ -107,7 +109,7 @@ enum ReportLogic {
                 name: task.name,
                 taskType: task.type,
                 isAbandoned: task.status == .abandoned,
-                completionDate: task.completionDate ?? .distantPast,
+                completionDate: task.completionDate ?? task.lastStatusChangeDate,
                 permanentDisplayId: task.permanentDisplayId,
                 milestoneName: task.milestone?.name
             )

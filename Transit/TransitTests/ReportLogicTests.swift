@@ -76,6 +76,43 @@ struct ReportLogicGroupingTests {
         #expect(names == ["Early", "Mid", "Late"])
     }
 
+    @Test("Tasks with nil completionDate sort by lastStatusChangeDate among peers")
+    func tasksSortedByEffectiveDateMixed() throws {
+        let ctx = try makeReportTestContext()
+        let now = reportTestNow
+        let project = makeTestProject(name: "Project", context: ctx)
+
+        // Task with a real completionDate (earliest effective date)
+        let early = makeTerminalTask(
+            name: "Early", project: project,
+            displayID: .permanent(1),
+            completionDate: now.addingTimeInterval(-3600), context: ctx
+        )
+
+        // Legacy task: nil completionDate, lastStatusChangeDate in the middle
+        let legacy = TransitTask(
+            name: "Legacy", type: .feature, project: project, displayID: .permanent(2)
+        )
+        ctx.insert(legacy)
+        legacy.statusRawValue = TaskStatus.done.rawValue
+        legacy.completionDate = nil
+        legacy.lastStatusChangeDate = now.addingTimeInterval(-1800)
+
+        // Task with a real completionDate (latest effective date)
+        let late = makeTerminalTask(
+            name: "Late", project: project,
+            displayID: .permanent(3),
+            completionDate: now, context: ctx
+        )
+
+        let report = ReportLogic.buildReport(
+            tasks: [late, early, legacy], dateRange: .thisYear, now: now
+        )
+
+        let names = report.projectGroups[0].tasks.map(\.name)
+        #expect(names == ["Early", "Legacy", "Late"])
+    }
+
     @Test("Tasks with same completionDate sorted by permanentDisplayId, nil last")
     func tasksSortedByDisplayIdTiebreak() throws {
         let ctx = try makeReportTestContext()
@@ -157,23 +194,63 @@ struct ReportLogicFilterTests {
         #expect(!names.contains("Idea"))
     }
 
-    @Test("Tasks with nil completionDate are excluded")
-    func nilCompletionDateExcluded() throws {
+    @Test("Terminal tasks with nil completionDate fall back to lastStatusChangeDate")
+    func nilCompletionDateFallsBackToLastStatusChangeDate() throws {
         let ctx = try makeReportTestContext()
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
         let normal = makeTerminalTask(name: "Normal", project: project, completionDate: now, context: ctx)
 
-        let broken = TransitTask(name: "Broken", type: .feature, project: project, displayID: .provisional)
-        ctx.insert(broken)
-        broken.statusRawValue = TaskStatus.done.rawValue
-        broken.completionDate = nil
+        // Simulate legacy data: terminal status but nil completionDate
+        let legacy = TransitTask(name: "Legacy", type: .feature, project: project, displayID: .provisional)
+        ctx.insert(legacy)
+        legacy.statusRawValue = TaskStatus.done.rawValue
+        legacy.completionDate = nil
+        legacy.lastStatusChangeDate = now
 
-        let report = ReportLogic.buildReport(tasks: [normal, broken], dateRange: .thisYear, now: now)
+        let report = ReportLogic.buildReport(tasks: [normal, legacy], dateRange: .thisYear, now: now)
 
         let names = report.projectGroups.flatMap(\.tasks).map(\.name)
-        #expect(names == ["Normal"])
+        #expect(names.contains("Normal"))
+        #expect(names.contains("Legacy"))
+    }
+
+    @Test("Terminal tasks with nil completionDate use lastStatusChangeDate for date range filtering")
+    func nilCompletionDateUsesLastStatusChangeDateForRange() throws {
+        let ctx = try makeReportTestContext()
+        let now = reportTestNow
+        let project = makeTestProject(name: "Project", context: ctx)
+
+        // Legacy task whose lastStatusChangeDate is outside the date range
+        let oldDate = Calendar.current.date(byAdding: .year, value: -2, to: now)!
+        let outOfRange = TransitTask(name: "OutOfRange", type: .feature, project: project, displayID: .provisional)
+        ctx.insert(outOfRange)
+        outOfRange.statusRawValue = TaskStatus.done.rawValue
+        outOfRange.completionDate = nil
+        outOfRange.lastStatusChangeDate = oldDate
+
+        let report = ReportLogic.buildReport(tasks: [outOfRange], dateRange: .thisYear, now: now)
+
+        #expect(report.isEmpty)
+    }
+
+    @Test("Terminal task with nil completionDate gets lastStatusChangeDate as completionDate in report")
+    func nilCompletionDateReportTaskUsesLastStatusChangeDate() throws {
+        let ctx = try makeReportTestContext()
+        let now = reportTestNow
+        let project = makeTestProject(name: "Project", context: ctx)
+
+        let legacy = TransitTask(name: "Legacy", type: .feature, project: project, displayID: .provisional)
+        ctx.insert(legacy)
+        legacy.statusRawValue = TaskStatus.done.rawValue
+        legacy.completionDate = nil
+        legacy.lastStatusChangeDate = now
+
+        let report = ReportLogic.buildReport(tasks: [legacy], dateRange: .thisYear, now: now)
+
+        let reportTask = report.projectGroups[0].tasks[0]
+        #expect(reportTask.completionDate == now)
     }
 
     @Test("Orphan tasks with nil project are excluded")
