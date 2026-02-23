@@ -254,13 +254,24 @@ enum DashboardLogic {
         return true
     }
 
+    /// Whether a drag-drop onto `column` should actually change the task's status.
+    /// Returns `false` when the task is already in the target column, preventing
+    /// same-column drops from mutating status or timestamps. [T-192]
+    static func shouldApplyDrop(task: TransitTask, to column: DashboardColumn) -> Bool {
+        task.status.column != column
+    }
+
     /// Applies a drag-drop status change via the task service.
+    /// No-op when the task is already in the target column — this prevents
+    /// abandoned tasks from flipping to done and avoids resetting timestamps
+    /// on same-column drops. [T-192]
     @MainActor
     static func applyDrop(
         task: TransitTask,
         to column: DashboardColumn,
         using service: TaskService
     ) throws {
+        guard shouldApplyDrop(task: task, to: column) else { return }
         try service.updateStatus(task: task, to: column.primaryStatus)
     }
 }

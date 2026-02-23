@@ -11,7 +11,7 @@ struct MilestoneDisplayNameTests {
     }
 
     private func makeProject(in context: ModelContext, name: String) -> Project {
-        let project = Project(name: name, description: nil, gitRepo: nil, colorHex: "#FF0000")
+        let project = Project(name: name, description: "", gitRepo: nil, colorHex: "#FF0000")
         context.insert(project)
         return project
     }

@@ -72,8 +72,10 @@ Implemented in `DashboardView.buildFilteredColumns()`:
 ## Drag-and-Drop
 - TaskCardView is `.draggable()` with UUID string
 - ColumnView has `.dropDestination(for: String.self)` with `.contentShape(.rect)` for full-frame hit testing
-- Drop resolves UUID → task → applies `column.primaryStatus` via TaskService
-- Done/Abandoned column always assigns `.done` (never `.abandoned` via drag)
+- Drop resolves UUID → task → `DashboardLogic.applyDrop` → `TaskService.updateStatus`
+- Same-column drops are no-ops: `DashboardLogic.shouldApplyDrop` compares `task.status.column` to the target column (T-192)
+- Done/Abandoned column always assigns `.done` for cross-column drops (never `.abandoned` via drag)
+- Handoff statuses (readyForImplementation, readyForReview) are preserved on same-column drops
 - SingleColumnView: segmented control segments are drop targets via ZStack overlay
 - KanbanBoardView: `.viewAligned` scroll behavior enables column-by-column auto-scroll during drag
 
