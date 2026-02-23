@@ -152,7 +152,7 @@ struct FilterPopoverView: View {
                         }
                     } label: {
                         HStack {
-                            Text(milestone.name)
+                            Text(milestone.displayName)
                                 .foregroundStyle(isStale ? .secondary : .primary)
                             Spacer()
                             if selectedMilestones.contains(milestone.id) {

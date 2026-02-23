@@ -22,6 +22,15 @@ final class Milestone {
         set { statusRawValue = newValue.rawValue }
     }
 
+    /// Name prefixed with the project name, e.g. "Prism - Beta 1".
+    /// Falls back to just the milestone name when there is no project.
+    var displayName: String {
+        if let projectName = project?.name {
+            return "\(projectName) - \(name)"
+        }
+        return name
+    }
+
     var displayID: DisplayID {
         if let id = permanentDisplayId {
             return .permanent(id)
