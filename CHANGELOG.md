@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Test host app runs inert when launched for unit tests: in-memory storage, no CloudKit sync, no connectivity monitor, no MCP server — prevents port conflicts and shared state interference with the running app
 - `DashboardView` toolbar now uses separate filter controls plus conditional clear-all action, with clear-all resetting project/type/milestone filters and search text and project changes cascading to clear milestone selections
 - Removed deprecated `FilterPopoverView.swift`; filter UI is now exclusively handled by the dedicated project/type/milestone controls
+- UI tests now target dedicated filter accessibility identifiers (`dashboard.filter.projects`, `.types`, `.milestones`, `dashboard.clearAllFilters`) and cover project/type/milestone filtering, clear-all behavior, milestone visibility/cascade, and per-filter clearing for the redesigned toolbar filters
 
 ### Fixed
 

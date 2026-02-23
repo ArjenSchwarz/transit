@@ -101,17 +101,57 @@ final class TransitUITests: XCTestCase {
     }
 
     @MainActor
-    func testTappingFilterButtonShowsPopover() throws {
+    func testProjectFilterMenu() throws {
         let app = launchApp(scenario: "board")
 
-        // [req 9.1] Tapping filter shows popover
-        let filterButton = app.buttons["dashboard.filterButton"]
-        XCTAssertTrue(filterButton.waitForExistence(timeout: 5))
-        filterButton.tap()
+        let projectFilter = app.buttons["dashboard.filter.projects"]
+        XCTAssertTrue(projectFilter.waitForExistence(timeout: 5))
+        projectFilter.tap()
 
-        // Popover should contain a seeded project name
-        let projectLabel = app.staticTexts["Alpha"]
-        XCTAssertTrue(projectLabel.waitForExistence(timeout: 5))
+        let alphaOption = app.buttons["Alpha"]
+        XCTAssertTrue(alphaOption.waitForExistence(timeout: 5))
+        alphaOption.tap()
+
+        XCTAssertTrue(app.staticTexts["Ship Active"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Beta Review"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testTypeFilterMenu() throws {
+        let app = launchApp(scenario: "board")
+
+        let typeFilter = app.buttons["dashboard.filter.types"]
+        XCTAssertTrue(typeFilter.waitForExistence(timeout: 5))
+        typeFilter.tap()
+
+        let bugOption = app.buttons["Bug"]
+        XCTAssertTrue(bugOption.waitForExistence(timeout: 5))
+        bugOption.tap()
+
+        XCTAssertTrue(app.staticTexts["Beta Review"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Ship Active"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testMilestoneFilterMenu() throws {
+        let app = launchApp(scenario: "board")
+
+        let projectFilter = app.buttons["dashboard.filter.projects"]
+        XCTAssertTrue(projectFilter.waitForExistence(timeout: 5))
+        projectFilter.tap()
+        app.buttons["Alpha"].tap()
+
+        let milestoneFilter = app.buttons["dashboard.filter.milestones"]
+        XCTAssertTrue(milestoneFilter.waitForExistence(timeout: 5))
+        milestoneFilter.tap()
+
+        let milestoneOption = app.buttons["v1.0"]
+        XCTAssertTrue(milestoneOption.waitForExistence(timeout: 5))
+        milestoneOption.tap()
+
+        XCTAssertTrue(app.staticTexts["Ship Active"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Backlog Idea"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Beta Review"].waitForExistence(timeout: 2))
     }
 
     // MARK: - Sheet Presentation with Data
@@ -148,30 +188,78 @@ final class TransitUITests: XCTestCase {
         // On wider devices (iPad), segmented control may not appear — test passes implicitly
     }
 
-    // MARK: - Filter Badge
+    // MARK: - Filter Menus
 
     @MainActor
-    func testFilterBadgeUpdatesWhenProjectSelected() throws {
+    func testClearAll() throws {
         let app = launchApp(scenario: "board")
 
-        // Initially no filter badge
-        let filterButton = app.buttons["dashboard.filterButton"]
-        XCTAssertTrue(filterButton.waitForExistence(timeout: 5))
-        filterButton.tap()
+        let projectFilter = app.buttons["dashboard.filter.projects"]
+        XCTAssertTrue(projectFilter.waitForExistence(timeout: 5))
+        projectFilter.tap()
+        app.buttons["Alpha"].tap()
 
-        // Select the project in the popover
-        let projectRow = app.staticTexts["Alpha"]
-        XCTAssertTrue(projectRow.waitForExistence(timeout: 5))
-        projectRow.tap()
+        let searchField = app.searchFields.firstMatch
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5))
+        searchField.tap()
+        searchField.typeText("Ship")
 
-        // Dismiss popover by tapping elsewhere
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.1)).tap()
+        let clearAll = app.buttons["dashboard.clearAllFilters"]
+        XCTAssertTrue(clearAll.waitForExistence(timeout: 5))
+        clearAll.tap()
 
-        // [req 9.3] Filter button should now show count
-        let updatedFilter = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS 'Filter (1)'")
-        ).firstMatch
-        XCTAssertTrue(updatedFilter.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Ship Active"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Backlog Idea"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Beta Review"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testMilestoneHiddenWhenNoMilestones() throws {
+        let app = launchApp()
+        XCTAssertFalse(app.buttons["dashboard.filter.milestones"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testMilestoneClearedOnProjectChange() throws {
+        let app = launchApp(scenario: "board")
+
+        let projectFilter = app.buttons["dashboard.filter.projects"]
+        XCTAssertTrue(projectFilter.waitForExistence(timeout: 5))
+        projectFilter.tap()
+        app.buttons["Alpha"].tap()
+
+        let milestoneFilter = app.buttons["dashboard.filter.milestones"]
+        XCTAssertTrue(milestoneFilter.waitForExistence(timeout: 5))
+        milestoneFilter.tap()
+        app.buttons["v1.0"].tap()
+
+        projectFilter.tap()
+        app.buttons["Beta"].tap()
+        app.buttons["Alpha"].tap()
+
+        XCTAssertTrue(app.staticTexts["Beta Review"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Ship Active"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testPerFilterClear() throws {
+        let app = launchApp(scenario: "board")
+
+        let projectFilter = app.buttons["dashboard.filter.projects"]
+        XCTAssertTrue(projectFilter.waitForExistence(timeout: 5))
+        projectFilter.tap()
+        app.buttons["Alpha"].tap()
+
+        let typeFilter = app.buttons["dashboard.filter.types"]
+        XCTAssertTrue(typeFilter.waitForExistence(timeout: 5))
+        typeFilter.tap()
+        app.buttons["Bug"].tap()
+
+        projectFilter.tap()
+        app.buttons["Clear"].tap()
+
+        XCTAssertTrue(app.staticTexts["Beta Review"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Ship Active"].waitForExistence(timeout: 2))
     }
 
     // MARK: - Abandoned Task Opacity

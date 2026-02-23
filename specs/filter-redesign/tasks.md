@@ -137,7 +137,7 @@ metadata:
 
 ## Testing
 
-- [ ] 12. Update UI tests for new filter accessibility identifiers <!-- id:ovtjoef -->
+- [x] 12. Update UI tests for new filter accessibility identifiers <!-- id:ovtjoef -->
   - Update `TransitUITests/` to use new identifiers: `dashboard.filter.projects`, `dashboard.filter.types`, `dashboard.filter.milestones`, `dashboard.clearAllFilters`
   - Remove references to old `dashboard.filterButton` identifier
   - Add tests: testProjectFilterMenu, testTypeFilterMenu, testMilestoneFilterMenu, testClearAll, testMilestoneHiddenWhenNoMilestones, testMilestoneClearedOnProjectChange, testPerFilterClear
@@ -146,7 +146,7 @@ metadata:
   - Stream: 1
   - Requirements: [8.2](requirements.md#8.2)
 
-- [ ] 13. Build, lint, and run full test suite <!-- id:ovtjoeg -->
+- [x] 13. Build, lint, and run full test suite <!-- id:ovtjoeg -->
   - Run `make lint` to verify no SwiftLint issues
   - Run `make build` to verify compilation on iOS and macOS
   - Run `make test-quick` for unit tests (includes binding helper tests)
