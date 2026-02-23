@@ -14,6 +14,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Adaptive labels by size class, persistent Clear All button, filtered empty state, per-control counts
   - 8 requirement sections, 13 architectural decisions, 13 implementation tasks across 2 parallel streams
 
+### Changed
+
+- Simulator test targets (`test`, `test-ui`) now limited to 1 parallel worker and 1 concurrent simulator to prevent resource contention
+- Test host app runs inert when launched for unit tests: in-memory storage, no CloudKit sync, no connectivity monitor, no MCP server — prevents port conflicts and shared state interference with the running app
+
 ### Fixed
 
 - Same-column drag-and-drop no longer mutates task status or timestamps: abandoned tasks stay abandoned when dropped on Done/Abandoned, and done tasks preserve their `completionDate` (T-192)
