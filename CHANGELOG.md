@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Same-column drag-and-drop no longer mutates task status or timestamps: abandoned tasks stay abandoned when dropped on Done/Abandoned, and done tasks preserve their `completionDate` (T-192)
+
 ### Added
 
 - Implementation explanation document at `specs/milestones/implementation.md` with beginner/intermediate/expert level explanations and completeness assessment (T-137)
