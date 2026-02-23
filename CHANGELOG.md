@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `Binding.contains(_:)` helper for `Binding<Set<Element>>` to support toggle-driven set membership updates in filter menus
 - `BindingToggleSetTests` coverage for insert, remove, and state-reflection behaviors of set-backed toggle bindings
+- Dedicated `ProjectFilterMenu`, `TypeFilterMenu`, and `MilestoneFilterMenu` toolbar controls with platform-conditional iOS menu/macOS popover rendering, adaptive labels/count badges, per-filter clear actions, and accessibility identifiers
+- New filter menu unit test suites: `ProjectFilterMenuTests`, `TypeFilterMenuTests`, and `MilestoneFilterMenuTests` covering toggle behavior, clear behavior, counts, and milestone visibility/scoping rules
+- Filtered empty-state overlay in `DashboardView` shown when filters are active but no tasks match: "No matching tasks. Clear filters to see all tasks."
 
 - Spec for filter redesign feature (T-224): requirements, design, decision log, and task list in `specs/filter-redesign/`
   - Replace single filter popover with separate toolbar menus for project, type, and milestone filters
@@ -21,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Simulator test targets (`test`, `test-ui`) now limited to 1 parallel worker and 1 concurrent simulator to prevent resource contention
 - Test host app runs inert when launched for unit tests: in-memory storage, no CloudKit sync, no connectivity monitor, no MCP server — prevents port conflicts and shared state interference with the running app
+- `DashboardView` toolbar now uses separate filter controls plus conditional clear-all action, with clear-all resetting project/type/milestone filters and search text and project changes cascading to clear milestone selections
 
 ### Fixed
 

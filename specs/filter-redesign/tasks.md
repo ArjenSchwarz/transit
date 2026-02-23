@@ -31,7 +31,7 @@ metadata:
 
 ## Implement Filter Menus
 
-- [ ] 3. Write tests for ProjectFilterMenu <!-- id:ovtjoe6 -->
+- [x] 3. Write tests for ProjectFilterMenu <!-- id:ovtjoe6 -->
   - Create `TransitTests/ProjectFilterMenuTests.swift` with a stub `ProjectFilterMenu` view that compiles
   - RED: Test that toggling a project adds/removes its ID from `selectedProjectIDs`
   - RED: Test that clear button empties `selectedProjectIDs`
@@ -41,7 +41,7 @@ metadata:
   - Stream: 1
   - Requirements: [1.1](requirements.md#1.1), [1.5](requirements.md#1.5), [3.1](requirements.md#3.1), [7.1](requirements.md#7.1)
 
-- [ ] 4. Implement ProjectFilterMenu <!-- id:ovtjoe7 -->
+- [x] 4. Implement ProjectFilterMenu <!-- id:ovtjoe7 -->
   - GREEN: Create `Views/Dashboard/ProjectFilterMenu.swift`
   - Platform-conditional: `Menu` with `.menuActionDismissBehavior(.disabled)` on iOS, `Button` + `.popover` with `List` on macOS (Decision 12)
   - Shared `@ViewBuilder` for `toggleContent` and `clearSection`
@@ -53,7 +53,7 @@ metadata:
   - Stream: 1
   - Requirements: [1.1](requirements.md#1.1), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.8](requirements.md#1.8), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [7.1](requirements.md#7.1), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2), [8.4](requirements.md#8.4)
 
-- [ ] 5. Write tests for TypeFilterMenu <!-- id:ovtjoe8 -->
+- [x] 5. Write tests for TypeFilterMenu <!-- id:ovtjoe8 -->
   - Create `TransitTests/TypeFilterMenuTests.swift` with a stub `TypeFilterMenu` view that compiles
   - RED: Test that toggling a type adds/removes it from `selectedTypes`
   - RED: Test that clear button empties `selectedTypes`
@@ -63,7 +63,7 @@ metadata:
   - Stream: 2
   - Requirements: [1.2](requirements.md#1.2), [1.5](requirements.md#1.5), [3.1](requirements.md#3.1), [7.1](requirements.md#7.1)
 
-- [ ] 6. Implement TypeFilterMenu <!-- id:ovtjoe9 -->
+- [x] 6. Implement TypeFilterMenu <!-- id:ovtjoe9 -->
   - GREEN: Create `Views/Dashboard/TypeFilterMenu.swift`
   - Same platform-conditional pattern as ProjectFilterMenu (Decision 12)
   - Iterate `TaskType.allCases` for toggle content
@@ -75,7 +75,7 @@ metadata:
   - Stream: 2
   - Requirements: [1.2](requirements.md#1.2), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.8](requirements.md#1.8), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [7.1](requirements.md#7.1), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2), [8.4](requirements.md#8.4)
 
-- [ ] 7. Write tests for MilestoneFilterMenu <!-- id:ovtjoea -->
+- [x] 7. Write tests for MilestoneFilterMenu <!-- id:ovtjoea -->
   - Create `TransitTests/MilestoneFilterMenuTests.swift` with a stub `MilestoneFilterMenu` view that compiles
   - RED: Test that toggling a milestone adds/removes its ID from `selectedMilestones`
   - RED: Test that clear button empties `selectedMilestones`
@@ -86,7 +86,7 @@ metadata:
   - Stream: 2
   - Requirements: [1.3](requirements.md#1.3), [1.6](requirements.md#1.6), [1.9](requirements.md#1.9), [3.1](requirements.md#3.1), [7.1](requirements.md#7.1)
 
-- [ ] 8. Implement MilestoneFilterMenu <!-- id:ovtjoeb -->
+- [x] 8. Implement MilestoneFilterMenu <!-- id:ovtjoeb -->
   - GREEN: Create `Views/Dashboard/MilestoneFilterMenu.swift`
   - Same platform-conditional pattern as ProjectFilterMenu (Decision 12)
   - Conditionally hidden when `availableMilestones.isEmpty && selectedMilestones.isEmpty` (req 1.9)
@@ -103,7 +103,7 @@ metadata:
 
 ## Wire Up DashboardView
 
-- [ ] 9. Replace filter popover with new toolbar layout in DashboardView <!-- id:ovtjoec -->
+- [x] 9. Replace filter popover with new toolbar layout in DashboardView <!-- id:ovtjoec -->
   - Modify `Views/Dashboard/DashboardView.swift`
   - Remove: `showFilter` state, `filterButton`, `activeFilterCount`, `activeFilterAccessibilityValue`, filter popover presentation
   - Add `clearAllButton`: clears projects, types, milestones, search when `hasAnyFilter` is true (Decision 5), hidden when inactive (Decision 8)
@@ -115,7 +115,7 @@ metadata:
   - Stream: 1
   - Requirements: [1.4](requirements.md#1.4), [1.7](requirements.md#1.7), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [8.3](requirements.md#8.3)
 
-- [ ] 10. Add filtered empty state overlay <!-- id:ovtjoed -->
+- [x] 10. Add filtered empty state overlay <!-- id:ovtjoed -->
   - Add overlay in DashboardView alongside existing empty state
   - Condition: tasks exist but all filtered columns are empty and hasAnyFilter is true
   - Message: No matching tasks. Clear filters to see all tasks.
