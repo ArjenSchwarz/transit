@@ -73,6 +73,7 @@ enum ReportLogic {
                     displayID: milestone.displayID.formatted(prefix: "M"),
                     name: milestone.name,
                     isAbandoned: milestone.status == .abandoned,
+                    // Total tasks on the milestone (not filtered to date range) — shows milestone scope
                     taskCount: milestone.tasks?.count ?? 0
                 )
             }

@@ -19,7 +19,9 @@ struct UpdateMilestoneIntent: AppIntent {
         description: """
         JSON object with a milestone identifier and optional update fields. Identify by "displayId" \
         (integer), "milestoneId" (UUID), or "name" + "project"/"projectId". \
-        Update fields: "name" (new name), "description" (new description), "status" (open | done | abandoned). \
+        Update fields: "name" (new name when identified by displayId/milestoneId), \
+        "newName" (new name when identified by name+project), \
+        "description" (new description), "status" (open | done | abandoned). \
         Example: {"displayId": 1, "status": "done"}
         """
     )

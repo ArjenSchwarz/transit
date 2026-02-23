@@ -1,12 +1,17 @@
+import SwiftData
 import SwiftUI
 
 struct MilestoneListSection: View {
     let project: Project
     @Environment(MilestoneService.self) private var milestoneService
-    @State private var milestones: [Milestone] = []
+    @Query(sort: \Milestone.name) private var allMilestones: [Milestone]
     @State private var milestoneToDelete: Milestone?
     @State private var showDeleteAlert = false
     @State private var errorMessage: String?
+
+    private var milestones: [Milestone] {
+        allMilestones.filter { $0.project?.id == project.id }
+    }
 
     var body: some View {
         #if os(macOS)
@@ -37,7 +42,6 @@ struct MilestoneListSection: View {
                 }
             }
         }
-        .onAppear { loadMilestones() }
         .alert("Delete Milestone?", isPresented: $showDeleteAlert) {
             deleteAlertActions
         } message: {
@@ -80,7 +84,6 @@ struct MilestoneListSection: View {
                 .padding(.vertical, 4)
             }
         }
-        .onAppear { loadMilestones() }
         .alert("Delete Milestone?", isPresented: $showDeleteAlert) {
             deleteAlertActions
         } message: {
@@ -171,14 +174,9 @@ struct MilestoneListSection: View {
 
     // MARK: - Actions
 
-    private func loadMilestones() {
-        milestones = milestoneService.milestonesForProject(project)
-    }
-
     private func changeStatus(_ milestone: Milestone, to status: MilestoneStatus) {
         do {
             try milestoneService.updateStatus(milestone, to: status)
-            loadMilestones()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -187,7 +185,6 @@ struct MilestoneListSection: View {
     private func deleteMilestone(_ milestone: Milestone) {
         do {
             try milestoneService.deleteMilestone(milestone)
-            loadMilestones()
         } catch {
             errorMessage = error.localizedDescription
         }

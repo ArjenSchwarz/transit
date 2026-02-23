@@ -586,7 +586,7 @@ extension MCPToolHandler {
 
 extension MCPToolHandler {
 
-    func handleGetProjects() -> MCPToolResult {
+    private func handleGetProjects() -> MCPToolResult {
         let descriptor = FetchDescriptor<Project>(sortBy: [SortDescriptor(\Project.name)])
         let projects: [Project]
         do {
@@ -610,7 +610,7 @@ extension MCPToolHandler {
         return textResult(IntentHelpers.encodeJSONArray(results))
     }
 
-    func handleAddComment(_ args: [String: Any]) -> MCPToolResult {
+    private func handleAddComment(_ args: [String: Any]) -> MCPToolResult {
         guard let content = args["content"] as? String, !content.isEmpty else {
             return errorResult("Missing required argument: content")
         }
@@ -683,7 +683,7 @@ extension MCPToolHandler {
         case message(String)
     }
 
-    func resolveTask(from args: [String: Any]) -> Result<TransitTask, ResolveError> {
+    private func resolveTask(from args: [String: Any]) -> Result<TransitTask, ResolveError> {
         if let displayId = args["displayId"] as? Int {
             do {
                 return .success(try taskService.findByDisplayID(displayId))
@@ -701,15 +701,17 @@ extension MCPToolHandler {
         }
     }
 
-    func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }
-    func errorResult(_ message: String) -> MCPToolResult { MCPToolResult(content: [.text(message)], isError: true) }
+    private func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }
+    private func errorResult(_ message: String) -> MCPToolResult {
+        MCPToolResult(content: [.text(message)], isError: true)
+    }
 
-    func stringMetadata(from value: Any?) -> [String: String]? {
+    private func stringMetadata(from value: Any?) -> [String: String]? {
         guard let dict = value as? [String: Any], !dict.isEmpty else { return nil }
         return dict.reduce(into: [:]) { result, pair in result[pair.key] = "\(pair.value)" }
     }
 
-    func resolveMilestone(from args: [String: Any]) -> Result<Milestone, ResolveError> {
+    private func resolveMilestone(from args: [String: Any]) -> Result<Milestone, ResolveError> {
         if let displayId = args["displayId"] as? Int {
             do {
                 return .success(try milestoneService.findByDisplayID(displayId))
@@ -727,7 +729,7 @@ extension MCPToolHandler {
         }
     }
 
-    func milestoneToDict(
+    private func milestoneToDict(
         _ milestone: Milestone, formatter: ISO8601DateFormatter, detailed: Bool = false
     ) -> [String: Any] {
         var dict: [String: Any] = [
@@ -760,7 +762,7 @@ extension MCPToolHandler {
         return dict
     }
 
-    func milestoneSummaryDict(_ milestone: Milestone) -> [String: Any] {
+    private func milestoneSummaryDict(_ milestone: Milestone) -> [String: Any] {
         var dict: [String: Any] = [
             "milestoneId": milestone.id.uuidString,
             "name": milestone.name,
@@ -771,7 +773,9 @@ extension MCPToolHandler {
         return dict
     }
 
-    func taskToDict(_ task: TransitTask, formatter: ISO8601DateFormatter, detailed: Bool = false) -> [String: Any] {
+    private func taskToDict(
+        _ task: TransitTask, formatter: ISO8601DateFormatter, detailed: Bool = false
+    ) -> [String: Any] {
         var dict: [String: Any] = [
             "taskId": task.id.uuidString, "name": task.name,
             "status": task.statusRawValue, "type": task.typeRawValue,
