@@ -76,6 +76,43 @@ struct ReportLogicGroupingTests {
         #expect(names == ["Early", "Mid", "Late"])
     }
 
+    @Test("Tasks with nil completionDate sort by lastStatusChangeDate among peers")
+    func tasksSortedByEffectiveDateMixed() throws {
+        let ctx = try makeReportTestContext()
+        let now = reportTestNow
+        let project = makeTestProject(name: "Project", context: ctx)
+
+        // Task with a real completionDate (earliest effective date)
+        let early = makeTerminalTask(
+            name: "Early", project: project,
+            displayID: .permanent(1),
+            completionDate: now.addingTimeInterval(-3600), context: ctx
+        )
+
+        // Legacy task: nil completionDate, lastStatusChangeDate in the middle
+        let legacy = TransitTask(
+            name: "Legacy", type: .feature, project: project, displayID: .permanent(2)
+        )
+        ctx.insert(legacy)
+        legacy.statusRawValue = TaskStatus.done.rawValue
+        legacy.completionDate = nil
+        legacy.lastStatusChangeDate = now.addingTimeInterval(-1800)
+
+        // Task with a real completionDate (latest effective date)
+        let late = makeTerminalTask(
+            name: "Late", project: project,
+            displayID: .permanent(3),
+            completionDate: now, context: ctx
+        )
+
+        let report = ReportLogic.buildReport(
+            tasks: [late, early, legacy], dateRange: .thisYear, now: now
+        )
+
+        let names = report.projectGroups[0].tasks.map(\.name)
+        #expect(names == ["Early", "Legacy", "Late"])
+    }
+
     @Test("Tasks with same completionDate sorted by permanentDisplayId, nil last")
     func tasksSortedByDisplayIdTiebreak() throws {
         let ctx = try makeReportTestContext()
