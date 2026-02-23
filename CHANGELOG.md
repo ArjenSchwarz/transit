@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `Binding.contains(_:)` helper for `Binding<Set<Element>>` to support toggle-driven set membership updates in filter menus
 - `BindingToggleSetTests` coverage for insert, remove, and state-reflection behaviors of set-backed toggle bindings
-- Dedicated `ProjectFilterMenu`, `TypeFilterMenu`, and `MilestoneFilterMenu` toolbar controls with platform-conditional iOS menu/macOS popover rendering, adaptive labels/count badges, per-filter clear actions, and accessibility identifiers
+- Dedicated `ProjectFilterMenu`, `TypeFilterMenu`, and `MilestoneFilterMenu` toolbar controls with platform-conditional iOS menu/macOS popover rendering, adaptive labels/count badges, per-filter clear actions, accessibility identifiers, and consistent use of `Binding+ToggleSet` extension across all three menus
 - New filter menu unit test suites: `ProjectFilterMenuTests`, `TypeFilterMenuTests`, and `MilestoneFilterMenuTests` covering toggle behavior, clear behavior, counts, and milestone visibility/scoping rules
 - Filtered empty-state overlay in `DashboardView` shown when filters are active but no tasks match: "No matching tasks. Clear filters to see all tasks."
 - Implementation explanation document at `specs/filter-redesign/implementation.md` with beginner/intermediate/expert explanations and completeness assessment (T-224)

@@ -68,7 +68,6 @@ It also prevents confusion by showing visible filter counts and an obvious way t
 - Helper extension (`Binding+ToggleSet`) enables concise and type-safe set-backed toggles for future menu/filter use cases.
 
 ### Potential Issues
-- Minor duplication remains: some menus still implement local set-toggle mutation patterns instead of consistently using `Binding+ToggleSet`; not functionally incorrect but could be simplified later.
 - Toolbar density on very compact layouts depends on system overflow behavior; functionally safe, but worth periodic UX checks.
 
 ---

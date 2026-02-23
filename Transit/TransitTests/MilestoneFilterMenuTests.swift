@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import SwiftUI
 import Testing
 @testable import Transit
 
@@ -8,20 +9,13 @@ struct MilestoneFilterMenuTests {
     @Test func togglingMilestoneAddsAndRemovesSelection() {
         let milestoneID = UUID()
         var selectedMilestones = Set<UUID>()
+        let binding = Binding(get: { selectedMilestones }, set: { selectedMilestones = $0 })
 
-        MilestoneFilterMenu.setSelection(true, for: milestoneID, in: &selectedMilestones)
+        binding.contains(milestoneID).wrappedValue = true
         #expect(selectedMilestones.contains(milestoneID))
 
-        MilestoneFilterMenu.setSelection(false, for: milestoneID, in: &selectedMilestones)
+        binding.contains(milestoneID).wrappedValue = false
         #expect(selectedMilestones.contains(milestoneID) == false)
-    }
-
-    @Test func clearEmptiesSelection() {
-        var selectedMilestones = Set([UUID(), UUID()])
-
-        MilestoneFilterMenu.clear(&selectedMilestones)
-
-        #expect(selectedMilestones.isEmpty)
     }
 
     @Test func menuHiddenWhenNoAvailableAndNoneSelected() {

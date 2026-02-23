@@ -59,7 +59,7 @@ struct MilestoneFilterMenu: View {
     @ViewBuilder
     private var toggleContent: some View {
         ForEach(availableMilestones) { milestone in
-            Toggle(milestoneTitle(for: milestone), isOn: toggleBinding(for: milestone.id))
+            Toggle(milestoneTitle(for: milestone), isOn: $selectedMilestones.contains(milestone.id))
         }
     }
 
@@ -68,19 +68,10 @@ struct MilestoneFilterMenu: View {
         if !selectedMilestones.isEmpty {
             Section {
                 Button("Clear", role: .destructive) {
-                    Self.clear(&selectedMilestones)
+                    selectedMilestones.removeAll()
                 }
             }
         }
-    }
-
-    private func toggleBinding(for milestoneID: UUID) -> Binding<Bool> {
-        Binding(
-            get: { selectedMilestones.contains(milestoneID) },
-            set: { isOn in
-                Self.setSelection(isOn, for: milestoneID, in: &selectedMilestones)
-            }
-        )
     }
 
     private func milestoneTitle(for milestone: Milestone) -> String {
@@ -117,18 +108,6 @@ struct MilestoneFilterMenu: View {
     static func scopedProjects(projects: [Project], selectedProjectIDs: Set<UUID>) -> [Project] {
         guard !selectedProjectIDs.isEmpty else { return projects }
         return projects.filter { selectedProjectIDs.contains($0.id) }
-    }
-
-    static func setSelection(_ isSelected: Bool, for milestoneID: UUID, in selectedMilestones: inout Set<UUID>) {
-        if isSelected {
-            selectedMilestones.insert(milestoneID)
-        } else {
-            selectedMilestones.remove(milestoneID)
-        }
-    }
-
-    static func clear(_ selectedMilestones: inout Set<UUID>) {
-        selectedMilestones.removeAll()
     }
 
     static func accessibilityLabel(for count: Int) -> String {

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import Transit
 
@@ -6,25 +7,17 @@ import Testing
 struct TypeFilterMenuTests {
     @Test func togglingTypeAddsAndRemovesSelection() {
         var selectedTypes = Set<TaskType>()
+        let binding = Binding(get: { selectedTypes }, set: { selectedTypes = $0 })
 
-        TypeFilterMenu.setSelection(true, for: .bug, in: &selectedTypes)
+        binding.contains(TaskType.bug).wrappedValue = true
         #expect(selectedTypes.contains(.bug))
 
-        TypeFilterMenu.setSelection(false, for: .bug, in: &selectedTypes)
+        binding.contains(TaskType.bug).wrappedValue = false
         #expect(selectedTypes.contains(.bug) == false)
     }
 
-    @Test func clearEmptiesSelection() {
-        var selectedTypes: Set<TaskType> = [.bug, .feature]
-
-        TypeFilterMenu.clear(&selectedTypes)
-
-        #expect(selectedTypes.isEmpty)
-    }
-
-    @Test func countReflectsSelectedTypes() {
-        let selectedTypes: Set<TaskType> = [.bug, .feature, .research]
-
-        #expect(TypeFilterMenu.selectionCount(for: selectedTypes) == 3)
+    @Test func accessibilityLabelReflectsCount() {
+        #expect(TypeFilterMenu.accessibilityLabel(for: 0) == "Task type filter, 0 selected")
+        #expect(TypeFilterMenu.accessibilityLabel(for: 3) == "Task type filter, 3 selected")
     }
 }

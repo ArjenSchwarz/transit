@@ -11,7 +11,7 @@ struct TypeFilterMenu: View {
     var body: some View {
         menuContent
             .accessibilityIdentifier("dashboard.filter.types")
-            .accessibilityLabel(Self.accessibilityLabel(for: Self.selectionCount(for: selectedTypes)))
+            .accessibilityLabel(Self.accessibilityLabel(for: selectedTypes.count))
     }
 
     @ViewBuilder
@@ -54,7 +54,7 @@ struct TypeFilterMenu: View {
         if !selectedTypes.isEmpty {
             Section {
                 Button("Clear", role: .destructive) {
-                    Self.clear(&selectedTypes)
+                    selectedTypes.removeAll()
                 }
             }
         }
@@ -62,7 +62,7 @@ struct TypeFilterMenu: View {
 
     @ViewBuilder
     private var filterLabel: some View {
-        let count = Self.selectionCount(for: selectedTypes)
+        let count = selectedTypes.count
         if sizeClass == .compact {
             Image(systemName: count > 0 ? "tag.fill" : "tag")
                 .badge(count)
@@ -72,22 +72,6 @@ struct TypeFilterMenu: View {
                 systemImage: count > 0 ? "tag.fill" : "tag"
             )
         }
-    }
-
-    static func setSelection(_ isSelected: Bool, for type: TaskType, in selectedTypes: inout Set<TaskType>) {
-        if isSelected {
-            selectedTypes.insert(type)
-        } else {
-            selectedTypes.remove(type)
-        }
-    }
-
-    static func clear(_ selectedTypes: inout Set<TaskType>) {
-        selectedTypes.removeAll()
-    }
-
-    static func selectionCount(for selectedTypes: Set<TaskType>) -> Int {
-        selectedTypes.count
     }
 
     static func accessibilityLabel(for count: Int) -> String {
