@@ -42,7 +42,10 @@ struct TypeFilterMenu: View {
     @ViewBuilder
     private var toggleContent: some View {
         ForEach(TaskType.allCases, id: \.self) { type in
-            Toggle(type.rawValue.capitalized, isOn: toggleBinding(for: type))
+            Toggle(isOn: $selectedTypes.contains(type)) {
+                Label(type.rawValue.capitalized, systemImage: "circle.fill")
+                    .foregroundStyle(type.tintColor)
+            }
         }
     }
 
@@ -55,15 +58,6 @@ struct TypeFilterMenu: View {
                 }
             }
         }
-    }
-
-    private func toggleBinding(for type: TaskType) -> Binding<Bool> {
-        Binding(
-            get: { selectedTypes.contains(type) },
-            set: { isOn in
-                Self.setSelection(isOn, for: type, in: &selectedTypes)
-            }
-        )
     }
 
     @ViewBuilder
