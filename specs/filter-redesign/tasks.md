@@ -127,7 +127,7 @@ metadata:
 
 ## Cleanup
 
-- [ ] 11. Delete FilterPopoverView.swift <!-- id:ovtjoee -->
+- [x] 11. Delete FilterPopoverView.swift <!-- id:ovtjoee -->
   - Delete `Views/Dashboard/FilterPopoverView.swift` entirely
   - Verify no remaining references to `FilterPopoverView` in the codebase
   - All its functionality is replaced by the three filter menus + DashboardView changes

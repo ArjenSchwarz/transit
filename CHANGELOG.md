@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Simulator test targets (`test`, `test-ui`) now limited to 1 parallel worker and 1 concurrent simulator to prevent resource contention
 - Test host app runs inert when launched for unit tests: in-memory storage, no CloudKit sync, no connectivity monitor, no MCP server — prevents port conflicts and shared state interference with the running app
 - `DashboardView` toolbar now uses separate filter controls plus conditional clear-all action, with clear-all resetting project/type/milestone filters and search text and project changes cascading to clear milestone selections
+- Removed deprecated `FilterPopoverView.swift`; filter UI is now exclusively handled by the dedicated project/type/milestone controls
 
 ### Fixed
 
