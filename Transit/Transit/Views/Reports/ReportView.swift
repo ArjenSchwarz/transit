@@ -6,6 +6,10 @@ struct ReportView: View {
         $0.statusRawValue == "done" || $0.statusRawValue == "abandoned"
     }) private var terminalTasks: [TransitTask]
 
+    @Query(filter: #Predicate<Milestone> {
+        $0.statusRawValue == "done" || $0.statusRawValue == "abandoned"
+    }) private var terminalMilestones: [Milestone]
+
     @State private var selectedRange: ReportDateRange = .thisWeek
     @State private var showCopyConfirmation = false
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
@@ -18,6 +22,7 @@ struct ReportView: View {
     var body: some View {
         let report = ReportLogic.buildReport(
             tasks: terminalTasks,
+            milestones: terminalMilestones,
             dateRange: selectedRange
         )
 
@@ -112,10 +117,46 @@ struct ReportView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                if !group.milestones.isEmpty {
+                    ForEach(group.milestones) { milestone in
+                        milestoneRow(milestone)
+                    }
+
+                    Divider()
+                }
+
                 ForEach(group.tasks) { task in
                     taskRow(task)
                 }
             }
+        }
+    }
+
+    private func milestoneRow(_ milestone: ReportMilestone) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "flag.fill")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text(milestone.displayID)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+
+            if milestone.isAbandoned {
+                Text(milestone.name)
+                    .strikethrough()
+                    .foregroundStyle(.secondary)
+                Text("(Abandoned)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text(milestone.name)
+                    .fontWeight(.medium)
+            }
+
+            Text("\(milestone.taskCount) tasks")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 

@@ -185,7 +185,7 @@ struct CommentServiceTests {
     @Test func addComment_taskFromDifferentContext_immediatelyFetchable() throws {
         // Set up a shared container with two separate contexts,
         // simulating how the app has a service context and a mainContext.
-        let schema = Schema([Project.self, TransitTask.self, Comment.self])
+        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self])
         let config = ModelConfiguration(
             "CrossContext-\(UUID().uuidString)",
             schema: schema,

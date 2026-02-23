@@ -76,5 +76,37 @@ struct TransitShortcuts: AppShortcutsProvider {
             shortTitle: "Generate Report",
             systemImageName: "chart.bar.doc.horizontal"
         )
+
+        AppShortcut(
+            intent: CreateMilestoneIntent(),
+            phrases: [
+                "Create milestone in \(.applicationName)",
+                "Add a \(.applicationName) milestone",
+                "New \(.applicationName) milestone"
+            ],
+            shortTitle: "Create Milestone",
+            systemImageName: "flag"
+        )
+
+        AppShortcut(
+            intent: QueryMilestonesIntent(),
+            phrases: [
+                "Show milestones in \(.applicationName)",
+                "Query \(.applicationName) milestones",
+                "List \(.applicationName) milestones"
+            ],
+            shortTitle: "Query Milestones",
+            systemImageName: "flag.circle"
+        )
+
+        AppShortcut(
+            intent: UpdateTaskIntent(),
+            phrases: [
+                "Update task in \(.applicationName)",
+                "Assign \(.applicationName) task to milestone"
+            ],
+            shortTitle: "Update Task",
+            systemImageName: "pencil.circle"
+        )
     }
 }

@@ -199,7 +199,7 @@ struct TaskServiceTests {
     /// changes were never written to disk.
     @Test func updateStatusPersistsWhenUsingSharedContext() async throws {
         // Create a container — mimics the app setup
-        let schema = Schema([Project.self, TransitTask.self, Comment.self])
+        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self])
         let config = ModelConfiguration(
             "T173-regression-\(UUID().uuidString)",
             schema: schema,

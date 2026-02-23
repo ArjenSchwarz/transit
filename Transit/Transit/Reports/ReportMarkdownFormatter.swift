@@ -22,6 +22,16 @@ enum ReportMarkdownFormatter {
             lines.append("## \(sanitize(group.projectName))")
             lines.append("")
             lines.append(ReportData.summaryText(done: group.doneCount, abandoned: group.abandonedCount))
+
+            if !group.milestones.isEmpty {
+                lines.append("")
+                lines.append("### Milestones")
+                lines.append("")
+                for milestone in group.milestones {
+                    lines.append(formatMilestone(milestone))
+                }
+            }
+
             lines.append("")
 
             for task in group.tasks {
@@ -34,13 +44,23 @@ enum ReportMarkdownFormatter {
 
     // MARK: - Private
 
+    private static func formatMilestone(_ milestone: ReportMilestone) -> String {
+        let name = sanitize(milestone.name)
+        let taskLabel = milestone.taskCount == 1 ? "1 task" : "\(milestone.taskCount) tasks"
+        if milestone.isAbandoned {
+            return "- ~~\(milestone.displayID): \(name)~~ (Abandoned, \(taskLabel))"
+        }
+        return "- \(milestone.displayID): \(name) (\(taskLabel))"
+    }
+
     private static func formatTask(_ task: ReportTask) -> String {
         let name = sanitize(task.name)
         let typeLabel = task.taskType.rawValue.capitalized
+        let milestoneSuffix = task.milestoneName.map { " [\(sanitize($0))]" } ?? ""
         if task.isAbandoned {
-            return "- ~~\(task.displayID): \(typeLabel): \(name)~~ (Abandoned)"
+            return "- ~~\(task.displayID): \(typeLabel): \(name)~~ (Abandoned)\(milestoneSuffix)"
         }
-        return "- \(task.displayID): \(typeLabel): \(name)"
+        return "- \(task.displayID): \(typeLabel): \(name)\(milestoneSuffix)"
     }
 
     private static func sanitize(_ text: String) -> String {

@@ -6,7 +6,7 @@ import Testing
 @MainActor @Suite(.serialized)
 struct TaskEntityTests {
     private func makeContext() throws -> ModelContext {
-        let schema = Schema([Project.self, TransitTask.self])
+        let schema = Schema([Project.self, TransitTask.self, Milestone.self])
         let config = ModelConfiguration(
             "TaskEntityTests-\(UUID().uuidString)",
             schema: schema,

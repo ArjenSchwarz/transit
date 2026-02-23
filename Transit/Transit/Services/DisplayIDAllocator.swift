@@ -32,9 +32,16 @@ final class DisplayIDAllocator: @unchecked Sendable {
         self.retryLimit = max(1, retryLimit)
     }
 
-    convenience init(container: CKContainer = .default(), retryLimit: Int = 5) {
+    convenience init(
+        container: CKContainer = .default(),
+        counterRecordName: String = "global-counter",
+        retryLimit: Int = 5
+    ) {
         self.init(
-            store: CloudKitCounterStore(database: container.privateCloudDatabase),
+            store: CloudKitCounterStore(
+                database: container.privateCloudDatabase,
+                recordName: counterRecordName
+            ),
             retryLimit: retryLimit
         )
     }
@@ -104,20 +111,18 @@ private final class CloudKitCounterStore: DisplayIDAllocator.CounterStore {
         zoneName: "com.apple.coredata.cloudkit.zone",
         ownerName: CKCurrentUserDefaultName
     )
-    private static let counterRecordID = CKRecord.ID(
-        recordName: "global-counter",
-        zoneID: zoneID
-    )
 
+    private let counterRecordID: CKRecord.ID
     private let database: CKDatabase
 
-    init(database: CKDatabase) {
+    init(database: CKDatabase, recordName: String = "global-counter") {
         self.database = database
+        self.counterRecordID = CKRecord.ID(recordName: recordName, zoneID: Self.zoneID)
     }
 
     func loadCounter() async throws -> DisplayIDAllocator.CounterSnapshot {
         do {
-            let record = try await database.record(for: Self.counterRecordID)
+            let record = try await database.record(for: counterRecordID)
             let nextID = Self.extractNextDisplayID(from: record)
             return DisplayIDAllocator.CounterSnapshot(
                 nextDisplayID: nextID,
@@ -131,13 +136,13 @@ private final class CloudKitCounterStore: DisplayIDAllocator.CounterStore {
     func saveCounter(nextDisplayID: Int, expectedChangeTag: String?) async throws {
         let record: CKRecord
         if let expectedChangeTag {
-            let fetchedRecord = try await database.record(for: Self.counterRecordID)
+            let fetchedRecord = try await database.record(for: counterRecordID)
             guard fetchedRecord.recordChangeTag == expectedChangeTag else {
                 throw DisplayIDAllocator.Error.conflict
             }
             record = fetchedRecord
         } else {
-            record = CKRecord(recordType: Self.counterRecordType, recordID: Self.counterRecordID)
+            record = CKRecord(recordType: Self.counterRecordType, recordID: counterRecordID)
         }
         record[Self.counterField] = NSNumber(value: nextDisplayID)
 

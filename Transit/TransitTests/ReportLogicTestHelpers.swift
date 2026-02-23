@@ -4,7 +4,7 @@ import SwiftData
 
 @MainActor
 func makeReportTestContext() throws -> ModelContext {
-    let schema = Schema([Project.self, TransitTask.self, Comment.self])
+    let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self])
     let config = ModelConfiguration(
         "ReportLogicTests-\(UUID().uuidString)",
         schema: schema,

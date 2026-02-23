@@ -5,6 +5,7 @@ struct TaskEditView: View {
     let task: TransitTask
     var dismissAll: () -> Void
     @Environment(TaskService.self) private var taskService
+    @Environment(MilestoneService.self) private var milestoneService
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Project.name) private var projects: [Project]
@@ -14,9 +15,20 @@ struct TaskEditView: View {
     @State private var selectedType: TaskType = .feature
     @State private var selectedStatus: TaskStatus = .idea
     @State private var selectedProjectID: UUID?
+    @State private var selectedMilestone: Milestone?
     @State private var metadata: [String: String] = [:]
     @State private var selectedDetent: PresentationDetent = .large
     @State private var errorMessage: String?
+
+    private var selectedProject: Project? {
+        guard let id = selectedProjectID else { return nil }
+        return projects.first { $0.id == id }
+    }
+
+    private var openMilestones: [Milestone] {
+        guard let project = selectedProject else { return [] }
+        return milestoneService.milestonesForProject(project, status: .open)
+    }
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedProjectID != nil
@@ -96,6 +108,16 @@ struct TaskEditView: View {
                     .tag(Optional(project.id))
                 }
             }
+            .onChange(of: selectedProjectID) { _, _ in
+                selectedMilestone = nil
+            }
+
+            Picker("Milestone", selection: $selectedMilestone) {
+                Text("None").tag(nil as Milestone?)
+                ForEach(openMilestones) { milestone in
+                    Text(milestone.name).tag(milestone as Milestone?)
+                }
+            }
         }
     }
 
@@ -173,6 +195,21 @@ struct TaskEditView: View {
                             .labelsHidden()
                             .pickerStyle(.menu)
                             .fixedSize()
+                            .onChange(of: selectedProjectID) { _, _ in
+                                selectedMilestone = nil
+                            }
+                        }
+
+                        FormRow("Milestone", labelWidth: Self.labelWidth) {
+                            Picker("", selection: $selectedMilestone) {
+                                Text("None").tag(nil as Milestone?)
+                                ForEach(openMilestones) { milestone in
+                                    Text(milestone.name).tag(milestone as Milestone?)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .fixedSize()
                         }
                     }
                 }
@@ -222,20 +259,23 @@ struct TaskEditView: View {
     }
     #endif
 
-    // MARK: - Data Loading
+}
 
-    private func loadTask() {
+// MARK: - Data Loading & Actions
+
+extension TaskEditView {
+
+    fileprivate func loadTask() {
         name = task.name
         taskDescription = task.taskDescription ?? ""
         selectedType = task.type
         selectedStatus = task.status
         selectedProjectID = task.project?.id
+        selectedMilestone = task.milestone
         metadata = task.metadata
     }
 
-    // MARK: - Actions
-
-    private func save() {
+    fileprivate func save() {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         guard !trimmedName.isEmpty else { return }
 
@@ -247,12 +287,16 @@ struct TaskEditView: View {
         task.type = selectedType
         task.metadata = metadata
 
-        // Update project if changed
-        if let newProjectID = selectedProjectID, task.project?.id != newProjectID {
-            task.project = projects.first { $0.id == newProjectID }
-        }
-
         do {
+            // Update project if changed — clears milestone via Decision 6
+            if let newProjectID = selectedProjectID, task.project?.id != newProjectID,
+               let newProject = projects.first(where: { $0.id == newProjectID }) {
+                try taskService.changeProject(task: task, to: newProject)
+            }
+
+            // Update milestone via service for validation
+            try milestoneService.setMilestone(selectedMilestone, on: task)
+
             // Status change goes through TaskService for side effects (which saves internally)
             if selectedStatus != task.status {
                 try taskService.updateStatus(task: task, to: selectedStatus)

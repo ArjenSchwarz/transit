@@ -10,7 +10,9 @@ struct TransitApp: App {
     private let taskService: TaskService
     private let projectService: ProjectService
     private let commentService: CommentService
+    private let milestoneService: MilestoneService
     private let displayIDAllocator: DisplayIDAllocator
+    private let milestoneIDAllocator: DisplayIDAllocator
     private let syncManager: SyncManager
     private let connectivityMonitor: ConnectivityMonitor
 
@@ -27,7 +29,7 @@ struct TransitApp: App {
         let syncManager = SyncManager()
         self.syncManager = syncManager
 
-        let schema = Schema([Project.self, TransitTask.self, Comment.self])
+        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self])
         let config: ModelConfiguration
         if Self.uiTestScenario != nil {
             config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
@@ -46,10 +48,16 @@ struct TransitApp: App {
         let allocator = DisplayIDAllocator()
         self.displayIDAllocator = allocator
 
+        let milestoneAllocator = DisplayIDAllocator(counterRecordName: "milestone-counter")
+        self.milestoneIDAllocator = milestoneAllocator
+
         let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let projectService = ProjectService(modelContext: context)
         self.taskService = taskService
         self.projectService = projectService
+
+        let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator)
+        self.milestoneService = milestoneService
 
         let connectivityMonitor = ConnectivityMonitor()
         self.connectivityMonitor = connectivityMonitor
@@ -57,6 +65,7 @@ struct TransitApp: App {
         // Wire up connectivity restore to trigger display ID promotion.
         connectivityMonitor.onRestore = { @Sendable in
             await allocator.promoteProvisionalTasks(in: context)
+            await milestoneService.promoteProvisionalMilestones()
         }
         connectivityMonitor.start()
 
@@ -66,12 +75,14 @@ struct TransitApp: App {
         AppDependencyManager.shared.add(dependency: taskService)
         AppDependencyManager.shared.add(dependency: projectService)
         AppDependencyManager.shared.add(dependency: commentService)
+        AppDependencyManager.shared.add(dependency: milestoneService)
 
         #if os(macOS)
         let mcpSettings = MCPSettings()
         self.mcpSettings = mcpSettings
         let mcpToolHandler = MCPToolHandler(
-            taskService: taskService, projectService: projectService, commentService: commentService
+            taskService: taskService, projectService: projectService,
+            commentService: commentService, milestoneService: milestoneService
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
         #endif
@@ -89,6 +100,8 @@ struct TransitApp: App {
                             SettingsView()
                         case .projectEdit(let project):
                             ProjectEditView(project: project)
+                        case .milestoneEdit(let project, let milestone):
+                            MilestoneEditView(project: project, milestone: milestone)
                         case .report:
                             ReportView()
                         }
@@ -99,11 +112,13 @@ struct TransitApp: App {
             )
             .modifier(ScenePhaseModifier(
                 displayIDAllocator: displayIDAllocator,
+                milestoneService: milestoneService,
                 modelContext: container.mainContext
             ))
             .environment(taskService)
             .environment(projectService)
             .environment(commentService)
+            .environment(milestoneService)
             .environment(syncManager)
             .environment(connectivityMonitor)
             #if os(macOS)
@@ -182,6 +197,16 @@ struct TransitApp: App {
         betaReview.lastStatusChangeDate = now.addingTimeInterval(-200)
         betaReview.statusRawValue = TaskStatus.readyForReview.rawValue
         ctx.insert(betaReview)
+
+        // Sample milestones
+        let alphaV1 = Milestone(name: "v1.0", description: "First release", project: alpha, displayID: .permanent(1))
+        ctx.insert(alphaV1)
+        shipActive.milestone = alphaV1
+        backlogIdea.milestone = alphaV1
+
+        let betaV1 = Milestone(name: "Beta v1", description: nil, project: beta, displayID: .permanent(2))
+        ctx.insert(betaV1)
+        betaReview.milestone = betaV1
     }
 }
 
@@ -200,17 +225,20 @@ private struct ScenePhaseModifier: ViewModifier {
     @Environment(\.scenePhase) private var scenePhase
 
     let displayIDAllocator: DisplayIDAllocator
+    let milestoneService: MilestoneService
     let modelContext: ModelContext
 
     func body(content: Content) -> some View {
         content
             .task {
                 await displayIDAllocator.promoteProvisionalTasks(in: modelContext)
+                await milestoneService.promoteProvisionalMilestones()
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active {
                     Task {
                         await displayIDAllocator.promoteProvisionalTasks(in: modelContext)
+                        await milestoneService.promoteProvisionalMilestones()
                     }
                 }
             }

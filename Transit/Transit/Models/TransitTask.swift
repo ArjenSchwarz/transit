@@ -15,6 +15,7 @@ final class TransitTask {
     var metadataJSON: String?
 
     var project: Project?
+    var milestone: Milestone?
 
     @Relationship(deleteRule: .cascade, inverse: \Comment.task)
     var comments: [Comment]?
@@ -63,6 +64,10 @@ final class TransitTask {
 
         if let project {
             text += "Project: \(project.name)\n"
+        }
+
+        if let milestone {
+            text += "Milestone: \(milestone.name) (\(milestone.displayID.formatted(prefix: "M")))\n"
         }
 
         if let taskDescription, !taskDescription.isEmpty {

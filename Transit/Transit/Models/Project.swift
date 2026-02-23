@@ -12,6 +12,9 @@ final class Project {
     @Relationship(deleteRule: .nullify, inverse: \TransitTask.project)
     var tasks: [TransitTask]?
 
+    @Relationship(deleteRule: .cascade, inverse: \Milestone.project)
+    var milestones: [Milestone]?
+
     init(name: String, description: String, gitRepo: String?, colorHex: String) {
         self.id = UUID()
         self.name = name

@@ -7,9 +7,14 @@ enum DisplayID: Equatable, Sendable {
 
     /// Formatted string for UI display. [req 3.6, 3.7]
     nonisolated var formatted: String {
+        formatted(prefix: "T")
+    }
+
+    /// Formatted string with a custom prefix (e.g. "M" for milestones).
+    nonisolated func formatted(prefix: String) -> String {
         switch self {
-        case .permanent(let id): "T-\(id)"
-        case .provisional: "T-\u{2022}"
+        case .permanent(let id): "\(prefix)-\(id)"
+        case .provisional: "\(prefix)-\u{2022}"
         }
     }
 }

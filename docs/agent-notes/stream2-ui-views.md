@@ -86,4 +86,57 @@ Applied to: AddTaskSheet (macOS description), TaskEditView (macOS description), 
 `Models/NavigationDestination.swift`
 - `.settings` — pushes SettingsView
 - `.projectEdit(Project)` — pushes ProjectEditView for editing
+- `.milestoneEdit(project: Project, milestone: Milestone?)` — pushes MilestoneEditView (nil milestone = create)
+- `.report` — pushes ReportView
 - Handled by `navigationDestination(for:)` in TransitApp.swift
+
+## Milestone UI Integration (Stream 4)
+
+### TaskCardView Milestone Badge
+- Milestone name shown as capsule badge in the badges HStack (after TypeBadge, before comment count)
+- Style: `.font(.caption2)`, `.foregroundStyle(.secondary)`, `.background(.fill.tertiary, in: Capsule())`
+- Only shown when `task.milestone` is non-nil
+
+### TaskDetailView Milestone Row
+- "Milestone" row shows `milestone.name (M-<id>)` or "None" (secondary style)
+- Added to both iOS (LabeledContent) and macOS (FormRow in Grid) layouts
+
+### TaskEditView Milestone Picker
+- Picker after project picker, loads open milestones via `MilestoneService.milestonesForProject`
+- Resets to nil when project changes (`.onChange(of: selectedProjectID)`)
+- Saved via `MilestoneService.setMilestone(_:on:)` in save action
+- `loadTask()` and `save()` moved to an extension to stay under the 250-line type body length lint limit
+
+### AddTaskSheet Milestone Picker
+- Same pattern as TaskEditView: picker after project, reset on project change
+- After `createTask`, sets milestone via `milestoneService.setMilestone` if selected
+
+### FilterPopoverView Milestones Section
+- New `selectedMilestones: Set<UUID>` binding (state owned by DashboardView)
+- Milestones section after Types section, same toggle pattern
+- Scoped by project filter (all open milestones if no project filter active)
+- Stale selected milestones (no longer open) shown dimmed for deselection
+- Clears milestone selection when project filter changes
+
+### DashboardView Milestone Filter
+- In-memory filter: `selectedMilestones` passed to `DashboardLogic.buildFilteredColumns`
+- `matchesFilters` checks `task.milestone?.id` is in selected set (can't use #Predicate for optional relationships)
+- `activeFilterCount` includes milestone count
+
+### MilestoneEditView
+`Views/Settings/MilestoneEditView.swift`
+- Platform-specific: iOS Form / macOS LiquidGlassSection (same pattern as ProjectEditView)
+- Fields: name, description
+- Create mode: async via `milestoneService.createMilestone`
+- Edit mode: sync via `milestoneService.updateMilestone`
+
+### MilestoneListSection
+`Views/Settings/MilestoneListSection.swift`
+- Reusable component for listing milestones within a project
+- Each row: NavigationLink to edit, status menu (Open/Done/Abandoned), delete button
+- Delete confirmation alert shows affected task count
+- Add button: NavigationLink to `.milestoneEdit(project:, milestone: nil)`
+- Platform-specific: iOS Section / macOS LiquidGlassSection
+
+### ProjectEditView Milestones
+- MilestoneListSection added after Appearance section (only when editing existing project)

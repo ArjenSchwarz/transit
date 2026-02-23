@@ -19,7 +19,8 @@ struct CreateTaskIntent: AppIntent {
         description: """
         JSON object with task details. Required fields: "name" (string), "type" (bug | feature | chore | \
         research | documentation). Optional: "projectId" (UUID), "project" (name), "description" (string), \
-        "metadata" (object). Example: {"name": "Fix login", "type": "bug", "project": "Alpha"}
+        "metadata" (object), "milestone" (name), "milestoneDisplayId" (integer). \
+        Example: {"name": "Fix login", "type": "bug", "project": "Alpha", "milestoneDisplayId": 1}
         """
     )
     var input: String
@@ -30,12 +31,16 @@ struct CreateTaskIntent: AppIntent {
     @Dependency
     private var projectService: ProjectService
 
+    @Dependency
+    private var milestoneService: MilestoneService
+
     @MainActor
     func perform() async throws -> some ReturnsValue<String> {
         let result = await CreateTaskIntent.execute(
             input: input,
             taskService: taskService,
-            projectService: projectService
+            projectService: projectService,
+            milestoneService: milestoneService
         )
         return .result(value: result)
     }
@@ -46,7 +51,8 @@ struct CreateTaskIntent: AppIntent {
     static func execute(
         input: String,
         taskService: TaskService,
-        projectService: ProjectService
+        projectService: ProjectService,
+        milestoneService: MilestoneService? = nil
     ) async -> String {
         guard let json = IntentHelpers.parseJSON(input) else {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json
@@ -85,6 +91,22 @@ struct CreateTaskIntent: AppIntent {
             return IntentError.invalidInput(hint: "Task creation failed").json
         }
 
+        // Assign milestone if requested [req 13.6]
+        if let milestoneService {
+            if let error = IntentHelpers.assignMilestone(
+                from: json, to: task, milestoneService: milestoneService
+            ) {
+                return error
+            }
+        }
+
+        return buildResponse(task)
+    }
+
+    // MARK: - Private Helpers
+
+    @MainActor
+    private static func buildResponse(_ task: TransitTask) -> String {
         var response: [String: Any] = [
             "taskId": task.id.uuidString,
             "status": task.statusRawValue
@@ -92,10 +114,11 @@ struct CreateTaskIntent: AppIntent {
         if let displayId = task.permanentDisplayId {
             response["displayId"] = displayId
         }
+        if let milestone = task.milestone {
+            response["milestone"] = IntentHelpers.milestoneInfoDict(milestone)
+        }
         return IntentHelpers.encodeJSON(response)
     }
-
-    // MARK: - Private Helpers
 
     private static func validateInput(_ json: [String: Any]) -> IntentError? {
         guard let name = json["name"] as? String, !name.isEmpty else {

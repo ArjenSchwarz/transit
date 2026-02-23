@@ -30,18 +30,26 @@ struct GenerateReportIntent: AppIntent {
 
     @MainActor
     static func execute(dateRange: ReportDateRange, modelContext: ModelContext) -> String {
-        let predicate = #Predicate<TransitTask> {
+        let taskPredicate = #Predicate<TransitTask> {
             $0.statusRawValue == "done" || $0.statusRawValue == "abandoned"
         }
-        var descriptor = FetchDescriptor<TransitTask>(predicate: predicate)
-        descriptor.relationshipKeyPathsForPrefetching = [\.project]
+        var taskDescriptor = FetchDescriptor<TransitTask>(predicate: taskPredicate)
+        taskDescriptor.relationshipKeyPathsForPrefetching = [\.project]
+
+        let milestonePredicate = #Predicate<Milestone> {
+            $0.statusRawValue == "done" || $0.statusRawValue == "abandoned"
+        }
+        var milestoneDescriptor = FetchDescriptor<Milestone>(predicate: milestonePredicate)
+        milestoneDescriptor.relationshipKeyPathsForPrefetching = [\.project]
 
         let tasks: [TransitTask]
+        let milestones: [Milestone]
         do {
-            tasks = try modelContext.fetch(descriptor)
+            tasks = try modelContext.fetch(taskDescriptor)
+            milestones = try modelContext.fetch(milestoneDescriptor)
         } catch {
             Logger(subsystem: "com.transit", category: "report")
-                .error("Failed to fetch tasks for report: \(error.localizedDescription)")
+                .error("Failed to fetch data for report: \(error.localizedDescription)")
             let emptyData = ReportData(
                 dateRangeLabel: dateRange.labelWithDates(),
                 projectGroups: [],
@@ -51,7 +59,7 @@ struct GenerateReportIntent: AppIntent {
             return ReportMarkdownFormatter.format(emptyData)
         }
 
-        let report = ReportLogic.buildReport(tasks: tasks, dateRange: dateRange)
+        let report = ReportLogic.buildReport(tasks: tasks, milestones: milestones, dateRange: dateRange)
         return ReportMarkdownFormatter.format(report)
     }
 }

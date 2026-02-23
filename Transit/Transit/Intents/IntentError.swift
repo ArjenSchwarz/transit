@@ -1,12 +1,15 @@
 import Foundation
 
-nonisolated enum IntentError {
+nonisolated enum IntentError: Error {
     case taskNotFound(hint: String)
     case projectNotFound(hint: String)
     case ambiguousProject(hint: String)
     case invalidStatus(hint: String)
     case invalidType(hint: String)
     case invalidInput(hint: String)
+    case milestoneNotFound(hint: String)
+    case duplicateMilestoneName(hint: String)
+    case milestoneProjectMismatch(hint: String)
 
     var code: String {
         switch self {
@@ -16,6 +19,9 @@ nonisolated enum IntentError {
         case .invalidStatus: "INVALID_STATUS"
         case .invalidType: "INVALID_TYPE"
         case .invalidInput: "INVALID_INPUT"
+        case .milestoneNotFound: "MILESTONE_NOT_FOUND"
+        case .duplicateMilestoneName: "DUPLICATE_MILESTONE_NAME"
+        case .milestoneProjectMismatch: "MILESTONE_PROJECT_MISMATCH"
         }
     }
 
@@ -26,7 +32,10 @@ nonisolated enum IntentError {
              .ambiguousProject(let hint),
              .invalidStatus(let hint),
              .invalidType(let hint),
-             .invalidInput(let hint):
+             .invalidInput(let hint),
+             .milestoneNotFound(let hint),
+             .duplicateMilestoneName(let hint),
+             .milestoneProjectMismatch(let hint):
             hint
         }
     }

@@ -59,6 +59,14 @@ struct TaskDetailView: View {
                     }
                 }
             }
+            LabeledContent("Milestone") {
+                if let milestone = task.milestone {
+                    Text("\(milestone.name) (\(milestone.displayID.formatted(prefix: "M")))")
+                } else {
+                    Text("None")
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
@@ -110,6 +118,15 @@ struct TaskDetailView: View {
                                     ProjectColorDot(color: Color(hex: project.colorHex))
                                     Text(project.name)
                                 }
+                            }
+                        }
+
+                        FormRow("Milestone", labelWidth: Self.labelWidth) {
+                            if let milestone = task.milestone {
+                                Text("\(milestone.name) (\(milestone.displayID.formatted(prefix: "M")))")
+                            } else {
+                                Text("None")
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }

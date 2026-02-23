@@ -8,109 +8,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Implementation explanation document at `specs/milestones/implementation.md` with beginner/intermediate/expert level explanations and completeness assessment (T-137)
+- 4 new milestone App Intents: `CreateMilestoneIntent`, `QueryMilestonesIntent`, `UpdateMilestoneIntent`, `DeleteMilestoneIntent` with JSON input/output following existing intent patterns (T-137)
+- `UpdateTaskIntent` for milestone assignment/removal on tasks via `milestoneDisplayId`, `milestone` name, or `clearMilestone` (T-137)
+- Milestone parameters on `CreateTaskIntent`: optional `milestone` (name) and `milestoneDisplayId` (integer) for assignment at creation (T-137)
+- Milestone filters on `QueryTasksIntent`: `milestone` (name) and `milestoneDisplayId` (integer) filter parameters, milestone info in task responses (T-137)
+- 3 new App Shortcuts for milestone operations: Create Milestone, Query Milestones, Update Task (T-137)
+- `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `MILESTONE_PROJECT_MISMATCH` error codes in `IntentError` (T-137)
+- Shared helpers in `IntentHelpers`: `resolveMilestone`, `resolveTask`, `milestoneInfoDict`, `assignMilestone`, `mapMilestoneError` for cross-intent reuse (T-137)
+- 7 new test suites (50+ tests): `CreateMilestoneIntentTests`, `QueryMilestonesIntentTests`, `UpdateMilestoneIntentTests`, `DeleteMilestoneIntentTests`, `UpdateTaskIntentTests`, `CreateTaskIntentMilestoneTests`, `QueryTasksIntentMilestoneTests` (T-137)
+- 5 new MCP tools for milestone management: `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `update_task` (T-137)
+- Milestone parameters on existing MCP tools: `milestone`/`milestoneDisplayId` on `create_task` and `query_tasks`, milestone info in `get_projects` responses (T-137)
+- `MCPMilestoneToolTests` suite (17 tests) covering milestone CRUD tools: create, query (all/project/status/search/displayId), update (status/name), delete, and error cases (T-137)
+- `MCPMilestoneIntegrationTests` suite (10 tests) covering milestone integration in existing tools: update_task assignment (by displayId/name/clear/mismatch/not-found), create_task with milestone, query_tasks milestone filter, and get_projects milestone inclusion (T-137)
+- `Milestone` SwiftData model with UUID, permanentDisplayId, name, description, status, creation/completion dates, project relationship, and tasks relationship (T-137)
+- `MilestoneStatus` nonisolated enum with `open`/`done`/`abandoned` cases, `isTerminal` and `displayName` computed properties (T-137)
+- `DisplayID.formatted(prefix:)` method for custom prefix formatting (e.g. "M" for milestones); existing `formatted` property delegates to it with "T" prefix (T-137)
+- `MilestoneStatusTests` suite (7 tests) covering isTerminal, displayName, rawValue, and init from raw value (T-137)
+- `DisplayIDTests` expanded with 4 tests for `formatted(prefix:)` method and backward compatibility (T-137)
+- Milestones feature spec (T-137): requirements, design, decision log, and task list in `specs/milestones/`
+  - Project-scoped milestones with display IDs (M-1, M-2) and three-state lifecycle (Open/Done/Abandoned)
+  - 13 requirement sections, 9 architectural decisions, 19 implementation tasks across 4 parallel streams
+  - Covers data model, service layer, MCP tools, App Intents, UI (card badges, filters, pickers, settings), reports, and share text
 - `search` parameter on `query_tasks` MCP tool for case-insensitive substring matching on task name and description, combining conjunctively with all existing filters (T-180)
 - `search` field on `QueryTasksIntent` App Intent JSON input with the same matching behavior (T-180)
 - `MCPSearchFilterTests` suite (9 tests) covering search by name, description, case insensitivity, combined filters (type, status), whitespace trimming, nil description, name-or-description matching, and empty search (T-180)
 - Dashboard text search via `.searchable()` modifier: filters kanban board tasks by case-insensitive substring match on name and description, combines with existing project/type filters, counts as one active filter in the badge (T-180)
 - `DashboardSearchTests` suite (7 tests) covering name match, description match, nil description, empty search, whitespace-only search, combined filters, and name-or-description matching (T-180)
 - Smolspec and task list for text filter feature (T-180): `.searchable()` search bar on the dashboard and `search` parameter on the `query_tasks` MCP tool and App Intent, both using case-insensitive substring matching on task name and description
-
 - `MCPStatusFilterIntegrationTests` suite (5 tests) covering multi-status with project filter, exclusion with type filter, unfinished flag with displayId lookup (include and exclude), and single-string backward compat with project filter (T-58)
 - `JSONSchemaItems` struct and `items` property on `JSONSchemaProperty` for JSON Schema array type support, plus `.boolean()` and `.array()` static factories (T-58)
 - `MCPQueryFilters.from(args:type:projectId:)` factory method parsing multi-status inclusion (`status` as string or array), exclusion (`not_status`), and `unfinished` boolean flag with backward-compatible single-string handling (T-58)
 - `MCPStatusFilterTests` suite (8 tests) covering multi-status inclusion, single-string backward compat, status exclusion, unfinished flag, merged exclusions, combined inclusion+exclusion, contradictory filters, and empty arrays (T-58)
 - Smolspec and task list for MCP status filter improvements (T-58): multi-status inclusion, status exclusion, and `unfinished` shorthand flag for `query_tasks` MCP tool
-
-### Changed
-
-- `query_tasks` MCP tool schema: `status` parameter changed from `stringEnum` to `array` type with enum items, added `not_status` array parameter and `unfinished` boolean parameter (T-58)
-- `queryTasksDescription` updated to document new `status`, `not_status`, and `unfinished` parameters and their interaction (T-58)
-- `MCPQueryFilters.status: String?` replaced with `statuses: [String]?` and `notStatuses: [String]?` for multi-status filtering (T-58)
-- `MCPToolHandler.handleQueryTasks` delegates status filter parsing to `MCPQueryFilters.from(args:)` factory (T-58)
-- `project` name parameter on `query_tasks` MCP tool for case-insensitive project filtering, matching `create_task` behavior (T-179). `projectId` takes precedence when both are provided; empty/whitespace strings are treated as absent.
-- 8 tests for `query_tasks` project name filter: match, case-insensitive, unknown project error, ambiguous project error, projectId precedence, empty string, combined with status, combined with type (T-179)
-- Smolspec and task list for MCP project name filter (T-179): add `project` name parameter to `query_tasks` tool for case-insensitive filtering, matching `create_task` behavior
-- `get_projects` MCP tool returning all projects sorted alphabetically with projectId, name, description, colorHex, activeTaskCount, and gitRepo (when set) (T-110)
-- 3 tests for `get_projects`: correct fields and sort order, empty array, and activeTaskCount excluding terminal tasks
-- Smolspec and task list for get_projects MCP command (T-110): new MCP tool to list all projects with metadata so agents can discover project names
-- Smolspec and task list for settings background feature (T-149): apply `BoardBackground` to Settings view on both platforms with immediate theme reactivity
-- `Binding<String?>.isPresent` extension (`Binding+IsPresent.swift`) returning a `Binding<Bool>` for driving `.alert(isPresented:)` from optional error state
-
-### Changed
-
-- Settings view now displays `BoardBackground` gradient mesh behind content on both iOS and macOS, matching the dashboard appearance (T-149)
-- macOS settings toolbar is now transparent so the background gradient shows through
-- Extracted shared SettingsView helpers into an extension to satisfy type body length lint rule
-- `TaskEditView`, `ProjectEditView`, and `CommentsSection` use `$errorMessage.isPresent` instead of duplicated `Binding(get:set:)` boilerplate
-- `ColumnView.columnPanel` refactored from three identical switch cases to data-driven local variables with a single view construction
-- `DashboardLogic.buildFilteredColumns` now uses `Date.isWithin48Hours(of:)` extension instead of inline `addingTimeInterval` cutoff
-- `ReportDateRange.label` derives its value from `caseDisplayRepresentations` instead of duplicating all display strings
-
-### Fixed
-
-- macOS build failure caused by `QueryFilters` type name collision between `MCPHelperTypes.swift` and `QueryTasksIntent.swift` — renamed MCP version to `MCPQueryFilters`
-- Settings `BoardBackground` not filling full window width on macOS — added outer `.frame(maxWidth: .infinity)` on content with centered alignment to match ReportView pattern (T-149)
-- Report view background and scrollbar not spanning full window width on macOS — content VStack now uses `frame(maxWidth: .infinity)` to fill available space
-
-### Added
-
 - Task type displayed in reports: coloured `TypeBadge` in the in-app view and `Type: Title` format in Markdown output (e.g. `T-42: Feature: Implement login`)
 - Actual date range shown in report title (e.g. "This Week (Feb 16 – 18, 2026)") via `ReportDateRange.labelWithDates(now:)` for both in-app and Markdown reports
 - Report title rendered as `.title2` bold header in the in-app `ReportView` summary section
 - `BoardBackground` gradient applied to `ReportView`, matching the dashboard background
 - `.scrollContentBackground(.hidden)` on macOS `ReportView` to remove default scroll material, inset scrollbar, and focus drop shadow
-
-### Changed
-
-- `IntentCompatibilityAndDiscoverabilityTests` now verifies `GenerateReportIntent` title and `openAppWhenRun` stability
-
-### Added
-
 - Implementation explanation document (`specs/reports/implementation.md`) with beginner/intermediate/expert level explanations, requirement traceability, and completeness assessment
-
-### Added
-
 - `ReportView` native SwiftUI view for in-app report display with date range picker, per-project task grouping, abandoned task strikethrough, empty state, and copy-to-clipboard via `ReportMarkdownFormatter`
 - `GenerateReportIntent` App Intent for generating Markdown reports via Shortcuts with native `ReportDateRange` picker, registered in `TransitShortcuts`
 - Report button in dashboard toolbar (before settings gear) navigating to `ReportView` via `NavigationDestination.report`
 - `GenerateReportIntentTests` (3 tests) covering date range output, empty state, and all 8 range cases
-
-### Changed
-
-- `IntentCompatibilityAndDiscoverabilityTests` shortcut count updated from 6 to 7
-
-### Fixed
-
-- `ReportLogicDateRangeTests` build error: replaced non-existent `ModelContext.registeredObjects` with `FetchDescriptor` fetch
-- `ReportMarkdownFormatterTests` string literal escaping for hash character assertion
-
-### Added
-
 - `ReportLogic.buildReport()` stateless function for generating report data from SwiftData tasks: filters terminal tasks by date range, groups by project (alphabetical), sorts by completionDate/displayId/UUID
 - `ReportMarkdownFormatter.format()` for converting `ReportData` to GitHub Flavored Markdown with GFM metacharacter escaping, newline normalization, strikethrough for abandoned tasks, and per-project summary counts
 - `ReportLogicTests` (3 suites, 20+ tests) covering grouping, sorting, filtering, boundary timestamps, all 8 date ranges, orphan/nil exclusion, and provisional display ID handling
 - `ReportMarkdownFormatterTests` (14 tests) covering template structure, summary counts, zero-count omission, strikethrough format, GFM escaping, newline normalization, and empty state
-
 - 5 new date range cases in `DateFilterHelpers`: yesterday, lastWeek, lastMonth, thisYear, lastYear with locale-aware boundaries
 - `ReportDateRange` enum with `AppEnum` conformance for Shortcuts picker and in-app menu
 - `ReportData`, `ProjectGroup`, and `ReportTask` structs for transient report data model
 - 15 new `DateFilterHelpersTests` covering all new date ranges with boundary verification and token parsing
-
-### Changed
-
-- `DateFilterHelpers.parseDateFilter` refactored to use dictionary lookup instead of switch for relative tokens
-- `DateFilterHelpers.dateInRange` refactored into helper methods (`dateInCurrentPeriod`, `dateInPreviousPeriod`) to reduce cyclomatic complexity
-
-### Added
-
 - Spec for report functionality (T-37): requirements, design, decision log, and task list in `specs/reports/`
   - Generate Markdown reports of completed/abandoned tasks grouped by project for configurable date ranges
   - 8 predefined date ranges: today, yesterday, this/last week, this/last month, this/last year
   - Available via dashboard toolbar button and Shortcuts App Intent with native picker
   - 14 implementation tasks across 2 parallel work streams
-
-### Added
-
 - Type filter UI in `FilterPopoverView`: "Types" section with checkmark toggles and tint color circles for each `TaskType`
 - Per-section "Clear" buttons in filter popover (Projects and Types sections) and "Clear All" button when any filter is active
 - `selectedTypes` state in `DashboardView` wired to `FilterPopoverView` and `buildFilteredColumns`
@@ -119,54 +72,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Type filter parameter on `DashboardLogic.buildFilteredColumns` with AND-combination logic (empty set = no filter, non-empty = intersection with project filter)
 - Type filter unit tests: type-only filtering, multi-type selection, empty set passthrough, combined project + type intersection, and zero-result case
 - Implementation explanation document (`specs/type-filter/implementation.md`) with beginner/intermediate/expert level explanations, requirement traceability, and completeness assessment
-
-### Fixed
-
-- Theme selector now overrides the system color scheme via `.preferredColorScheme()` at the app root — selecting Light/Dark/Universal actually forces the entire UI (text, controls, materials) to follow the chosen theme instead of only changing custom gradients
-- Universal theme forces `.light` color scheme for a consistent appearance regardless of system dark/light setting
-
-### Fixed
-
-- `CommentsSection` now shows an error alert when adding or deleting a comment fails, instead of silently swallowing the error with `try?`
-- `TaskService.updateStatus` now rolls back in-memory changes when `addComment` or `save()` fails during atomic status + comment operations, preventing dirty state from persisting on a subsequent unrelated save
-- `AddCommentIntent` `isAgent` parameter default changed from `true` to `false` so human users invoking via Shortcuts get the correct default; agents should explicitly pass `true`
-- Redundant whitespace trim removed in `MCPToolHandler.handleUpdateStatus`: `validateCommentArgs` now returns a `hasComment` boolean alongside the optional error, eliminating the second trim on the comment string
-
-### Changed
-
-- Share/export now always includes comments (with author name, agent tag, and timestamp) when present
-- `TransitTask.shareText` refactored into parameterized `shareText(comments:)` method; existing `shareText` property delegates with empty array for backward compatibility
-- `TaskDetailView` fetches comments on appear and passes them to `ShareLink` via `shareText(comments:)`
-
-### Fixed
-
-- `MCPToolHandler.resolveTask(from:)` now returns `Result<TransitTask, ResolveError>` with a typed `ResolveError` enum instead of `Result<TransitTask, String>`, which didn't compile since `String` doesn't conform to `Error`
-
-- SwiftLint configuration now excludes `specs/` directory to prevent linting orbit worktree files and DerivedData within spec directories
-- MCP `update_task_status` now trims whitespace on `comment` parameter before processing, preventing whitespace-only comments from causing dirty in-memory state when `addComment` validation rejects them after the status transition was already applied
-
-### Added
-
 - Implementation explanation document (`specs/add-comments/implementation.md`) with beginner/intermediate/expert level explanations, requirement traceability, and completeness assessment
 - Regression test for whitespace-only comment on `update_task_status` MCP tool
-
-### Changed
-
-- `MCPToolHandler.validateCommentArgs` and `hasComment` check in `appendCommentDetails` now trim whitespace before emptiness checks, consistent with `CommentService` validation
-
-### Added
-
 - `CommentsSection` view for task detail with platform-specific layouts: iOS uses `Section` in Form with swipe-to-delete; macOS uses `LiquidGlassSection` with hover-to-delete via `CommentRowView`
 - Comment input field with send button, gated on display name being set in Settings
 - Optional `comment` and `authorName` parameters on `update_task_status` MCP tool for atomic status change + comment creation
 - `MCPCommentTests` suite (7 tests) covering add_comment validation, update_task_status with comment, and query_tasks comment inclusion
 - `AddCommentIntentTests` suite (8 tests) covering valid input, validation errors, isAgent defaults, and task identifier formats
-
-### Changed
-
-- `MCPToolHandler.handleUpdateStatus` now passes comment/authorName through to `TaskService.updateStatus` for atomic comment creation on status change
-- Extracted `validateCommentArgs`, `statusResponse`, and `appendCommentDetails` helpers in `MCPToolHandler` for readability and SwiftLint compliance
-
 - `CommentRowView` for displaying individual comments with agent/user visual distinction (purple tint, robot icon, "Agent" badge for agent comments; first-letter circle avatar for user comments), relative timestamps, and macOS hover-to-delete button
 - Comment count badge on `TaskCardView` dashboard cards showing a speech bubble icon with count when a task has comments
 - `add_comment` MCP tool for agents to add comments to tasks by displayId or taskId, with `isAgent: true`, content/authorName validation, and JSON response
@@ -176,7 +88,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - TaskService comment tests (3 tests): atomic comment creation, isAgent flag, and backwards-compatible no-comment behaviour
 - `MCPToolDefinitions.swift` extracted from `MCPToolHandler.swift` with all tool definitions including new `addComment`
 - Refactored `MCPToolHandler` with shared `resolveTask(from:)` helper for task lookup by displayId/taskId
-
 - `Comment` SwiftData entity with `id`, `content`, `authorName`, `isAgent`, `creationDate`, and optional `TransitTask` relationship
 - Cascade delete relationship on `TransitTask` so deleting a task removes all its comments
 - `CommentService` (`@MainActor @Observable`) with `addComment`, `deleteComment`, `fetchComments`, and `commentCount` methods, whitespace validation, typed `Error` enum, and `save: false` parameter for atomic operations
@@ -184,40 +95,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `CommentServiceTests` suite (14 tests) covering add/delete/fetch/count, validation, cascade delete, `isAgent` preservation, and deferred save
 - Full spec for Add Comments feature (T-46): requirements, design, decision log, and implementation tasks (`specs/add-comments/`)
 - Interactive HTML mockup of comments section UI approximating Liquid Glass aesthetic (`docs/mockups/comments-section.html`)
-
-### Fixed
-
-- iOS description `TextEditor` in AddTaskSheet and TaskEditView now has `minHeight: 120` to prevent collapsing to a single line height inside Form sections
-
-### Changed
-
-- Description field in AddTaskSheet and TaskEditView replaced with `TextEditor` for larger text input on both iOS and macOS
-- AddTaskSheet now defaults to `.large` presentation detent (with `.medium` option) instead of `.medium` only
-- TaskEditView now has `.large`/`.medium` presentation detents (previously had none)
-- iOS description field moved to its own `Section` with `TextEditor` that fills available space
-- macOS description field uses `TextEditor` with `minHeight: 120` inside existing `FormRow` grid layout
-- Both views use a ZStack placeholder overlay for the description field (TextEditor has no built-in placeholder)
-
-### Added
-
 - Smolspec and task list for bigger description field feature (`specs/bigger-description-field/`)
-
 - macOS Liquid Glass form layout for all form/settings views using `Grid` + `FormRow` + `LiquidGlassSection` components, replacing standard `Form`/`List` on macOS while keeping iOS layouts unchanged
 - `FormRow` reusable component (`Views/Shared/FormRow.swift`) — right-aligned label + content column in a `GridRow` with `.frame(maxWidth: .infinity, alignment: .leading)` for consistent left-alignment
 - `LiquidGlassSection` reusable component (`Views/Shared/LiquidGlassSection.swift`) — `VStack` with headline title and `.glassEffect(.regular, in:)` background container
 - Smolspec and task list for macOS Liquid Glass forms feature (`specs/macos-liquid-glass-forms/`)
-
-### Changed
-
-- Project lists are now alphabetically sorted by name in all views: settings, filter popover, add task picker, and edit task picker
-
-- `TaskEditView` macOS layout uses `ScrollView` > `VStack` > `LiquidGlassSection` > `Grid` + `FormRow` for fields, with bottom-right Save button
-- `TaskDetailView` macOS layout uses the same pattern for read-only detail display with glass sections for details, description, metadata, and actions
-- `AddTaskSheet` macOS layout uses glass sections for task fields and type picker
-- `ProjectEditView` macOS layout uses glass sections for project details and appearance (ColorPicker)
-- `SettingsView` macOS layout replaces `List` with glass sections for appearance, MCP server, projects, and general settings
-- `MetadataSection` now platform-adaptive: iOS wraps content in `Section("Metadata")` for Form/List compatibility; macOS emits bare content for caller to wrap in `LiquidGlassSection`
-
 - `displayId` parameter on `QueryTasksIntent` for single-task lookup via `FetchDescriptor` predicate
 - Detailed response fields (`description`, `metadata`) in `QueryTasksIntent` when querying by `displayId`
 - 3 new `QueryTasksIntentTests` covering displayId lookup with detailed output, not-found returning empty array, and displayId with non-matching filter
@@ -238,36 +120,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Network server and client entitlements for macOS App Sandbox
 - Hummingbird 2.x as first external SPM dependency
 - Implementation plan and agent notes for MCP server architecture
-
-### Fixed
-
-- MCP tool handler tests now handle optional `JSONRPCResponse?` return type from `handle()`, preventing compilation errors
-- `QueryTasksIntentTests.responseContainsAllRequiredFields` no longer asserts `completionDate` key is present for tasks without a completion date
-- MCP server `isRunning` state now correctly resets to `false` when the server fails to bind or stops unexpectedly, preventing the Settings UI from showing a stale "Running" status
-- Removed unused `[weak self]` capture in `MCPServer.start()` detached task
-
-### Fixed
-
-- macOS toolbar background is now transparent, allowing the BoardBackground gradient to bleed through to the top of the window matching iOS Liquid Glass behaviour
-
-### Added
-
 - Share button on task detail view toolbar for copying task details as formatted markdown text (display ID, title, type, project, description, metadata)
 - `TransitTask.shareText` computed property for generating shareable markdown representation
 - `ShareTextTests` suite (8 tests) covering header formatting, provisional display IDs, project name, description inclusion/omission, metadata sorting, and full format validation
-
-### Changed
-
-- `DisplayID.formatted` marked `nonisolated` to allow use from non-MainActor contexts (e.g. `@Model` computed properties)
-
-### Fixed
-
-- `AddTaskSheet` build failure on macOS caused by `PersistentModel` (`Project`, `TransitTask`) being captured in a `@Sendable` `Task {}` closure. Replaced `Project` capture with UUID and explicitly discarded the `TransitTask` return value.
-- `AddTaskSheet` task creation failing at runtime because `registeredModel(for:)` returns `nil` when the project was fetched by a different `ModelContext`. Changed `TaskService.createTask(projectID:)` to use `FetchDescriptor` with UUID predicate instead of `PersistentIdentifier` lookup.
-- Claude Code Review workflow missing `pull-requests: write` permission, preventing the action from posting review comments on PRs
-
-### Added
-
 - Visual `AddTaskIntent` now supports optional metadata input as comma-separated `key=value` pairs (for example: `priority=high,source=shortcut`) and persists it on created tasks.
 - Metadata-focused coverage for visual task creation:
   - `AddTaskIntentTests` now verifies valid metadata parsing and malformed metadata rejection.
@@ -296,23 +151,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `ProjectEntity`/`ProjectEntityQuery` and `TaskEntity`/`TaskEntityQuery` for AppEntity-backed selection and lookup
   - `DateFilterHelpers` utility for relative/absolute date range parsing with inclusive boundary checks
   - New unit test coverage for all of the above shared intent components
-
-### Changed
-
-- Completed `shortcuts-friendly-intents` Integration and Verification phase tasks in `specs/shortcuts-friendly-intents/tasks.md` after running strict linting and full `TransitTests` verification.
-- `TaskEntityQuery` now pre-sizes UUID sets and output arrays and uses iterative filtering to reduce transient allocations on entity resolution paths
-- `QueryTasksIntent` now decodes typed JSON filters with codable date-range support for `completionDate` and `lastStatusChangeDate` (`relative` or `from`/`to`)
-- Date-filter validation now rejects malformed date ranges with an `INVALID_INPUT` error before query execution
-- Query filtering now runs in a single pass with reserved result capacity to reduce intermediate array allocations
-- `DateFilterHelpers` now supports direct `relative`/`from`/`to` parsing in addition to dictionary-based parsing
-- `CLAUDE.md` rewritten to reflect current architecture: added service layer, navigation pattern, theme system, SwiftData+CloudKit constraints, Swift 6 MainActor isolation gotchas, Liquid Glass constraints, and test infrastructure details; removed incorrect `.materialBackground()` reference
-- `README.md` expanded from stub to full project documentation with features, requirements, build commands, CLI usage, and documentation pointers
-- `.gitignore` updated to selectively allow `.orbit` directories while blocking cost/billing data, raw API logs, and working trees
-- `QueryTasksIntent` now always includes a `completionDate` key in each task JSON object (`null` when absent) for a stable response schema
-- `TestModelContainer.newContext()` now creates an isolated in-memory SwiftData container per context to prevent cross-suite data leakage in tests
-
-### Added
-
 - Frosted Panels theme system with four options: Follow System (default), Universal, Light, and Dark
 - `AppTheme` and `ResolvedTheme` enums for theme preference storage and resolution
 - `BoardBackground` view rendering layered radial gradients (indigo, pink, teal, purple) behind the kanban board, adapted per theme variant
@@ -320,62 +158,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Frosted glass panel backgrounds on kanban columns with rounded corners, material fills, and subtle borders per theme
 - Top-edge accent stripe (2.5pt, project colour) on task cards replacing the full project-colour border
 - Theme-aware card styling with adapted materials, borders, and shadows per variant
-
-### Changed
-
-- Task cards no longer use `.glassEffect(.regular)` and `.regularMaterial`; replaced with layered frosted materials on a colourful gradient background
-- Column headers now have a divider separator below them
-
-### Fixed
-
-- Newly created projects now appear immediately in the settings list and project picker instead of waiting 10-30 seconds for SwiftData's background auto-save
-
-### Changed
-
-- Settings button moved from overflow menu (`.secondaryAction`) to always-visible toolbar placement (`.primaryAction`) with `ToolbarSpacer` separating it from filter/add buttons into its own Liquid Glass pill on macOS/iPad
-- Navigation title display mode set to `.inline` so the title sits in the toolbar bar instead of taking a separate row on iOS
-- Filter popover on iPhone now presents as a half-height bottom sheet with drag indicator instead of a full-screen takeover
-
-### Changed
-
-- Toolbar buttons in AddTaskSheet, TaskEditView, ProjectEditView, and TaskDetailView now use iOS 26 Liquid Glass styling: chevron.left icon for cancel/dismiss, checkmark icon with automatic `.glassProminent` for save/confirm actions
-- ProjectEditView hides the system back button when editing (pushed navigation) to avoid duplicate chevrons
-- TaskEditView status picker now shows human-readable display names instead of slugified raw values (e.g. "Ready for Implementation" instead of "ready-for-implementation")
-
-### Added
-
 - `TaskStatus.displayName` computed property with human-readable names for all statuses
-
-### Fixed
-
-- Saving a task edit now dismisses both the edit and detail sheets simultaneously, returning directly to the dashboard instead of briefly showing the detail view
-- Drag-and-drop on iPhone now works for all columns (was only accepting drops on Planning and Done)
-- `ColumnView` missing `.contentShape(.rect)` caused drop targets to not cover full column frame when containing Spacers or ScrollViews
-- `KanbanBoardView` scroll behaviour changed from `.paging` to `.viewAligned` with `.scrollTargetLayout()` for column-by-column auto-scroll during drag operations
-- `SingleColumnView` segmented control now accepts drops via ZStack overlay with per-segment drop targets, enabling cross-column drag on iPhone portrait
-- Added `isTargeted` visual feedback (tint highlight) to column drop targets
-- Added parameterized regression test verifying drops succeed for all 5 dashboard columns
-
-### Added
-
 - `IntentDescription` with category and result labels for all three App Intents (CreateTask, UpdateStatus, QueryTasks), visible in the Shortcuts gallery
 - Parameter descriptions on each intent documenting required/optional JSON fields, valid enum values, and usage examples
 - `TransitShortcuts` `AppShortcutsProvider` registering all intents with Siri phrases and icons for Shortcuts app discoverability
-
-### Fixed
-
-- Add missing `import SwiftData` in `ProjectEditView` that caused build failure
-- Add explicit `modelContext.save()` in `TaskEditView` and `ProjectEditView` after direct property mutations to prevent data loss on app termination before SwiftData auto-save
-- TaskDetailView now shows Abandon button for Done tasks (was hidden because `isTerminal` excluded both Done and Abandoned; spec [req 4.5] requires abandon from any status including Done)
-
-### Added
-
 - Implementation explanation document (`specs/transit-v1/implementation.md`) with beginner/intermediate/expert level explanations, requirement traceability, and completeness assessment
-
 - UI tests (12 tests) covering navigation flows (settings push, back chevron), sheet presentation (add task, task detail, filter popover), empty states (dashboard, settings), default segment selection, filter badge updates, and abandoned task visibility
 - Integration tests (12 tests) verifying end-to-end flows: intent-created tasks appear in dashboard columns, status updates via intent move tasks between columns, query intent returns filtered results, display ID counter increments across creates, and query response field validation
 - UI test infrastructure: `--uitesting` launch argument for in-memory SwiftData storage, `--uitesting-seed-data` for test data seeding with sample tasks (including abandoned task)
-
 - `DashboardView` with GeometryReader-based adaptive layout switching (single column vs kanban), column filtering/sorting, project filter, toolbar, and global empty state
 - `TaskCardView` with `.glassEffect()`, project colour border, display ID, type badge, strikethrough for abandoned tasks, and `.draggable()` support
 - `ColumnView` with header (name + count), done/abandoned separator, per-column empty state, and `.dropDestination()` for drag-and-drop
@@ -386,7 +176,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Dashboard column filtering unit tests (10 tests: 48-hour cutoff, handoff sorting, done-before-abandoned, project filter, nil project exclusion)
 - Drag-and-drop status mapping unit tests (10 tests: base status per column, Done not Abandoned, backward drag, completionDate handling)
 - Agent notes for dashboard view architecture
-
 - `StatusEngine` struct with `initializeNewTask` and `applyTransition` for centralised status transition logic with completionDate/lastStatusChangeDate side effects
 - `DisplayIDAllocator` with CloudKit counter-based sequential ID allocation, optimistic locking, retry logic, and provisional ID fallback for offline support
 - `TaskService` (`@MainActor @Observable`) for task creation, status updates, abandon, restore, and display ID lookup
@@ -405,7 +194,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - ProjectService tests (10 tests covering creation, find by ID/name, ambiguity, and active count)
 - IntentError tests (12 tests covering error codes, JSON structure, and special character escaping)
 - Agent notes for services layer, shared components, SwiftData test container pattern, and test imports
-
 - `TaskStatus` enum with column mapping, handoff detection, terminal state checks, and short labels for iPhone segmented control
 - `DashboardColumn` enum with display names and primary status mapping for drag-and-drop
 - `TaskType` enum (bug, feature, chore, research, documentation)
@@ -417,7 +205,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Unit tests for TaskStatus column mapping, isHandoff, isTerminal, shortLabel, DashboardColumn.primaryStatus, and raw values (19 tests)
 - Unit tests for DisplayID formatting and equality (7 tests)
 - Agent notes on Swift 6 default MainActor isolation constraints
-
 - Design document (v0.3 draft) covering data model, UI specs, App Intents schemas, platform layouts, and decision log
 - Interactive React-based UI mockup for layout and interaction reference
 - CLAUDE.md with project architecture overview for Claude Code
@@ -438,7 +225,117 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `IntentCompatibilityTests` shortcut count updated from 7 to 10 and added milestone intent name/mode stability assertions for `CreateMilestoneIntent`, `QueryMilestonesIntent`, `UpdateMilestoneIntent`, and `UpdateTaskIntent` (T-137)
+- `MCPToolHandler` accepts `MilestoneService` dependency for milestone resolution and assignment (T-137)
+- Task objects returned by all MCP tools now include milestone info (name, displayId) when assigned (T-137)
+- `MCPTestHelpers.MCPTestEnv` includes `milestoneService` with separate display ID allocator (T-137)
+- `DisplayIDAllocator` convenience init now accepts `counterRecordName` parameter (defaults to "global-counter") for separate milestone counter support (T-137)
+- `CloudKitCounterStore` parameterised with `recordName` instead of hardcoded record name (T-137)
+- `TransitTask` model has new optional `milestone: Milestone?` relationship (T-137)
+- `Project` model has new `@Relationship(deleteRule: .cascade)` milestones array (T-137)
+- All `Schema` definitions (production and 8 test files) include `Milestone.self` (T-137)
+- `query_tasks` MCP tool schema: `status` parameter changed from `stringEnum` to `array` type with enum items, added `not_status` array parameter and `unfinished` boolean parameter (T-58)
+- `queryTasksDescription` updated to document new `status`, `not_status`, and `unfinished` parameters and their interaction (T-58)
+- `MCPQueryFilters.status: String?` replaced with `statuses: [String]?` and `notStatuses: [String]?` for multi-status filtering (T-58)
+- `MCPToolHandler.handleQueryTasks` delegates status filter parsing to `MCPQueryFilters.from(args:)` factory (T-58)
+- `project` name parameter on `query_tasks` MCP tool for case-insensitive project filtering, matching `create_task` behavior (T-179). `projectId` takes precedence when both are provided; empty/whitespace strings are treated as absent.
+- 8 tests for `query_tasks` project name filter: match, case-insensitive, unknown project error, ambiguous project error, projectId precedence, empty string, combined with status, combined with type (T-179)
+- Smolspec and task list for MCP project name filter (T-179): add `project` name parameter to `query_tasks` tool for case-insensitive filtering, matching `create_task` behavior
+- `get_projects` MCP tool returning all projects sorted alphabetically with projectId, name, description, colorHex, activeTaskCount, and gitRepo (when set) (T-110)
+- 3 tests for `get_projects`: correct fields and sort order, empty array, and activeTaskCount excluding terminal tasks
+- Smolspec and task list for get_projects MCP command (T-110): new MCP tool to list all projects with metadata so agents can discover project names
+- Smolspec and task list for settings background feature (T-149): apply `BoardBackground` to Settings view on both platforms with immediate theme reactivity
+- `Binding<String?>.isPresent` extension (`Binding+IsPresent.swift`) returning a `Binding<Bool>` for driving `.alert(isPresented:)` from optional error state
+- Settings view now displays `BoardBackground` gradient mesh behind content on both iOS and macOS, matching the dashboard appearance (T-149)
+- macOS settings toolbar is now transparent so the background gradient shows through
+- Extracted shared SettingsView helpers into an extension to satisfy type body length lint rule
+- `TaskEditView`, `ProjectEditView`, and `CommentsSection` use `$errorMessage.isPresent` instead of duplicated `Binding(get:set:)` boilerplate
+- `ColumnView.columnPanel` refactored from three identical switch cases to data-driven local variables with a single view construction
+- `DashboardLogic.buildFilteredColumns` now uses `Date.isWithin48Hours(of:)` extension instead of inline `addingTimeInterval` cutoff
+- `ReportDateRange.label` derives its value from `caseDisplayRepresentations` instead of duplicating all display strings
+- `IntentCompatibilityAndDiscoverabilityTests` now verifies `GenerateReportIntent` title and `openAppWhenRun` stability
+- `IntentCompatibilityAndDiscoverabilityTests` shortcut count updated from 6 to 7
+- `DateFilterHelpers.parseDateFilter` refactored to use dictionary lookup instead of switch for relative tokens
+- `DateFilterHelpers.dateInRange` refactored into helper methods (`dateInCurrentPeriod`, `dateInPreviousPeriod`) to reduce cyclomatic complexity
+- Share/export now always includes comments (with author name, agent tag, and timestamp) when present
+- `TransitTask.shareText` refactored into parameterized `shareText(comments:)` method; existing `shareText` property delegates with empty array for backward compatibility
+- `TaskDetailView` fetches comments on appear and passes them to `ShareLink` via `shareText(comments:)`
+- `MCPToolHandler.validateCommentArgs` and `hasComment` check in `appendCommentDetails` now trim whitespace before emptiness checks, consistent with `CommentService` validation
+- `MCPToolHandler.handleUpdateStatus` now passes comment/authorName through to `TaskService.updateStatus` for atomic comment creation on status change
+- Extracted `validateCommentArgs`, `statusResponse`, and `appendCommentDetails` helpers in `MCPToolHandler` for readability and SwiftLint compliance
+- Description field in AddTaskSheet and TaskEditView replaced with `TextEditor` for larger text input on both iOS and macOS
+- AddTaskSheet now defaults to `.large` presentation detent (with `.medium` option) instead of `.medium` only
+- TaskEditView now has `.large`/`.medium` presentation detents (previously had none)
+- iOS description field moved to its own `Section` with `TextEditor` that fills available space
+- macOS description field uses `TextEditor` with `minHeight: 120` inside existing `FormRow` grid layout
+- Both views use a ZStack placeholder overlay for the description field (TextEditor has no built-in placeholder)
+- Project lists are now alphabetically sorted by name in all views: settings, filter popover, add task picker, and edit task picker
+- `TaskEditView` macOS layout uses `ScrollView` > `VStack` > `LiquidGlassSection` > `Grid` + `FormRow` for fields, with bottom-right Save button
+- `TaskDetailView` macOS layout uses the same pattern for read-only detail display with glass sections for details, description, metadata, and actions
+- `AddTaskSheet` macOS layout uses glass sections for task fields and type picker
+- `ProjectEditView` macOS layout uses glass sections for project details and appearance (ColorPicker)
+- `SettingsView` macOS layout replaces `List` with glass sections for appearance, MCP server, projects, and general settings
+- `MetadataSection` now platform-adaptive: iOS wraps content in `Section("Metadata")` for Form/List compatibility; macOS emits bare content for caller to wrap in `LiquidGlassSection`
+- `DisplayID.formatted` marked `nonisolated` to allow use from non-MainActor contexts (e.g. `@Model` computed properties)
+- Completed `shortcuts-friendly-intents` Integration and Verification phase tasks in `specs/shortcuts-friendly-intents/tasks.md` after running strict linting and full `TransitTests` verification.
+- `TaskEntityQuery` now pre-sizes UUID sets and output arrays and uses iterative filtering to reduce transient allocations on entity resolution paths
+- `QueryTasksIntent` now decodes typed JSON filters with codable date-range support for `completionDate` and `lastStatusChangeDate` (`relative` or `from`/`to`)
+- Date-filter validation now rejects malformed date ranges with an `INVALID_INPUT` error before query execution
+- Query filtering now runs in a single pass with reserved result capacity to reduce intermediate array allocations
+- `DateFilterHelpers` now supports direct `relative`/`from`/`to` parsing in addition to dictionary-based parsing
+- `CLAUDE.md` rewritten to reflect current architecture: added service layer, navigation pattern, theme system, SwiftData+CloudKit constraints, Swift 6 MainActor isolation gotchas, Liquid Glass constraints, and test infrastructure details; removed incorrect `.materialBackground()` reference
+- `README.md` expanded from stub to full project documentation with features, requirements, build commands, CLI usage, and documentation pointers
+- `.gitignore` updated to selectively allow `.orbit` directories while blocking cost/billing data, raw API logs, and working trees
+- `QueryTasksIntent` now always includes a `completionDate` key in each task JSON object (`null` when absent) for a stable response schema
+- `TestModelContainer.newContext()` now creates an isolated in-memory SwiftData container per context to prevent cross-suite data leakage in tests
+- Task cards no longer use `.glassEffect(.regular)` and `.regularMaterial`; replaced with layered frosted materials on a colourful gradient background
+- Column headers now have a divider separator below them
+- Settings button moved from overflow menu (`.secondaryAction`) to always-visible toolbar placement (`.primaryAction`) with `ToolbarSpacer` separating it from filter/add buttons into its own Liquid Glass pill on macOS/iPad
+- Navigation title display mode set to `.inline` so the title sits in the toolbar bar instead of taking a separate row on iOS
+- Filter popover on iPhone now presents as a half-height bottom sheet with drag indicator instead of a full-screen takeover
+- Toolbar buttons in AddTaskSheet, TaskEditView, ProjectEditView, and TaskDetailView now use iOS 26 Liquid Glass styling: chevron.left icon for cancel/dismiss, checkmark icon with automatic `.glassProminent` for save/confirm actions
+- ProjectEditView hides the system back button when editing (pushed navigation) to avoid duplicate chevrons
+- TaskEditView status picker now shows human-readable display names instead of slugified raw values (e.g. "Ready for Implementation" instead of "ready-for-implementation")
 - Swift language version set to 6.0 across all targets for strict concurrency checking
+
+### Fixed
+
+- `AddTaskSheet` now explicitly saves model context after milestone assignment via `setMilestone`, preventing milestone assignment from being lost on dismiss (T-137)
+- `MilestoneServiceTests` build error: replaced `#expect(throws:)` with do/catch pattern to avoid actor-boundary crossing of `Milestone` values (T-137)
+- macOS build failure caused by `QueryFilters` type name collision between `MCPHelperTypes.swift` and `QueryTasksIntent.swift` — renamed MCP version to `MCPQueryFilters`
+- Settings `BoardBackground` not filling full window width on macOS — added outer `.frame(maxWidth: .infinity)` on content with centered alignment to match ReportView pattern (T-149)
+- Report view background and scrollbar not spanning full window width on macOS — content VStack now uses `frame(maxWidth: .infinity)` to fill available space
+- `ReportLogicDateRangeTests` build error: replaced non-existent `ModelContext.registeredObjects` with `FetchDescriptor` fetch
+- `ReportMarkdownFormatterTests` string literal escaping for hash character assertion
+- Theme selector now overrides the system color scheme via `.preferredColorScheme()` at the app root — selecting Light/Dark/Universal actually forces the entire UI (text, controls, materials) to follow the chosen theme instead of only changing custom gradients
+- Universal theme forces `.light` color scheme for a consistent appearance regardless of system dark/light setting
+- `CommentsSection` now shows an error alert when adding or deleting a comment fails, instead of silently swallowing the error with `try?`
+- `TaskService.updateStatus` now rolls back in-memory changes when `addComment` or `save()` fails during atomic status + comment operations, preventing dirty state from persisting on a subsequent unrelated save
+- `AddCommentIntent` `isAgent` parameter default changed from `true` to `false` so human users invoking via Shortcuts get the correct default; agents should explicitly pass `true`
+- Redundant whitespace trim removed in `MCPToolHandler.handleUpdateStatus`: `validateCommentArgs` now returns a `hasComment` boolean alongside the optional error, eliminating the second trim on the comment string
+- `MCPToolHandler.resolveTask(from:)` now returns `Result<TransitTask, ResolveError>` with a typed `ResolveError` enum instead of `Result<TransitTask, String>`, which didn't compile since `String` doesn't conform to `Error`
+- SwiftLint configuration now excludes `specs/` directory to prevent linting orbit worktree files and DerivedData within spec directories
+- MCP `update_task_status` now trims whitespace on `comment` parameter before processing, preventing whitespace-only comments from causing dirty in-memory state when `addComment` validation rejects them after the status transition was already applied
+- iOS description `TextEditor` in AddTaskSheet and TaskEditView now has `minHeight: 120` to prevent collapsing to a single line height inside Form sections
+- MCP tool handler tests now handle optional `JSONRPCResponse?` return type from `handle()`, preventing compilation errors
+- `QueryTasksIntentTests.responseContainsAllRequiredFields` no longer asserts `completionDate` key is present for tasks without a completion date
+- MCP server `isRunning` state now correctly resets to `false` when the server fails to bind or stops unexpectedly, preventing the Settings UI from showing a stale "Running" status
+- Removed unused `[weak self]` capture in `MCPServer.start()` detached task
+- macOS toolbar background is now transparent, allowing the BoardBackground gradient to bleed through to the top of the window matching iOS Liquid Glass behaviour
+- `AddTaskSheet` build failure on macOS caused by `PersistentModel` (`Project`, `TransitTask`) being captured in a `@Sendable` `Task {}` closure. Replaced `Project` capture with UUID and explicitly discarded the `TransitTask` return value.
+- `AddTaskSheet` task creation failing at runtime because `registeredModel(for:)` returns `nil` when the project was fetched by a different `ModelContext`. Changed `TaskService.createTask(projectID:)` to use `FetchDescriptor` with UUID predicate instead of `PersistentIdentifier` lookup.
+- Claude Code Review workflow missing `pull-requests: write` permission, preventing the action from posting review comments on PRs
+- Newly created projects now appear immediately in the settings list and project picker instead of waiting 10-30 seconds for SwiftData's background auto-save
+- Saving a task edit now dismisses both the edit and detail sheets simultaneously, returning directly to the dashboard instead of briefly showing the detail view
+- Drag-and-drop on iPhone now works for all columns (was only accepting drops on Planning and Done)
+- `ColumnView` missing `.contentShape(.rect)` caused drop targets to not cover full column frame when containing Spacers or ScrollViews
+- `KanbanBoardView` scroll behaviour changed from `.paging` to `.viewAligned` with `.scrollTargetLayout()` for column-by-column auto-scroll during drag operations
+- `SingleColumnView` segmented control now accepts drops via ZStack overlay with per-segment drop targets, enabling cross-column drag on iPhone portrait
+- Added `isTargeted` visual feedback (tint highlight) to column drop targets
+- Added parameterized regression test verifying drops succeed for all 5 dashboard columns
+- Add missing `import SwiftData` in `ProjectEditView` that caused build failure
+- Add explicit `modelContext.save()` in `TaskEditView` and `ProjectEditView` after direct property mutations to prevent data loss on app termination before SwiftData auto-save
+- TaskDetailView now shows Abandon button for Done tasks (was hidden because `isTerminal` excluded both Done and Abandoned; spec [req 4.5] requires abandon from any status including Done)
 
 ### Removed
 
