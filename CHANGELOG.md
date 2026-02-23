@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Spec for filter redesign feature (T-224): requirements, design, decision log, and task list in `specs/filter-redesign/`
+  - Replace single filter popover with separate toolbar menus for project, type, and milestone filters
+  - Platform-conditional menus: native `Menu` on iOS, popover on macOS (`.menuActionDismissBehavior(.disabled)` unavailable on macOS)
+  - Adaptive labels by size class, persistent Clear All button, filtered empty state, per-control counts
+  - 8 requirement sections, 13 architectural decisions, 13 implementation tasks across 2 parallel streams
+
 ### Fixed
 
 - Same-column drag-and-drop no longer mutates task status or timestamps: abandoned tasks stay abandoned when dropped on Done/Abandoned, and done tasks preserve their `completionDate` (T-192)
