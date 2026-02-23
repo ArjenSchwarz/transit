@@ -163,6 +163,24 @@ final class TaskService {
         }
     }
 
+    // MARK: - Project Management
+
+    /// Changes a task's project. Clears milestone before the change to enforce
+    /// Decision 6 (milestones are scoped to a project).
+    func changeProject(task: TransitTask, to newProject: Project) throws {
+        if task.project?.id != newProject.id {
+            task.milestone = nil
+        }
+        task.project = newProject
+
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
+    }
+
     // MARK: - Lookup
 
     /// Finds a task by its UUID. Throws on not-found.

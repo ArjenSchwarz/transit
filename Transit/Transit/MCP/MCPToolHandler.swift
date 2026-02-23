@@ -260,12 +260,6 @@ final class MCPToolHandler {
             }
         }
 
-        let search = (args["search"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let filters = MCPQueryFilters.from(
-            args: args, type: args["type"] as? String, projectId: projectFilter,
-            search: search?.isEmpty == true ? nil : search
-        )
-
         // Resolve milestone filter
         var milestoneFilter: UUID?
         if let milestoneDisplayId = args["milestoneDisplayId"] as? Int {
@@ -299,9 +293,16 @@ final class MCPToolHandler {
             }
         }
 
+        let search = (args["search"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let filters = MCPQueryFilters.from(
+            args: args, type: args["type"] as? String, projectId: projectFilter,
+            search: search?.isEmpty == true ? nil : search,
+            milestoneId: milestoneFilter
+        )
+
         // Single-task lookup by displayId — returns early with detailed response
         if let displayId = args["displayId"] as? Int {
-            return handleDisplayIdLookup(displayId, filters: filters, milestoneFilter: milestoneFilter)
+            return handleDisplayIdLookup(displayId, filters: filters)
         }
 
         // Full-table query
@@ -312,18 +313,14 @@ final class MCPToolHandler {
             return errorResult("Failed to fetch tasks: \(error)")
         }
 
-        var filtered = allTasks.filter { filters.matches($0) }
-        if let milestoneFilter {
-            filtered = filtered.filter { $0.milestone?.id == milestoneFilter
-            }
-        }
+        let filtered = allTasks.filter { filters.matches($0) }
         let isoFormatter = ISO8601DateFormatter()
         let results = filtered.map { taskToDict($0, formatter: isoFormatter) }
         return textResult(IntentHelpers.encodeJSONArray(results))
     }
 
     private func handleDisplayIdLookup(
-        _ displayId: Int, filters: MCPQueryFilters, milestoneFilter: UUID? = nil
+        _ displayId: Int, filters: MCPQueryFilters
     ) -> MCPToolResult {
         let task: TransitTask
         do {
@@ -335,9 +332,6 @@ final class MCPToolHandler {
         }
 
         guard filters.matches(task) else {
-            return textResult(IntentHelpers.encodeJSONArray([]))
-        }
-        if let milestoneFilter, task.milestone?.id != milestoneFilter {
             return textResult(IntentHelpers.encodeJSONArray([]))
         }
 

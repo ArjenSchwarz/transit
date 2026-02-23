@@ -287,13 +287,13 @@ extension TaskEditView {
         task.type = selectedType
         task.metadata = metadata
 
-        // Update project if changed — clear milestone before reassignment (Decision 6)
-        if let newProjectID = selectedProjectID, task.project?.id != newProjectID {
-            task.milestone = nil
-            task.project = projects.first { $0.id == newProjectID }
-        }
-
         do {
+            // Update project if changed — clears milestone via Decision 6
+            if let newProjectID = selectedProjectID, task.project?.id != newProjectID,
+               let newProject = projects.first(where: { $0.id == newProjectID }) {
+                try taskService.changeProject(task: task, to: newProject)
+            }
+
             // Update milestone via service for validation
             try milestoneService.setMilestone(selectedMilestone, on: task)
 

@@ -250,7 +250,6 @@ struct AddTaskSheet: View {
             )
             if let milestone = selectedMilestone {
                 try milestoneService.setMilestone(milestone, on: task)
-                try modelContext.save()
             }
             dismiss()
         } catch {
