@@ -60,11 +60,7 @@ struct MilestoneFilterMenu: View {
     private var toggleContent: some View {
         ForEach(availableMilestones) { milestone in
             Button {
-                if selectedMilestones.contains(milestone.id) {
-                    selectedMilestones.remove(milestone.id)
-                } else {
-                    selectedMilestones.insert(milestone.id)
-                }
+                $selectedMilestones.contains(milestone.id).wrappedValue.toggle()
             } label: {
                 HStack {
                     Text(milestoneTitle(for: milestone))

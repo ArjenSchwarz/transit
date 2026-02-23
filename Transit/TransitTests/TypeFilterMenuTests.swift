@@ -16,6 +16,18 @@ struct TypeFilterMenuTests {
         #expect(selectedTypes.contains(.bug) == false)
     }
 
+    @Test func clearRemovesAllSelections() {
+        var selectedTypes: Set<TaskType> = [.bug, .feature, .chore]
+        let binding = Binding(get: { selectedTypes }, set: { selectedTypes = $0 })
+
+        binding.contains(TaskType.bug).wrappedValue = true
+        binding.contains(TaskType.feature).wrappedValue = true
+        #expect(selectedTypes.count == 3)
+
+        selectedTypes.removeAll()
+        #expect(selectedTypes.isEmpty)
+    }
+
     @Test func accessibilityLabelReflectsCount() {
         #expect(TypeFilterMenu.accessibilityLabel(for: 0) == "Task type filter, 0 selected")
         #expect(TypeFilterMenu.accessibilityLabel(for: 3) == "Task type filter, 3 selected")

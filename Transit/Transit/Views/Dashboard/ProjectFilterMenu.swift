@@ -64,11 +64,7 @@ struct ProjectFilterMenu: View {
     private var toggleContent: some View {
         ForEach(projects) { project in
             Button {
-                if selectedProjectIDs.contains(project.id) {
-                    selectedProjectIDs.remove(project.id)
-                } else {
-                    selectedProjectIDs.insert(project.id)
-                }
+                toggleBinding(for: project.id).wrappedValue.toggle()
             } label: {
                 HStack {
                     Circle()

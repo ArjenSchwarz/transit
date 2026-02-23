@@ -43,11 +43,7 @@ struct TypeFilterMenu: View {
     private var toggleContent: some View {
         ForEach(TaskType.allCases, id: \.self) { type in
             Button {
-                if selectedTypes.contains(type) {
-                    selectedTypes.remove(type)
-                } else {
-                    selectedTypes.insert(type)
-                }
+                $selectedTypes.contains(type).wrappedValue.toggle()
             } label: {
                 HStack {
                     Circle()

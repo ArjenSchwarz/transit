@@ -142,6 +142,7 @@ struct TransitApp: App {
 
     #if os(macOS)
     private func startMCPServerIfEnabled() {
+        // Skip MCP server in unit test host to avoid port conflicts across test runs
         guard mcpSettings.isEnabled, !Self.isUnitTestHost else { return }
         mcpServer.start(port: mcpSettings.port)
     }
