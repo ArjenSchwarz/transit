@@ -4,20 +4,13 @@ struct TypeFilterMenu: View {
     @Binding var selectedTypes: Set<TaskType>
     @Environment(\.horizontalSizeClass) private var sizeClass
 
-    #if os(macOS)
     @State private var showPopover = false
-    #endif
 
     var body: some View {
-        menuContent
+        Button { showPopover.toggle() } label: { filterLabel }
             .accessibilityIdentifier("dashboard.filter.types")
             .accessibilityLabel(Self.accessibilityLabel(for: selectedTypes.count))
-    }
-
-    @ViewBuilder
-    private var menuContent: some View {
-        #if os(macOS)
-        Button { showPopover.toggle() } label: { filterLabel }
+            #if os(macOS)
             .popover(isPresented: $showPopover) {
                 List {
                     toggleContent
@@ -25,27 +18,53 @@ struct TypeFilterMenu: View {
                 }
                 .frame(minWidth: 220, minHeight: 200)
             }
-        #else
-        Menu {
-            Section {
-                toggleContent
+            #else
+            .sheet(isPresented: $showPopover) {
+                NavigationStack {
+                    List {
+                        toggleContent
+                        clearSection
+                    }
+                    .navigationTitle("Types")
+                    .toolbarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showPopover = false }
+                        }
+                    }
+                }
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
             }
-            .menuActionDismissBehavior(.disabled)
-
-            clearSection
-        } label: {
-            filterLabel
-        }
-        #endif
+            #endif
     }
 
     @ViewBuilder
     private var toggleContent: some View {
         ForEach(TaskType.allCases, id: \.self) { type in
-            Toggle(isOn: $selectedTypes.contains(type)) {
-                Label(type.rawValue.capitalized, systemImage: "circle.fill")
-                    .foregroundStyle(type.tintColor)
+            Button {
+                if selectedTypes.contains(type) {
+                    selectedTypes.remove(type)
+                } else {
+                    selectedTypes.insert(type)
+                }
+            } label: {
+                HStack {
+                    Circle()
+                        .fill(type.tintColor)
+                        .frame(width: 12, height: 12)
+                    Text(type.rawValue.capitalized)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if selectedTypes.contains(type) {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.tint)
+                    }
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("filter.type.\(type.rawValue)")
         }
     }
 

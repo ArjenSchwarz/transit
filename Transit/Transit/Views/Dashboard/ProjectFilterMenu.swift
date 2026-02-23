@@ -5,16 +5,13 @@ struct ProjectFilterMenu: View {
     @Binding var selectedProjectIDs: Set<UUID>
     @Environment(\.horizontalSizeClass) private var sizeClass
 
-    #if os(macOS)
     @State private var showPopover = false
-    #endif
 
     var selectionCount: Int {
         selectedProjectIDs.count
     }
 
     var body: some View {
-        #if os(macOS)
         Button {
             showPopover.toggle()
         } label: {
@@ -22,6 +19,7 @@ struct ProjectFilterMenu: View {
         }
         .accessibilityIdentifier("dashboard.filter.projects")
         .accessibilityLabel(accessibilityLabelText)
+        #if os(macOS)
         .popover(isPresented: $showPopover) {
             List {
                 Section {
@@ -32,18 +30,25 @@ struct ProjectFilterMenu: View {
             .frame(minWidth: 220, minHeight: 200)
         }
         #else
-        Menu {
-            Section {
-                toggleContent
+        .sheet(isPresented: $showPopover) {
+            NavigationStack {
+                List {
+                    Section {
+                        toggleContent
+                    }
+                    clearSection
+                }
+                .navigationTitle("Projects")
+                .toolbarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { showPopover = false }
+                    }
+                }
             }
-            .menuActionDismissBehavior(.disabled)
-
-            clearSection
-        } label: {
-            filterLabel
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
-        .accessibilityIdentifier("dashboard.filter.projects")
-        .accessibilityLabel(accessibilityLabelText)
         #endif
     }
 
@@ -58,10 +63,28 @@ struct ProjectFilterMenu: View {
     @ViewBuilder
     private var toggleContent: some View {
         ForEach(projects) { project in
-            Toggle(isOn: toggleBinding(for: project.id)) {
-                Label(project.name, systemImage: "circle.fill")
-                    .foregroundStyle(Color(hex: project.colorHex))
+            Button {
+                if selectedProjectIDs.contains(project.id) {
+                    selectedProjectIDs.remove(project.id)
+                } else {
+                    selectedProjectIDs.insert(project.id)
+                }
+            } label: {
+                HStack {
+                    Circle()
+                        .fill(Color(hex: project.colorHex))
+                        .frame(width: 12, height: 12)
+                    Text(project.name)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if selectedProjectIDs.contains(project.id) {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.tint)
+                    }
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
         }
     }
 

@@ -8,9 +8,7 @@ struct MilestoneFilterMenu: View {
     @Environment(MilestoneService.self) private var milestoneService
     @Environment(\.horizontalSizeClass) private var sizeClass
 
-    #if os(macOS)
     @State private var showPopover = false
-    #endif
 
     private var availableMilestones: [Milestone] {
         Self.availableMilestones(
@@ -25,41 +23,61 @@ struct MilestoneFilterMenu: View {
             availableMilestones: availableMilestones,
             selectedMilestones: selectedMilestones
         ) {
-            menuContent
+            Button { showPopover.toggle() } label: { filterLabel }
                 .accessibilityIdentifier("dashboard.filter.milestones")
                 .accessibilityLabel(Self.accessibilityLabel(for: selectedMilestones.count))
-        }
-    }
-
-    @ViewBuilder
-    private var menuContent: some View {
-        #if os(macOS)
-        Button { showPopover.toggle() } label: { filterLabel }
-            .popover(isPresented: $showPopover) {
-                List {
-                    toggleContent
-                    clearSection
+                #if os(macOS)
+                .popover(isPresented: $showPopover) {
+                    List {
+                        toggleContent
+                        clearSection
+                    }
+                    .frame(minWidth: 260, minHeight: 220)
                 }
-                .frame(minWidth: 260, minHeight: 220)
-            }
-        #else
-        Menu {
-            Section {
-                toggleContent
-            }
-            .menuActionDismissBehavior(.disabled)
-
-            clearSection
-        } label: {
-            filterLabel
+                #else
+                .sheet(isPresented: $showPopover) {
+                    NavigationStack {
+                        List {
+                            toggleContent
+                            clearSection
+                        }
+                        .navigationTitle("Milestones")
+                        .toolbarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showPopover = false }
+                            }
+                        }
+                    }
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+                }
+                #endif
         }
-        #endif
     }
 
     @ViewBuilder
     private var toggleContent: some View {
         ForEach(availableMilestones) { milestone in
-            Toggle(milestoneTitle(for: milestone), isOn: $selectedMilestones.contains(milestone.id))
+            Button {
+                if selectedMilestones.contains(milestone.id) {
+                    selectedMilestones.remove(milestone.id)
+                } else {
+                    selectedMilestones.insert(milestone.id)
+                }
+            } label: {
+                HStack {
+                    Text(milestoneTitle(for: milestone))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if selectedMilestones.contains(milestone.id) {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.tint)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
     }
 
