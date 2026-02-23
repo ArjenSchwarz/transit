@@ -1,8 +1,10 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import Transit
 
 @MainActor
+@Suite(.serialized)
 struct DragDropStatusTests {
 
     // MARK: - Helpers
@@ -12,6 +14,26 @@ struct DragDropStatusTests {
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .provisional)
         task.statusRawValue = status.rawValue
         return task
+    }
+
+    /// Creates a TaskService backed by an in-memory SwiftData context and inserts
+    /// a task with the given status. Returns both so the caller can assert on the task.
+    private func makeServiceAndTask(
+        status: TaskStatus
+    ) throws -> (service: TaskService, task: TransitTask) {
+        let context = try TestModelContainer.newContext()
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        let service = TaskService(modelContext: context, displayIDAllocator: allocator)
+
+        let project = Project(name: "Test", description: "Desc", gitRepo: nil, colorHex: "FF0000")
+        context.insert(project)
+        let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .provisional)
+        task.statusRawValue = status.rawValue
+        context.insert(task)
+        try context.save()
+
+        return (service, task)
     }
 
     /// Simulates a drag-and-drop by applying the column's primaryStatus via StatusEngine.
@@ -115,37 +137,13 @@ struct DragDropStatusTests {
     @Test("Abandoned task dropped on Done/Abandoned column stays abandoned")
     func abandonedTaskDroppedOnSameColumnStaysAbandoned() {
         let task = makeTask(status: .abandoned)
-        let originalDate = Date(timeIntervalSince1970: 1000)
-        task.completionDate = originalDate
-        task.lastStatusChangeDate = originalDate
-
-        // The task is in the doneAbandoned column — dropping it there should be a no-op
-        #expect(task.status.column == .doneAbandoned)
-        guard DashboardLogic.shouldApplyDrop(task: task, to: .doneAbandoned) else {
-            // Expected: no-op, task unchanged
-            #expect(task.status == .abandoned)
-            #expect(task.completionDate == originalDate)
-            #expect(task.lastStatusChangeDate == originalDate)
-            return
-        }
-        Issue.record("Expected same-column drop to be a no-op")
+        #expect(!DashboardLogic.shouldApplyDrop(task: task, to: .doneAbandoned))
     }
 
-    @Test("Done task dropped on Done/Abandoned column preserves timestamps")
-    func doneTaskDroppedOnSameColumnPreservesTimestamps() {
+    @Test("Done task dropped on Done/Abandoned column is a no-op")
+    func doneTaskDroppedOnSameColumnIsNoOp() {
         let task = makeTask(status: .done)
-        let originalDate = Date(timeIntervalSince1970: 1000)
-        task.completionDate = originalDate
-        task.lastStatusChangeDate = originalDate
-
-        #expect(task.status.column == .doneAbandoned)
-        guard DashboardLogic.shouldApplyDrop(task: task, to: .doneAbandoned) else {
-            #expect(task.status == .done)
-            #expect(task.completionDate == originalDate)
-            #expect(task.lastStatusChangeDate == originalDate)
-            return
-        }
-        Issue.record("Expected same-column drop to be a no-op")
+        #expect(!DashboardLogic.shouldApplyDrop(task: task, to: .doneAbandoned))
     }
 
     @Test(
@@ -178,5 +176,48 @@ struct DragDropStatusTests {
         let task = makeTask(status: .inProgress)
         #expect(DashboardLogic.shouldApplyDrop(task: task, to: .doneAbandoned))
         #expect(DashboardLogic.shouldApplyDrop(task: task, to: .planning))
+    }
+
+    // MARK: - Integration: applyDrop end-to-end [T-192]
+
+    @Test("applyDrop is a no-op for same-column abandoned task")
+    func applyDropSameColumnAbandonedIsNoOp() throws {
+        let (service, task) = try makeServiceAndTask(status: .abandoned)
+        let originalCompletionDate = Date(timeIntervalSince1970: 1000)
+        let originalStatusDate = Date(timeIntervalSince1970: 1000)
+        task.completionDate = originalCompletionDate
+        task.lastStatusChangeDate = originalStatusDate
+
+        try DashboardLogic.applyDrop(task: task, to: .doneAbandoned, using: service)
+
+        #expect(task.status == .abandoned)
+        #expect(task.completionDate == originalCompletionDate)
+        #expect(task.lastStatusChangeDate == originalStatusDate)
+    }
+
+    @Test("applyDrop is a no-op for same-column done task")
+    func applyDropSameColumnDoneIsNoOp() throws {
+        let (service, task) = try makeServiceAndTask(status: .done)
+        let originalCompletionDate = Date(timeIntervalSince1970: 1000)
+        let originalStatusDate = Date(timeIntervalSince1970: 1000)
+        task.completionDate = originalCompletionDate
+        task.lastStatusChangeDate = originalStatusDate
+
+        try DashboardLogic.applyDrop(task: task, to: .doneAbandoned, using: service)
+
+        #expect(task.status == .done)
+        #expect(task.completionDate == originalCompletionDate)
+        #expect(task.lastStatusChangeDate == originalStatusDate)
+    }
+
+    @Test("applyDrop still applies cross-column drop")
+    func applyDropCrossColumnWorks() throws {
+        let (service, task) = try makeServiceAndTask(status: .inProgress)
+        #expect(task.completionDate == nil)
+
+        try DashboardLogic.applyDrop(task: task, to: .doneAbandoned, using: service)
+
+        #expect(task.status == .done)
+        #expect(task.completionDate != nil)
     }
 }
