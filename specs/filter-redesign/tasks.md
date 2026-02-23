@@ -10,7 +10,7 @@ metadata:
 
 ## Pre-work
 
-- [ ] 1. Write unit tests for Binding+ToggleSet <!-- id:ovtjoe4 -->
+- [x] 1. Write unit tests for Binding+ToggleSet <!-- id:ovtjoe4 -->
   - Create `TransitTests/BindingToggleSetTests.swift` and `Extensions/Binding+ToggleSet.swift` with a stub that compiles but returns incorrect values
   - RED: Test inserting -- setting binding to `true` inserts element into set
   - RED: Test removing -- setting binding to `false` removes element from set
@@ -20,7 +20,7 @@ metadata:
   - Stream: 1
   - Requirements: [1.5](requirements.md#1.5)
 
-- [ ] 2. Implement Binding+ToggleSet extension <!-- id:ovtjoe5 -->
+- [x] 2. Implement Binding+ToggleSet extension <!-- id:ovtjoe5 -->
   - GREEN: Implement the generic `Binding<Set<T>>.contains(_:)` helper in `Extensions/Binding+ToggleSet.swift`
   - Creates a `Binding<Bool>` that toggles membership of an element in a `Set<Element: Hashable>`
   - See design.md Data Models > Binding Helper for the implementation

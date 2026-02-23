@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `Binding.contains(_:)` helper for `Binding<Set<Element>>` to support toggle-driven set membership updates in filter menus
+- `BindingToggleSetTests` coverage for insert, remove, and state-reflection behaviors of set-backed toggle bindings
+
 - Spec for filter redesign feature (T-224): requirements, design, decision log, and task list in `specs/filter-redesign/`
   - Replace single filter popover with separate toolbar menus for project, type, and milestone filters
   - Platform-conditional menus: native `Menu` on iOS, popover on macOS (`.menuActionDismissBehavior(.disabled)` unavailable on macOS)
