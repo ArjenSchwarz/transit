@@ -29,7 +29,9 @@ struct MilestoneFilterMenu: View {
                 #if os(macOS)
                 .popover(isPresented: $showPopover) {
                     List {
-                        toggleContent
+                        Section {
+                            toggleContent
+                        }
                         clearSection
                     }
                     .frame(minWidth: 260, minHeight: 220)

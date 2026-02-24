@@ -13,7 +13,9 @@ struct TypeFilterMenu: View {
             #if os(macOS)
             .popover(isPresented: $showPopover) {
                 List {
-                    toggleContent
+                    Section {
+                        toggleContent
+                    }
                     clearSection
                 }
                 .frame(minWidth: 220, minHeight: 200)

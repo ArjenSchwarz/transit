@@ -16,15 +16,14 @@ struct TypeFilterMenuTests {
         #expect(selectedTypes.contains(.bug) == false)
     }
 
-    @Test func clearRemovesAllSelections() {
+    @Test func togglingOffAllTypesViaBindingEmptiesSet() {
         var selectedTypes: Set<TaskType> = [.bug, .feature, .chore]
         let binding = Binding(get: { selectedTypes }, set: { selectedTypes = $0 })
 
-        binding.contains(TaskType.bug).wrappedValue = true
-        binding.contains(TaskType.feature).wrappedValue = true
-        #expect(selectedTypes.count == 3)
+        binding.contains(TaskType.bug).wrappedValue = false
+        binding.contains(TaskType.feature).wrappedValue = false
+        binding.contains(TaskType.chore).wrappedValue = false
 
-        selectedTypes.removeAll()
         #expect(selectedTypes.isEmpty)
     }
 

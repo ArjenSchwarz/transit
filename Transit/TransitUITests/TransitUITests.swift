@@ -111,6 +111,7 @@ final class TransitUITests: XCTestCase {
         let alphaOption = app.buttons["Alpha"]
         XCTAssertTrue(alphaOption.waitForExistence(timeout: 5))
         alphaOption.tap()
+        app.buttons["Done"].tap()
 
         XCTAssertTrue(app.staticTexts["Ship Active"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Beta Review"].waitForExistence(timeout: 2))
@@ -127,6 +128,7 @@ final class TransitUITests: XCTestCase {
         let bugOption = app.buttons["Bug"]
         XCTAssertTrue(bugOption.waitForExistence(timeout: 5))
         bugOption.tap()
+        app.buttons["Done"].tap()
 
         XCTAssertTrue(app.staticTexts["Beta Review"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Ship Active"].waitForExistence(timeout: 2))
@@ -140,6 +142,7 @@ final class TransitUITests: XCTestCase {
         XCTAssertTrue(projectFilter.waitForExistence(timeout: 5))
         projectFilter.tap()
         app.buttons["Alpha"].tap()
+        app.buttons["Done"].tap()
 
         let milestoneFilter = app.buttons["dashboard.filter.milestones"]
         XCTAssertTrue(milestoneFilter.waitForExistence(timeout: 5))
@@ -148,6 +151,7 @@ final class TransitUITests: XCTestCase {
         let milestoneOption = app.buttons["v1.0"]
         XCTAssertTrue(milestoneOption.waitForExistence(timeout: 5))
         milestoneOption.tap()
+        app.buttons["Done"].tap()
 
         XCTAssertTrue(app.staticTexts["Ship Active"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Backlog Idea"].waitForExistence(timeout: 5))
@@ -198,6 +202,7 @@ final class TransitUITests: XCTestCase {
         XCTAssertTrue(projectFilter.waitForExistence(timeout: 5))
         projectFilter.tap()
         app.buttons["Alpha"].tap()
+        app.buttons["Done"].tap()
 
         let searchField = app.searchFields.firstMatch
         XCTAssertTrue(searchField.waitForExistence(timeout: 5))
@@ -227,15 +232,18 @@ final class TransitUITests: XCTestCase {
         XCTAssertTrue(projectFilter.waitForExistence(timeout: 5))
         projectFilter.tap()
         app.buttons["Alpha"].tap()
+        app.buttons["Done"].tap()
 
         let milestoneFilter = app.buttons["dashboard.filter.milestones"]
         XCTAssertTrue(milestoneFilter.waitForExistence(timeout: 5))
         milestoneFilter.tap()
         app.buttons["v1.0"].tap()
+        app.buttons["Done"].tap()
 
         projectFilter.tap()
         app.buttons["Beta"].tap()
         app.buttons["Alpha"].tap()
+        app.buttons["Done"].tap()
 
         XCTAssertTrue(app.staticTexts["Beta Review"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Ship Active"].waitForExistence(timeout: 2))
@@ -249,14 +257,17 @@ final class TransitUITests: XCTestCase {
         XCTAssertTrue(projectFilter.waitForExistence(timeout: 5))
         projectFilter.tap()
         app.buttons["Alpha"].tap()
+        app.buttons["Done"].tap()
 
         let typeFilter = app.buttons["dashboard.filter.types"]
         XCTAssertTrue(typeFilter.waitForExistence(timeout: 5))
         typeFilter.tap()
         app.buttons["Bug"].tap()
+        app.buttons["Done"].tap()
 
         projectFilter.tap()
         app.buttons["Clear"].tap()
+        app.buttons["Done"].tap()
 
         XCTAssertTrue(app.staticTexts["Beta Review"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Ship Active"].waitForExistence(timeout: 2))

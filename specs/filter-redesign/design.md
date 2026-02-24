@@ -8,15 +8,15 @@
 
 Replace the single filter popover with three separate filter controls in the toolbar — one each for projects, task types, and milestones. A conditional "Clear All" button appears in the toolbar when any filter (including search) is active.
 
-**Platform-specific dropdown mechanism (Decision 12):**
-- **iOS/iPadOS:** Native `Menu` with `Toggle` and `.menuActionDismissBehavior(.disabled)` for multi-select (menu stays open during toggling)
-- **macOS:** Per-filter popover with `List` and `Toggle` (`.menuActionDismissBehavior(.disabled)` is unavailable on macOS)
+**Platform-specific dropdown mechanism (Decision 10, 12):**
+- **iOS/iPadOS:** `.sheet` with `.presentationDetents([.medium])` containing a `List` of custom `Button` rows with `Circle().fill()` color dots and checkmark indicators
+- **macOS:** Per-filter popover with `List` and custom `Button` rows (same row layout as iOS)
+
+Native `Menu` with `Toggle` was originally planned but rejected because iOS strips custom `.foregroundStyle()` from toggle labels, removing project and type color indicators entirely.
 
 The toolbar labels adapt by size class: text labels with counts on regular width (iPad/Mac), icon-only with `.badge()` counts on compact width (iPhone portrait).
 
 No changes to the underlying filter logic (`DashboardLogic`, `matchesFilters`). The data flow remains the same — `@State` bindings from `DashboardView` passed to the filter controls.
-
-**Note on `.foregroundStyle()` in Menu items:** SF Symbol colors via `.foregroundStyle()` inside native `Menu` items are best-effort. The system may render all icons in the default tint color. Project and type names are the primary identifiers; colored circles are a nice-to-have.
 
 ## Architecture
 
@@ -93,96 +93,79 @@ No new state types or models. The existing `@State` properties remain the source
 
 ### 1. ProjectFilterMenu
 
-Each filter menu uses a platform-conditional approach: `Menu` on iOS, popover `Button` on macOS. The toggle content is extracted to a shared `@ViewBuilder` method to avoid duplication.
-
-**iOS — Native Menu:**
+Each filter menu uses a platform-conditional approach: sheet on iOS, popover on macOS. Both use custom `Button` rows with `Circle().fill()` color dots and checkmark indicators. The toggle content is extracted to a shared `@ViewBuilder` method to avoid duplication.
 
 ```swift
 struct ProjectFilterMenu: View {
     let projects: [Project]
     @Binding var selectedProjectIDs: Set<UUID>
     @Environment(\.horizontalSizeClass) private var sizeClass
-
-    #if os(macOS)
     @State private var showPopover = false
-    #endif
 
     var body: some View {
-        #if os(macOS)
         Button { showPopover.toggle() } label: { filterLabel }
+            #if os(macOS)
             .popover(isPresented: $showPopover) {
-                List {
-                    toggleContent
-                    clearSection
-                }
-                .frame(minWidth: 220, minHeight: 200)
+                List { Section { toggleContent } clearSection }
+                    .frame(minWidth: 220, minHeight: 200)
             }
-        #else
-        Menu {
-            Section { toggleContent }
-                .menuActionDismissBehavior(.disabled)
-            clearSection
-        } label: { filterLabel }
-        #endif
+            #else
+            .sheet(isPresented: $showPopover) {
+                NavigationStack {
+                    List { Section { toggleContent } clearSection }
+                        .navigationTitle("Projects")
+                        .toolbarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showPopover = false }
+                            }
+                        }
+                }
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
+            #endif
     }
 
     @ViewBuilder
     private var toggleContent: some View {
         ForEach(projects) { project in
-            Toggle(isOn: $selectedProjectIDs.contains(project.id)) {
-                Label(project.name, systemImage: "circle.fill")
-                    .foregroundStyle(Color(hex: project.colorHex))
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var clearSection: some View {
-        if !selectedProjectIDs.isEmpty {
-            Section {
-                Button("Clear", role: .destructive) {
-                    selectedProjectIDs.removeAll()
+            Button {
+                toggleBinding(for: project.id).wrappedValue.toggle()
+            } label: {
+                HStack {
+                    Circle().fill(Color(hex: project.colorHex))
+                        .frame(width: 12, height: 12)
+                    Text(project.name).foregroundStyle(.primary)
+                    Spacer()
+                    if selectedProjectIDs.contains(project.id) {
+                        Image(systemName: "checkmark").foregroundStyle(.tint)
+                    }
                 }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
         }
     }
-
-    private var accessibilityText: String {
-        let count = selectedProjectIDs.count
-        return count == 0 ? "No filter" : "\(count) selected"
-    }
-
-    @ViewBuilder
-    private var filterLabel: some View {
-        let count = selectedProjectIDs.count
-        if sizeClass == .compact {
-            Image(systemName: count > 0 ? "folder.fill" : "folder")
-                .badge(count)
-        } else {
-            Label(
-                count > 0 ? "Projects (\(count))" : "Projects",
-                systemImage: count > 0 ? "folder.fill" : "folder"
-            )
-        }
-    }
+    // clearSection, filterLabel, toggleBinding omitted for brevity
 }
 ```
 
 **Key details:**
-- **iOS:** `Toggle` with `.menuActionDismissBehavior(.disabled)` keeps the menu open for rapid multi-select [req 1.5]. "Clear" button in a separate `Section` without the modifier — tapping it dismisses the menu [req 7.1]
-- **macOS:** `Button` opening a `.popover` with a `List` of `Toggle` items. The popover stays open until dismissed [req 1.5, Decision 12]
+- **iOS:** `.sheet` with `.presentationDetents([.medium])` stays open for rapid multi-select [req 1.5]. Done button provides explicit dismissal.
+- **macOS:** `Button` opening a `.popover` with a `List`. The popover stays open until dismissed [req 1.5, Decision 12]
 - `toggleContent` and `clearSection` are shared between both platforms — no logic duplication
+- `Circle().fill(color)` renders reliably regardless of parent styling — unlike `.foregroundStyle()` on `Label` inside native `Menu`
 - Compact size class uses icon-only label with `.badge()` (iOS 26 API) [req 5.2]
 - Regular size class uses text label with count [req 3.1]
-- `.foregroundStyle()` on `circle.fill` is best-effort — may render monochrome on iOS
 
 ### 2. TypeFilterMenu
 
-Same platform-conditional pattern as `ProjectFilterMenu`. Toggle content iterates `TaskType.allCases`. Label uses SF Symbol `tag` / `tag.fill`.
+Same sheet/popover pattern as `ProjectFilterMenu`. Row content iterates `TaskType.allCases` with `Circle().fill(type.tintColor)` color dots. Label uses SF Symbol `tag` / `tag.fill`.
 
 ### 3. MilestoneFilterMenu
 
-Same platform-conditional pattern. Scoped to selected projects. Hidden when no milestones are available [req 1.9].
+Same sheet/popover pattern. Scoped to selected projects. Hidden when no milestones are available [req 1.9]. Milestones have no color dots — plain text with checkmarks.
 
 **Additional details beyond the shared pattern:**
 - The entire view is conditionally rendered: hidden when `availableMilestones` is empty AND no milestones are selected [req 1.9]. The `|| !selectedMilestones.isEmpty` check handles the edge case where milestones are selected but their project was deselected before `.onChange` fires.

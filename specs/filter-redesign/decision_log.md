@@ -305,43 +305,46 @@ Use Toolbar Menu Buttons. Each filter type gets a `Menu` in the toolbar that ada
 
 ---
 
-## Decision 10: Native Menu with Toggle for Multi-Select
+## Decision 10: Sheet with Custom Rows for Multi-Select
 
 **Date**: 2026-02-23
-**Status**: accepted
+**Status**: accepted (revised 2026-02-24)
 
 ### Context
 
 Two approaches were evaluated for the dropdown content when a filter menu is opened:
 1. **Native Menu with Toggle** — `Toggle` items with `.menuActionDismissBehavior(.disabled)` for multi-select
-2. **Per-pill Popover** — Custom `List` with full SwiftUI view support (color dots, custom layouts)
+2. **Sheet/Popover with custom rows** — Custom `List` with `Button` rows, colored `Circle().fill()` dots, and checkmark indicators
+
+The initial implementation used native `Menu` with `Toggle`, but iOS strips custom `.foregroundStyle()` from toggle labels inside menus, removing the project and type color indicators entirely.
 
 ### Decision
 
-Use native `Menu` with `Toggle` and `.menuActionDismissBehavior(.disabled)`.
+Use sheet (iOS) / popover (macOS) with custom `Button` rows containing explicit `Circle().fill()` color dots and checkmark selection indicators.
 
 ### Rationale
 
-- Most native feel — automatic checkmark rendering, platform-standard menu appearance
-- Simpler implementation — no custom dismiss handling or presentation management
-- `.menuActionDismissBehavior(.disabled)` (iOS 16.4+) keeps the menu open for rapid multi-select
-- Project colors achievable via `circle.fill` SF Symbol with `.foregroundStyle()` — adequate visual differentiation
-- "Clear" button in a separate Section (without the dismiss behavior modifier) provides natural menu dismiss
+- Native `Menu` with `Toggle` strips all custom foreground styling — colored dots are invisible
+- `Circle().fill(color)` is a shape fill that renders reliably regardless of parent styling
+- Sheets on iOS provide a clean half-height presentation with `.presentationDetents([.medium])`
+- Popovers on macOS provide the same List+Button layout without needing sheets
+- Custom `Button` rows with checkmarks match the original `FilterPopoverView` visual style
 
 ### Alternatives Considered
 
-- **Per-pill Popover**: Full custom view control (ProjectColorDot, stale milestone styling) — rejected because the added complexity doesn't justify the marginal visual improvement over SF Symbol circles
+- **Native Menu with Toggle**: Simplest implementation — rejected because iOS strips custom foreground styles from menu items, losing color indicators entirely
+- **Native Menu with Label icon foregroundStyle**: Tried explicit `Label { } icon: { Image.foregroundStyle() }` — rejected because iOS menus still override icon colors
 
 ### Consequences
 
 **Positive:**
-- Native platform menus on iOS and macOS
-- Automatic accessibility for menu items
-- Minimal custom code
+- Colored dots render reliably on all platforms
+- Checkmark selection indicators match native iOS patterns
+- Sheet presentation with drag indicator is familiar to iOS users
 
 **Negative:**
-- Cannot use custom views like `ProjectColorDot` (SF Symbol `circle.fill` is the substitute)
-- Menu item layout is constrained to `Label`-based content
+- More code than native `Menu` — custom button rows with manual selection state
+- Sheet requires explicit Done button for dismissal
 
 ---
 
@@ -383,37 +386,40 @@ Drop the stale milestone display. Stale milestones remain in the `selectedMilest
 
 ---
 
-## Decision 12: Popover on macOS, Menu on iOS
+## Decision 12: Popover on macOS, Sheet on iOS
 
 **Date**: 2026-02-23
-**Status**: accepted
+**Status**: accepted (revised 2026-02-24)
 
 ### Context
 
-`.menuActionDismissBehavior(.disabled)` — the API that keeps a `Menu` open during multi-select — is `@available(macOS, unavailable)`. Verified from the macOS SDK swiftinterface. Without it, menus dismiss after each toggle on Mac, making multi-select tedious.
+The filter menus need a container that supports multi-select without dismissing after each tap, and that allows custom view rendering (colored dots, checkmarks). Native `Menu` on iOS strips custom styling (see Decision 10). macOS has no such limitation with popovers.
 
 ### Decision
 
-Use platform-conditional rendering: `Menu` with `.menuActionDismissBehavior(.disabled)` on iOS/iPadOS, `Button` with `.popover` containing a `List` of `Toggle` items on macOS. The toggle content and clear section are extracted into shared `@ViewBuilder` properties to avoid logic duplication.
+Use platform-conditional rendering: `.sheet` with `.presentationDetents([.medium])` on iOS/iPadOS, `Button` with `.popover` on macOS. Both contain a `List` of custom `Button` rows with checkmark indicators. The toggle content and clear section are extracted into shared `@ViewBuilder` properties.
 
 ### Rationale
 
-The user preferred the best UX on each platform over a single lowest-common-denominator approach. The shared `@ViewBuilder` extraction keeps duplication minimal — only the container (`Menu` vs `Button+popover`) differs per platform.
+- Sheets on iOS provide a familiar half-height presentation that supports full custom view rendering
+- Popovers on macOS stay open for multi-select and support the same custom row layout
+- The shared `@ViewBuilder` extraction keeps duplication minimal — only the container (sheet vs popover) differs per platform
 
 ### Alternatives Considered
 
-- **Accept single-toggle-at-a-time on macOS**: Menu dismisses after each tap — rejected because rapid multi-select is a core interaction for filters with many items (projects, types)
-- **Use popovers everywhere**: Drop the native Menu approach entirely — rejected because Menu on iOS provides a more native, lightweight feel compared to popovers
+- **Native Menu on iOS**: Simpler but strips custom styling — rejected (see Decision 10)
+- **Popovers everywhere**: On iPhone, popovers either become full sheets or show as tiny bubbles depending on `presentationCompactAdaptation` — rejected in favor of explicit sheet with medium detent
 
 ### Consequences
 
 **Positive:**
-- Best multi-select experience on each platform
-- Shared toggle content means minimal code duplication
+- Full custom view rendering on both platforms
+- Sheet with medium detent is a natural iOS pattern
+- Shared content means minimal code duplication
 
 **Negative:**
-- Two rendering paths to test (Menu on iOS, popover on macOS)
-- macOS popover needs explicit dismiss handling (tap outside or "Done" button)
+- Two rendering paths to test (sheet on iOS, popover on macOS)
+- Sheet requires explicit Done button for dismissal
 
 ---
 
