@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `Binding.contains(_:)` helper for `Binding<Set<Element>>` to support toggle-driven set membership updates in filter menus
+- `BindingToggleSetTests` coverage for insert, remove, and state-reflection behaviors of set-backed toggle bindings
+- Dedicated `ProjectFilterMenu`, `TypeFilterMenu`, and `MilestoneFilterMenu` toolbar controls with platform-conditional iOS menu/macOS popover rendering, adaptive labels/count badges, per-filter clear actions, accessibility identifiers, and consistent use of `Binding+ToggleSet` extension across all three menus
+- New filter menu unit test suites: `ProjectFilterMenuTests`, `TypeFilterMenuTests`, and `MilestoneFilterMenuTests` covering toggle behavior, clear behavior, counts, and milestone visibility/scoping rules
+- Filtered empty-state overlay in `DashboardView` shown when filters are active but no tasks match: "No matching tasks. Clear filters to see all tasks."
+- Implementation explanation document at `specs/filter-redesign/implementation.md` with beginner/intermediate/expert explanations and completeness assessment (T-224)
+
+- Spec for filter redesign feature (T-224): requirements, design, decision log, and task list in `specs/filter-redesign/`
+  - Replace single filter popover with separate toolbar menus for project, type, and milestone filters
+  - Platform-conditional menus: native `Menu` on iOS, popover on macOS (`.menuActionDismissBehavior(.disabled)` unavailable on macOS)
+  - Adaptive labels by size class, persistent Clear All button, filtered empty state, per-control counts
+  - 8 requirement sections, 13 architectural decisions, 13 implementation tasks across 2 parallel streams
+
+### Changed
+
+- Simulator test targets (`test`, `test-ui`) now limited to 1 parallel worker and 1 concurrent simulator to prevent resource contention
+- Test host app runs inert when launched for unit tests: in-memory storage, no CloudKit sync, no connectivity monitor, no MCP server — prevents port conflicts and shared state interference with the running app
+- `DashboardView` toolbar now uses separate filter controls plus conditional clear-all action, with clear-all resetting project/type/milestone filters and search text and project changes cascading to clear milestone selections
+- Removed deprecated `FilterPopoverView.swift`; filter UI is now exclusively handled by the dedicated project/type/milestone controls
+- UI tests now target dedicated filter accessibility identifiers (`dashboard.filter.projects`, `.types`, `.milestones`, `dashboard.clearAllFilters`) and cover project/type/milestone filtering, clear-all behavior, milestone visibility/cascade, and per-filter clearing for the redesigned toolbar filters
+
 ### Fixed
 
 - Same-column drag-and-drop no longer mutates task status or timestamps: abandoned tasks stay abandoned when dropped on Done/Abandoned, and done tasks preserve their `completionDate` (T-192)

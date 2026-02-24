@@ -9,7 +9,6 @@ struct DashboardView: View {
     @State private var selectedMilestones: Set<UUID> = []
     @State private var selectedColumn: DashboardColumn = .inProgress // [req 13.3]
     @State private var selectedTask: TransitTask?
-    @State private var showFilter = false
     @State private var showAddTask = false
     @State private var searchText = ""
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
@@ -31,6 +30,13 @@ struct DashboardView: View {
 
     private var effectiveSearchText: String {
         searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var hasAnyFilter: Bool {
+        !selectedProjectIDs.isEmpty
+            || !selectedTypes.isEmpty
+            || !selectedMilestones.isEmpty
+            || !effectiveSearchText.isEmpty
     }
 
     private var filteredColumns: [DashboardColumn: [TransitTask]] {
@@ -71,6 +77,8 @@ struct DashboardView: View {
         .overlay {
             if allTasks.isEmpty {
                 EmptyStateView(message: "No tasks yet. Tap + to create one.")
+            } else if hasAnyFilter && filteredColumns.values.allSatisfy(\.isEmpty) {
+                EmptyStateView(message: "No matching tasks.\nClear filters to see all tasks.")
             }
         }
         .navigationTitle("Transit")
@@ -81,10 +89,21 @@ struct DashboardView: View {
         #endif
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                filterButton
-                addButton
+                ProjectFilterMenu(
+                    projects: projects,
+                    selectedProjectIDs: $selectedProjectIDs
+                )
+                TypeFilterMenu(selectedTypes: $selectedTypes)
+                MilestoneFilterMenu(
+                    projects: projects,
+                    selectedProjectIDs: selectedProjectIDs,
+                    selectedMilestones: $selectedMilestones
+                )
+                clearAllButton
             }
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarSpacer(.fixed)
+            ToolbarItemGroup(placement: .primaryAction) {
+                addButton
                 NavigationLink(value: NavigationDestination.report) {
                     Label("Report", systemImage: "chart.bar.doc.horizontal")
                 }
@@ -104,38 +123,26 @@ struct DashboardView: View {
         .sheet(isPresented: $showAddTask) {
             AddTaskSheet()
         }
+        .onChange(of: selectedProjectIDs) { _, _ in
+            selectedMilestones.removeAll()
+        }
     }
 
     // MARK: - Toolbar Buttons
 
-    private var activeFilterCount: Int {
-        selectedProjectIDs.count + selectedTypes.count + selectedMilestones.count
-            + (effectiveSearchText.isEmpty ? 0 : 1)
-    }
-
-    private var activeFilterAccessibilityValue: String {
-        "\(activeFilterCount) active filter\(activeFilterCount == 1 ? "" : "s")"
-    }
-
-    private var filterButton: some View {
-        Button {
-            showFilter.toggle()
-        } label: {
-            if activeFilterCount == 0 {
-                Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
-            } else {
-                Label("Filter (\(activeFilterCount))", systemImage: "line.3.horizontal.decrease.circle.fill")
+    @ViewBuilder
+    private var clearAllButton: some View {
+        if hasAnyFilter {
+            Button {
+                selectedProjectIDs.removeAll()
+                selectedTypes.removeAll()
+                selectedMilestones.removeAll()
+                searchText = ""
+            } label: {
+                Label("Clear All", systemImage: "xmark.circle.fill")
             }
-        }
-        .accessibilityIdentifier("dashboard.filterButton")
-        .accessibilityValue(activeFilterAccessibilityValue)
-        .popover(isPresented: $showFilter) {
-            FilterPopoverView(
-                projects: projects,
-                selectedProjectIDs: $selectedProjectIDs,
-                selectedTypes: $selectedTypes,
-                selectedMilestones: $selectedMilestones
-            )
+            .accessibilityIdentifier("dashboard.clearAllFilters")
+            .accessibilityLabel("Clear all filters")
         }
     }
 

@@ -21,17 +21,22 @@ struct TransitApp: App {
     private let mcpServer: MCPServer
     #endif
 
+    /// True when the app is launched as a unit test host (not UI tests, which set their own scenario).
+    private static let isUnitTestHost: Bool = NSClassFromString("XCTestCase") != nil
+        && ProcessInfo.processInfo.environment["TRANSIT_UI_TEST_SCENARIO"] == nil
+
     private static var uiTestScenario: UITestScenario? {
         UITestScenario(rawValue: ProcessInfo.processInfo.environment["TRANSIT_UI_TEST_SCENARIO"] ?? "")
     }
 
     init() {
+        let isInert = Self.isUnitTestHost
         let syncManager = SyncManager()
         self.syncManager = syncManager
 
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self])
         let config: ModelConfiguration
-        if Self.uiTestScenario != nil {
+        if isInert || Self.uiTestScenario != nil {
             config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         } else {
             config = syncManager.makeModelConfiguration(schema: schema)
@@ -40,7 +45,7 @@ struct TransitApp: App {
         let container = try! ModelContainer(for: schema, configurations: [config])
         self.container = container
 
-        if Self.uiTestScenario == nil {
+        if !isInert && Self.uiTestScenario == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
 
@@ -62,12 +67,14 @@ struct TransitApp: App {
         let connectivityMonitor = ConnectivityMonitor()
         self.connectivityMonitor = connectivityMonitor
 
-        // Wire up connectivity restore to trigger display ID promotion.
-        connectivityMonitor.onRestore = { @Sendable in
-            await allocator.promoteProvisionalTasks(in: context)
-            await milestoneService.promoteProvisionalMilestones()
+        if !isInert {
+            // Wire up connectivity restore to trigger display ID promotion.
+            connectivityMonitor.onRestore = { @Sendable in
+                await allocator.promoteProvisionalTasks(in: context)
+                await milestoneService.promoteProvisionalMilestones()
+            }
+            connectivityMonitor.start()
         }
-        connectivityMonitor.start()
 
         let commentService = CommentService(modelContext: context)
         self.commentService = commentService
@@ -135,7 +142,8 @@ struct TransitApp: App {
 
     #if os(macOS)
     private func startMCPServerIfEnabled() {
-        guard mcpSettings.isEnabled else { return }
+        // Skip MCP server in unit test host to avoid port conflicts across test runs
+        guard mcpSettings.isEnabled, !Self.isUnitTestHost else { return }
         mcpServer.start(port: mcpSettings.port)
     }
     #endif

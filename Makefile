@@ -93,12 +93,16 @@ test:
 		-destination 'platform=iOS Simulator,name=iPhone 17' \
 		-configuration Debug \
 		-derivedDataPath $(DERIVED_DATA) \
+		-parallel-testing-worker-count 1 \
+		-maximum-concurrent-test-simulator-destinations 1 \
 		| xcbeautify || xcodebuild test \
 			-project $(PROJECT) \
 			-scheme $(SCHEME) \
 			-destination 'platform=iOS Simulator,name=iPhone 17' \
 			-configuration Debug \
-			-derivedDataPath $(DERIVED_DATA)
+			-derivedDataPath $(DERIVED_DATA) \
+			-parallel-testing-worker-count 1 \
+			-maximum-concurrent-test-simulator-destinations 1
 
 .PHONY: test-ui
 test-ui:
@@ -109,13 +113,17 @@ test-ui:
 		-configuration Debug \
 		-derivedDataPath $(DERIVED_DATA) \
 		-only-testing:TransitUITests \
+		-parallel-testing-worker-count 1 \
+		-maximum-concurrent-test-simulator-destinations 1 \
 		| xcbeautify || xcodebuild test \
 			-project $(PROJECT) \
 			-scheme $(SCHEME) \
 			-destination 'platform=iOS Simulator,name=iPhone 17' \
 			-configuration Debug \
 			-derivedDataPath $(DERIVED_DATA) \
-			-only-testing:TransitUITests
+			-only-testing:TransitUITests \
+			-parallel-testing-worker-count 1 \
+			-maximum-concurrent-test-simulator-destinations 1
 
 # Device deployment
 DEVICE_MODEL ?= iPhone 17 Pro
