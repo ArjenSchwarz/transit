@@ -127,7 +127,12 @@ final class MilestoneService {
 
     func deleteMilestone(_ milestone: Milestone) throws {
         modelContext.delete(milestone)
-        try modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
     }
 
     // MARK: - Assignment
