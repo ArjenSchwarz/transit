@@ -62,7 +62,12 @@ final class CommentService {
     /// Deletes a comment permanently.
     func deleteComment(_ comment: Comment) throws {
         modelContext.delete(comment)
-        try modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
     }
 
     /// Deletes multiple comments in a single save operation.
@@ -73,7 +78,12 @@ final class CommentService {
         for comment in comments {
             modelContext.delete(comment)
         }
-        try modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
     }
 
     /// Fetches comments for a task, querying from the Comment side.
