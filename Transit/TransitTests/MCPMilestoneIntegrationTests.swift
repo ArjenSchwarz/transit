@@ -170,6 +170,69 @@ struct MCPMilestoneIntegrationTests {
         #expect(try MCPTestHelpers.isError(response))
     }
 
+    // MARK: - T-240 regression: create_task must not leave orphaned tasks on milestone failure
+
+    @Test func createTaskWithNonexistentMilestoneByNameDeletesTask() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_task",
+            arguments: [
+                "name": "Orphan Candidate",
+                "type": "bug",
+                "projectId": project.id.uuidString,
+                "milestone": "does-not-exist"
+            ]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty, "Task should be deleted when milestone assignment by name fails")
+    }
+
+    @Test func createTaskWithNonexistentMilestoneByDisplayIdDeletesTask() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_task",
+            arguments: [
+                "name": "Orphan Candidate",
+                "type": "bug",
+                "projectId": project.id.uuidString,
+                "milestoneDisplayId": 999
+            ]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty, "Task should be deleted when milestone assignment by displayId fails")
+    }
+
+    @Test func createTaskWithMilestoneProjectMismatchDeletesTask() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let projectA = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        let projectB = MCPTestHelpers.makeProject(in: env.context, name: "Beta")
+        let milestone = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: projectB
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_task",
+            arguments: [
+                "name": "Orphan Candidate",
+                "type": "feature",
+                "projectId": projectA.id.uuidString,
+                "milestoneDisplayId": milestone.permanentDisplayId as Any
+            ]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty, "Task should be deleted when milestone belongs to a different project")
+    }
+
     // MARK: - query_tasks with milestone filter
 
     @Test func queryTasksFilterByMilestone() async throws {
