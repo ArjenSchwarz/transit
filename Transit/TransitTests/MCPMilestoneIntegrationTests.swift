@@ -25,7 +25,7 @@ struct MCPMilestoneIntegrationTests {
             tool: "update_task",
             arguments: [
                 "displayId": 1,
-                "milestoneDisplayId": milestone.permanentDisplayId as Any
+                "milestoneDisplayId": milestone.permanentDisplayId!
             ]
         ))
 
@@ -87,7 +87,7 @@ struct MCPMilestoneIntegrationTests {
             tool: "update_task",
             arguments: [
                 "displayId": 1,
-                "milestoneDisplayId": milestone.permanentDisplayId as Any
+                "milestoneDisplayId": milestone.permanentDisplayId!
             ]
         ))
 
@@ -144,7 +144,7 @@ struct MCPMilestoneIntegrationTests {
                 "name": "New Task",
                 "type": "feature",
                 "projectId": project.id.uuidString,
-                "milestoneDisplayId": milestone.permanentDisplayId as Any
+                "milestoneDisplayId": milestone.permanentDisplayId!
             ]
         ))
 
@@ -187,6 +187,8 @@ struct MCPMilestoneIntegrationTests {
         ))
 
         #expect(try MCPTestHelpers.isError(response))
+        let errorText = try MCPTestHelpers.errorText(response)
+        #expect(errorText.contains("does-not-exist"), "Error should mention the milestone name")
         let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
         #expect(tasks.isEmpty, "Task should be deleted when milestone assignment by name fails")
     }
@@ -206,6 +208,8 @@ struct MCPMilestoneIntegrationTests {
         ))
 
         #expect(try MCPTestHelpers.isError(response))
+        let errorText = try MCPTestHelpers.errorText(response)
+        #expect(errorText.contains("999"), "Error should mention the milestone displayId")
         let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
         #expect(tasks.isEmpty, "Task should be deleted when milestone assignment by displayId fails")
     }
@@ -224,11 +228,13 @@ struct MCPMilestoneIntegrationTests {
                 "name": "Orphan Candidate",
                 "type": "feature",
                 "projectId": projectA.id.uuidString,
-                "milestoneDisplayId": milestone.permanentDisplayId as Any
+                "milestoneDisplayId": milestone.permanentDisplayId!
             ]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
+        let errorText = try MCPTestHelpers.errorText(response)
+        #expect(errorText.contains("same project"), "Error should mention project mismatch")
         let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
         #expect(tasks.isEmpty, "Task should be deleted when milestone belongs to a different project")
     }

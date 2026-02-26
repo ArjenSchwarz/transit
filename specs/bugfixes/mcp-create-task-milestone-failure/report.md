@@ -1,6 +1,6 @@
 # Bugfix Report: MCP create_task Leaves Task Behind When Milestone Assignment Fails
 
-**Date:** 2025-02-26
+**Date:** 2026-02-26
 **Status:** Fixed
 **Ticket:** T-240
 
