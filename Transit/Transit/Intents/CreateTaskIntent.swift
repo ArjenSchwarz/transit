@@ -78,6 +78,16 @@ struct CreateTaskIntent: AppIntent {
             return IntentHelpers.mapProjectLookupError(error).json
         }
 
+        // Resolve milestone before creating task to avoid orphaned tasks [T-260]
+        let resolvedMilestone: Milestone?
+        if let milestoneService {
+            let (milestone, error) = resolveMilestone(from: json, in: project, using: milestoneService)
+            if let error { return error }
+            resolvedMilestone = milestone
+        } else {
+            resolvedMilestone = nil
+        }
+
         let task: TransitTask
         do {
             task = try await taskService.createTask(
@@ -91,12 +101,12 @@ struct CreateTaskIntent: AppIntent {
             return IntentError.invalidInput(hint: "Task creation failed").json
         }
 
-        // Assign milestone if requested [req 13.6]
-        if let milestoneService {
-            if let error = IntentHelpers.assignMilestone(
-                from: json, to: task, milestoneService: milestoneService
-            ) {
-                return error
+        // Assign pre-resolved milestone [req 13.6]
+        if let resolvedMilestone, let milestoneService {
+            do {
+                try milestoneService.setMilestone(resolvedMilestone, on: task)
+            } catch {
+                return IntentError.invalidInput(hint: "Failed to assign milestone").json
             }
         }
 
@@ -118,6 +128,41 @@ struct CreateTaskIntent: AppIntent {
             response["milestone"] = IntentHelpers.milestoneInfoDict(milestone)
         }
         return IntentHelpers.encodeJSON(response)
+    }
+
+    /// Resolves a milestone from JSON before task creation. Returns `(milestone, nil)` on success
+    /// or `(nil, errorJSON)` on failure. Both nil means no milestone was requested.
+    @MainActor
+    private static func resolveMilestone(
+        from json: [String: Any],
+        in project: Project,
+        using milestoneService: MilestoneService
+    ) -> (milestone: Milestone?, error: String?) {
+        let milestoneDisplayId = json["milestoneDisplayId"] as? Int
+            ?? (json["milestoneDisplayId"] as? Double).map(Int.init)
+        let milestoneName = json["milestone"] as? String
+
+        if let milestoneDisplayId {
+            do {
+                let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)
+                guard milestone.project?.id == project.id else {
+                    return (nil, IntentHelpers.mapMilestoneError(.projectMismatch).json)
+                }
+                return (milestone, nil)
+            } catch {
+                return (nil, IntentError.milestoneNotFound(
+                    hint: "No milestone with displayId \(milestoneDisplayId)"
+                ).json)
+            }
+        } else if let milestoneName {
+            guard let milestone = milestoneService.findByName(milestoneName, in: project) else {
+                return (nil, IntentError.milestoneNotFound(
+                    hint: "No milestone named '\(milestoneName)' in project '\(project.name)'"
+                ).json)
+            }
+            return (milestone, nil)
+        }
+        return (nil, nil)
     }
 
     private static func validateInput(_ json: [String: Any]) -> IntentError? {

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `CreateTaskIntent` no longer persists an orphaned task when milestone assignment fails — milestone is now resolved before task creation (T-260)
+
 ### Added
 
 - `Binding.contains(_:)` helper for `Binding<Set<Element>>` to support toggle-driven set membership updates in filter menus

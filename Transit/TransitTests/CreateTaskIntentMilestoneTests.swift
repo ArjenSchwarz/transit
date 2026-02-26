@@ -114,6 +114,50 @@ struct CreateTaskIntentMilestoneTests {
         #expect(parsed["error"] as? String == "MILESTONE_NOT_FOUND")
     }
 
+    // Regression test for T-260: milestone failure must not leave an orphaned task
+    @Test func createTaskWithUnknownMilestoneDoesNotPersistTask() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        let input = """
+        {"name":"Orphan Check","type":"bug","project":"\(project.name)","milestoneDisplayId":999}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            projectService: svc.project, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "MILESTONE_NOT_FOUND")
+
+        // Verify no task was persisted
+        let descriptor = FetchDescriptor<TransitTask>()
+        let tasks = try svc.context.fetch(descriptor)
+        #expect(tasks.isEmpty, "Task should not be created when milestone lookup fails")
+    }
+
+    @Test func createTaskWithUnknownMilestoneNameDoesNotPersistTask() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        let input = """
+        {"name":"Orphan Check","type":"bug","project":"\(project.name)","milestone":"nonexistent"}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            projectService: svc.project, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "MILESTONE_NOT_FOUND")
+
+        let descriptor = FetchDescriptor<TransitTask>()
+        let tasks = try svc.context.fetch(descriptor)
+        #expect(tasks.isEmpty, "Task should not be created when milestone name lookup fails")
+    }
+
     @Test func createTaskWithoutMilestoneServiceSkipsMilestone() async throws {
         let svc = try makeServices()
         let project = makeProject(in: svc.context)
