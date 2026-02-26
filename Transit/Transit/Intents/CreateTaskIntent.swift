@@ -102,11 +102,13 @@ struct CreateTaskIntent: AppIntent {
         }
 
         // Assign pre-resolved milestone [req 13.6]
-        if let resolvedMilestone, let milestoneService {
+        // Safety: resolveMilestone already verified the milestone exists and belongs to the
+        // correct project, so setMilestone should only fail on an unexpected persistence error.
+        if let resolvedMilestone {
             do {
-                try milestoneService.setMilestone(resolvedMilestone, on: task)
+                try milestoneService?.setMilestone(resolvedMilestone, on: task)
             } catch {
-                return IntentError.invalidInput(hint: "Failed to assign milestone").json
+                return IntentError.internalError(hint: "Failed to assign milestone").json
             }
         }
 
@@ -139,7 +141,7 @@ struct CreateTaskIntent: AppIntent {
         using milestoneService: MilestoneService
     ) -> (milestone: Milestone?, error: String?) {
         let milestoneDisplayId = json["milestoneDisplayId"] as? Int
-            ?? (json["milestoneDisplayId"] as? Double).map(Int.init)
+            ?? (json["milestoneDisplayId"] as? Double).flatMap { Int(exactly: $0) }
         let milestoneName = json["milestone"] as? String
 
         if let milestoneDisplayId {

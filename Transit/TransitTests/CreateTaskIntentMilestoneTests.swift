@@ -158,6 +158,30 @@ struct CreateTaskIntentMilestoneTests {
         #expect(tasks.isEmpty, "Task should not be created when milestone name lookup fails")
     }
 
+    // Regression test for T-260: project mismatch must not leave an orphaned task
+    @Test func createTaskWithMilestoneInDifferentProjectDoesNotPersistTask() async throws {
+        let svc = try makeServices()
+        let projectA = makeProject(in: svc.context, name: "Project A")
+        let projectB = makeProject(in: svc.context, name: "Project B")
+        makeMilestone(in: svc.context, name: "v1.0", project: projectB, displayId: 1)
+
+        let input = """
+        {"name":"Orphan Check","type":"bug","project":"\(projectA.name)","milestoneDisplayId":1}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            projectService: svc.project, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "MILESTONE_PROJECT_MISMATCH")
+
+        let descriptor = FetchDescriptor<TransitTask>()
+        let tasks = try svc.context.fetch(descriptor)
+        #expect(tasks.isEmpty, "Task should not be created when milestone belongs to a different project")
+    }
+
     @Test func createTaskWithoutMilestoneServiceSkipsMilestone() async throws {
         let svc = try makeServices()
         let project = makeProject(in: svc.context)
