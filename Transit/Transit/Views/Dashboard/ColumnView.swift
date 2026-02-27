@@ -6,13 +6,8 @@ struct ColumnView: View {
     let onTaskTap: (TransitTask) -> Void
     var onDrop: ((String) -> Bool)? // UUID string of dropped task
 
-    @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.resolvedTheme) private var resolvedTheme
     @State private var isDropTargeted = false
-
-    private var resolvedTheme: ResolvedTheme {
-        (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
-    }
 
     var body: some View {
         VStack(spacing: 0) {

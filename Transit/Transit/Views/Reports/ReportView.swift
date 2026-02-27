@@ -12,12 +12,7 @@ struct ReportView: View {
 
     @State private var selectedRange: ReportDateRange = .thisWeek
     @State private var showCopyConfirmation = false
-    @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
-    @Environment(\.colorScheme) private var colorScheme
-
-    private var resolvedTheme: ResolvedTheme {
-        (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
-    }
+    @Environment(\.resolvedTheme) private var resolvedTheme
 
     var body: some View {
         let report = ReportLogic.buildReport(

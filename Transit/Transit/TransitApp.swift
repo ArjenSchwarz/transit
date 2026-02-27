@@ -96,6 +96,7 @@ struct TransitApp: App {
     }
 
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some Scene {
         WindowGroup {
@@ -117,6 +118,7 @@ struct TransitApp: App {
             .preferredColorScheme(
                 (AppTheme(rawValue: appTheme) ?? .followSystem).preferredColorScheme
             )
+            .environment(\.resolvedTheme, (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme))
             .modifier(ScenePhaseModifier(
                 displayIDAllocator: displayIDAllocator,
                 milestoneService: milestoneService,
