@@ -43,4 +43,5 @@ playground.xcworkspace
 # *.xcworkspace
 
 DerivedData/
+build/
 

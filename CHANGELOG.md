@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Release build targets in Makefile: `install-release`, `run-release`, `build-macos-release`, `run-macos-release` for building and running Release configuration on device and macOS
+- Distribution targets in Makefile: `archive` for creating xcarchives and `upload` for archiving and uploading to App Store Connect (TestFlight)
+- `ExportOptions.plist` for App Store Connect upload configuration (automatic signing, symbol upload)
+- `build/` directory added to `.gitignore` for archive and export artifacts
+
+### Changed
+
+- Makefile help text reorganized into Development, Release, Distribution, and Utilities sections for clarity
+
 ### Fixed
 
 - `CreateTaskIntent` no longer persists an orphaned task when milestone assignment fails — milestone is now resolved before task creation (T-260)
