@@ -157,7 +157,8 @@ final class MCPToolHandler {
             } catch {
                 return errorResult("Failed to find milestone: \(error)")
             }
-            if resolvedMilestone?.project?.id != project.id {
+            guard let milestoneProject = resolvedMilestone?.project,
+                  milestoneProject.id == project.id else {
                 return errorResult("Milestone and task must belong to the same project")
             }
         } else if let milestoneName = args["milestone"] as? String {
@@ -184,6 +185,9 @@ final class MCPToolHandler {
             do {
                 try milestoneService.setMilestone(milestone, on: task)
             } catch {
+                // Pre-validation should prevent this, but clean up the task on unexpected failures.
+                projectService.context.delete(task)
+                try? projectService.context.save()
                 return errorResult("Failed to set milestone: \(error)")
             }
         }
