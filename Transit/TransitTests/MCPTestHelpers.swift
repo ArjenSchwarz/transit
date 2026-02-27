@@ -86,6 +86,15 @@ enum MCPTestHelpers {
         let result = try #require(json?["result"] as? [String: Any])
         return result["isError"] as? Bool == true
     }
+
+    static func errorText(_ response: JSONRPCResponse?) throws -> String {
+        let unwrapped = try #require(response, "Expected a JSON-RPC response but got nil")
+        let data = try JSONEncoder().encode(unwrapped)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let result = try #require(json?["result"] as? [String: Any])
+        let content = try #require(result["content"] as? [[String: Any]])
+        return try #require(content.first?["text"] as? String)
+    }
 }
 
 #endif

@@ -25,7 +25,7 @@ struct MCPMilestoneIntegrationTests {
             tool: "update_task",
             arguments: [
                 "displayId": 1,
-                "milestoneDisplayId": milestone.permanentDisplayId as Any
+                "milestoneDisplayId": milestone.permanentDisplayId!
             ]
         ))
 
@@ -87,7 +87,7 @@ struct MCPMilestoneIntegrationTests {
             tool: "update_task",
             arguments: [
                 "displayId": 1,
-                "milestoneDisplayId": milestone.permanentDisplayId as Any
+                "milestoneDisplayId": milestone.permanentDisplayId!
             ]
         ))
 
@@ -144,7 +144,7 @@ struct MCPMilestoneIntegrationTests {
                 "name": "New Task",
                 "type": "feature",
                 "projectId": project.id.uuidString,
-                "milestoneDisplayId": milestone.permanentDisplayId as Any
+                "milestoneDisplayId": milestone.permanentDisplayId!
             ]
         ))
 
@@ -168,6 +168,75 @@ struct MCPMilestoneIntegrationTests {
         ))
 
         #expect(try MCPTestHelpers.isError(response))
+    }
+
+    // MARK: - T-240 regression: create_task must not create tasks when milestone validation fails
+
+    @Test func createTaskWithNonexistentMilestoneByNameDoesNotCreateTask() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_task",
+            arguments: [
+                "name": "Orphan Candidate",
+                "type": "bug",
+                "projectId": project.id.uuidString,
+                "milestone": "does-not-exist"
+            ]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorText = try MCPTestHelpers.errorText(response)
+        #expect(errorText.contains("does-not-exist"), "Error should mention the milestone name")
+        let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty, "Task must not be created when milestone validation fails")
+    }
+
+    @Test func createTaskWithNonexistentMilestoneByDisplayIdDoesNotCreateTask() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_task",
+            arguments: [
+                "name": "Orphan Candidate",
+                "type": "bug",
+                "projectId": project.id.uuidString,
+                "milestoneDisplayId": 999
+            ]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorText = try MCPTestHelpers.errorText(response)
+        #expect(errorText.contains("999"), "Error should mention the milestone displayId")
+        let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty, "Task must not be created when milestone validation fails")
+    }
+
+    @Test func createTaskWithMilestoneProjectMismatchDoesNotCreateTask() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let projectA = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        let projectB = MCPTestHelpers.makeProject(in: env.context, name: "Beta")
+        let milestone = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: projectB
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_task",
+            arguments: [
+                "name": "Orphan Candidate",
+                "type": "feature",
+                "projectId": projectA.id.uuidString,
+                "milestoneDisplayId": milestone.permanentDisplayId!
+            ]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorText = try MCPTestHelpers.errorText(response)
+        #expect(errorText.contains("same project"), "Error should mention project mismatch")
+        let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty, "Task must not be created when milestone belongs to a different project")
     }
 
     // MARK: - query_tasks with milestone filter
