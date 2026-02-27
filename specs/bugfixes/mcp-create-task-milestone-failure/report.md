@@ -23,34 +23,30 @@ When calling the MCP `create_task` tool with a milestone argument that fails to 
 
 ## Discovered Root Cause
 
-The `handleCreateTask` method performs task creation (`taskService.createTask`) at line 152, which inserts and saves the task into the SwiftData model context. Milestone assignment is attempted afterwards (lines 163–184). When any milestone error occurs, the method returns an error result but never deletes the already-persisted task.
+The `handleCreateTask` method performs task creation (`taskService.createTask`) before milestone validation. When any milestone error occurs, the method returns an error result but never deletes the already-persisted task.
 
-**Defect type:** Missing rollback / non-atomic operation
+**Defect type:** Missing validation before persistence
 
-**Why it occurred:** Milestone assignment was added after the initial `create_task` implementation, bolted on as a post-creation step without considering the need to roll back on failure.
-
-**Contributing factors:** SwiftData's `modelContext.save()` commits immediately — there is no built-in transaction scope to roll back automatically.
+**Why it occurred:** Milestone assignment was added after the initial `create_task` implementation, bolted on as a post-creation step without considering the need for upfront validation.
 
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/MCP/MCPToolHandler.swift:163-195` — In every error path of the milestone assignment block, delete the task from the model context and save before returning the error result
+- `Transit/Transit/MCP/MCPToolHandler.swift` — Pre-validate milestone existence and project ownership before calling `createTask()`. The task is only created after all milestone validation passes, eliminating the possibility of orphaned tasks entirely.
 
-**Approach rationale:** Delete-on-failure is the simplest correct approach. Each error branch explicitly cleans up the task, keeping the operation atomic from the caller's perspective.
+**Approach rationale:** Validate-before-create is the cleanest approach — consistent with T-260's fix for `CreateTaskIntent`. No rollback logic needed since the task is never created when validation fails.
 
-**Alternatives considered:**
-- Validate milestone before creating the task — would require restructuring the method and duplicating milestone lookup logic; milestone validation is already encapsulated in `MilestoneService`
-- Use `modelContext.rollback()` — would roll back all unsaved changes in the context, potentially affecting other operations
+**Initial approach (superseded):** The first iteration used delete-on-failure (rollback after task creation). This was refactored to validate-first for consistency with the Intent layer and to eliminate rollback complexity.
 
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/MCPMilestoneIntegrationTests.swift`
 **Test names:**
-- `createTaskWithNonexistentMilestoneByNameDeletesTask`
-- `createTaskWithNonexistentMilestoneByDisplayIdDeletesTask`
-- `createTaskWithMilestoneProjectMismatchDeletesTask`
+- `createTaskWithNonexistentMilestoneByNameDoesNotCreateTask`
+- `createTaskWithNonexistentMilestoneByDisplayIdDoesNotCreateTask`
+- `createTaskWithMilestoneProjectMismatchDoesNotCreateTask`
 
-**What they verify:** After `create_task` returns an error due to milestone assignment failure, no task exists in the database.
+**What they verify:** After `create_task` returns an error due to milestone validation failure, no task exists in the database (task was never created).
 
 **Run command:** `make test-quick` or `xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit -destination 'platform=macOS' -only-testing:TransitTests/MCPMilestoneIntegrationTests`
 
@@ -58,23 +54,23 @@ The `handleCreateTask` method performs task creation (`taskService.createTask`) 
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/MCP/MCPToolHandler.swift` | Delete task from context on milestone assignment failure |
-| `Transit/TransitTests/MCPMilestoneIntegrationTests.swift` | Add 3 regression tests for orphaned task cleanup |
+| `Transit/Transit/MCP/MCPToolHandler.swift` | Pre-validate milestone before task creation; remove rollback logic and logger |
+| `Transit/TransitTests/MCPMilestoneIntegrationTests.swift` | Update 3 regression test names/comments to reflect validate-first approach |
 
 ## Verification
 
 **Automated:**
-- [x] Build succeeds (`xcodebuild build-for-testing`)
-- [ ] Regression tests pass (test runner has environmental connection issues — tests are structurally correct and build passes)
-- [ ] Full test suite passes
+- [x] Build succeeds (`make build-macos`)
+- [x] All tests pass (`make test-quick`)
 
 ## Prevention
 
 **Recommendations to avoid similar bugs:**
-- When a multi-step creation operation can partially fail, ensure cleanup/rollback for all prior steps
-- Consider a pattern where validation is done before any persistence (validate-then-create)
+- Validate all inputs before persisting any data (validate-then-create pattern)
+- When a multi-step creation operation can partially fail, ensure validation is done upfront
 - Add integration tests that verify database state after error paths, not just error responses
 
 ## Related
 
 - T-240: MCP create_task leaves task behind when milestone assignment fails
+- T-260: CreateTaskIntent returns error but still creates task when milestone assignment fails (same pattern, Intent layer)
