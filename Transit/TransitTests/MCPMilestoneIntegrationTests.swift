@@ -170,9 +170,9 @@ struct MCPMilestoneIntegrationTests {
         #expect(try MCPTestHelpers.isError(response))
     }
 
-    // MARK: - T-240 regression: create_task must not leave orphaned tasks on milestone failure
+    // MARK: - T-240 regression: create_task must not create tasks when milestone validation fails
 
-    @Test func createTaskWithNonexistentMilestoneByNameDeletesTask() async throws {
+    @Test func createTaskWithNonexistentMilestoneByNameDoesNotCreateTask() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
@@ -190,10 +190,10 @@ struct MCPMilestoneIntegrationTests {
         let errorText = try MCPTestHelpers.errorText(response)
         #expect(errorText.contains("does-not-exist"), "Error should mention the milestone name")
         let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
-        #expect(tasks.isEmpty, "Task should be deleted when milestone assignment by name fails")
+        #expect(tasks.isEmpty, "Task must not be created when milestone validation fails")
     }
 
-    @Test func createTaskWithNonexistentMilestoneByDisplayIdDeletesTask() async throws {
+    @Test func createTaskWithNonexistentMilestoneByDisplayIdDoesNotCreateTask() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
@@ -211,10 +211,10 @@ struct MCPMilestoneIntegrationTests {
         let errorText = try MCPTestHelpers.errorText(response)
         #expect(errorText.contains("999"), "Error should mention the milestone displayId")
         let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
-        #expect(tasks.isEmpty, "Task should be deleted when milestone assignment by displayId fails")
+        #expect(tasks.isEmpty, "Task must not be created when milestone validation fails")
     }
 
-    @Test func createTaskWithMilestoneProjectMismatchDeletesTask() async throws {
+    @Test func createTaskWithMilestoneProjectMismatchDoesNotCreateTask() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let projectA = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
         let projectB = MCPTestHelpers.makeProject(in: env.context, name: "Beta")
@@ -236,7 +236,7 @@ struct MCPMilestoneIntegrationTests {
         let errorText = try MCPTestHelpers.errorText(response)
         #expect(errorText.contains("same project"), "Error should mention project mismatch")
         let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
-        #expect(tasks.isEmpty, "Task should be deleted when milestone belongs to a different project")
+        #expect(tasks.isEmpty, "Task must not be created when milestone belongs to a different project")
     }
 
     // MARK: - query_tasks with milestone filter

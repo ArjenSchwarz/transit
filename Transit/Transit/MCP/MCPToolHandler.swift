@@ -1,6 +1,5 @@
 #if os(macOS)
 import Foundation
-import os
 import SwiftData
 
 // swiftlint:disable file_length
@@ -13,7 +12,6 @@ final class MCPToolHandler {
     private let projectService: ProjectService
     private let commentService: CommentService
     private let milestoneService: MilestoneService
-    private let logger = Logger(subsystem: "com.transit", category: "mcp")
 
     init(
         taskService: TaskService,
@@ -149,6 +147,26 @@ final class MCPToolHandler {
             return errorResult(IntentHelpers.mapProjectLookupError(error).hint)
         }
 
+        // Pre-validate milestone before creating the task to avoid orphans.
+        var resolvedMilestone: Milestone?
+        if let milestoneDisplayId = args["milestoneDisplayId"] as? Int {
+            do {
+                resolvedMilestone = try milestoneService.findByDisplayID(milestoneDisplayId)
+            } catch MilestoneService.Error.milestoneNotFound {
+                return errorResult("No milestone with displayId \(milestoneDisplayId)")
+            } catch {
+                return errorResult("Failed to find milestone: \(error)")
+            }
+            if resolvedMilestone?.project?.id != project.id {
+                return errorResult("Milestone and task must belong to the same project")
+            }
+        } else if let milestoneName = args["milestone"] as? String {
+            guard let milestone = milestoneService.findByName(milestoneName, in: project) else {
+                return errorResult("No milestone named '\(milestoneName)' in project '\(project.name)'")
+            }
+            resolvedMilestone = milestone
+        }
+
         let task: TransitTask
         do {
             task = try await taskService.createTask(
@@ -162,41 +180,10 @@ final class MCPToolHandler {
             return errorResult("Task creation failed: \(error)")
         }
 
-        // Assign milestone if specified — roll back the task on failure.
-        // Rollback uses projectService.context because TaskService has no delete method;
-        // both services share the same ModelContext.
-        func rollbackTask() {
-            projectService.context.delete(task)
-            do {
-                try projectService.context.save()
-            } catch {
-                logger.error("Rollback failed after milestone error: \(error)")
-            }
-        }
-
-        if let milestoneDisplayId = args["milestoneDisplayId"] as? Int {
-            do {
-                let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)
-                try milestoneService.setMilestone(milestone, on: task)
-            } catch MilestoneService.Error.milestoneNotFound {
-                rollbackTask()
-                return errorResult("No milestone with displayId \(milestoneDisplayId)")
-            } catch MilestoneService.Error.projectMismatch {
-                rollbackTask()
-                return errorResult("Milestone and task must belong to the same project")
-            } catch {
-                rollbackTask()
-                return errorResult("Failed to set milestone: \(error)")
-            }
-        } else if let milestoneName = args["milestone"] as? String {
-            guard let milestone = milestoneService.findByName(milestoneName, in: project) else {
-                rollbackTask()
-                return errorResult("No milestone named '\(milestoneName)' in project '\(project.name)'")
-            }
+        if let milestone = resolvedMilestone {
             do {
                 try milestoneService.setMilestone(milestone, on: task)
             } catch {
-                rollbackTask()
                 return errorResult("Failed to set milestone: \(error)")
             }
         }
