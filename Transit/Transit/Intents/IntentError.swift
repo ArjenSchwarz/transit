@@ -10,6 +10,7 @@ nonisolated enum IntentError: Error {
     case milestoneNotFound(hint: String)
     case duplicateMilestoneName(hint: String)
     case milestoneProjectMismatch(hint: String)
+    case internalError(hint: String)
 
     var code: String {
         switch self {
@@ -22,6 +23,7 @@ nonisolated enum IntentError: Error {
         case .milestoneNotFound: "MILESTONE_NOT_FOUND"
         case .duplicateMilestoneName: "DUPLICATE_MILESTONE_NAME"
         case .milestoneProjectMismatch: "MILESTONE_PROJECT_MISMATCH"
+        case .internalError: "INTERNAL_ERROR"
         }
     }
 
@@ -35,7 +37,8 @@ nonisolated enum IntentError: Error {
              .invalidInput(let hint),
              .milestoneNotFound(let hint),
              .duplicateMilestoneName(let hint),
-             .milestoneProjectMismatch(let hint):
+             .milestoneProjectMismatch(let hint),
+             .internalError(let hint):
             hint
         }
     }

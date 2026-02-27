@@ -114,6 +114,74 @@ struct CreateTaskIntentMilestoneTests {
         #expect(parsed["error"] as? String == "MILESTONE_NOT_FOUND")
     }
 
+    // Regression test for T-260: milestone failure must not leave an orphaned task
+    @Test func createTaskWithUnknownMilestoneDoesNotPersistTask() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        let input = """
+        {"name":"Orphan Check","type":"bug","project":"\(project.name)","milestoneDisplayId":999}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            projectService: svc.project, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "MILESTONE_NOT_FOUND")
+
+        // Verify no task was persisted
+        let descriptor = FetchDescriptor<TransitTask>()
+        let tasks = try svc.context.fetch(descriptor)
+        #expect(tasks.isEmpty, "Task should not be created when milestone lookup fails")
+    }
+
+    @Test func createTaskWithUnknownMilestoneNameDoesNotPersistTask() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        let input = """
+        {"name":"Orphan Check","type":"bug","project":"\(project.name)","milestone":"nonexistent"}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            projectService: svc.project, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "MILESTONE_NOT_FOUND")
+
+        let descriptor = FetchDescriptor<TransitTask>()
+        let tasks = try svc.context.fetch(descriptor)
+        #expect(tasks.isEmpty, "Task should not be created when milestone name lookup fails")
+    }
+
+    // Regression test for T-260: project mismatch must not leave an orphaned task
+    @Test func createTaskWithMilestoneInDifferentProjectDoesNotPersistTask() async throws {
+        let svc = try makeServices()
+        let projectA = makeProject(in: svc.context, name: "Project A")
+        let projectB = makeProject(in: svc.context, name: "Project B")
+        makeMilestone(in: svc.context, name: "v1.0", project: projectB, displayId: 1)
+
+        let input = """
+        {"name":"Orphan Check","type":"bug","project":"\(projectA.name)","milestoneDisplayId":1}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            projectService: svc.project, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "MILESTONE_PROJECT_MISMATCH")
+
+        let descriptor = FetchDescriptor<TransitTask>()
+        let tasks = try svc.context.fetch(descriptor)
+        #expect(tasks.isEmpty, "Task should not be created when milestone belongs to a different project")
+    }
+
     @Test func createTaskWithoutMilestoneServiceSkipsMilestone() async throws {
         let svc = try makeServices()
         let project = makeProject(in: svc.context)
