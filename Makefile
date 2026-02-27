@@ -1,5 +1,8 @@
 # Transit Makefile
 
+SHELL = /bin/bash
+.SHELLFLAGS = -eo pipefail -c
+
 SCHEME = Transit
 PROJECT = Transit/Transit.xcodeproj
 
@@ -28,7 +31,7 @@ help:
 	@echo ""
 	@echo "  Distribution:"
 	@echo "    archive  - Create xcarchive for iOS"
-	@echo "    upload   - Archive and upload to App Store Connect (TestFlight)"
+	@echo "    upload   - Archive and upload to App Store Connect"
 	@echo ""
 	@echo "  Utilities:"
 	@echo "    clean    - Clean build artifacts"
@@ -222,7 +225,7 @@ build-macos-release:
 
 .PHONY: run-macos-release
 run-macos-release: build-macos-release
-	@echo "Launching Transit..."
+	@echo "Launching app..."
 	open $(DERIVED_DATA)/Build/Products/Release/Transit.app
 
 # Distribution
@@ -235,16 +238,21 @@ archive:
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'generic/platform=iOS' \
+		-configuration Release \
 		-archivePath $(ARCHIVE_PATH) \
 		-allowProvisioningUpdates \
 		| xcbeautify || xcodebuild archive \
 			-project $(PROJECT) \
 			-scheme $(SCHEME) \
 			-destination 'generic/platform=iOS' \
+			-configuration Release \
 			-archivePath $(ARCHIVE_PATH) \
 			-allowProvisioningUpdates
 	@echo "Archive created at $(ARCHIVE_PATH)"
 
+# To re-upload an existing archive without rebuilding:
+#   xcodebuild -exportArchive -archivePath ./build/Transit.xcarchive \
+#     -exportOptionsPlist ExportOptions.plist -exportPath ./build/export -allowProvisioningUpdates
 .PHONY: upload
 upload: archive
 	xcodebuild -exportArchive \
