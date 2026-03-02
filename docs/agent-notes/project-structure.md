@@ -56,6 +56,7 @@ Transit/Transit/
 ## Error Types
 
 - **ProjectLookupError** (in `ProjectService.swift`) — `.notFound`, `.ambiguous`, `.noIdentifier`. Will be translated to IntentError codes in stream 3.
+- **ProjectMutationError** (in `ProjectService.swift`) — `.invalidName`, `.duplicateName`. Thrown by `createProject`.
 - **IntentError** (in `Intents/IntentError.swift`) — JSON-formatted error responses for App Intents. Pre-existing.
 
 ## Build & Test
