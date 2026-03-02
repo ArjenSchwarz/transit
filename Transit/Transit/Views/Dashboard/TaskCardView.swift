@@ -3,12 +3,7 @@ import SwiftUI
 struct TaskCardView: View {
     let task: TransitTask
 
-    @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
-    @Environment(\.colorScheme) private var colorScheme
-
-    private var resolvedTheme: ResolvedTheme {
-        (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
-    }
+    @Environment(\.resolvedTheme) private var resolvedTheme
 
     private var projectColor: Color {
         guard let hex = task.project?.colorHex else { return .gray }

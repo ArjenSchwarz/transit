@@ -43,3 +43,14 @@ enum ResolvedTheme {
     case light
     case dark
 }
+
+private struct ResolvedThemeKey: EnvironmentKey {
+    static let defaultValue: ResolvedTheme = .light
+}
+
+extension EnvironmentValues {
+    var resolvedTheme: ResolvedTheme {
+        get { self[ResolvedThemeKey.self] }
+        set { self[ResolvedThemeKey.self] = newValue }
+    }
+}

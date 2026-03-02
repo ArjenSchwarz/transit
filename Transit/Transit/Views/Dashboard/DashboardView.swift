@@ -11,18 +11,13 @@ struct DashboardView: View {
     @State private var selectedTask: TransitTask?
     @State private var showAddTask = false
     @State private var searchText = ""
-    @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @Environment(TaskService.self) private var taskService
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.resolvedTheme) private var resolvedTheme
 
     /// Minimum width (in points) for a single kanban column.
     private static let columnMinWidth: CGFloat = 200
-
-    private var resolvedTheme: ResolvedTheme {
-        (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
-    }
 
     private var isPhoneLandscape: Bool {
         verticalSizeClass == .compact
