@@ -98,6 +98,7 @@ final class DisplayIDAllocator: @unchecked Sendable {
                 // Revert the in-memory permanentDisplayId so the UI doesn't
                 // show a permanent ID that was never persisted (T-281).
                 context.rollback()
+                // Stop on first failure -- remaining tasks will be retried next pass.
                 break
             }
         }
