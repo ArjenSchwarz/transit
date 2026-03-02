@@ -7,6 +7,7 @@ import Testing
 /// Tests for milestone-related functionality in existing MCP tools
 /// (update_task, create_task, query_tasks, get_projects).
 @MainActor @Suite(.serialized)
+// swiftlint:disable:next type_body_length
 struct MCPMilestoneIntegrationTests {
 
     // MARK: - update_task (milestone assignment)
@@ -285,6 +286,76 @@ struct MCPMilestoneIntegrationTests {
         let first = try #require(results.first)
         let milestoneInfo = try #require(first["milestone"] as? [String: Any])
         #expect(milestoneInfo["name"] as? String == "v1.0")
+    }
+
+    // MARK: - T-292 regression: milestone name filter across projects
+
+    @Test func queryTasksByMilestoneNameAcrossProjects() async throws {
+        // Two projects with identically-named milestones — filtering by milestone name
+        // without a project filter should return tasks from BOTH milestones.
+        let env = try MCPTestHelpers.makeEnv()
+        let projectA = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        let projectB = MCPTestHelpers.makeProject(in: env.context, name: "Beta")
+        let milestoneA = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: projectA
+        )
+        let milestoneB = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: projectB
+        )
+        let taskA = try await env.taskService.createTask(
+            name: "Task A", description: nil, type: .feature, project: projectA
+        )
+        try env.milestoneService.setMilestone(milestoneA, on: taskA)
+        let taskB = try await env.taskService.createTask(
+            name: "Task B", description: nil, type: .bug, project: projectB
+        )
+        try env.milestoneService.setMilestone(milestoneB, on: taskB)
+        // A third task with no milestone — should NOT appear
+        _ = try await env.taskService.createTask(
+            name: "Task C", description: nil, type: .chore, project: projectA
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["milestone": "v1.0"]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.count == 2, "Both tasks from identically-named milestones should be returned")
+        let names = Set(results.compactMap { $0["name"] as? String })
+        #expect(names.contains("Task A"))
+        #expect(names.contains("Task B"))
+    }
+
+    @Test func queryTasksByMilestoneNameWithProjectFilterReturnsOnlyThatProject() async throws {
+        // When both project and milestone name are specified, only the matching
+        // project's milestone should be used.
+        let env = try MCPTestHelpers.makeEnv()
+        let projectA = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        let projectB = MCPTestHelpers.makeProject(in: env.context, name: "Beta")
+        let milestoneA = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: projectA
+        )
+        let milestoneB = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: projectB
+        )
+        let taskA = try await env.taskService.createTask(
+            name: "Task A", description: nil, type: .feature, project: projectA
+        )
+        try env.milestoneService.setMilestone(milestoneA, on: taskA)
+        let taskB = try await env.taskService.createTask(
+            name: "Task B", description: nil, type: .bug, project: projectB
+        )
+        try env.milestoneService.setMilestone(milestoneB, on: taskB)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["milestone": "v1.0", "project": "Alpha"]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.count == 1)
+        #expect(results.first?["name"] as? String == "Task A")
     }
 
     // MARK: - get_projects includes milestones
