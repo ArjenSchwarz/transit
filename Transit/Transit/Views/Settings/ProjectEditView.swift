@@ -199,8 +199,8 @@ struct ProjectEditView: View {
             } catch ProjectMutationError.invalidName {
                 errorMessage = "Project name cannot be empty."
                 return
-            } catch ProjectMutationError.duplicateName {
-                errorMessage = "A project named \"\(trimmedName)\" already exists."
+            } catch ProjectMutationError.duplicateName(let conflictingName) {
+                errorMessage = "A project named \"\(conflictingName)\" already exists."
                 return
             } catch {
                 errorMessage = "Failed to create project."

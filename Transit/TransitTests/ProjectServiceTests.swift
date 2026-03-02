@@ -163,24 +163,33 @@ struct ProjectServiceTests {
     @Test func createProjectWithEmptyNameThrowsInvalidName() throws {
         let (service, _) = try makeService()
 
-        #expect(throws: ProjectMutationError.self) {
+        #expect {
             try service.createProject(name: "", description: "Desc", gitRepo: nil, colorHex: "#000000")
+        } throws: { error in
+            if case .invalidName = error as? ProjectMutationError { return true }
+            return false
         }
     }
 
     @Test func createProjectWithWhitespaceOnlyNameThrowsInvalidName() throws {
         let (service, _) = try makeService()
 
-        #expect(throws: ProjectMutationError.self) {
+        #expect {
             try service.createProject(name: "   ", description: "Desc", gitRepo: nil, colorHex: "#000000")
+        } throws: { error in
+            if case .invalidName = error as? ProjectMutationError { return true }
+            return false
         }
     }
 
     @Test func createProjectWithNewlinesOnlyNameThrowsInvalidName() throws {
         let (service, _) = try makeService()
 
-        #expect(throws: ProjectMutationError.self) {
+        #expect {
             try service.createProject(name: "\n\t\n", description: "Desc", gitRepo: nil, colorHex: "#000000")
+        } throws: { error in
+            if case .invalidName = error as? ProjectMutationError { return true }
+            return false
         }
     }
 
