@@ -68,6 +68,14 @@ struct PromotionRollbackTests {
     }
 
     // MARK: - Promotion integration
+    //
+    // Note: These integration tests exercise the "allocator fails before
+    // permanentDisplayId is set" path, not the "save fails after
+    // permanentDisplayId is set" path (which is the actual T-281 bug).
+    // Injecting a ModelContext.save() failure is impractical with the
+    // current TestModelContainer setup. The mechanism tests above (tests
+    // 1 & 2) verify that rollback correctly reverts permanentDisplayId,
+    // which is the mechanism the fix relies on.
 
     /// Verifies that promoteProvisionalTasks promotes the first task
     /// and leaves the second provisional when the allocator fails
