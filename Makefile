@@ -5,6 +5,16 @@ SHELL = /bin/bash
 
 SCHEME = Transit
 PROJECT = Transit/Transit.xcodeproj
+BUNDLE_ID = me.nore.ig.Transit
+CONFIG ?= Debug
+
+# Pipe through xcbeautify if available, otherwise raw output
+XCBEAUTIFY := $(shell command -v xcbeautify 2>/dev/null)
+ifdef XCBEAUTIFY
+PIPE_PRETTY = | xcbeautify
+else
+PIPE_PRETTY =
+endif
 
 # Default target
 .PHONY: help
@@ -57,14 +67,9 @@ build-ios:
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=iOS Simulator,name=iPhone 17' \
-		-configuration Debug \
+		-configuration $(CONFIG) \
 		-derivedDataPath $(DERIVED_DATA) \
-		| xcbeautify || xcodebuild build \
-			-project $(PROJECT) \
-			-scheme $(SCHEME) \
-			-destination 'platform=iOS Simulator,name=iPhone 17' \
-			-configuration Debug \
-			-derivedDataPath $(DERIVED_DATA)
+		$(PIPE_PRETTY)
 
 .PHONY: build-macos
 build-macos: clean
@@ -72,14 +77,9 @@ build-macos: clean
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=macOS' \
-		-configuration Debug \
+		-configuration $(CONFIG) \
 		-derivedDataPath $(DERIVED_DATA) \
-		| xcbeautify || xcodebuild build \
-			-project $(PROJECT) \
-			-scheme $(SCHEME) \
-			-destination 'platform=macOS' \
-			-configuration Debug \
-			-derivedDataPath $(DERIVED_DATA)
+		$(PIPE_PRETTY)
 
 .PHONY: build
 build: build-ios build-macos
@@ -94,13 +94,7 @@ test-quick:
 		-configuration Debug \
 		-derivedDataPath $(DERIVED_DATA) \
 		-only-testing:TransitTests \
-		| xcbeautify || xcodebuild test \
-			-project $(PROJECT) \
-			-scheme $(SCHEME) \
-			-destination 'platform=macOS' \
-			-configuration Debug \
-			-derivedDataPath $(DERIVED_DATA) \
-			-only-testing:TransitTests
+		$(PIPE_PRETTY)
 
 .PHONY: test
 test:
@@ -112,14 +106,7 @@ test:
 		-derivedDataPath $(DERIVED_DATA) \
 		-parallel-testing-worker-count 1 \
 		-maximum-concurrent-test-simulator-destinations 1 \
-		| xcbeautify || xcodebuild test \
-			-project $(PROJECT) \
-			-scheme $(SCHEME) \
-			-destination 'platform=iOS Simulator,name=iPhone 17' \
-			-configuration Debug \
-			-derivedDataPath $(DERIVED_DATA) \
-			-parallel-testing-worker-count 1 \
-			-maximum-concurrent-test-simulator-destinations 1
+		$(PIPE_PRETTY)
 
 .PHONY: test-ui
 test-ui:
@@ -132,22 +119,14 @@ test-ui:
 		-only-testing:TransitUITests \
 		-parallel-testing-worker-count 1 \
 		-maximum-concurrent-test-simulator-destinations 1 \
-		| xcbeautify || xcodebuild test \
-			-project $(PROJECT) \
-			-scheme $(SCHEME) \
-			-destination 'platform=iOS Simulator,name=iPhone 17' \
-			-configuration Debug \
-			-derivedDataPath $(DERIVED_DATA) \
-			-only-testing:TransitUITests \
-			-parallel-testing-worker-count 1 \
-			-maximum-concurrent-test-simulator-destinations 1
+		$(PIPE_PRETTY)
 
 # Device deployment
 DEVICE_MODEL ?= iPhone 17 Pro
-DEVICE_JSON := $(shell mktemp)
-DEVICE_ID = $(shell xcrun devicectl list devices --json-output $(DEVICE_JSON) >/dev/null 2>&1; \
-	jq -r '.result.devices[] | select(.hardwareProperties.marketingName == "$(DEVICE_MODEL)") | .connectionProperties.potentialHostnames[] | select(startswith("0000"))' $(DEVICE_JSON) 2>/dev/null | sed 's/.coredevice.local//' | head -1; \
-	rm -f $(DEVICE_JSON))
+DEVICE_ID = $(shell tmp=$$(mktemp); \
+	xcrun devicectl list devices --json-output "$$tmp" >/dev/null 2>&1; \
+	jq -r '.result.devices[] | select(.hardwareProperties.marketingName == "$(DEVICE_MODEL)") | .connectionProperties.potentialHostnames[] | select(startswith("0000"))' "$$tmp" 2>/dev/null | sed 's/.coredevice.local//' | head -1; \
+	rm -f "$$tmp")
 
 .PHONY: install
 install:
@@ -155,73 +134,36 @@ install:
 		echo "Error: No $(DEVICE_MODEL) device found"; \
 		exit 1; \
 	fi
-	@echo "Building for device $(DEVICE_ID)..."
+	@echo "Building $(CONFIG) for device $(DEVICE_ID)..."
 	xcodebuild build \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'id=$(DEVICE_ID)' \
-		-configuration Debug \
+		-configuration $(CONFIG) \
 		-derivedDataPath $(DERIVED_DATA) \
-		| xcbeautify || xcodebuild build \
-			-project $(PROJECT) \
-			-scheme $(SCHEME) \
-			-destination 'id=$(DEVICE_ID)' \
-			-configuration Debug \
-			-derivedDataPath $(DERIVED_DATA)
+		$(PIPE_PRETTY)
 	@echo "Installing on device..."
 	xcrun devicectl device install app \
 		--device $(DEVICE_ID) \
-		$(DERIVED_DATA)/Build/Products/Debug-iphoneos/Transit.app
+		$(DERIVED_DATA)/Build/Products/$(CONFIG)-iphoneos/Transit.app
 
 .PHONY: run
 run: install
 	@echo "Launching app..."
-	xcrun devicectl device process launch --device $(DEVICE_ID) me.nore.ig.Transit
+	xcrun devicectl device process launch --device $(DEVICE_ID) $(BUNDLE_ID)
 
-# Release builds
+# Release builds — delegate to base targets with CONFIG=Release
 .PHONY: install-release
 install-release:
-	@if [ -z "$(DEVICE_ID)" ]; then \
-		echo "Error: No $(DEVICE_MODEL) device found"; \
-		exit 1; \
-	fi
-	@echo "Building Release for device $(DEVICE_ID)..."
-	xcodebuild build \
-		-project $(PROJECT) \
-		-scheme $(SCHEME) \
-		-destination 'id=$(DEVICE_ID)' \
-		-configuration Release \
-		-derivedDataPath $(DERIVED_DATA) \
-		| xcbeautify || xcodebuild build \
-			-project $(PROJECT) \
-			-scheme $(SCHEME) \
-			-destination 'id=$(DEVICE_ID)' \
-			-configuration Release \
-			-derivedDataPath $(DERIVED_DATA)
-	@echo "Installing on device..."
-	xcrun devicectl device install app \
-		--device $(DEVICE_ID) \
-		$(DERIVED_DATA)/Build/Products/Release-iphoneos/Transit.app
+	$(MAKE) install CONFIG=Release
 
 .PHONY: run-release
-run-release: install-release
-	@echo "Launching app..."
-	xcrun devicectl device process launch --device $(DEVICE_ID) me.nore.ig.Transit
+run-release:
+	$(MAKE) run CONFIG=Release
 
 .PHONY: build-macos-release
 build-macos-release:
-	xcodebuild build \
-		-project $(PROJECT) \
-		-scheme $(SCHEME) \
-		-destination 'platform=macOS' \
-		-configuration Release \
-		-derivedDataPath $(DERIVED_DATA) \
-		| xcbeautify || xcodebuild build \
-			-project $(PROJECT) \
-			-scheme $(SCHEME) \
-			-destination 'platform=macOS' \
-			-configuration Release \
-			-derivedDataPath $(DERIVED_DATA)
+	$(MAKE) build-macos CONFIG=Release
 
 .PHONY: run-macos-release
 run-macos-release: build-macos-release
@@ -241,13 +183,7 @@ archive:
 		-configuration Release \
 		-archivePath $(ARCHIVE_PATH) \
 		-allowProvisioningUpdates \
-		| xcbeautify || xcodebuild archive \
-			-project $(PROJECT) \
-			-scheme $(SCHEME) \
-			-destination 'generic/platform=iOS' \
-			-configuration Release \
-			-archivePath $(ARCHIVE_PATH) \
-			-allowProvisioningUpdates
+		$(PIPE_PRETTY)
 	@echo "Archive created at $(ARCHIVE_PATH)"
 
 # To re-upload an existing archive without rebuilding:
@@ -268,4 +204,4 @@ clean:
 	xcodebuild clean \
 		-project $(PROJECT) \
 		-scheme $(SCHEME)
-	rm -rf DerivedData
+	rm -rf $(DERIVED_DATA) build
