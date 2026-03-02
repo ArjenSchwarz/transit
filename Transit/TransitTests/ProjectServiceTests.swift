@@ -146,6 +146,44 @@ struct ProjectServiceTests {
         #expect(project.name == "Transit")
     }
 
+    @Test func createProjectTrimsWhitespaceAndNewlinesFromName() throws {
+        let (service, _) = try makeService()
+        let project = try service.createProject(
+            name: "\n  Transit  \n",
+            description: "Desc",
+            gitRepo: nil,
+            colorHex: "#000000"
+        )
+
+        #expect(project.name == "Transit")
+    }
+
+    // MARK: - createProject empty name prevention (T-330)
+
+    @Test func createProjectWithEmptyNameThrowsInvalidName() throws {
+        let (service, _) = try makeService()
+
+        #expect(throws: ProjectMutationError.self) {
+            try service.createProject(name: "", description: "Desc", gitRepo: nil, colorHex: "#000000")
+        }
+    }
+
+    @Test func createProjectWithWhitespaceOnlyNameThrowsInvalidName() throws {
+        let (service, _) = try makeService()
+
+        #expect(throws: ProjectMutationError.self) {
+            try service.createProject(name: "   ", description: "Desc", gitRepo: nil, colorHex: "#000000")
+        }
+    }
+
+    @Test func createProjectWithNewlinesOnlyNameThrowsInvalidName() throws {
+        let (service, _) = try makeService()
+
+        #expect(throws: ProjectMutationError.self) {
+            try service.createProject(name: "\n\t\n", description: "Desc", gitRepo: nil, colorHex: "#000000")
+        }
+    }
+
     // MARK: - findProject by ID
 
     @Test func findProjectByIDReturnsCorrectProject() throws {

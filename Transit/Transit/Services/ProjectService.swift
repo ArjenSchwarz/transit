@@ -12,6 +12,7 @@ enum ProjectLookupError: Error {
 
 /// Errors returned by project mutation operations (create, rename).
 enum ProjectMutationError: Error {
+    case invalidName
     case duplicateName(String)
 }
 
@@ -29,11 +30,15 @@ final class ProjectService {
 
     /// Creates and inserts a new project.
     ///
-    /// Throws `ProjectMutationError.duplicateName` if a project with the same
+    /// Throws `ProjectMutationError.invalidName` if the trimmed name is empty,
+    /// or `ProjectMutationError.duplicateName` if a project with the same
     /// name (case-insensitive) already exists.
     @discardableResult
     func createProject(name: String, description: String, gitRepo: String?, colorHex: String) throws -> Project {
-        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            throw ProjectMutationError.invalidName
+        }
         if projectNameExists(trimmedName) {
             throw ProjectMutationError.duplicateName(trimmedName)
         }
@@ -69,7 +74,7 @@ final class ProjectService {
         }
 
         if let rawName = name {
-            let trimmed = rawName.trimmingCharacters(in: .whitespaces)
+            let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
             // SwiftData predicates support .localizedStandardContains but not
             // arbitrary case-insensitive equality. Fetch all and filter in memory
             // for exact case-insensitive match (project count is small).
@@ -100,7 +105,7 @@ final class ProjectService {
     /// supports the rename scenario where the project's own current name should
     /// not count as a conflict.
     func projectNameExists(_ name: String, excluding projectId: UUID? = nil) -> Bool {
-        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let descriptor = FetchDescriptor<Project>()
         let allProjects = (try? context.fetch(descriptor)) ?? []
         return allProjects.contains { project in
