@@ -181,6 +181,9 @@ final class MilestoneService {
                 milestone.permanentDisplayId = newID
                 try modelContext.save()
             } catch {
+                // Revert the in-memory permanentDisplayId so the UI doesn't
+                // show a permanent ID that was never persisted (T-281).
+                modelContext.rollback()
                 break
             }
         }
