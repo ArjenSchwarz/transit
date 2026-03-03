@@ -184,6 +184,7 @@ final class MilestoneService {
                 // Revert the in-memory permanentDisplayId so the UI doesn't
                 // show a permanent ID that was never persisted (T-281).
                 modelContext.rollback()
+                // Stop on first failure -- remaining milestones will be retried next pass.
                 break
             }
         }
