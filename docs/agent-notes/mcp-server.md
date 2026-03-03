@@ -78,3 +78,4 @@ claude mcp add transit --transport http http://localhost:3141/mcp
 - `nonisolated` on struct/enum declarations is essential in this project due to `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Without it, all types inherit MainActor isolation, breaking Codable conformance on NIO threads.
 - `ByteBuffer(data:)` requires explicit `import NIOFoundationCompat` — not available from just `import Hummingbird`.
 - Don't reference `self` in `Task.detached` closures on `MCPServer` — causes "sending 'self' risks data races" error. Capture dependencies explicitly.
+- **Name-based filters must handle cross-project duplicates.** Milestone names (and potentially other name-resolved entities) can be duplicated across projects. When filtering by name without a project scope, use `Set<UUID>` to collect all matching IDs rather than taking just the first match (T-292).

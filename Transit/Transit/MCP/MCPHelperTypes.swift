@@ -9,11 +9,11 @@ struct MCPQueryFilters {
     let type: String?
     let projectId: UUID?
     let search: String?
-    let milestoneId: UUID?
+    let milestoneIds: Set<UUID>?
 
     /// Build filters from raw MCP arguments (status parsing + unfinished flag resolution).
     ///
-    /// `type`, `projectId`, and `milestoneId` are pre-parsed by the caller (`handleQueryTasks`)
+    /// `type`, `projectId`, and `milestoneIds` are pre-parsed by the caller (`handleQueryTasks`)
     /// because they involve complex logic (UUID validation, project name lookup with error handling).
     /// This factory only handles status-related parsing from the raw args dict.
     static func from(
@@ -21,7 +21,7 @@ struct MCPQueryFilters {
         type: String?,
         projectId: UUID?,
         search: String? = nil,
-        milestoneId: UUID? = nil
+        milestoneIds: Set<UUID>? = nil
     ) -> MCPQueryFilters {
         // The schema declares status/not_status as type "array", but we defensively accept
         // a single string for backward compatibility with callers that don't wrap in an array.
@@ -54,7 +54,7 @@ struct MCPQueryFilters {
 
         return MCPQueryFilters(
             statuses: statuses, notStatuses: resolvedNotStatuses,
-            type: type, projectId: projectId, search: search, milestoneId: milestoneId
+            type: type, projectId: projectId, search: search, milestoneIds: milestoneIds
         )
     }
 
@@ -63,7 +63,13 @@ struct MCPQueryFilters {
         if let notStatuses, !notStatuses.isEmpty, notStatuses.contains(task.statusRawValue) { return false }
         if let type, task.typeRawValue != type { return false }
         if let projectId, task.project?.id != projectId { return false }
-        if let milestoneId, task.milestone?.id != milestoneId { return false }
+        // Invariant: callers in MCPToolHandler.handleQueryTasks return early when
+        // matchingIds is empty, so milestoneIds is always non-empty here.
+        // The isEmpty guard is defensive against future refactors breaking that invariant.
+        if let milestoneIds, !milestoneIds.isEmpty {
+            guard let taskMilestoneId = task.milestone?.id else { return false }
+            if !milestoneIds.contains(taskMilestoneId) { return false }
+        }
         if let search, !search.isEmpty {
             let nameMatch = task.name.localizedCaseInsensitiveContains(search)
             let descMatch = task.taskDescription?.localizedCaseInsensitiveContains(search) ?? false

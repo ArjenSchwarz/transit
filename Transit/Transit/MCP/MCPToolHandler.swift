@@ -270,35 +270,36 @@ final class MCPToolHandler {
         }
 
         // Resolve milestone filter
-        var milestoneFilter: UUID?
+        var milestoneFilter: Set<UUID>?
         if let milestoneDisplayId = args["milestoneDisplayId"] as? Int {
             do {
-                milestoneFilter = try milestoneService.findByDisplayID(milestoneDisplayId).id
+                milestoneFilter = [try milestoneService.findByDisplayID(milestoneDisplayId).id]
             } catch {
                 return textResult(IntentHelpers.encodeJSONArray([]))
             }
         } else if let milestoneName = args["milestone"] as? String,
                   !milestoneName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            // Need a project context to look up by name
             if let projectFilter {
+                // Scoped to a single project — at most one milestone matches
                 let projects = (try? projectService.context.fetch(FetchDescriptor<Project>())) ?? []
                 if let project = projects.first(where: { $0.id == projectFilter }),
                    let milestone = milestoneService.findByName(milestoneName, in: project) {
-                    milestoneFilter = milestone.id
+                    milestoneFilter = [milestone.id]
                 } else {
                     return textResult(IntentHelpers.encodeJSONArray([]))
                 }
             } else {
-                // Search across all milestones by name
+                // No project filter — collect ALL milestones with this name across projects
                 let allMilestones = (try? projectService.context.fetch(FetchDescriptor<Milestone>())) ?? []
-                let matching = allMilestones.filter {
-                    $0.name.localizedCaseInsensitiveCompare(milestoneName) == .orderedSame
-                }
-                if let first = matching.first {
-                    milestoneFilter = first.id
-                } else {
+                let matchingIds = Set(
+                    allMilestones
+                        .filter { $0.name.localizedCaseInsensitiveCompare(milestoneName) == .orderedSame }
+                        .map(\.id)
+                )
+                if matchingIds.isEmpty {
                     return textResult(IntentHelpers.encodeJSONArray([]))
                 }
+                milestoneFilter = matchingIds
             }
         }
 
@@ -306,7 +307,7 @@ final class MCPToolHandler {
         let filters = MCPQueryFilters.from(
             args: args, type: args["type"] as? String, projectId: projectFilter,
             search: search?.isEmpty == true ? nil : search,
-            milestoneId: milestoneFilter
+            milestoneIds: milestoneFilter
         )
 
         // Single-task lookup by displayId — returns early with detailed response
