@@ -16,8 +16,8 @@ struct ProjectEditView: View {
     private var isEditing: Bool { project != nil }
 
     private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
-            && !projectDescription.trimmingCharacters(in: .whitespaces).isEmpty
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !projectDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
@@ -164,9 +164,9 @@ struct ProjectEditView: View {
     }
 
     private func save() {
-        let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        let trimmedDesc = projectDescription.trimmingCharacters(in: .whitespaces)
-        let trimmedRepo = gitRepo.trimmingCharacters(in: .whitespaces)
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDesc = projectDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedRepo = gitRepo.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let project {
             // When renaming, check for conflicts with other projects.
@@ -196,8 +196,11 @@ struct ProjectEditView: View {
                     gitRepo: trimmedRepo.isEmpty ? nil : trimmedRepo,
                     colorHex: color.hexString
                 )
-            } catch is ProjectMutationError {
-                errorMessage = "A project named \"\(trimmedName)\" already exists."
+            } catch ProjectMutationError.invalidName {
+                errorMessage = "Project name cannot be empty."
+                return
+            } catch ProjectMutationError.duplicateName(let conflictingName) {
+                errorMessage = "A project named \"\(conflictingName)\" already exists."
                 return
             } catch {
                 errorMessage = "Failed to create project."
