@@ -63,7 +63,9 @@ struct MCPQueryFilters {
         if let notStatuses, !notStatuses.isEmpty, notStatuses.contains(task.statusRawValue) { return false }
         if let type, task.typeRawValue != type { return false }
         if let projectId, task.project?.id != projectId { return false }
-        // Callers guarantee non-empty sets; the isEmpty guard is defensive.
+        // Invariant: callers in MCPToolHandler.handleQueryTasks return early when
+        // matchingIds is empty, so milestoneIds is always non-empty here.
+        // The isEmpty guard is defensive against future refactors breaking that invariant.
         if let milestoneIds, !milestoneIds.isEmpty {
             guard let taskMilestoneId = task.milestone?.id else { return false }
             if !milestoneIds.contains(taskMilestoneId) { return false }
