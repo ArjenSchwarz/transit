@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Smolspec for T-334: Dashboard search matches against task display IDs (e.g., "T-42" or "42") in addition to name and description
 - Release build targets in Makefile: `install-release`, `run-release`, `build-macos-release`, `run-macos-release` for building and running Release configuration on device and macOS
 - Distribution targets in Makefile: `archive` for creating xcarchives and `upload` for archiving and uploading to App Store Connect
 - `ExportOptions.plist` for App Store Connect upload configuration (automatic signing, symbol upload)
