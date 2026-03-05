@@ -30,7 +30,7 @@ One production file changed (`DashboardView.swift`), plus four new unit tests an
 ### Implementation Approach
 The `matchesFilters()` function in `DashboardLogic` already had a pattern for text search: compute `nameMatch` and `descMatch` booleans, then `guard` that at least one is true. The change adds a third boolean `displayIdMatch` using the same `localizedCaseInsensitiveContains` method on `task.displayID.formatted`.
 
-`DisplayID.formatted` returns `"T-42"` for permanent IDs and `"T-*"` for provisional ones. Since `localizedCaseInsensitiveContains` does substring matching, searching "42" naturally matches "T-42", and "t-42" matches case-insensitively. No parsing of the search input is needed.
+`DisplayID.formatted` returns `"T-42"` for permanent IDs and `"T-•"` (unicode bullet U+2022) for provisional ones. Since `localizedCaseInsensitiveContains` does substring matching, searching "42" naturally matches "T-42", and "t-42" matches case-insensitively. No parsing of the search input is needed.
 
 Tests set `task.permanentDisplayId` directly (it's a stored `Int?` on the model) since the `makeTask` helper creates tasks with provisional display IDs by default.
 
@@ -51,7 +51,7 @@ The filter chain structure -- sequential `if/guard` blocks for project, type, mi
 None. This is a leaf change to an existing pure function. No new types, no new dependencies, no protocol changes. The `DisplayID` type and its `formatted` property already existed.
 
 ### Potential Issues
-- **Provisional IDs**: Tasks without a permanent ID have `formatted` returning `"T-*"`. Searching "T-" matches these, which is acceptable since "T-" also matches any permanent ID.
+- **Provisional IDs**: Tasks without a permanent ID have `formatted` returning `"T-•"` (U+2022). Searching "T-" matches these, which is acceptable since "T-" also matches any permanent ID.
 - **Numeric false positives**: A task named "42 bugs found" would match search "42" via name match, and T-42 would also match via display ID. Both appearing in results is correct behavior.
 - **No milestone filter in test**: The combination test uses project + type filters but not milestone. This is sufficient because the filter chain is sequential guards -- adding milestone wouldn't exercise different code paths.
 
