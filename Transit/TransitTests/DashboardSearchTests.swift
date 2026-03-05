@@ -126,6 +126,79 @@ struct DashboardSearchTests {
         #expect(ideaTasks[0].name == "Login bug")
     }
 
+    // MARK: - Display ID search
+
+    @Test func searchByFullFormattedDisplayID() {
+        let project = makeProject()
+        let task1 = makeTask(name: "Fix bug", status: .idea, project: project)
+        task1.permanentDisplayId = 42
+        let task2 = makeTask(name: "Add feature", status: .idea, project: project)
+        task2.permanentDisplayId = 99
+
+        let columns = DashboardLogic.buildFilteredColumns(
+            allTasks: [task1, task2],
+            selectedProjectIDs: [],
+            searchText: "T-42"
+        )
+
+        let ideaTasks = columns[.idea] ?? []
+        #expect(ideaTasks.count == 1)
+        #expect(ideaTasks[0].name == "Fix bug")
+    }
+
+    @Test func searchByBareNumberMatchesDisplayID() {
+        let project = makeProject()
+        let task1 = makeTask(name: "Fix bug", status: .idea, project: project)
+        task1.permanentDisplayId = 42
+        let task2 = makeTask(name: "Add feature", status: .idea, project: project)
+        task2.permanentDisplayId = 99
+
+        let columns = DashboardLogic.buildFilteredColumns(
+            allTasks: [task1, task2],
+            selectedProjectIDs: [],
+            searchText: "42"
+        )
+
+        let ideaTasks = columns[.idea] ?? []
+        #expect(ideaTasks.count == 1)
+        #expect(ideaTasks[0].name == "Fix bug")
+    }
+
+    @Test func searchByDisplayIDIsCaseInsensitive() {
+        let project = makeProject()
+        let task = makeTask(name: "Fix bug", status: .idea, project: project)
+        task.permanentDisplayId = 42
+
+        let columns = DashboardLogic.buildFilteredColumns(
+            allTasks: [task],
+            selectedProjectIDs: [],
+            searchText: "t-42"
+        )
+
+        let ideaTasks = columns[.idea] ?? []
+        #expect(ideaTasks.count == 1)
+    }
+
+    @Test func displayIDSearchCombinesWithProjectAndTypeFilters() {
+        let projectA = makeProject(name: "A")
+        let projectB = makeProject(name: "B")
+        let taskA = makeTask(name: "Task in A", status: .idea, type: .bug, project: projectA)
+        taskA.permanentDisplayId = 10
+        let taskB = makeTask(name: "Task in B", status: .idea, type: .bug, project: projectB)
+        taskB.permanentDisplayId = 10
+
+        let columns = DashboardLogic.buildFilteredColumns(
+            allTasks: [taskA, taskB],
+            selectedProjectIDs: [projectA.id],
+            selectedTypes: [.bug],
+            searchText: "T-10"
+        )
+
+        let ideaTasks = columns[.idea] ?? []
+        #expect(ideaTasks.count == 1)
+        #expect(ideaTasks[0].name == "Task in A")
+    }
+
     @Test func searchMatchesEitherNameOrDescription() {
         let project = makeProject()
         let task1 = makeTask(name: "Widget update", status: .idea, project: project)

@@ -250,7 +250,8 @@ enum DashboardLogic {
         if !searchText.isEmpty {
             let nameMatch = task.name.localizedCaseInsensitiveContains(searchText)
             let descMatch = task.taskDescription?.localizedCaseInsensitiveContains(searchText) ?? false
-            guard nameMatch || descMatch else { return false }
+            let displayIdMatch = task.displayID.formatted.localizedCaseInsensitiveContains(searchText)
+            guard nameMatch || descMatch || displayIdMatch else { return false }
         }
 
         return true
