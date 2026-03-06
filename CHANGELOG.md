@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Column sort order toggle: "Organized" mode groups tasks by project name, type (enum order), then display ID; "Recent" mode preserves existing date-based sort (T-364)
+- Sort order toolbar button with clock/list.bullet icons and accessibility support
+- `DashboardOrganizedSortTests` covering project grouping, type ordering, display ID sorting, nil-ID handling, tier preservation, and tiebreaker behavior
 - Smolspec and task plan for column sort order feature: alternative "Organized" sort mode (project > type > ID) alongside existing date-based sort (T-364)
 - Dashboard search now matches against task display IDs (e.g., "T-42" or "42") in addition to name and description (T-334)
 - Release build targets in Makefile: `install-release`, `run-release`, `build-macos-release`, `run-macos-release` for building and running Release configuration on device and macOS

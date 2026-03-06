@@ -7,6 +7,7 @@ struct DashboardView: View {
     @State private var selectedProjectIDs: Set<UUID> = []
     @State private var selectedTypes: Set<TaskType> = []
     @State private var selectedMilestones: Set<UUID> = []
+    @State private var sortOrder: DashboardLogic.ColumnSortOrder = .recent
     @State private var selectedColumn: DashboardColumn = .inProgress // [req 13.3]
     @State private var selectedTask: TransitTask?
     @State private var showAddTask = false
@@ -40,7 +41,8 @@ struct DashboardView: View {
             selectedProjectIDs: selectedProjectIDs,
             selectedTypes: selectedTypes,
             selectedMilestones: selectedMilestones,
-            searchText: effectiveSearchText
+            searchText: effectiveSearchText,
+            sortOrder: sortOrder
         )
     }
 
@@ -94,6 +96,7 @@ struct DashboardView: View {
                     selectedProjectIDs: selectedProjectIDs,
                     selectedMilestones: $selectedMilestones
                 )
+                sortOrderButton
                 clearAllButton
             }
             ToolbarSpacer(.fixed)
@@ -141,6 +144,19 @@ struct DashboardView: View {
         }
     }
 
+    private var sortOrderButton: some View {
+        Button {
+            sortOrder = sortOrder == .recent ? .organized : .recent
+        } label: {
+            Label(
+                sortOrder == .recent ? "Recent" : "Organized",
+                systemImage: sortOrder == .recent ? "clock" : "list.bullet"
+            )
+        }
+        .accessibilityIdentifier("dashboard.sortOrder")
+        .accessibilityLabel("Sort order: \(sortOrder == .recent ? "Recent" : "Organized")")
+    }
+
     private var addButton: some View {
         Button {
             showAddTask = true
@@ -171,6 +187,11 @@ struct DashboardView: View {
 
 enum DashboardLogic {
 
+    enum ColumnSortOrder {
+        case recent
+        case organized
+    }
+
     /// Testable column builder: groups tasks by column, applies project, type, milestone,
     /// and text search filters, 48-hour cutoff for terminal tasks, and sorting rules.
     static func buildFilteredColumns(
@@ -179,6 +200,7 @@ enum DashboardLogic {
         selectedTypes: Set<TaskType> = [],
         selectedMilestones: Set<UUID> = [],
         searchText: String = "",
+        sortOrder: ColumnSortOrder = .recent,
         now: Date = .now
     ) -> [DashboardColumn: [TransitTask]] {
         let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -217,10 +239,35 @@ enum DashboardLogic {
                 if lhs.status.isHandoff != rhs.status.isHandoff {
                     return lhs.status.isHandoff
                 }
-                // Then by date descending [req 5.8]
-                return lhs.lastStatusChangeDate > rhs.lastStatusChangeDate
+
+                switch sortOrder {
+                case .recent:
+                    return lhs.lastStatusChangeDate > rhs.lastStatusChangeDate
+                case .organized:
+                    return compareOrganized(lhs, rhs)
+                }
             }
         }
+    }
+
+    private static func compareOrganized(_ lhs: TransitTask, _ rhs: TransitTask) -> Bool {
+        let lhsProject = (lhs.project?.name ?? "").lowercased()
+        let rhsProject = (rhs.project?.name ?? "").lowercased()
+        if lhsProject != rhsProject { return lhsProject < rhsProject }
+
+        let allCases = TaskType.allCases
+        let lhsTypeIndex = allCases.firstIndex(of: lhs.type) ?? allCases.count
+        let rhsTypeIndex = allCases.firstIndex(of: rhs.type) ?? allCases.count
+        if lhsTypeIndex != rhsTypeIndex { return lhsTypeIndex < rhsTypeIndex }
+
+        switch (lhs.permanentDisplayId, rhs.permanentDisplayId) {
+        case let (lhsId?, rhsId?) where lhsId != rhsId: return lhsId < rhsId
+        case (nil, .some): return false
+        case (.some, nil): return true
+        default: break
+        }
+
+        return lhs.lastStatusChangeDate > rhs.lastStatusChangeDate
     }
 
     private static func matchesFilters(
