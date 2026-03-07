@@ -251,9 +251,10 @@ enum DashboardLogic {
     }
 
     private static func compareOrganized(_ lhs: TransitTask, _ rhs: TransitTask) -> Bool {
-        let lhsProject = (lhs.project?.name ?? "").lowercased()
-        let rhsProject = (rhs.project?.name ?? "").lowercased()
-        if lhsProject != rhsProject { return lhsProject < rhsProject }
+        let lhsProject = lhs.project?.name ?? ""
+        let rhsProject = rhs.project?.name ?? ""
+        let projectComparison = lhsProject.localizedCaseInsensitiveCompare(rhsProject)
+        if projectComparison != .orderedSame { return projectComparison == .orderedAscending }
 
         let allCases = TaskType.allCases
         let lhsTypeIndex = allCases.firstIndex(of: lhs.type) ?? allCases.count

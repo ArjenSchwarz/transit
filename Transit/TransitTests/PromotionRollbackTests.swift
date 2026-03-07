@@ -20,7 +20,7 @@ struct PromotionRollbackTests {
     /// promoteProvisionalTasks relies on.
     @Test func rollbackRevertsTaskPermanentDisplayIdToProvisional() throws {
         let context = try TestModelContainer.newContext()
-        let project = Project(name: "P", description: nil, gitRepo: nil, colorHex: "#000000")
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "#000000")
         context.insert(project)
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .provisional)
         StatusEngine.initializeNewTask(task)
@@ -48,7 +48,7 @@ struct PromotionRollbackTests {
     /// promoteProvisionalMilestones relies on.
     @Test func rollbackRevertsMilestonePermanentDisplayIdToProvisional() throws {
         let context = try TestModelContainer.newContext()
-        let project = Project(name: "P", description: nil, gitRepo: nil, colorHex: "#000000")
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "#000000")
         context.insert(project)
         let milestone = Milestone(name: "v1.0", description: nil, project: project, displayID: .provisional)
         context.insert(milestone)
@@ -89,7 +89,7 @@ struct PromotionRollbackTests {
         ])
         let allocator = DisplayIDAllocator(store: store, retryLimit: 1)
 
-        let project = Project(name: "P", description: nil, gitRepo: nil, colorHex: "#000000")
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "#000000")
         context.insert(project)
 
         let task1 = TransitTask(name: "First", type: .feature, project: project, displayID: .provisional)
@@ -127,7 +127,7 @@ struct PromotionRollbackTests {
         let allocator = DisplayIDAllocator(store: store, retryLimit: 1)
         let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: allocator)
 
-        let project = Project(name: "P", description: nil, gitRepo: nil, colorHex: "#000000")
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "#000000")
         context.insert(project)
 
         let milestone1 = Milestone(name: "v1.0", description: nil, project: project, displayID: .provisional)
