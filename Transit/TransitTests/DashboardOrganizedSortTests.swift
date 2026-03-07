@@ -3,6 +3,7 @@ import Testing
 @testable import Transit
 
 @MainActor
+@Suite(.serialized)
 struct DashboardOrganizedSortTests {
 
     // MARK: - Helpers
@@ -114,6 +115,28 @@ struct DashboardOrganizedSortTests {
         #expect(tasks.count == 2)
         #expect(tasks[0].name == "Permanent")
         #expect(tasks[1].name == "Provisional")
+    }
+
+    @Test func twoProvisionalIdsFallThroughToDateTiebreaker() {
+        let now = Date(timeIntervalSince1970: 200_000)
+        let project = makeProject()
+        let older = makeTask(
+            name: "Older", status: .idea, project: project,
+            lastStatusChange: now.addingTimeInterval(-100)
+        )
+        let newer = makeTask(name: "Newer", status: .idea, project: project, lastStatusChange: now)
+
+        let columns = DashboardLogic.buildFilteredColumns(
+            allTasks: [older, newer],
+            selectedProjectIDs: [],
+            sortOrder: .organized,
+            now: now
+        )
+
+        let tasks = columns[.idea] ?? []
+        #expect(tasks.count == 2)
+        #expect(tasks[0].name == "Newer")  // More recent date first
+        #expect(tasks[1].name == "Older")
     }
 
     // MARK: - Tier preservation

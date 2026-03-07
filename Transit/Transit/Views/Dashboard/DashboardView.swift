@@ -155,6 +155,7 @@ struct DashboardView: View {
         }
         .accessibilityIdentifier("dashboard.sortOrder")
         .accessibilityLabel("Sort order: \(sortOrder == .recent ? "Recent" : "Organized")")
+        .accessibilityHint("Toggles between Recent and Organized sort")
     }
 
     private var addButton: some View {
