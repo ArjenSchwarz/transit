@@ -87,6 +87,17 @@ Implemented in `DashboardView.buildFilteredColumns()`:
 - Views read theme via: `(AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)`
 - Theme picker in Settings → Appearance section
 
+## Keyboard Shortcuts (T-36)
+
+- **Cmd+N**: Opens Add Task sheet
+  - iOS/iPadOS: `.keyboardShortcut("n", modifiers: .command)` on `addButton` (wrapped in `#if !os(macOS)`)
+  - macOS: `NewTaskCommand` (`CommandGroup(replacing: .newItem)`) in `TransitApp.swift`, reads `@FocusedBinding(\.showAddTask)` and `@FocusedValue(\.isTaskSelected)`
+- **Bare "t" key**: `.focusable()` + `.onKeyPress("t")` on DashboardView body
+  - Guard: `DashboardLogic.shouldHandleNewTaskShortcut(showAddTask:selectedTask:)` — blocks when any sheet is open
+  - `.searchable` text field consumes key events when focused, so no extra guard needed
+- **FocusedValue wiring**: `FocusedShowAddTask` (private) exposes `Binding<Bool>` for `showAddTask`; `FocusedIsTaskSelected` (private) exposes `Bool` for whether task detail sheet is open. Published via `.focusedValue()` on DashboardView.
+- macOS `NewTaskCommand` disabled when: `showAddTask != false` (nil or true) OR `isTaskSelected == true`
+
 ### Gotchas
 - Always use `.contentShape(.rect)` on views with `.dropDestination` that contain Spacers or ScrollViews
 - Avoid `.scrollTargetBehavior(.paging)` with drag-and-drop — use `.viewAligned` instead

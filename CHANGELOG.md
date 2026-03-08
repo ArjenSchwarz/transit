@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Keyboard shortcut Cmd+N opens Add Task sheet on iOS/iPadOS via `.keyboardShortcut` on the toolbar button (T-36)
-- macOS File menu "New Task" (Cmd+N) via `CommandGroup(replacing: .newItem)` with `FocusedValueKey` wiring (T-36)
+- macOS File menu "New Task" (Cmd+N) via `CommandGroup(replacing: .newItem)` with `FocusedValueKey` wiring, disabled when task detail sheet is open (T-36)
 - Bare "t" key shortcut opens Add Task sheet when dashboard has focus and no sheet is presented (T-36)
 - `DashboardLogic.shouldHandleNewTaskShortcut` static helper for testable guard logic (T-36)
 - `DashboardShortcutTests` covering all guard conditions for the bare "t" key shortcut (T-36)

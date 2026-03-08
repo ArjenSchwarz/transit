@@ -237,6 +237,7 @@ private enum UITestScenario: String {
 #if os(macOS)
 private struct NewTaskCommand: Commands {
     @FocusedBinding(\.showAddTask) private var showAddTask
+    @FocusedValue(\.isTaskSelected) private var isTaskSelected
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -244,7 +245,7 @@ private struct NewTaskCommand: Commands {
                 showAddTask = true
             }
             .keyboardShortcut("n", modifiers: .command)
-            .disabled(showAddTask == nil || showAddTask == true)
+            .disabled(showAddTask != false || isTaskSelected == true)
         }
     }
 }

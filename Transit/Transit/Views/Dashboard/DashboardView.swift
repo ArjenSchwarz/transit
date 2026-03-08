@@ -122,6 +122,7 @@ struct DashboardView: View {
             AddTaskSheet()
         }
         .focusedValue(\.showAddTask, $showAddTask)
+        .focusedValue(\.isTaskSelected, selectedTask != nil)
         .focusable()
         .onKeyPress("t") {
             guard DashboardLogic.shouldHandleNewTaskShortcut(
@@ -200,14 +201,23 @@ struct DashboardView: View {
 
 // MARK: - Focused Value Key
 
-struct FocusedShowAddTask: FocusedValueKey {
+private struct FocusedShowAddTask: FocusedValueKey {
     typealias Value = Binding<Bool>
+}
+
+private struct FocusedIsTaskSelected: FocusedValueKey {
+    typealias Value = Bool
 }
 
 extension FocusedValues {
     var showAddTask: Binding<Bool>? {
         get { self[FocusedShowAddTask.self] }
         set { self[FocusedShowAddTask.self] = newValue }
+    }
+
+    var isTaskSelected: Bool? {
+        get { self[FocusedIsTaskSelected.self] }
+        set { self[FocusedIsTaskSelected.self] = newValue }
     }
 }
 
