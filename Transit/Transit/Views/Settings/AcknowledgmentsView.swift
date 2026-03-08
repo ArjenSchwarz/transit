@@ -7,41 +7,61 @@ import SwiftUI
 /// Source: Transit/Transit.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 struct AcknowledgedPackage: Identifiable {
     let name: String
-    let repositoryURL: String
+    let repositoryURL: URL
 
     var id: String { name }
 }
 
-/// All 24 SPM dependencies, alphabetically sorted. All use the Apache License 2.0.
+// All 24 SPM dependencies, alphabetically sorted. All use the Apache License 2.0.
+// swiftlint:disable force_unwrapping
 private let acknowledgedPackages: [AcknowledgedPackage] = [
-    .init(name: "Async HTTP Client", repositoryURL: "https://github.com/swift-server/async-http-client"),
-    .init(name: "Hummingbird", repositoryURL: "https://github.com/hummingbird-project/hummingbird"),
-    .init(name: "Swift Algorithms", repositoryURL: "https://github.com/apple/swift-algorithms"),
-    .init(name: "Swift ASN1", repositoryURL: "https://github.com/apple/swift-asn1"),
-    .init(name: "Swift Async Algorithms", repositoryURL: "https://github.com/apple/swift-async-algorithms"),
-    .init(name: "Swift Atomics", repositoryURL: "https://github.com/apple/swift-atomics"),
-    .init(name: "Swift Certificates", repositoryURL: "https://github.com/apple/swift-certificates"),
-    .init(name: "Swift Collections", repositoryURL: "https://github.com/apple/swift-collections"),
-    .init(name: "Swift Configuration", repositoryURL: "https://github.com/apple/swift-configuration"),
-    .init(name: "Swift Crypto", repositoryURL: "https://github.com/apple/swift-crypto"),
-    .init(name: "Swift Distributed Tracing", repositoryURL: "https://github.com/apple/swift-distributed-tracing"),
+    .init(
+        name: "Async HTTP Client",
+        repositoryURL: URL(string: "https://github.com/swift-server/async-http-client")!
+    ),
+    .init(name: "Hummingbird", repositoryURL: URL(string: "https://github.com/hummingbird-project/hummingbird")!),
+    .init(name: "Swift Algorithms", repositoryURL: URL(string: "https://github.com/apple/swift-algorithms")!),
+    .init(name: "Swift ASN1", repositoryURL: URL(string: "https://github.com/apple/swift-asn1")!),
+    .init(
+        name: "Swift Async Algorithms",
+        repositoryURL: URL(string: "https://github.com/apple/swift-async-algorithms")!
+    ),
+    .init(name: "Swift Atomics", repositoryURL: URL(string: "https://github.com/apple/swift-atomics")!),
+    .init(name: "Swift Certificates", repositoryURL: URL(string: "https://github.com/apple/swift-certificates")!),
+    .init(name: "Swift Collections", repositoryURL: URL(string: "https://github.com/apple/swift-collections")!),
+    .init(name: "Swift Configuration", repositoryURL: URL(string: "https://github.com/apple/swift-configuration")!),
+    .init(name: "Swift Crypto", repositoryURL: URL(string: "https://github.com/apple/swift-crypto")!),
+    .init(
+        name: "Swift Distributed Tracing",
+        repositoryURL: URL(string: "https://github.com/apple/swift-distributed-tracing")!
+    ),
     .init(
         name: "Swift HTTP Structured Headers",
-        repositoryURL: "https://github.com/apple/swift-http-structured-headers"
+        repositoryURL: URL(string: "https://github.com/apple/swift-http-structured-headers")!
     ),
-    .init(name: "Swift HTTP Types", repositoryURL: "https://github.com/apple/swift-http-types"),
-    .init(name: "Swift Log", repositoryURL: "https://github.com/apple/swift-log"),
-    .init(name: "Swift Metrics", repositoryURL: "https://github.com/apple/swift-metrics"),
-    .init(name: "Swift NIO", repositoryURL: "https://github.com/apple/swift-nio"),
-    .init(name: "Swift NIO Extras", repositoryURL: "https://github.com/apple/swift-nio-extras"),
-    .init(name: "Swift NIO HTTP/2", repositoryURL: "https://github.com/apple/swift-nio-http2"),
-    .init(name: "Swift NIO SSL", repositoryURL: "https://github.com/apple/swift-nio-ssl"),
-    .init(name: "Swift NIO Transport Services", repositoryURL: "https://github.com/apple/swift-nio-transport-services"),
-    .init(name: "Swift Numerics", repositoryURL: "https://github.com/apple/swift-numerics"),
-    .init(name: "Swift Service Context", repositoryURL: "https://github.com/apple/swift-service-context"),
-    .init(name: "Swift Service Lifecycle", repositoryURL: "https://github.com/swift-server/swift-service-lifecycle"),
-    .init(name: "Swift System", repositoryURL: "https://github.com/apple/swift-system")
+    .init(name: "Swift HTTP Types", repositoryURL: URL(string: "https://github.com/apple/swift-http-types")!),
+    .init(name: "Swift Log", repositoryURL: URL(string: "https://github.com/apple/swift-log")!),
+    .init(name: "Swift Metrics", repositoryURL: URL(string: "https://github.com/apple/swift-metrics")!),
+    .init(name: "Swift NIO", repositoryURL: URL(string: "https://github.com/apple/swift-nio")!),
+    .init(name: "Swift NIO Extras", repositoryURL: URL(string: "https://github.com/apple/swift-nio-extras")!),
+    .init(name: "Swift NIO HTTP/2", repositoryURL: URL(string: "https://github.com/apple/swift-nio-http2")!),
+    .init(name: "Swift NIO SSL", repositoryURL: URL(string: "https://github.com/apple/swift-nio-ssl")!),
+    .init(
+        name: "Swift NIO Transport Services",
+        repositoryURL: URL(string: "https://github.com/apple/swift-nio-transport-services")!
+    ),
+    .init(name: "Swift Numerics", repositoryURL: URL(string: "https://github.com/apple/swift-numerics")!),
+    .init(
+        name: "Swift Service Context",
+        repositoryURL: URL(string: "https://github.com/apple/swift-service-context")!
+    ),
+    .init(
+        name: "Swift Service Lifecycle",
+        repositoryURL: URL(string: "https://github.com/swift-server/swift-service-lifecycle")!
+    ),
+    .init(name: "Swift System", repositoryURL: URL(string: "https://github.com/apple/swift-system")!)
 ]
+// swiftlint:enable force_unwrapping
 
 // MARK: - Acknowledgments View
 
@@ -92,9 +112,9 @@ struct AcknowledgmentsView: View {
             VStack(alignment: .leading, spacing: 28) {
                 LiquidGlassSection(title: "Open Source Packages") {
                     VStack(alignment: .leading, spacing: 0) {
-                        ForEach(acknowledgedPackages) { package in
+                        ForEach(Array(acknowledgedPackages.enumerated()), id: \.element.id) { index, package in
                             packageRow(package)
-                            if package.id != acknowledgedPackages.last?.id {
+                            if index < acknowledgedPackages.count - 1 {
                                 Divider()
                             }
                         }
@@ -128,11 +148,9 @@ struct AcknowledgmentsView: View {
     private func packageRow(_ package: AcknowledgedPackage) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(package.name)
-            if let url = URL(string: package.repositoryURL) {
-                Link(package.repositoryURL, destination: url)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            Link("View on GitHub", destination: package.repositoryURL)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding(.vertical, 6)
     }

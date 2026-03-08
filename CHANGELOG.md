@@ -6,13 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Changed
-
-- Acknowledgments and license text views now use `@Environment(\.resolvedTheme)` instead of duplicating theme resolution logic (T-294)
-
 ### Added
 
-- Acknowledgments view listing all 24 SPM dependencies with tappable repository URLs and platform-specific layout (iOS `List`, macOS `ScrollView` with `LiquidGlassSection`) (T-294)
+- Acknowledgments view listing all 24 SPM dependencies with tappable repository URLs and platform-specific layout (iOS `List`, macOS `ScrollView` with `LiquidGlassSection`), using `@Environment(\.resolvedTheme)` for theme consistency (T-294)
 - License text view displaying full Apache License 2.0 text, pushed via `NavigationLink` from Acknowledgments (T-294)
 - `.licenseText` navigation destination for license text view (T-294)
 - Static `AcknowledgedPackage` data array verified against `Package.resolved` (T-294)

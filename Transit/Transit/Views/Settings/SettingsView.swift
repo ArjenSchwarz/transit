@@ -251,7 +251,7 @@ struct SettingsView: View {
                         .labelsHidden()
                 }
 
-                FormRow("", labelWidth: Self.labelWidth) {
+                FormRow("Acknowledgments", labelWidth: Self.labelWidth) {
                     NavigationLink(value: NavigationDestination.acknowledgments) {
                         Text("Acknowledgments")
                     }
