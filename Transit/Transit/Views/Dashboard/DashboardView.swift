@@ -121,6 +121,19 @@ struct DashboardView: View {
         .sheet(isPresented: $showAddTask) {
             AddTaskSheet()
         }
+        .focusedValue(\.showAddTask, $showAddTask)
+        .focusedValue(\.isTaskSelected, selectedTask != nil)
+        .focusable()
+        .focusEffectDisabled()
+        .onKeyPress("t") {
+            guard DashboardLogic.shouldHandleNewTaskShortcut(
+                showAddTask: showAddTask, selectedTask: selectedTask
+            ) else {
+                return .ignored
+            }
+            showAddTask = true
+            return .handled
+        }
         .onChange(of: selectedProjectIDs) { _, _ in
             selectedMilestones.removeAll()
         }
@@ -165,6 +178,9 @@ struct DashboardView: View {
             Label("Add Task", systemImage: "plus")
         }
         .accessibilityIdentifier("dashboard.addButton")
+        #if !os(macOS)
+        .keyboardShortcut("n", modifiers: .command)
+        #endif
     }
 
     // MARK: - Drag and Drop
@@ -181,6 +197,28 @@ struct DashboardView: View {
         } catch {
             return false
         }
+    }
+}
+
+// MARK: - Focused Value Key
+
+private struct FocusedShowAddTask: FocusedValueKey {
+    typealias Value = Binding<Bool>
+}
+
+private struct FocusedIsTaskSelected: FocusedValueKey {
+    typealias Value = Bool
+}
+
+extension FocusedValues {
+    var showAddTask: Binding<Bool>? {
+        get { self[FocusedShowAddTask.self] }
+        set { self[FocusedShowAddTask.self] = newValue }
+    }
+
+    var isTaskSelected: Bool? {
+        get { self[FocusedIsTaskSelected.self] }
+        set { self[FocusedIsTaskSelected.self] = newValue }
     }
 }
 
@@ -304,6 +342,15 @@ enum DashboardLogic {
         }
 
         return true
+    }
+
+    /// Whether the bare "t" key shortcut should open the Add Task sheet.
+    /// Returns `true` only when no sheet is currently presented.
+    static func shouldHandleNewTaskShortcut(
+        showAddTask: Bool,
+        selectedTask: TransitTask?
+    ) -> Bool {
+        !showAddTask && selectedTask == nil
     }
 
     /// Whether a drag-drop onto `column` should actually change the task's status.
