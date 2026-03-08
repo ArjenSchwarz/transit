@@ -7,4 +7,5 @@ enum NavigationDestination: Hashable {
     case milestoneEdit(project: Project, milestone: Milestone?)
     case report
     case acknowledgments
+    case licenseText
 }

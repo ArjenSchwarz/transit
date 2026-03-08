@@ -8,8 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- Acknowledgments navigation: `.acknowledgments` case in `NavigationDestination`, destination handler in `TransitApp`, and navigation rows in both iOS and macOS Settings sections (T-294)
-- Stub `AcknowledgmentsView` for navigation wiring (T-294)
+- Acknowledgments view listing all 24 SPM dependencies with tappable repository URLs and platform-specific layout (iOS `List`, macOS `ScrollView` with `LiquidGlassSection`) (T-294)
+- License text view displaying full Apache License 2.0 text, pushed via `NavigationLink` from Acknowledgments (T-294)
+- `.licenseText` navigation destination for license text view (T-294)
+- Static `AcknowledgedPackage` data array verified against `Package.resolved` (T-294)
+- Acknowledgments navigation wiring: `.acknowledgments` case in `NavigationDestination`, destination handler in `TransitApp`, and navigation rows in both iOS and macOS Settings sections (T-294)
 - Keyboard shortcut Cmd+N opens Add Task sheet on iOS/iPadOS via `.keyboardShortcut` on the toolbar button (T-36)
 - macOS File menu "New Task" (Cmd+N) via `CommandGroup(replacing: .newItem)` with `FocusedValueKey` wiring, disabled when task detail sheet is open (T-36)
 - Bare "t" key shortcut opens Add Task sheet when dashboard has focus and no sheet is presented (T-36)

@@ -114,6 +114,8 @@ struct TransitApp: App {
                             ReportView()
                         case .acknowledgments:
                             AcknowledgmentsView()
+                        case .licenseText:
+                            LicenseTextView()
                         }
                     }
             }
