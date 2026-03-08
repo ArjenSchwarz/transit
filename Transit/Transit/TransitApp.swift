@@ -112,6 +112,10 @@ struct TransitApp: App {
                             MilestoneEditView(project: project, milestone: milestone)
                         case .report:
                             ReportView()
+                        case .acknowledgments:
+                            AcknowledgmentsView()
+                        case .licenseText:
+                            LicenseTextView()
                         }
                     }
             }
