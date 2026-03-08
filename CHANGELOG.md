@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Smolspec and task plan for keyboard shortcut to create new tasks: Cmd+N, bare "t" key, and macOS File menu integration (T-36)
 - Column sort order toggle: "Organized" mode groups tasks by project name, type (enum order), then display ID; "Recent" mode preserves existing date-based sort (T-364)
 - Sort order toolbar button with clock/list.bullet icons and accessibility support
 - `DashboardOrganizedSortTests` covering project grouping, type ordering, display ID sorting, nil-ID handling, tier preservation, and tiebreaker behavior
