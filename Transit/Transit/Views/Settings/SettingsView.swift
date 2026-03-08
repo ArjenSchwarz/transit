@@ -89,6 +89,9 @@ struct SettingsView: View {
             TextField("Your Name", text: $userDisplayName)
             LabeledContent("About Transit", value: appVersion)
             Toggle("iCloud Sync", isOn: $syncEnabled)
+            NavigationLink(value: NavigationDestination.acknowledgments) {
+                Text("Acknowledgments")
+            }
         }
     }
     #endif
@@ -246,6 +249,13 @@ struct SettingsView: View {
                 FormRow("iCloud Sync", labelWidth: Self.labelWidth) {
                     Toggle("", isOn: $syncEnabled)
                         .labelsHidden()
+                }
+
+                FormRow("", labelWidth: Self.labelWidth) {
+                    NavigationLink(value: NavigationDestination.acknowledgments) {
+                        Text("Acknowledgments")
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Acknowledgments navigation: `.acknowledgments` case in `NavigationDestination`, destination handler in `TransitApp`, and navigation rows in both iOS and macOS Settings sections (T-294)
+- Stub `AcknowledgmentsView` for navigation wiring (T-294)
 - Keyboard shortcut Cmd+N opens Add Task sheet on iOS/iPadOS via `.keyboardShortcut` on the toolbar button (T-36)
 - macOS File menu "New Task" (Cmd+N) via `CommandGroup(replacing: .newItem)` with `FocusedValueKey` wiring, disabled when task detail sheet is open (T-36)
 - Bare "t" key shortcut opens Add Task sheet when dashboard has focus and no sheet is presented (T-36)

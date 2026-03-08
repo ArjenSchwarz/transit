@@ -6,9 +6,9 @@ references:
 
 ## Navigation Wiring
 
-- [ ] 1. Add .acknowledgments case to NavigationDestination enum and wire destination handler in TransitApp.swift <!-- id:n86ouf9 -->
+- [x] 1. Add .acknowledgments case to NavigationDestination enum and wire destination handler in TransitApp.swift <!-- id:n86ouf9 -->
 
-- [ ] 2. Add Acknowledgments navigation row to SettingsView on both iOS (iOSGeneralSection) and macOS (macOSGeneralSection) <!-- id:n86oufa -->
+- [x] 2. Add Acknowledgments navigation row to SettingsView on both iOS (iOSGeneralSection) and macOS (macOSGeneralSection) <!-- id:n86oufa -->
   - Blocked-by: n86ouf9 (Add .acknowledgments case to NavigationDestination enum and wire destination handler in TransitApp.swift)
 
 ## Acknowledgments View
@@ -17,10 +17,10 @@ references:
   - Blocked-by: n86ouf9 (Add .acknowledgments case to NavigationDestination enum and wire destination handler in TransitApp.swift)
 
 - [ ] 4. Build AcknowledgmentsView with alphabetical package list, tappable repository URLs, and license text navigation — platform-specific layout (iOS List, macOS ScrollView with LiquidGlassSection) <!-- id:n86oufc -->
-  - Blocked-by: n86oufb (Define static package data array with all 24 dependencies (name, repository URL) verified against Package.resolved and each packages LICENSE file)
+  - Blocked-by: n86oufb (Define static package data array with all 24 dependencies (name, repository URL) verified against Package.resolved and each packages LICENSE file), against, against
 
 - [ ] 5. Build license text view displaying full Apache License 2.0 text, pushed via NavigationLink from AcknowledgmentsView <!-- id:n86oufd -->
-  - Blocked-by: n86oufc (Build AcknowledgmentsView with alphabetical package list, tappable repository URLs, and license text navigation — platform-specific layout (iOS List, macOS ScrollView with LiquidGlassSection))
+  - Blocked-by: n86oufc (Build AcknowledgmentsView with alphabetical package list, tappable repository URLs, and license text navigation — platform-specific layout (iOS List, macOS ScrollView with LiquidGlassSection)), package, license, package, license
 
 ## Verification
 
