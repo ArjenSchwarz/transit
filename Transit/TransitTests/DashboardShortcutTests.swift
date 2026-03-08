@@ -3,6 +3,7 @@ import Testing
 @testable import Transit
 
 @MainActor
+@Suite(.serialized)
 struct DashboardShortcutTests {
 
     // MARK: - Helpers

@@ -124,6 +124,7 @@ struct DashboardView: View {
         .focusedValue(\.showAddTask, $showAddTask)
         .focusedValue(\.isTaskSelected, selectedTask != nil)
         .focusable()
+        .focusEffectDisabled()
         .onKeyPress("t") {
             guard DashboardLogic.shouldHandleNewTaskShortcut(
                 showAddTask: showAddTask, selectedTask: selectedTask
