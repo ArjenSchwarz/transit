@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Acknowledgments and license text views now use `@Environment(\.resolvedTheme)` instead of duplicating theme resolution logic (T-294)
+
 ### Added
 
 - Acknowledgments view listing all 24 SPM dependencies with tappable repository URLs and platform-specific layout (iOS `List`, macOS `ScrollView` with `LiquidGlassSection`) (T-294)

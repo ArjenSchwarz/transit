@@ -46,12 +46,7 @@ private let acknowledgedPackages: [AcknowledgedPackage] = [
 // MARK: - Acknowledgments View
 
 struct AcknowledgmentsView: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
-
-    private var resolvedTheme: ResolvedTheme {
-        (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
-    }
+    @Environment(\.resolvedTheme) private var resolvedTheme
 
     var body: some View {
         #if os(macOS)
@@ -92,8 +87,6 @@ struct AcknowledgmentsView: View {
     // MARK: - macOS
 
     #if os(macOS)
-    private static let labelWidth: CGFloat = 120
-
     private var macOSLayout: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
@@ -148,12 +141,7 @@ struct AcknowledgmentsView: View {
 // MARK: - License Text View
 
 struct LicenseTextView: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
-
-    private var resolvedTheme: ResolvedTheme {
-        (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
-    }
+    @Environment(\.resolvedTheme) private var resolvedTheme
 
     var body: some View {
         ScrollView {
