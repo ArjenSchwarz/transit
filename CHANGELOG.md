@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Keyboard shortcut Cmd+N opens Add Task sheet on iOS/iPadOS via `.keyboardShortcut` on the toolbar button (T-36)
+- macOS File menu "New Task" (Cmd+N) via `CommandGroup(replacing: .newItem)` with `FocusedValueKey` wiring (T-36)
+- Bare "t" key shortcut opens Add Task sheet when dashboard has focus and no sheet is presented (T-36)
+- `DashboardLogic.shouldHandleNewTaskShortcut` static helper for testable guard logic (T-36)
+- `DashboardShortcutTests` covering all guard conditions for the bare "t" key shortcut (T-36)
 - Smolspec and task plan for keyboard shortcut to create new tasks: Cmd+N, bare "t" key, and macOS File menu integration (T-36)
 - Column sort order toggle: "Organized" mode groups tasks by project name, type (enum order), then display ID; "Recent" mode preserves existing date-based sort (T-364)
 - Sort order toolbar button with clock/list.bullet icons and accessibility support

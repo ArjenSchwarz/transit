@@ -138,6 +138,11 @@ struct TransitApp: App {
             .task { seedUITestDataIfNeeded() }
         }
         .modelContainer(container)
+        #if os(macOS)
+        .commands {
+            NewTaskCommand()
+        }
+        #endif
     }
 
     // MARK: - MCP Server
@@ -226,6 +231,24 @@ private enum UITestScenario: String {
     case empty
     case board
 }
+
+// MARK: - macOS Commands
+
+#if os(macOS)
+private struct NewTaskCommand: Commands {
+    @FocusedBinding(\.showAddTask) private var showAddTask
+
+    var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("New Task") {
+                showAddTask = true
+            }
+            .keyboardShortcut("n", modifiers: .command)
+            .disabled(showAddTask == nil || showAddTask == true)
+        }
+    }
+}
+#endif
 
 // MARK: - Scene Phase Tracking
 
