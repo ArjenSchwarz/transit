@@ -78,7 +78,8 @@ final class MilestoneService {
     func updateMilestone(
         _ milestone: Milestone,
         name: String?,
-        description: String?
+        description: String?,
+        clearDescription: Bool = false
     ) throws {
         if let name {
             let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -97,6 +98,8 @@ final class MilestoneService {
 
         if let description {
             milestone.milestoneDescription = description
+        } else if clearDescription {
+            milestone.milestoneDescription = nil
         }
 
         do {

@@ -144,6 +144,22 @@ struct MilestoneServiceTests {
         #expect(milestone.milestoneDescription == "Updated")
     }
 
+    @Test func updateMilestoneClearsDescriptionWithFlag() async throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+        let milestone = try await service.createMilestone(
+            name: "v1.0", description: "Original description", project: project
+        )
+
+        // Passing nil description without clearDescription should preserve the description
+        try service.updateMilestone(milestone, name: nil, description: nil)
+        #expect(milestone.milestoneDescription == "Original description")
+
+        // Passing clearDescription: true should clear the description
+        try service.updateMilestone(milestone, name: nil, description: nil, clearDescription: true)
+        #expect(milestone.milestoneDescription == nil)
+    }
+
     @Test func updateMilestoneRejectsEmptyName() async throws {
         let (service, context) = try makeService()
         let project = makeProject(in: context)
