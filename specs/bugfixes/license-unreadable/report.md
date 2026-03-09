@@ -1,7 +1,7 @@
 # Bugfix Report: license-unreadable
 
 **Ticket**: T-402
-**Date**: 2026-03-10
+**Date**: 2026-03-09
 **Severity**: Low (visual/cosmetic)
 
 ## Problem

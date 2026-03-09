@@ -188,7 +188,7 @@ struct LicenseTextView: View {
     #if os(macOS)
     private var macOSLayout: some View {
         ScrollView {
-            LiquidGlassSection(title: "Apache License 2.0") {
+            LiquidGlassSection(title: "Full Text") {
                 Text(apacheLicense2Text)
                     .font(.caption.monospaced())
                     .textSelection(.enabled)
