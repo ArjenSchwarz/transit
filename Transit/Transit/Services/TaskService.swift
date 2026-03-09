@@ -118,20 +118,20 @@ final class TaskService {
     ) throws {
         StatusEngine.applyTransition(task: task, to: newStatus)
 
-        if let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-           let commentAuthor, let commentService {
-            try commentService.addComment(
-                to: task,
-                content: comment,
-                authorName: commentAuthor,
-                isAgent: true,
-                save: false
-            )
-        }
-
-        guard save else { return }
-
         do {
+            if let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               let commentAuthor, let commentService {
+                try commentService.addComment(
+                    to: task,
+                    content: comment,
+                    authorName: commentAuthor,
+                    isAgent: true,
+                    save: false
+                )
+            }
+
+            guard save else { return }
+
             try modelContext.save()
         } catch {
             // Note: all services share mainContext, so rollback discards all

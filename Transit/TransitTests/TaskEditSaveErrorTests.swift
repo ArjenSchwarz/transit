@@ -336,4 +336,49 @@ struct TaskEditSaveErrorTests {
         #expect(task.milestone?.id == milestoneB.id)
         #expect(task.status == .planning)
     }
+
+    @Test func rollbackAfterPartialDeferredMutationsRevertsAll() async throws {
+        let (service, context) = try makeService()
+        let milestoneService = makeMilestoneService(context: context)
+        let projectA = makeProject(in: context, name: "Project A")
+        let projectB = makeProject(in: context, name: "Project B")
+        let milestoneB = try await milestoneService.createMilestone(
+            name: "M-B",
+            description: nil,
+            project: projectB
+        )
+        let task = try await service.createTask(
+            name: "Original",
+            description: "Original desc",
+            type: .feature,
+            project: projectA
+        )
+        try context.save()
+
+        // Simulate TaskEditView.save() where a later step fails:
+        // mutate properties and defer service saves
+        task.name = "Updated"
+        task.taskDescription = "Updated desc"
+        task.type = .bug
+        try service.changeProject(task: task, to: projectB, save: false)
+        try milestoneService.setMilestone(milestoneB, on: task, save: false)
+        try service.updateStatus(task: task, to: .planning, save: false)
+
+        // In-memory state reflects all changes
+        #expect(task.name == "Updated")
+        #expect(task.project?.id == projectB.id)
+        #expect(task.milestone?.id == milestoneB.id)
+        #expect(task.status == .planning)
+
+        // Simulate failure: rollback without saving (as TaskEditView.save() does on error)
+        context.rollback()
+
+        // All changes reverted — the atomic guarantee
+        #expect(task.name == "Original")
+        #expect(task.taskDescription == "Original desc")
+        #expect(task.type == .feature)
+        #expect(task.project?.id == projectA.id)
+        #expect(task.milestone == nil)
+        #expect(task.status == .idea)
+    }
 }
