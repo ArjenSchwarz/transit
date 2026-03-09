@@ -467,30 +467,21 @@ extension MCPToolHandler {
 
         let previousStatus = milestone.statusRawValue
 
-        // Update status if provided
-        if let statusRaw = args["status"] as? String {
-            guard let newStatus = MilestoneStatus(rawValue: statusRaw) else {
-                let valid = MilestoneStatus.allCases.map(\.rawValue).joined(separator: ", ")
-                return errorResult("Invalid status: \(statusRaw). Must be one of: \(valid)")
-            }
-            do {
-                try milestoneService.updateStatus(milestone, to: newStatus)
-            } catch {
-                return errorResult("Status update failed: \(error)")
-            }
+        // Validate all inputs before applying any changes (T-391: avoid partial updates)
+        let validated: ValidatedMilestoneUpdate
+        switch validateMilestoneUpdate(args, milestone: milestone) {
+        case .valid(let update): validated = update
+        case .invalid(let error): return error
         }
 
-        // Update name/description if provided
-        let newName = args["name"] as? String
-        let newDescription = args["description"] as? String
-        if newName != nil || newDescription != nil {
+        // Apply all changes in memory, then save atomically
+        applyMilestoneUpdate(validated, to: milestone)
+
+        if validated.hasChanges {
             do {
-                try milestoneService.updateMilestone(milestone, name: newName, description: newDescription)
-            } catch MilestoneService.Error.duplicateName {
-                return errorResult("A milestone with this name already exists in the project")
-            } catch MilestoneService.Error.invalidName {
-                return errorResult("Milestone name cannot be empty")
+                try projectService.context.save()
             } catch {
+                projectService.context.rollback()
                 return errorResult("Update failed: \(error)")
             }
         }
@@ -499,6 +490,62 @@ extension MCPToolHandler {
         var response = milestoneToDict(milestone, formatter: formatter)
         response["previousStatus"] = previousStatus
         return textResult(IntentHelpers.encodeJSON(response))
+    }
+
+    private struct ValidatedMilestoneUpdate {
+        let status: MilestoneStatus?
+        let name: String?
+        let description: String?
+        var hasChanges: Bool { status != nil || name != nil || description != nil }
+    }
+
+    private enum MilestoneValidation {
+        case valid(ValidatedMilestoneUpdate)
+        case invalid(MCPToolResult)
+    }
+
+    private func validateMilestoneUpdate(
+        _ args: [String: Any], milestone: Milestone
+    ) -> MilestoneValidation {
+        var newStatus: MilestoneStatus?
+        if let statusRaw = args["status"] as? String {
+            guard let parsed = MilestoneStatus(rawValue: statusRaw) else {
+                let valid = MilestoneStatus.allCases.map(\.rawValue).joined(separator: ", ")
+                return .invalid(errorResult("Invalid status: \(statusRaw). Must be one of: \(valid)"))
+            }
+            newStatus = parsed
+        }
+
+        var trimmedName: String?
+        if let newName = args["name"] as? String {
+            let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                return .invalid(errorResult("Milestone name cannot be empty"))
+            }
+            if let project = milestone.project,
+               milestoneService.milestoneNameExists(trimmed, in: project, excluding: milestone.id) {
+                return .invalid(errorResult("A milestone with this name already exists in the project"))
+            }
+            trimmedName = trimmed
+        }
+
+        return .valid(ValidatedMilestoneUpdate(
+            status: newStatus, name: trimmedName, description: args["description"] as? String
+        ))
+    }
+
+    private func applyMilestoneUpdate(_ update: ValidatedMilestoneUpdate, to milestone: Milestone) {
+        if let newStatus = update.status {
+            milestone.statusRawValue = newStatus.rawValue
+            milestone.lastStatusChangeDate = Date.now
+            milestone.completionDate = newStatus.isTerminal ? Date.now : nil
+        }
+        if let name = update.name {
+            milestone.name = name
+        }
+        if let description = update.description {
+            milestone.milestoneDescription = description
+        }
     }
 }
 

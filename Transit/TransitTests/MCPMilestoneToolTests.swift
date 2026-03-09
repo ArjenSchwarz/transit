@@ -258,6 +258,33 @@ struct MCPMilestoneToolTests {
         #expect(try MCPTestHelpers.isError(response))
     }
 
+    // T-391: update_milestone must not partially apply changes on failure.
+    // When both status and name are provided, and the name update fails (e.g., duplicate),
+    // the status change must also be rolled back so the caller gets an error without side effects.
+    @Test func updateMilestoneStatusAndDuplicateNameIsAtomic() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(name: "Existing", description: nil, project: project)
+        let target = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+
+        let targetDisplayId = try #require(target.permanentDisplayId)
+
+        // Attempt to change status to "done" AND rename to "Existing" (duplicate) in one call
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "update_milestone",
+            arguments: ["displayId": targetDisplayId, "status": "done", "name": "Existing"]
+        ))
+
+        // The tool should report an error
+        #expect(try MCPTestHelpers.isError(response))
+
+        // The milestone's status must still be "open" — the status change must NOT have been persisted
+        let refetched = try env.milestoneService.findByDisplayID(targetDisplayId)
+        #expect(refetched.statusRawValue == "open", "Status was partially applied despite name update failure")
+        #expect(refetched.name == "v1.0", "Name should remain unchanged")
+        #expect(refetched.completionDate == nil, "completionDate should remain nil")
+    }
+
     // MARK: - delete_milestone
 
     @Test func deleteMilestoneSuccess() async throws {
