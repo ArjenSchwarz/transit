@@ -133,7 +133,8 @@ struct MilestoneEditView: View {
                 try milestoneService.updateMilestone(
                     milestone,
                     name: trimmedName,
-                    description: trimmedDesc.isEmpty ? nil : trimmedDesc
+                    description: trimmedDesc.isEmpty ? nil : trimmedDesc,
+                    clearDescription: trimmedDesc.isEmpty
                 )
             } catch {
                 errorMessage = error.localizedDescription
