@@ -279,20 +279,23 @@ extension TaskEditView {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         guard !trimmedName.isEmpty else { return }
 
-        task.name = trimmedName
-
         let trimmedDesc = taskDescription.trimmingCharacters(in: .whitespaces)
-        task.taskDescription = trimmedDesc.isEmpty ? nil : trimmedDesc
-
-        task.type = selectedType
-        task.metadata = metadata
 
         do {
-            // Update project if changed — clears milestone via Decision 6
+            // Update project if changed — clears milestone via Decision 6.
+            // This saves internally, so it must happen before direct mutations
+            // to avoid persisting partial edits if a later step fails.
             if let newProjectID = selectedProjectID, task.project?.id != newProjectID,
                let newProject = projects.first(where: { $0.id == newProjectID }) {
                 try taskService.changeProject(task: task, to: newProject)
             }
+
+            // Apply direct property mutations after project change succeeds
+            // but before milestone/status so rollback covers everything.
+            task.name = trimmedName
+            task.taskDescription = trimmedDesc.isEmpty ? nil : trimmedDesc
+            task.type = selectedType
+            task.metadata = metadata
 
             // Update milestone via service for validation
             try milestoneService.setMilestone(selectedMilestone, on: task)

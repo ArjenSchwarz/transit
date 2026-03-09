@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- TaskEditView `save()` no longer partially persists direct property mutations (name, description, type, metadata) when a later service call fails; mutations are now applied inside the `do` block after intermediate saves so `rollback()` can revert them (T-378)
+
 ### Added
 
 - Acknowledgments view listing all 24 SPM dependencies with tappable repository URLs and platform-specific layout (iOS `List`, macOS `ScrollView` with `LiquidGlassSection`), using `@Environment(\.resolvedTheme)` for theme consistency (T-294)

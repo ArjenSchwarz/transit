@@ -3,11 +3,10 @@ import SwiftData
 import Testing
 @testable import Transit
 
-/// Regression tests for T-148: Task edits must not silently discard save failures.
-///
-/// The fix ensures TaskEditView.save() uses do/catch instead of try?, surfaces
-/// errors via an alert, and rolls back the model context on failure so in-memory
-/// state is not left inconsistent.
+/// Regression tests for TaskEditView.save() error handling:
+/// - T-148: Task edits must not silently discard save failures.
+/// - T-378: Direct property mutations must not be persisted by intermediate
+///   service saves if a later step fails.
 @MainActor @Suite(.serialized)
 struct TaskEditSaveErrorTests {
 
@@ -114,6 +113,84 @@ struct TaskEditSaveErrorTests {
         // The critical assertion: updateStatus is a throwing function.
         // If it were called with try? (the old bug), errors would be lost.
         // This test documents the contract that the view depends on.
+    }
+
+    // MARK: - T-378: Intermediate save must not persist partial edits
+
+    @Test func directMutationsBeforeServiceCallArePersistedByIntermediateSave() async throws {
+        // This test demonstrates the T-378 bug: if direct property mutations (name, type, etc.)
+        // are applied before a service call that saves, those mutations get persisted even if
+        // a later step fails. Rollback cannot undo an already-committed save.
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+        let task = try await service.createTask(
+            name: "Original",
+            description: "Original desc",
+            type: .feature,
+            project: project
+        )
+        try context.save()
+
+        // Simulate the OLD buggy pattern: mutate properties, then call a service that saves
+        task.name = "Changed"
+        task.taskDescription = "Changed desc"
+        task.type = .bug
+
+        // A service call that internally saves — this would persist the above mutations
+        let project2 = Project(
+            name: "Project 2",
+            description: "Another project",
+            gitRepo: nil,
+            colorHex: "#00FF00"
+        )
+        context.insert(project2)
+        try service.changeProject(task: task, to: project2)
+
+        // At this point, name/desc/type are persisted alongside the project change.
+        // A rollback no longer reverts them because they were included in the save.
+        context.rollback()
+
+        // These assertions prove the bug: rollback does NOT revert the direct mutations
+        // because they were already saved by changeProject's internal save.
+        #expect(task.name == "Changed")
+        #expect(task.taskDescription == "Changed desc")
+        #expect(task.type == .bug)
+    }
+
+    @Test func directMutationsAfterServiceCallAreRevertedByRollback() async throws {
+        // This test verifies the T-378 fix: when direct mutations happen AFTER
+        // intermediate service saves, rollback correctly reverts them.
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+        let task = try await service.createTask(
+            name: "Original",
+            description: "Original desc",
+            type: .feature,
+            project: project
+        )
+        try context.save()
+
+        // Simulate the FIXED pattern: service call first, then direct mutations
+        let project2 = Project(
+            name: "Project 2",
+            description: "Another project",
+            gitRepo: nil,
+            colorHex: "#00FF00"
+        )
+        context.insert(project2)
+        try service.changeProject(task: task, to: project2)
+
+        // Direct mutations happen after the service save
+        task.name = "Changed"
+        task.taskDescription = "Changed desc"
+        task.type = .bug
+
+        // Rollback reverts the direct mutations (they haven't been saved yet)
+        context.rollback()
+
+        #expect(task.name == "Original")
+        #expect(task.taskDescription == "Original desc")
+        #expect(task.type == .feature)
     }
 
     // MARK: - Metadata rollback
