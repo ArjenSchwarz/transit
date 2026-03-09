@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - TaskEditView `save()` no longer partially persists direct property mutations (name, description, type, metadata) when a later service call fails; mutations are now applied inside the `do` block after intermediate saves so `rollback()` can revert them (T-378)
+- MCP `update_milestone` now validates all inputs (status, name, description) before applying any changes, preventing partial updates when a later validation fails (e.g., duplicate name persisting a status change) (T-391)
+- Pre-existing build error in `DashboardShortcutTests` where `nil` was passed for non-optional `description` parameter
 
 ### Added
 
