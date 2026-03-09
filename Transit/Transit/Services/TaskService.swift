@@ -113,22 +113,25 @@ final class TaskService {
         to newStatus: TaskStatus,
         comment: String? = nil,
         commentAuthor: String? = nil,
-        commentService: CommentService? = nil
+        commentService: CommentService? = nil,
+        save: Bool = true
     ) throws {
         StatusEngine.applyTransition(task: task, to: newStatus)
 
-        do {
-            if let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-               let commentAuthor, let commentService {
-                try commentService.addComment(
-                    to: task,
-                    content: comment,
-                    authorName: commentAuthor,
-                    isAgent: true,
-                    save: false
-                )
-            }
+        if let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           let commentAuthor, let commentService {
+            try commentService.addComment(
+                to: task,
+                content: comment,
+                authorName: commentAuthor,
+                isAgent: true,
+                save: false
+            )
+        }
 
+        guard save else { return }
+
+        do {
             try modelContext.save()
         } catch {
             // Note: all services share mainContext, so rollback discards all
@@ -167,11 +170,13 @@ final class TaskService {
 
     /// Changes a task's project. Clears milestone before the change to enforce
     /// Decision 6 (milestones are scoped to a project).
-    func changeProject(task: TransitTask, to newProject: Project) throws {
+    func changeProject(task: TransitTask, to newProject: Project, save: Bool = true) throws {
         if task.project?.id != newProject.id {
             task.milestone = nil
         }
         task.project = newProject
+
+        guard save else { return }
 
         do {
             try modelContext.save()

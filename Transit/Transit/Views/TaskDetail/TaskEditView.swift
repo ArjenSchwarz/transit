@@ -282,12 +282,14 @@ extension TaskEditView {
         let trimmedDesc = taskDescription.trimmingCharacters(in: .whitespaces)
 
         do {
-            // Update project if changed — clears milestone via Decision 6.
-            // This saves internally, so it must happen before direct mutations
-            // to avoid persisting partial edits if a later step fails.
+            // All mutations use save: false to defer persistence.
+            // A single modelContext.save() at the end makes the operation atomic —
+            // either everything persists or everything rolls back.
+
+            // Update project if changed — clears milestone via Decision 6
             if let newProjectID = selectedProjectID, task.project?.id != newProjectID,
                let newProject = projects.first(where: { $0.id == newProjectID }) {
-                try taskService.changeProject(task: task, to: newProject)
+                try taskService.changeProject(task: task, to: newProject, save: false)
             }
 
             // Apply direct property mutations after project change succeeds
@@ -298,14 +300,14 @@ extension TaskEditView {
             task.metadata = metadata
 
             // Update milestone via service for validation
-            try milestoneService.setMilestone(selectedMilestone, on: task)
+            try milestoneService.setMilestone(selectedMilestone, on: task, save: false)
 
-            // Status change goes through TaskService for side effects (which saves internally)
+            // Status change goes through TaskService for side effects
             if selectedStatus != task.status {
-                try taskService.updateStatus(task: task, to: selectedStatus)
-            } else {
-                try modelContext.save()
+                try taskService.updateStatus(task: task, to: selectedStatus, save: false)
             }
+
+            try modelContext.save()
             dismissAll()
         } catch {
             modelContext.rollback()

@@ -7,6 +7,9 @@ import Testing
 /// - T-148: Task edits must not silently discard save failures.
 /// - T-378: Direct property mutations must not be persisted by intermediate
 ///   service saves if a later step fails.
+/// - T-361: TaskEditView.save() must be atomic — all mutations
+///   (project, milestone, status, properties) persist in a single save or
+///   roll back together.
 @MainActor @Suite(.serialized)
 struct TaskEditSaveErrorTests {
 
@@ -20,9 +23,15 @@ struct TaskEditSaveErrorTests {
         return (service, context)
     }
 
-    private func makeProject(in context: ModelContext) -> Project {
+    private func makeMilestoneService(context: ModelContext) -> MilestoneService {
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        return MilestoneService(modelContext: context, displayIDAllocator: allocator)
+    }
+
+    private func makeProject(in context: ModelContext, name: String = "Test Project") -> Project {
         let project = Project(
-            name: "Test Project",
+            name: name,
             description: "A test project",
             gitRepo: nil,
             colorHex: "#FF0000"
@@ -216,5 +225,115 @@ struct TaskEditSaveErrorTests {
 
         #expect(task.metadata["git.branch"] == "main")
         #expect(task.metadata["agent.id"] == nil)
+    }
+
+    // MARK: - T-361: Atomic save (save: false defers persistence)
+
+    @Test func changeProjectWithSaveFalseDoesNotPersist() async throws {
+        let (service, context) = try makeService()
+        let projectA = makeProject(in: context, name: "Project A")
+        let projectB = makeProject(in: context, name: "Project B")
+        let task = try await service.createTask(
+            name: "Task",
+            description: nil,
+            type: .feature,
+            project: projectA
+        )
+        try context.save()
+
+        // Change project without saving
+        try service.changeProject(task: task, to: projectB, save: false)
+
+        // In-memory state reflects the change
+        #expect(task.project?.id == projectB.id)
+
+        // Rollback reverts since save was deferred
+        context.rollback()
+        #expect(task.project?.id == projectA.id)
+    }
+
+    @Test func setMilestoneWithSaveFalseDoesNotPersist() async throws {
+        let (service, context) = try makeService()
+        let milestoneService = makeMilestoneService(context: context)
+        let project = makeProject(in: context)
+        let task = try await service.createTask(
+            name: "Task",
+            description: nil,
+            type: .feature,
+            project: project
+        )
+        let milestone = try await milestoneService.createMilestone(
+            name: "M1",
+            description: nil,
+            project: project
+        )
+        try context.save()
+
+        // Set milestone without saving
+        try milestoneService.setMilestone(milestone, on: task, save: false)
+        #expect(task.milestone?.id == milestone.id)
+
+        // Rollback reverts since save was deferred
+        context.rollback()
+        #expect(task.milestone == nil)
+    }
+
+    @Test func updateStatusWithSaveFalseDoesNotPersist() async throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+        let task = try await service.createTask(
+            name: "Task",
+            description: nil,
+            type: .feature,
+            project: project
+        )
+        try context.save()
+
+        #expect(task.status == .idea)
+
+        // Change status without saving
+        try service.updateStatus(task: task, to: .planning, save: false)
+        #expect(task.status == .planning)
+
+        // Rollback reverts since save was deferred
+        context.rollback()
+        #expect(task.status == .idea)
+    }
+
+    @Test func atomicSaveCommitsAllDeferredChanges() async throws {
+        let (service, context) = try makeService()
+        let milestoneService = makeMilestoneService(context: context)
+        let projectA = makeProject(in: context, name: "Project A")
+        let projectB = makeProject(in: context, name: "Project B")
+        let milestoneB = try await milestoneService.createMilestone(
+            name: "M-B",
+            description: nil,
+            project: projectB
+        )
+        let task = try await service.createTask(
+            name: "Original",
+            description: nil,
+            type: .feature,
+            project: projectA
+        )
+        try context.save()
+
+        // Simulate TaskEditView.save() atomic pattern:
+        // mutate properties, defer all service saves, single save at end
+        task.name = "Updated"
+        task.type = .bug
+        try service.changeProject(task: task, to: projectB, save: false)
+        try milestoneService.setMilestone(milestoneB, on: task, save: false)
+        try service.updateStatus(task: task, to: .planning, save: false)
+
+        // Single atomic save
+        try context.save()
+
+        // All changes persisted together
+        #expect(task.name == "Updated")
+        #expect(task.type == .bug)
+        #expect(task.project?.id == projectB.id)
+        #expect(task.milestone?.id == milestoneB.id)
+        #expect(task.status == .planning)
     }
 }
