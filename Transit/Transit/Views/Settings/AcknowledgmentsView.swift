@@ -162,22 +162,48 @@ struct LicenseTextView: View {
     @Environment(\.resolvedTheme) private var resolvedTheme
 
     var body: some View {
-        ScrollView {
-            Text(apacheLicense2Text)
-                .font(.caption.monospaced())
-                .textSelection(.enabled)
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
+        #if os(macOS)
+        macOSLayout
+        #else
+        iOSLayout
+        #endif
+    }
+
+    #if os(iOS)
+    private var iOSLayout: some View {
+        List {
+            Section {
+                Text(apacheLicense2Text)
+                    .font(.caption.monospaced())
+                    .textSelection(.enabled)
+            }
         }
         .scrollContentBackground(.hidden)
         .background { BoardBackground(theme: resolvedTheme) }
         .navigationTitle("Apache License 2.0")
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
-        #else
-        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-        #endif
     }
+    #endif
+
+    #if os(macOS)
+    private var macOSLayout: some View {
+        ScrollView {
+            LiquidGlassSection(title: "Apache License 2.0") {
+                Text(apacheLicense2Text)
+                    .font(.caption.monospaced())
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(32)
+            .frame(maxWidth: 760)
+            .frame(maxWidth: .infinity)
+        }
+        .scrollContentBackground(.hidden)
+        .background { BoardBackground(theme: resolvedTheme) }
+        .navigationTitle("Apache License 2.0")
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+    }
+    #endif
 }
 
 private let apacheLicense2Text = """
