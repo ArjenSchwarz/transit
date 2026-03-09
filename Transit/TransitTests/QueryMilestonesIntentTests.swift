@@ -167,6 +167,22 @@ struct QueryMilestonesIntentTests {
 
     // MARK: - Error Cases
 
+    @Test func fractionalDisplayIdReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        // 1.9 should NOT silently truncate to 1
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1.9}", milestoneService: svc.milestone,
+            projectService: svc.project, modelContext: svc.context
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("integer") == true)
+    }
+
     @Test func malformedJSONReturnsInvalidInput() throws {
         let svc = try makeServices()
 

@@ -52,8 +52,8 @@ struct DeleteMilestoneIntent: AppIntent {
             let displayId: Int
             if let intVal = displayIdValue as? Int {
                 displayId = intVal
-            } else if let doubleVal = displayIdValue as? Double {
-                displayId = Int(doubleVal)
+            } else if let doubleVal = displayIdValue as? Double, let intVal = Int(exactly: doubleVal) {
+                displayId = intVal
             } else {
                 return IntentError.invalidInput(hint: "displayId must be an integer").json
             }
