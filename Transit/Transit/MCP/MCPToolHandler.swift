@@ -149,7 +149,7 @@ final class MCPToolHandler {
 
         // Pre-validate milestone before creating the task to avoid orphans.
         var resolvedMilestone: Milestone?
-        if let milestoneDisplayId = args["milestoneDisplayId"] as? Int {
+        if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
                 resolvedMilestone = try milestoneService.findByDisplayID(milestoneDisplayId)
             } catch MilestoneService.Error.milestoneNotFound {
@@ -271,7 +271,7 @@ final class MCPToolHandler {
 
         // Resolve milestone filter
         var milestoneFilter: Set<UUID>?
-        if let milestoneDisplayId = args["milestoneDisplayId"] as? Int {
+        if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
                 milestoneFilter = [try milestoneService.findByDisplayID(milestoneDisplayId).id]
             } catch {
@@ -311,7 +311,7 @@ final class MCPToolHandler {
         )
 
         // Single-task lookup by displayId — returns early with detailed response
-        if let displayId = args["displayId"] as? Int {
+        if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
             return handleDisplayIdLookup(displayId, filters: filters)
         }
 
@@ -397,7 +397,7 @@ extension MCPToolHandler {
 
     private func handleQueryMilestones(_ args: [String: Any]) -> MCPToolResult {
         // Single-milestone lookup by displayId
-        if let displayId = args["displayId"] as? Int {
+        if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
             do {
                 let milestone = try milestoneService.findByDisplayID(displayId)
                 let formatter = ISO8601DateFormatter()
@@ -554,7 +554,7 @@ extension MCPToolHandler {
             } catch {
                 return errorResult("Failed to clear milestone: \(error)")
             }
-        } else if let milestoneDisplayId = args["milestoneDisplayId"] as? Int {
+        } else if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
                 let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)
                 try milestoneService.setMilestone(milestone, on: task)
@@ -694,7 +694,7 @@ extension MCPToolHandler {
     }
 
     private func resolveTask(from args: [String: Any]) -> Result<TransitTask, ResolveError> {
-        if let displayId = args["displayId"] as? Int {
+        if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
             do {
                 return .success(try taskService.findByDisplayID(displayId))
             } catch {
@@ -722,7 +722,7 @@ extension MCPToolHandler {
     }
 
     private func resolveMilestone(from args: [String: Any]) -> Result<Milestone, ResolveError> {
-        if let displayId = args["displayId"] as? Int {
+        if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
             do {
                 return .success(try milestoneService.findByDisplayID(displayId))
             } catch {
