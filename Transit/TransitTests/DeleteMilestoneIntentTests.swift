@@ -142,6 +142,43 @@ struct DeleteMilestoneIntentTests {
         #expect(parsed["error"] as? String == "MILESTONE_NOT_FOUND")
     }
 
+    @Test func fractionalDisplayIdReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        // 1.9 should NOT silently truncate to 1 and delete the wrong milestone
+        let input = """
+        {"displayId":1.9}
+        """
+
+        let result = DeleteMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("integer") == true)
+    }
+
+    @Test func wholeNumberDoubleDisplayIdSucceeds() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        // 1.0 is a valid integer value
+        let input = """
+        {"displayId":1.0}
+        """
+
+        let result = DeleteMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["deleted"] as? Bool == true)
+    }
+
     @Test func noIdentifierReturnsInvalidInput() throws {
         let svc = try makeServices()
 

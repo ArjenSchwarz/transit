@@ -215,6 +215,43 @@ struct UpdateMilestoneIntentTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
     }
 
+    @Test func fractionalDisplayIdReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        // 1.9 should NOT silently truncate to 1
+        let input = """
+        {"displayId":1.9,"name":"v2.0"}
+        """
+
+        let result = UpdateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("integer") == true)
+    }
+
+    @Test func wholeNumberDoubleDisplayIdSucceeds() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        // 1.0 is a valid integer value even though JSON parses it as Double
+        let input = """
+        {"displayId":1.0,"name":"v1.1"}
+        """
+
+        let result = UpdateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["name"] as? String == "v1.1")
+    }
+
     @Test func malformedJSONReturnsInvalidInput() throws {
         let svc = try makeServices()
 
