@@ -143,7 +143,7 @@ final class MilestoneService {
     /// Central validation point for milestone assignment (Decision 8).
     /// Validates that the task has a project and that the milestone belongs
     /// to the same project. Pass nil to unassign. Saves the model context.
-    func setMilestone(_ milestone: Milestone?, on task: TransitTask) throws {
+    func setMilestone(_ milestone: Milestone?, on task: TransitTask, save: Bool = true) throws {
         if let milestone {
             guard task.project != nil else {
                 throw Error.projectRequired
@@ -155,6 +155,8 @@ final class MilestoneService {
         }
 
         task.milestone = milestone
+
+        guard save else { return }
 
         do {
             try modelContext.save()

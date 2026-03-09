@@ -113,7 +113,8 @@ final class TaskService {
         to newStatus: TaskStatus,
         comment: String? = nil,
         commentAuthor: String? = nil,
-        commentService: CommentService? = nil
+        commentService: CommentService? = nil,
+        save: Bool = true
     ) throws {
         StatusEngine.applyTransition(task: task, to: newStatus)
 
@@ -128,6 +129,8 @@ final class TaskService {
                     save: false
                 )
             }
+
+            guard save else { return }
 
             try modelContext.save()
         } catch {
@@ -167,11 +170,13 @@ final class TaskService {
 
     /// Changes a task's project. Clears milestone before the change to enforce
     /// Decision 6 (milestones are scoped to a project).
-    func changeProject(task: TransitTask, to newProject: Project) throws {
+    func changeProject(task: TransitTask, to newProject: Project, save: Bool = true) throws {
         if task.project?.id != newProject.id {
             task.milestone = nil
         }
         task.project = newProject
+
+        guard save else { return }
 
         do {
             try modelContext.save()
