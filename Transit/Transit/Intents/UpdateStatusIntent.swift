@@ -50,7 +50,7 @@ struct UpdateStatusIntent: AppIntent {
         }
 
         let task: TransitTask
-        if let displayId = json["displayId"] as? Int {
+        if let displayId = IntentHelpers.parseIntValue(json["displayId"]) {
             do {
                 task = try taskService.findByDisplayID(displayId)
             } catch {

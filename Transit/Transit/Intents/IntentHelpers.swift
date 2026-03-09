@@ -4,6 +4,16 @@ import Foundation
 /// Nonisolated because these are pure functions that only use Foundation types.
 nonisolated enum IntentHelpers {
 
+    /// Extracts an integer from a value that may be `Int`, `Double`, or `NSNumber`.
+    /// JSONSerialization and MCP argument passing may deliver JSON integers as `Double`.
+    /// Returns `nil` for non-numeric or non-integral values (e.g. 42.5).
+    static func parseIntValue(_ value: Any?) -> Int? {
+        guard let value else { return nil }
+        if let intVal = value as? Int { return intVal }
+        if let doubleVal = value as? Double { return Int(exactly: doubleVal) }
+        return nil
+    }
+
     /// Parses a JSON string into a dictionary. Returns nil for malformed input.
     static func parseJSON(_ input: String) -> [String: Any]? {
         guard let data = input.data(using: .utf8),
@@ -65,7 +75,7 @@ nonisolated enum IntentHelpers {
         from json: [String: Any],
         taskService: TaskService
     ) -> Result<TransitTask, IntentError> {
-        if let displayId = json["displayId"] as? Int {
+        if let displayId = parseIntValue(json["displayId"]) {
             do {
                 return .success(try taskService.findByDisplayID(displayId))
             } catch {
@@ -88,8 +98,8 @@ nonisolated enum IntentHelpers {
         milestoneService: MilestoneService,
         projectService: ProjectService
     ) -> Result<Milestone, IntentError> {
-        if let displayIdValue = json["displayId"] {
-            guard let displayId = displayIdValue as? Int ?? (displayIdValue as? Double).map(Int.init) else {
+        if json["displayId"] != nil {
+            guard let displayId = parseIntValue(json["displayId"]) else {
                 return .failure(.invalidInput(hint: "displayId must be an integer"))
             }
             do {
@@ -143,7 +153,7 @@ nonisolated enum IntentHelpers {
         to task: TransitTask,
         milestoneService: MilestoneService
     ) -> String? {
-        if let milestoneDisplayId = json["milestoneDisplayId"] as? Int {
+        if let milestoneDisplayId = parseIntValue(json["milestoneDisplayId"]) {
             do {
                 let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)
                 try milestoneService.setMilestone(milestone, on: task)

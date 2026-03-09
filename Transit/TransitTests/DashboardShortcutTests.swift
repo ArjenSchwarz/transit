@@ -9,7 +9,7 @@ struct DashboardShortcutTests {
     // MARK: - Helpers
 
     private func makeProject(name: String = "Test") -> Project {
-        Project(name: name, description: nil, gitRepo: nil, colorHex: "#FF0000")
+        Project(name: name, description: "", gitRepo: nil, colorHex: "#FF0000")
     }
 
     // MARK: - shouldHandleNewTaskShortcut
