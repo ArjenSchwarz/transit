@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- `IntentHelpers.resolveMilestone` and `DeleteMilestoneIntent` now reject fractional `displayId` values (e.g., `1.9`) instead of silently truncating to the nearest integer, preventing operations on the wrong milestone (T-349)
+- `IntentHelpers.resolveMilestone`, `DeleteMilestoneIntent`, and `QueryMilestonesIntent` now reject fractional `displayId` values (e.g., `1.9`) instead of silently truncating to the nearest integer, preventing operations on the wrong milestone (T-349)
 - `CreateTaskIntent` no longer persists an orphaned task when milestone assignment fails — milestone is now resolved before task creation (T-260)
 
 ### Added

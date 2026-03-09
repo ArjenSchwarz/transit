@@ -22,11 +22,11 @@ When a fractional number (e.g., `1.9`) was passed as `displayId` in milestone in
 
 ## Discovered Root Cause
 
-Two locations use `Int.init(_: Double)` to convert JSON-parsed Double values to Int for displayId lookup. This initializer truncates fractional values (e.g., `Int(1.9)` returns `1`) instead of rejecting them.
+Three locations use `Int.init(_: Double)` to convert JSON-parsed Double values to Int for displayId lookup. This initializer truncates fractional values (e.g., `Int(1.9)` returns `1`) instead of rejecting them.
 
 **Defect type:** Missing validation
 
-**Why it occurred:** `Int.init(_: Double)` was used instead of `Int(exactly:)`. The `CreateTaskIntent` was already fixed to use `Int(exactly:)` but the fix was not applied to the other two locations.
+**Why it occurred:** `Int.init(_: Double)` was used instead of `Int(exactly:)`. The `CreateTaskIntent` was already fixed to use `Int(exactly:)` but the fix was not applied to the other three locations.
 
 **Contributing factors:** JSON numbers are parsed as `Double` by `JSONSerialization`, requiring an explicit Double-to-Int conversion step that needs careful handling.
 
@@ -35,6 +35,7 @@ Two locations use `Int.init(_: Double)` to convert JSON-parsed Double values to 
 **Changes made:**
 - `Transit/Transit/Intents/IntentHelpers.swift:92` — Changed `.map(Int.init)` to `.flatMap({ Int(exactly: $0) })`
 - `Transit/Transit/Intents/DeleteMilestoneIntent.swift:55-56` — Changed `Int(doubleVal)` to `Int(exactly: doubleVal)` with guard
+- `Transit/Transit/Intents/QueryMilestonesIntent.swift:66` — Changed `Int(doubleVal)` to `Int(exactly: doubleVal)` with guard
 
 **Approach rationale:** `Int(exactly:)` returns `nil` when the Double value is not exactly representable as an Int, causing the guard to fail and return an `INVALID_INPUT` error. Whole-number doubles (e.g., `1.0`) still convert successfully.
 
@@ -47,8 +48,9 @@ Two locations use `Int.init(_: Double)` to convert JSON-parsed Double values to 
 **Test files:**
 - `Transit/TransitTests/UpdateMilestoneIntentTests.swift`
 - `Transit/TransitTests/DeleteMilestoneIntentTests.swift`
+- `Transit/TransitTests/QueryMilestonesIntentTests.swift`
 
-**Test names:** `fractionalDisplayIdReturnsInvalidInput`, `wholeNumberDoubleDisplayIdSucceeds`
+**Test names:** `fractionalDisplayIdReturnsInvalidInput`, `wholeNumberDoubleDisplayIdSucceeds` (Update/Delete), `fractionalDisplayIdReturnsInvalidInput` (Query)
 
 **What they verify:** Fractional displayId values (e.g., `1.9`) return `INVALID_INPUT` error, while whole-number doubles (e.g., `1.0`) still resolve successfully.
 
@@ -60,8 +62,10 @@ Two locations use `Int.init(_: Double)` to convert JSON-parsed Double values to 
 |------|--------|
 | `Transit/Transit/Intents/IntentHelpers.swift` | Use `Int(exactly:)` instead of `Int.init` for Double-to-Int conversion |
 | `Transit/Transit/Intents/DeleteMilestoneIntent.swift` | Use `Int(exactly:)` instead of `Int.init` for Double-to-Int conversion |
+| `Transit/Transit/Intents/QueryMilestonesIntent.swift` | Use `Int(exactly:)` instead of `Int.init` for Double-to-Int conversion |
 | `Transit/TransitTests/UpdateMilestoneIntentTests.swift` | Add regression tests for fractional and whole-number displayId |
 | `Transit/TransitTests/DeleteMilestoneIntentTests.swift` | Add regression tests for fractional and whole-number displayId |
+| `Transit/TransitTests/QueryMilestonesIntentTests.swift` | Add regression test for fractional displayId |
 | `Transit/TransitTests/DashboardShortcutTests.swift` | Fix pre-existing compilation error (nil for non-optional String parameter) |
 
 ## Verification
