@@ -21,6 +21,7 @@
 - For CLI usage: single `@Parameter(title: "Input") var input: String` that accepts JSON string from `shortcuts run`.
 - Return JSON as a `String` via `ReturnsValue<String>`.
 - Error responses should be encoded as JSON in the return string (not thrown as errors) so CLI callers get parseable output.
+- **Integer parsing from JSON dictionaries**: Never use bare `as? Int` on values from `JSONSerialization` or MCP arguments. `JSONSerialization` deserializes JSON numbers as `NSNumber`, which may bridge to `Double` rather than `Int`. MCP tool arguments always deliver numbers as `Double`. Use `IntentHelpers.parseIntValue(_:)` which handles `Int`, `Double` (via `Int(exactly:)`), and rejects non-integral values. See T-370.
 
 ## Liquid Glass
 
