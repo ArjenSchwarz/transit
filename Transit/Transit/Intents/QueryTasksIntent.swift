@@ -127,12 +127,18 @@ struct QueryTasksIntent: AppIntent {
             descriptor.fetchLimit = 1
             let matches = (try? modelContext.fetch(descriptor)) ?? []
             let filtered = applyFilters(filters, to: matches)
-            return IntentHelpers.encodeJSONArray(filtered.map { taskToDict($0, detailed: true) })
+            let formatter = ISO8601DateFormatter()
+            return IntentHelpers.encodeJSONArray(filtered.map {
+                IntentHelpers.taskToDict($0, formatter: formatter, detailed: true)
+            })
         }
 
         let allTasks = (try? modelContext.fetch(FetchDescriptor<TransitTask>())) ?? []
         let filtered = applyFilters(filters, to: allTasks)
-        return IntentHelpers.encodeJSONArray(filtered.map { taskToDict($0) })
+        let formatter = ISO8601DateFormatter()
+        return IntentHelpers.encodeJSONArray(filtered.map {
+            IntentHelpers.taskToDict($0, formatter: formatter)
+        })
     }
 
     // MARK: - Private Helpers
@@ -237,45 +243,4 @@ struct QueryTasksIntent: AppIntent {
         )
     }
 
-    @MainActor private static func taskToDict(_ task: TransitTask, detailed: Bool = false) -> [String: Any] {
-        let isoFormatter = ISO8601DateFormatter()
-        var dict: [String: Any] = [
-            "taskId": task.id.uuidString,
-            "name": task.name,
-            "status": task.statusRawValue,
-            "type": task.typeRawValue,
-            "lastStatusChangeDate": isoFormatter.string(from: task.lastStatusChangeDate)
-        ]
-        if let displayId = task.permanentDisplayId {
-            dict["displayId"] = displayId
-        }
-        if let projectId = task.project?.id.uuidString {
-            dict["projectId"] = projectId
-        }
-        if let projectName = task.project?.name {
-            dict["projectName"] = projectName
-        }
-        if let completionDate = task.completionDate {
-            dict["completionDate"] = isoFormatter.string(from: completionDate)
-        }
-        // Include milestone info when assigned [req 13.7]
-        if let milestone = task.milestone {
-            var milestoneInfo: [String: Any] = [
-                "milestoneId": milestone.id.uuidString,
-                "name": milestone.name
-            ]
-            if let milestoneDisplayId = milestone.permanentDisplayId {
-                milestoneInfo["displayId"] = milestoneDisplayId
-            }
-            dict["milestone"] = milestoneInfo
-        }
-        if detailed {
-            dict["description"] = task.taskDescription as Any
-            let metadata = task.metadata
-            if !metadata.isEmpty {
-                dict["metadata"] = metadata
-            }
-        }
-        return dict
-    }
 }

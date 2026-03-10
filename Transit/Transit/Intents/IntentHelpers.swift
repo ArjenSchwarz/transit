@@ -133,6 +133,43 @@ nonisolated enum IntentHelpers {
         return .failure(.invalidInput(hint: "Provide displayId, milestoneId, or name with project"))
     }
 
+    /// Converts a TransitTask to a JSON-compatible dictionary.
+    /// When `detailed` is true, includes `description` and `metadata` fields.
+    @MainActor
+    static func taskToDict(
+        _ task: TransitTask, formatter: ISO8601DateFormatter, detailed: Bool = false
+    ) -> [String: Any] {
+        var dict: [String: Any] = [
+            "taskId": task.id.uuidString,
+            "name": task.name,
+            "status": task.statusRawValue,
+            "type": task.typeRawValue,
+            "lastStatusChangeDate": formatter.string(from: task.lastStatusChangeDate)
+        ]
+        if let displayId = task.permanentDisplayId {
+            dict["displayId"] = displayId
+        }
+        if let projectId = task.project?.id.uuidString {
+            dict["projectId"] = projectId
+        }
+        if let projectName = task.project?.name {
+            dict["projectName"] = projectName
+        }
+        if let completionDate = task.completionDate {
+            dict["completionDate"] = formatter.string(from: completionDate)
+        }
+        if let milestone = task.milestone {
+            dict["milestone"] = milestoneInfoDict(milestone)
+        }
+        if detailed {
+            dict["description"] = task.taskDescription as Any
+            if !task.metadata.isEmpty {
+                dict["metadata"] = task.metadata
+            }
+        }
+        return dict
+    }
+
     /// Builds a milestone info dictionary for inclusion in task responses.
     @MainActor
     static func milestoneInfoDict(_ milestone: Milestone) -> [String: Any] {

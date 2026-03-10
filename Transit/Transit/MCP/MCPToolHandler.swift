@@ -833,29 +833,7 @@ extension MCPToolHandler {
     private func taskToDict(
         _ task: TransitTask, formatter: ISO8601DateFormatter, detailed: Bool = false
     ) -> [String: Any] {
-        var dict: [String: Any] = [
-            "taskId": task.id.uuidString, "name": task.name,
-            "status": task.statusRawValue, "type": task.typeRawValue,
-            "lastStatusChangeDate": formatter.string(from: task.lastStatusChangeDate)
-        ]
-        if let displayId = task.permanentDisplayId { dict["displayId"] = displayId }
-        if let projectId = task.project?.id.uuidString { dict["projectId"] = projectId }
-        if let projectName = task.project?.name { dict["projectName"] = projectName }
-        if let completionDate = task.completionDate { dict["completionDate"] = formatter.string(from: completionDate) }
-        if let milestone = task.milestone {
-            var milestoneDict: [String: Any] = [
-                "milestoneId": milestone.id.uuidString,
-                "name": milestone.name
-            ]
-            if let milestoneDisplayId = milestone.permanentDisplayId {
-                milestoneDict["displayId"] = milestoneDisplayId
-            }
-            dict["milestone"] = milestoneDict
-        }
-        if detailed {
-            dict["description"] = task.taskDescription as Any
-            if !task.metadata.isEmpty { dict["metadata"] = task.metadata }
-        }
+        var dict = IntentHelpers.taskToDict(task, formatter: formatter, detailed: detailed)
         let comments = (try? commentService.fetchComments(for: task.id)) ?? []
         dict["comments"] = comments.map { [
             "id": $0.id.uuidString, "authorName": $0.authorName, "content": $0.content,
