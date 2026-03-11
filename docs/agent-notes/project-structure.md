@@ -40,9 +40,10 @@ Transit/Transit/
 
 ## Navigation
 
-- **NavigationDestination** (`Models/NavigationDestination.swift`) — `Hashable` enum with `.settings` and `.projectEdit(Project)` cases. Used by DashboardView's settings gear and SettingsView's project rows.
+- **NavigationDestination** (`Models/NavigationDestination.swift`) — `Hashable` enum with `.settings`, `.projectEdit(Project)`, `.milestoneEdit`, `.report`, `.acknowledgments`, `.licenseText` cases.
 - Root `NavigationStack` is in `TransitApp.swift` with `navigationDestination(for: NavigationDestination.self)`.
-- Settings is pushed (not sheet), per req 12.1.
+- **iOS**: Settings is pushed onto the root NavigationStack via `NavigationLink`.
+- **macOS**: Settings opens in a dedicated `Settings` scene window (Cmd+Comma) via `SettingsLink`, with its own `NavigationStack` for sub-navigation (T-51).
 
 ## App Entry Point (TransitApp.swift)
 

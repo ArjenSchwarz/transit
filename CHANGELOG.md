@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- macOS settings now open in a dedicated `Settings` scene window (Cmd+Comma) instead of pushing onto the main NavigationStack (T-51)
+- DashboardView gear button uses `SettingsLink` on macOS to open the settings window; iOS retains `NavigationLink` behavior (T-51)
+- Removed custom back button and `navigationBarBackButtonHidden` from macOS `SettingsView` since it is the root of its own window (T-51)
+
+### Added
+
+- Smolspec, task plan, and decision log for macOS settings window: settings presented in a separate `Settings` scene window instead of pushing onto the main NavigationStack (T-51)
+
 ### Fixed
 
 - TaskEditView `save()` no longer partially persists direct property mutations (name, description, type, metadata) when a later service call fails; mutations are now applied inside the `do` block after intermediate saves so `rollback()` can revert them (T-378)

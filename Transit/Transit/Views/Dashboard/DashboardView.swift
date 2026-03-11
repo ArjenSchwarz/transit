@@ -109,10 +109,17 @@ struct DashboardView: View {
             }
             ToolbarSpacer(.fixed)
             ToolbarItem(placement: .primaryAction) {
+                #if os(macOS)
+                SettingsLink {
+                    Label("Settings", systemImage: "gear")
+                }
+                .accessibilityIdentifier("dashboard.settingsButton")
+                #else
                 NavigationLink(value: NavigationDestination.settings) {
                     Label("Settings", systemImage: "gear")
                 }
                 .accessibilityIdentifier("dashboard.settingsButton")
+                #endif
             }
         }
         .sheet(item: $selectedTask) { task in

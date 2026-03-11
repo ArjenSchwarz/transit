@@ -85,7 +85,7 @@ All business logic lives in `Services/`, not in views:
 
 ### Navigation
 
-Single `NavigationStack` at app root in `TransitApp.swift`. `NavigationDestination` enum (`.settings`, `.projectEdit(Project)`) for type-safe routing. Settings is pushed, not a sheet or tab.
+Single `NavigationStack` at app root in `TransitApp.swift`. `NavigationDestination` enum (`.settings`, `.projectEdit(Project)`) for type-safe routing. On iOS, settings is pushed onto the root NavigationStack. On macOS, settings opens in a dedicated `Settings` scene window (Cmd+Comma) via `SettingsLink`, with its own `NavigationStack` for sub-navigation.
 
 ### App Intents
 
