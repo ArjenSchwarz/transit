@@ -8,13 +8,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- macOS settings now open in a dedicated `Settings` scene window (Cmd+Comma) instead of pushing onto the main NavigationStack (T-51)
-- DashboardView gear button uses `SettingsLink` on macOS to open the settings window; iOS retains `NavigationLink` behavior (T-51)
-- Removed custom back button and `navigationBarBackButtonHidden` from macOS `SettingsView` since it is the root of its own window (T-51)
+- macOS Settings uses `NavigationSplitView` with sidebar categories (General, Projects, MCP Server, Acknowledgments) instead of a single scrolling pane (T-51)
+- macOS Settings uses a `Window` scene with `.windowToolbarStyle(.unified)` instead of the `Settings` scene, enabling proper NSToolbar integration for navigation controls (T-51)
+- DashboardView gear button uses `openWindow(id:)` on macOS; iOS retains `NavigationLink` behavior (T-51)
+- Merged Appearance and General settings into a single "General" sidebar category (T-51)
+- Add Project now pushes onto the detail NavigationStack instead of opening a sheet/separate window (T-51)
+- Removed custom back button toolbars from macOS ProjectEditView and MilestoneEditView; system back button works inside NavigationSplitView detail (T-51)
+- Removed `.toolbarBackgroundVisibility` from macOS AcknowledgmentsView and LicenseTextView (T-51)
+- `LiquidGlassSection` title is now optional (T-51)
+- `FormRow` label column uses `.gridColumnAlignment(.trailing)` for proper right-aligned labels (T-51)
+- Toggles in macOS settings use `.toggleStyle(.switch)` instead of default checkboxes (T-51)
 
 ### Added
 
-- Smolspec, task plan, and decision log for macOS settings window: settings presented in a separate `Settings` scene window instead of pushing onto the main NavigationStack (T-51)
+- Smolspec, task plan, and decision log for macOS settings window (T-51)
+- Back/forward navigation chevrons in macOS Settings toolbar with category history tracking (T-51)
+- Cmd+Comma keyboard shortcut and Settings menu item via `SettingsCommand` (T-51)
+- `BoardBackground` on macOS ProjectEditView and MilestoneEditView for consistent backgrounds on pushed views (T-51)
+- `.projectCreate` navigation destination for creating new projects via navigation push (T-51)
 
 ### Fixed
 

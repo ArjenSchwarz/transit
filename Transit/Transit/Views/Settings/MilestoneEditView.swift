@@ -5,6 +5,7 @@ struct MilestoneEditView: View {
     let milestone: Milestone?
     @Environment(MilestoneService.self) private var milestoneService
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.resolvedTheme) private var resolvedTheme
 
     @State private var name: String = ""
     @State private var milestoneDescription: String = ""
@@ -83,16 +84,11 @@ struct MilestoneEditView: View {
             }
             .padding(32)
             .frame(maxWidth: 760, alignment: .leading)
+            .frame(maxWidth: .infinity)
         }
+        .scrollContentBackground(.hidden)
+        .background { BoardBackground(theme: resolvedTheme) }
         .navigationTitle(isEditing ? "Edit Milestone" : "New Milestone")
-        .navigationBarBackButtonHidden(isEditing)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                }
-            }
-        }
         .alert("Save Failed", isPresented: $errorMessage.isPresent) {
             Button("OK") { errorMessage = nil }
         } message: {
