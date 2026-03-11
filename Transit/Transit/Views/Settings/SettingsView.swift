@@ -4,7 +4,9 @@ import SwiftUI
 struct SettingsView: View {
     @Query(sort: \Project.name) private var projects: [Project]
     @Environment(ProjectService.self) private var projectService
+    #if os(iOS)
     @Environment(\.dismiss) private var dismiss
+    #endif
     @AppStorage("syncEnabled") private var syncEnabled = true
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @AppStorage("userDisplayName") private var userDisplayName = ""
@@ -91,6 +93,17 @@ struct SettingsView: View {
             Toggle("iCloud Sync", isOn: $syncEnabled)
             NavigationLink(value: NavigationDestination.acknowledgments) {
                 Text("Acknowledgments")
+            }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var settingsToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigation) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
             }
         }
     }
@@ -265,17 +278,6 @@ struct SettingsView: View {
 // MARK: - Shared Helpers
 
 extension SettingsView {
-
-    @ToolbarContentBuilder
-    fileprivate var settingsToolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-            }
-        }
-    }
 
     fileprivate func projectRow(_ project: Project) -> some View {
         HStack(spacing: 12) {
