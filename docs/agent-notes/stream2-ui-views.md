@@ -37,8 +37,8 @@
 
 ## SettingsView
 `Views/Settings/SettingsView.swift`
-- Pushed via `NavigationLink(value: NavigationDestination.settings)` from DashboardView toolbar
-- Custom chevron-only back button (hides default back button label)
+- **iOS**: Pushed via `NavigationLink(value: NavigationDestination.settings)` from DashboardView toolbar. Custom chevron-only back button (hides default back button label).
+- **macOS**: Opens in a dedicated `Settings` scene window via `SettingsLink` from DashboardView toolbar. No custom back button at root; sub-views show the system back button when pushed (T-51).
 - Projects section: color swatch (rounded square with initial letter), project name, active task count
 - Project rows use `NavigationLink(value: NavigationDestination.projectEdit(project))` — navigation handled by TransitApp's `navigationDestination`
 - "+" button in section header presents `ProjectEditView(project: nil)` as a sheet
@@ -80,7 +80,7 @@ Applied to: AddTaskSheet (macOS description), TaskEditView (macOS description), 
 ## DashboardView Integration
 - `showAddTask: Bool` state triggers AddTaskSheet via `.sheet`
 - `selectedTask: TransitTask?` triggers TaskDetailView via `.sheet(item:)`
-- Settings gear navigates via `NavigationLink(value: NavigationDestination.settings)`
+- Settings gear: iOS uses `NavigationLink(value: NavigationDestination.settings)`; macOS uses `SettingsLink` to open the Settings scene window (T-51)
 - Placeholder views in TransitApp.swift were removed (real implementations live in their own files)
 
 ## NavigationDestination

@@ -98,6 +98,10 @@ struct TransitApp: App {
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @Environment(\.colorScheme) private var colorScheme
 
+    private var currentTheme: AppTheme {
+        AppTheme(rawValue: appTheme) ?? .followSystem
+    }
+
     var body: some Scene {
         WindowGroup {
             NavigationStack {
@@ -119,10 +123,8 @@ struct TransitApp: App {
                         }
                     }
             }
-            .preferredColorScheme(
-                (AppTheme(rawValue: appTheme) ?? .followSystem).preferredColorScheme
-            )
-            .environment(\.resolvedTheme, (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme))
+            .preferredColorScheme(currentTheme.preferredColorScheme)
+            .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
             .modifier(ScenePhaseModifier(
                 displayIDAllocator: displayIDAllocator,
                 milestoneService: milestoneService,
@@ -169,10 +171,8 @@ struct TransitApp: App {
                         }
                     }
             }
-            .preferredColorScheme(
-                (AppTheme(rawValue: appTheme) ?? .followSystem).preferredColorScheme
-            )
-            .environment(\.resolvedTheme, (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme))
+            .preferredColorScheme(currentTheme.preferredColorScheme)
+            .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
             .environment(taskService)
             .environment(projectService)
             .environment(commentService)
