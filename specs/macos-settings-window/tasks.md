@@ -6,19 +6,19 @@ references:
 
 ## Settings Scene Setup
 
-- [ ] 1. Settings scene added to TransitApp on macOS <!-- id:btw83r7 -->
+- [x] 1. Settings scene added to TransitApp on macOS <!-- id:btw83r7 -->
   - TransitApp.swift has a Settings scene (macOS only) containing a NavigationStack with SettingsView as root.
   - The scene has navigationDestination handling all NavigationDestination cases exhaustively.
   - All environment objects, preferredColorScheme, and modelContainer are attached to the scene.
   - Verify: app builds for macOS, Cmd+Comma opens a separate settings window.
 
-- [ ] 2. DashboardView settings button opens settings window on macOS <!-- id:btw83r8 -->
+- [x] 2. DashboardView settings button opens settings window on macOS <!-- id:btw83r8 -->
   - On macOS, the settings toolbar button uses SettingsLink instead of NavigationLink.
   - On iOS, NavigationLink behavior is unchanged.
   - Verify: tapping the gear icon on macOS opens the settings window; on iOS it still pushes onto the NavigationStack.
   - Blocked-by: btw83r7 (Settings scene added to TransitApp on macOS)
 
-- [ ] 3. SettingsView back button and navigationBarBackButtonHidden removed on macOS <!-- id:btw83r9 -->
+- [x] 3. SettingsView back button and navigationBarBackButtonHidden removed on macOS <!-- id:btw83r9 -->
   - The custom back/dismiss toolbar button and .navigationBarBackButtonHidden(true) are removed from macOSSettings.
   - The settings window is the root view so no back button is needed at root level.
   - Verify: settings window shows no back button at root, but sub-views (ProjectEdit, Acknowledgments) show the system back button when pushed.

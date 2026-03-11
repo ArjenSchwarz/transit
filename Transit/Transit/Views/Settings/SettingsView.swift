@@ -116,9 +116,7 @@ struct SettingsView: View {
         .scrollContentBackground(.hidden)
         .background { BoardBackground(theme: resolvedTheme) }
         .navigationTitle("Settings")
-        .navigationBarBackButtonHidden(true)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-        .toolbar { settingsToolbar }
         .sheet(isPresented: $showCreateProject) {
             NavigationStack {
                 ProjectEditView(project: nil)

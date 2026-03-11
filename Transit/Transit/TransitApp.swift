@@ -147,6 +147,43 @@ struct TransitApp: App {
             NewTaskCommand()
         }
         #endif
+
+        #if os(macOS)
+        Settings {
+            NavigationStack {
+                SettingsView()
+                    .navigationDestination(for: NavigationDestination.self) { destination in
+                        switch destination {
+                        case .settings:
+                            EmptyView()
+                        case .projectEdit(let project):
+                            ProjectEditView(project: project)
+                        case .milestoneEdit(let project, let milestone):
+                            MilestoneEditView(project: project, milestone: milestone)
+                        case .report:
+                            EmptyView()
+                        case .acknowledgments:
+                            AcknowledgmentsView()
+                        case .licenseText:
+                            LicenseTextView()
+                        }
+                    }
+            }
+            .preferredColorScheme(
+                (AppTheme(rawValue: appTheme) ?? .followSystem).preferredColorScheme
+            )
+            .environment(\.resolvedTheme, (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme))
+            .environment(taskService)
+            .environment(projectService)
+            .environment(commentService)
+            .environment(milestoneService)
+            .environment(syncManager)
+            .environment(connectivityMonitor)
+            .environment(mcpSettings)
+            .environment(mcpServer)
+        }
+        .modelContainer(container)
+        #endif
     }
 
     // MARK: - MCP Server
