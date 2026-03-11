@@ -26,21 +26,21 @@ references:
 
 ## Verification
 
-- [ ] 4. Sub-navigation within settings window works correctly <!-- id:btw83ra -->
+- [x] 4. Sub-navigation within settings window works correctly <!-- id:btw83ra -->
   - Tapping a project row navigates to ProjectEditView within the settings window.
   - Tapping Acknowledgments navigates to AcknowledgmentsView.
   - System back button returns to the settings root.
   - Verify: all settings sub-views are reachable and navigable within the settings window, not the main window.
   - Blocked-by: btw83r7 (Settings scene added to TransitApp on macOS), btw83r8 (DashboardView settings button opens settings window on macOS), btw83r9 (SettingsView back button and navigationBarBackButtonHidden removed on macOS)
 
-- [ ] 5. Environment and data flow verified across scenes <!-- id:btw83rb -->
+- [x] 5. Environment and data flow verified across scenes <!-- id:btw83rb -->
   - @Query results (projects list) appear in the settings window.
   - @AppStorage changes (theme picker) propagate to the main dashboard window immediately.
   - MCP settings toggle works.
   - Verify: change theme in settings window, dashboard background updates in real time.
   - Blocked-by: btw83ra (Sub-navigation within settings window works correctly)
 
-- [ ] 6. Build succeeds on both platforms and existing tests pass <!-- id:btw83rc -->
+- [x] 6. Build succeeds on both platforms and existing tests pass <!-- id:btw83rc -->
   - make build succeeds for both iOS and macOS.
   - make test-quick passes.
   - No regressions in existing functionality.
