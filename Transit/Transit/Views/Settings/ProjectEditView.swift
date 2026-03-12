@@ -6,6 +6,7 @@ struct ProjectEditView: View {
     @Environment(ProjectService.self) private var projectService
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.resolvedTheme) private var resolvedTheme
 
     @State private var name: String = ""
     @State private var projectDescription: String = ""
@@ -125,16 +126,11 @@ struct ProjectEditView: View {
             }
             .padding(32)
             .frame(maxWidth: 760, alignment: .leading)
+            .frame(maxWidth: .infinity)
         }
+        .scrollContentBackground(.hidden)
+        .background { BoardBackground(theme: resolvedTheme) }
         .navigationTitle(isEditing ? "Edit Project" : "New Project")
-        .navigationBarBackButtonHidden(isEditing)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                }
-            }
-        }
         .onAppear { loadProject() }
     }
     #endif

@@ -138,8 +138,6 @@ struct AcknowledgmentsView: View {
         }
         .scrollContentBackground(.hidden)
         .background { BoardBackground(theme: resolvedTheme) }
-        .navigationTitle("Acknowledgments")
-        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
     }
     #endif
 
@@ -201,7 +199,6 @@ struct LicenseTextView: View {
         .scrollContentBackground(.hidden)
         .background { BoardBackground(theme: resolvedTheme) }
         .navigationTitle("Apache License 2.0")
-        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
     }
     #endif
 }

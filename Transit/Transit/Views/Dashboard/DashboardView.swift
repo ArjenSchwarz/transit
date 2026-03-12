@@ -16,6 +16,9 @@ struct DashboardView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.resolvedTheme) private var resolvedTheme
+    #if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+    #endif
 
     /// Minimum width (in points) for a single kanban column.
     private static let columnMinWidth: CGFloat = 200
@@ -110,7 +113,9 @@ struct DashboardView: View {
             ToolbarSpacer(.fixed)
             ToolbarItem(placement: .primaryAction) {
                 #if os(macOS)
-                SettingsLink {
+                Button {
+                    openSettingsWindow()
+                } label: {
                     Label("Settings", systemImage: "gear")
                 }
                 .accessibilityIdentifier("dashboard.settingsButton")
@@ -191,6 +196,12 @@ struct DashboardView: View {
     }
 
     // MARK: - Drag and Drop
+
+    #if os(macOS)
+    private func openSettingsWindow() {
+        openWindow(id: "settings")
+    }
+    #endif
 
     /// Handles a task drop onto a column. [req 7.1-7.5]
     private func handleDrop(column: DashboardColumn, uuidString: String) -> Bool {

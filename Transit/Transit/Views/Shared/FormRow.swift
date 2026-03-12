@@ -18,6 +18,7 @@ struct FormRow<Content: View>: View {
             Text(label)
                 .foregroundStyle(.secondary)
                 .frame(width: labelWidth, alignment: .trailing)
+                .gridColumnAlignment(.trailing)
 
             content
                 .frame(maxWidth: .infinity, alignment: .leading)

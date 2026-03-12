@@ -110,6 +110,8 @@ struct TransitApp: App {
                         switch destination {
                         case .settings:
                             SettingsView()
+                        case .projectCreate:
+                            ProjectEditView(project: nil)
                         case .projectEdit(let project):
                             ProjectEditView(project: project)
                         case .milestoneEdit(let project, let milestone):
@@ -147,42 +149,28 @@ struct TransitApp: App {
         #if os(macOS)
         .commands {
             NewTaskCommand()
+            SettingsCommand()
         }
         #endif
 
         #if os(macOS)
-        Settings {
-            NavigationStack {
-                SettingsView()
-                    .navigationDestination(for: NavigationDestination.self) { destination in
-                        switch destination {
-                        case .settings:
-                            EmptyView()
-                        case .projectEdit(let project):
-                            ProjectEditView(project: project)
-                        case .milestoneEdit(let project, let milestone):
-                            MilestoneEditView(project: project, milestone: milestone)
-                        case .report:
-                            EmptyView()
-                        case .acknowledgments:
-                            AcknowledgmentsView()
-                        case .licenseText:
-                            LicenseTextView()
-                        }
-                    }
-            }
-            .preferredColorScheme(currentTheme.preferredColorScheme)
-            .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
-            .environment(taskService)
-            .environment(projectService)
-            .environment(commentService)
-            .environment(milestoneService)
-            .environment(syncManager)
-            .environment(connectivityMonitor)
-            .environment(mcpSettings)
-            .environment(mcpServer)
+        Window("Settings", id: "settings") {
+            SettingsView()
+                .preferredColorScheme(currentTheme.preferredColorScheme)
+                .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
+                .environment(taskService)
+                .environment(projectService)
+                .environment(commentService)
+                .environment(milestoneService)
+                .environment(syncManager)
+                .environment(connectivityMonitor)
+                .environment(mcpSettings)
+                .environment(mcpServer)
         }
         .modelContainer(container)
+        .windowToolbarStyle(.unified)
+        .defaultSize(width: 780, height: 500)
+        .windowResizability(.contentSize)
         #endif
     }
 
@@ -287,6 +275,19 @@ private struct NewTaskCommand: Commands {
             }
             .keyboardShortcut("n", modifiers: .command)
             .disabled(showAddTask != false || isTaskSelected == true)
+        }
+    }
+}
+
+private struct SettingsCommand: Commands {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(replacing: .appSettings) {
+            Button("Settings…") {
+                openWindow(id: "settings")
+            }
+            .keyboardShortcut(",", modifiers: .command)
         }
     }
 }

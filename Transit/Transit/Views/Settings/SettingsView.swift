@@ -20,6 +20,11 @@ struct SettingsView: View {
     #if os(macOS)
     @Environment(MCPSettings.self) private var mcpSettings
     @Environment(MCPServer.self) private var mcpServer
+    @State private var selectedCategory: SettingsCategory? = .general
+    @State private var detailPath = NavigationPath()
+    @State private var categoryHistory: [SettingsCategory] = [.general]
+    @State private var historyIndex = 0
+    @State private var isNavigatingHistory = false
     #endif
 
     var body: some View {
@@ -109,18 +114,160 @@ struct SettingsView: View {
     }
     #endif
 
-    // MARK: - macOS Layout
+    // MARK: - Shared Helpers
 
-    #if os(macOS)
-    private static let labelWidth: CGFloat = 120
+    private func projectRow(_ project: Project) -> some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color(hex: project.colorHex))
+                .frame(width: 28, height: 28)
+                .overlay {
+                    Text(String(project.name.prefix(1)).uppercased())
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+                }
+            Text(project.name)
+            Spacer()
+            Text("\(projectService.activeTaskCount(for: project))")
+                .foregroundStyle(.secondary)
+        }
+    }
 
-    private var macOSSettings: some View {
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    }
+}
+
+// MARK: - macOS Layout
+
+#if os(macOS)
+private enum SettingsCategory: String, CaseIterable, Identifiable {
+    case general, projects, mcpServer, acknowledgments
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .general: "General"
+        case .projects: "Projects"
+        case .mcpServer: "MCP Server"
+        case .acknowledgments: "Acknowledgments"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .general: "gearshape"
+        case .projects: "folder"
+        case .mcpServer: "network"
+        case .acknowledgments: "heart.text.square"
+        }
+    }
+}
+
+extension SettingsView {
+    fileprivate static var labelWidth: CGFloat { 90 }
+
+    fileprivate var macOSSettings: some View {
+        NavigationSplitView {
+            List(selection: $selectedCategory) {
+                ForEach(SettingsCategory.allCases) { category in
+                    Label(category.title, systemImage: category.icon)
+                        .tag(category)
+                }
+            }
+            .toolbar(removing: .sidebarToggle)
+        } detail: {
+            NavigationStack(path: $detailPath) {
+                settingsDetailContent
+                    .navigationDestination(for: NavigationDestination.self) { destination in
+                        switch destination {
+                        case .projectCreate:
+                            ProjectEditView(project: nil)
+                        case .projectEdit(let project):
+                            ProjectEditView(project: project)
+                        case .milestoneEdit(let project, let milestone):
+                            MilestoneEditView(project: project, milestone: milestone)
+                        case .licenseText:
+                            LicenseTextView()
+                        default:
+                            EmptyView()
+                        }
+                    }
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
+        .onChange(of: selectedCategory) { _, newValue in
+            detailPath = NavigationPath()
+            if isNavigatingHistory {
+                isNavigatingHistory = false
+                return
+            }
+            guard let newValue else { return }
+            categoryHistory = Array(categoryHistory.prefix(historyIndex + 1))
+            categoryHistory.append(newValue)
+            historyIndex = categoryHistory.count - 1
+        }
+    }
+
+    private func navigateBack() {
+        guard historyIndex > 0 else { return }
+        isNavigatingHistory = true
+        historyIndex -= 1
+        selectedCategory = categoryHistory[historyIndex]
+    }
+
+    private func navigateForward() {
+        guard historyIndex < categoryHistory.count - 1 else { return }
+        isNavigatingHistory = true
+        historyIndex += 1
+        selectedCategory = categoryHistory[historyIndex]
+    }
+
+    fileprivate var settingsDetailContent: some View {
+        Group {
+            switch selectedCategory {
+            case .general:
+                settingsDetailWrapper {
+                    macOSAppearanceSection
+                    macOSGeneralSection
+                }
+            case .projects:
+                settingsDetailWrapper { macOSProjectsSection }
+            case .mcpServer:
+                settingsDetailWrapper { macOSMCPSection }
+            case .acknowledgments:
+                AcknowledgmentsView()
+            case nil:
+                settingsDetailWrapper {
+                    macOSAppearanceSection
+                    macOSGeneralSection
+                }
+            }
+        }
+        .navigationTitle(selectedCategory?.title ?? "General")
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                HStack(spacing: 0) {
+                    Button { navigateBack() } label: {
+                        Image(systemName: "chevron.left")
+                    }
+                    .disabled(historyIndex <= 0)
+                    Button { navigateForward() } label: {
+                        Image(systemName: "chevron.right")
+                    }
+                    .disabled(historyIndex >= categoryHistory.count - 1)
+                }
+            }
+        }
+    }
+
+    fileprivate func settingsDetailWrapper<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                macOSAppearanceSection
-                macOSMCPSection
-                macOSProjectsSection
-                macOSGeneralSection
+                content()
             }
             .padding(32)
             .frame(maxWidth: 760)
@@ -128,22 +275,11 @@ struct SettingsView: View {
         }
         .scrollContentBackground(.hidden)
         .background { BoardBackground(theme: resolvedTheme) }
-        .navigationTitle("Settings")
-        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-        .sheet(isPresented: $showCreateProject) {
-            NavigationStack {
-                ProjectEditView(project: nil)
-            }
-        }
     }
 
-    private var macOSAppearanceSection: some View {
+    fileprivate var macOSAppearanceSection: some View {
         LiquidGlassSection(title: "Appearance") {
-            Grid(
-                alignment: .leadingFirstTextBaseline,
-                horizontalSpacing: 16,
-                verticalSpacing: 14
-            ) {
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 14) {
                 FormRow("Theme", labelWidth: Self.labelWidth) {
                     Picker("", selection: $appTheme) {
                         ForEach(AppTheme.allCases, id: \.rawValue) { theme in
@@ -158,17 +294,14 @@ struct SettingsView: View {
         }
     }
 
-    private var macOSMCPSection: some View {
+    fileprivate var macOSMCPSection: some View {
         @Bindable var settings = mcpSettings
-        return LiquidGlassSection(title: "MCP Server") {
-            Grid(
-                alignment: .leadingFirstTextBaseline,
-                horizontalSpacing: 16,
-                verticalSpacing: 14
-            ) {
+        return LiquidGlassSection {
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 14) {
                 FormRow("Enabled", labelWidth: Self.labelWidth) {
                     Toggle("", isOn: $settings.isEnabled)
                         .labelsHidden()
+                        .toggleStyle(.switch)
                         .onChange(of: mcpSettings.isEnabled) { _, enabled in
                             if enabled {
                                 mcpServer.start(port: mcpSettings.port)
@@ -177,7 +310,6 @@ struct SettingsView: View {
                             }
                         }
                 }
-
                 if mcpSettings.isEnabled {
                     FormRow("Port", labelWidth: Self.labelWidth) {
                         TextField("", value: $settings.port, format: .number)
@@ -188,12 +320,10 @@ struct SettingsView: View {
                                 mcpServer.start(port: mcpSettings.port)
                             }
                     }
-
                     FormRow("Status", labelWidth: Self.labelWidth) {
                         Text(mcpServer.isRunning ? "Running" : "Stopped")
                             .foregroundStyle(mcpServer.isRunning ? .green : .secondary)
                     }
-
                     FormRow("Setup", labelWidth: Self.labelWidth) {
                         let command =
                             "claude mcp add transit --transport http http://localhost:\(mcpSettings.port)/mcp"
@@ -207,8 +337,8 @@ struct SettingsView: View {
         }
     }
 
-    private var macOSProjectsSection: some View {
-        LiquidGlassSection(title: "Projects") {
+    fileprivate var macOSProjectsSection: some View {
+        LiquidGlassSection {
             VStack(alignment: .leading, spacing: 0) {
                 if projects.isEmpty {
                     Text("Create your first project to get started.")
@@ -225,13 +355,8 @@ struct SettingsView: View {
                         }
                     }
                 }
-
-                Divider()
-                    .padding(.vertical, 4)
-
-                Button {
-                    showCreateProject = true
-                } label: {
+                Divider().padding(.vertical, 4)
+                NavigationLink(value: NavigationDestination.projectCreate) {
                     Label("Add Project", systemImage: "plus")
                 }
                 .buttonStyle(.plain)
@@ -240,68 +365,23 @@ struct SettingsView: View {
         }
     }
 
-    private var macOSGeneralSection: some View {
-        LiquidGlassSection(title: "General") {
-            Grid(
-                alignment: .leadingFirstTextBaseline,
-                horizontalSpacing: 16,
-                verticalSpacing: 14
-            ) {
+    fileprivate var macOSGeneralSection: some View {
+        LiquidGlassSection {
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 14) {
                 FormRow("Your Name", labelWidth: Self.labelWidth) {
                     TextField("", text: $userDisplayName)
-                        .frame(maxWidth: 200)
                 }
-
                 FormRow("Version", labelWidth: Self.labelWidth) {
                     Text(appVersion)
                         .foregroundStyle(.secondary)
                 }
-
                 FormRow("iCloud Sync", labelWidth: Self.labelWidth) {
                     Toggle("", isOn: $syncEnabled)
                         .labelsHidden()
-                }
-
-                FormRow("Acknowledgments", labelWidth: Self.labelWidth) {
-                    NavigationLink(value: NavigationDestination.acknowledgments) {
-                        Text("Acknowledgments")
-                    }
-                    .buttonStyle(.plain)
+                        .toggleStyle(.switch)
                 }
             }
         }
     }
-    #endif
-
 }
-
-// MARK: - Shared Helpers
-
-extension SettingsView {
-
-    fileprivate func projectRow(_ project: Project) -> some View {
-        HStack(spacing: 12) {
-            projectSwatch(project)
-            Text(project.name)
-            Spacer()
-            Text("\(projectService.activeTaskCount(for: project))")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    fileprivate func projectSwatch(_ project: Project) -> some View {
-        RoundedRectangle(cornerRadius: 6)
-            .fill(Color(hex: project.colorHex))
-            .frame(width: 28, height: 28)
-            .overlay {
-                Text(String(project.name.prefix(1)).uppercased())
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-            }
-    }
-
-    fileprivate var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-    }
-}
+#endif
