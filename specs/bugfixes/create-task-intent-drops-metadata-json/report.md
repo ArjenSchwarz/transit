@@ -50,11 +50,13 @@ that metadata survived the Create Task intent path.
 
 **Changes made:**
 - `Transit/Transit/Intents/IntentHelpers.swift` - added a shared helper that extracts string
-  metadata entries from JSON-like dictionaries and ignores unsupported value types.
+  metadata entries from JSON-like dictionaries, ignores unsupported value types, and now documents
+  the native `[String: String]` fast path for non-JSON callers.
 - `Transit/Transit/Intents/CreateTaskIntent.swift` - switched task creation to use the shared
-  metadata helper instead of a brittle direct cast.
+  metadata helper instead of a brittle direct cast and clarified the input contract for metadata
+  values in the intent description.
 - `Transit/TransitTests/CreateTaskIntentTests.swift` - added a regression test covering mixed-type
-  metadata payloads while keeping existing string-only coverage.
+  metadata payloads plus helper edge-case coverage for empty and all-non-string metadata objects.
 
 **Approach rationale:** Parsing the metadata dictionary explicitly makes the App Intent path match
 the task model's `[String: String]` contract without relying on Foundation's dynamic bridging
@@ -80,9 +82,9 @@ JSON `metadata` object even when the payload also contains non-string values.
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Intents/CreateTaskIntent.swift` | Parse JSON metadata dictionary before task creation |
-| `Transit/Transit/Intents/IntentHelpers.swift` | Add reusable helper for extracting string metadata |
-| `Transit/TransitTests/CreateTaskIntentTests.swift` | Add regression coverage for metadata persistence |
+| `Transit/Transit/Intents/CreateTaskIntent.swift` | Parse JSON metadata explicitly and document string-only metadata values |
+| `Transit/Transit/Intents/IntentHelpers.swift` | Add reusable helper for extracting string metadata and document the native fast path |
+| `Transit/TransitTests/CreateTaskIntentTests.swift` | Add regression and helper edge-case coverage for metadata parsing |
 
 ## Verification
 

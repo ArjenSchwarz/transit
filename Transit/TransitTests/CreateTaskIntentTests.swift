@@ -109,6 +109,20 @@ struct CreateTaskIntentTests {
         #expect(task.metadata["attempts"] == nil)
     }
 
+    @Test func stringMetadataReturnsNilForAllNonStringValues() {
+        let metadata = IntentHelpers.stringMetadata(
+            from: ["attempts": 3, "retries": 2] as [String: Any]
+        )
+
+        #expect(metadata == nil)
+    }
+
+    @Test func stringMetadataReturnsNilForEmptyDictionary() {
+        let metadata = IntentHelpers.stringMetadata(from: [String: Any]())
+
+        #expect(metadata == nil)
+    }
+
     // MARK: - Error Cases
 
     @Test func missingNameReturnsInvalidInput() async throws {

@@ -26,6 +26,7 @@ nonisolated enum IntentHelpers {
     /// Extracts string metadata entries from a JSON object value.
     /// Non-string values are ignored because task metadata is stored as `[String: String]`.
     static func stringMetadata(from value: Any?) -> [String: String]? {
+        // Fast path for native callers/tests that already provide the expected metadata type.
         if let metadata = value as? [String: String], !metadata.isEmpty {
             return metadata
         }
