@@ -57,7 +57,7 @@ struct ActionButtonSaveErrorTests {
         #expect(task.completionDate != nil)
 
         // Rollback should revert to the last persisted state
-        context.rollback()
+        TestModelContainer.rollback(context)
 
         #expect(task.status == .idea)
         #expect(task.completionDate == nil)
@@ -86,7 +86,7 @@ struct ActionButtonSaveErrorTests {
         #expect(task.completionDate == nil)
 
         // Rollback should revert to abandoned state
-        context.rollback()
+        TestModelContainer.rollback(context)
 
         #expect(task.status == .abandoned)
         #expect(task.completionDate != nil)
@@ -147,7 +147,7 @@ struct ActionButtonSaveErrorTests {
         #expect(project.name == "Renamed Project")
 
         // Rollback should revert to the last persisted state
-        context.rollback()
+        TestModelContainer.rollback(context)
 
         #expect(project.name == "Test Project")
         #expect(project.projectDescription == "A test project")
