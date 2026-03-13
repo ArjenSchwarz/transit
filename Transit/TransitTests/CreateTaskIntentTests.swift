@@ -117,6 +117,19 @@ struct CreateTaskIntentTests {
         #expect(metadata == nil)
     }
 
+    @Test func stringMetadataReturnsNilForNilInput() {
+        let metadata = IntentHelpers.stringMetadata(from: nil)
+
+        #expect(metadata == nil)
+    }
+
+    @Test func stringMetadataPreservesNativeStringDictionary() {
+        let input = ["git.branch": "main", "agent.id": "copilot"]
+        let metadata = IntentHelpers.stringMetadata(from: input)
+
+        #expect(metadata == input)
+    }
+
     @Test func stringMetadataReturnsNilForEmptyDictionary() {
         let metadata = IntentHelpers.stringMetadata(from: [String: Any]())
 
