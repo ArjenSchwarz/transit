@@ -19,7 +19,8 @@ struct CreateTaskIntent: AppIntent {
         description: """
         JSON object with task details. Required fields: "name" (string), "type" (bug | feature | chore | \
         research | documentation). Optional: "projectId" (UUID), "project" (name), "description" (string), \
-        "metadata" (object), "milestone" (name), "milestoneDisplayId" (integer). \
+        "metadata" (object with string values; non-string values are ignored), "milestone" (name), \
+        "milestoneDisplayId" (integer). \
         Example: {"name": "Fix login", "type": "bug", "project": "Alpha", "milestoneDisplayId": 1}
         """
     )
@@ -95,7 +96,7 @@ struct CreateTaskIntent: AppIntent {
                 description: json["description"] as? String,
                 type: taskType,
                 project: project,
-                metadata: json["metadata"] as? [String: String]
+                metadata: IntentHelpers.stringMetadata(from: json["metadata"])
             )
         } catch {
             return IntentError.invalidInput(hint: "Task creation failed").json

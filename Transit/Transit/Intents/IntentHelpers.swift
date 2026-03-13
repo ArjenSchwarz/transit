@@ -23,6 +23,23 @@ nonisolated enum IntentHelpers {
         return json
     }
 
+    /// Extracts string metadata entries from a JSON object value.
+    /// Non-string values are ignored because task metadata is stored as `[String: String]`.
+    static func stringMetadata(from value: Any?) -> [String: String]? {
+        // Fast path for native callers/tests that already provide the expected metadata type.
+        if let metadata = value as? [String: String], !metadata.isEmpty {
+            return metadata
+        }
+        guard let dict = value as? [String: Any], !dict.isEmpty else {
+            return nil
+        }
+        let metadata = dict.reduce(into: [String: String]()) { result, pair in
+            guard let stringValue = pair.value as? String else { return }
+            result[pair.key] = stringValue
+        }
+        return metadata.isEmpty ? nil : metadata
+    }
+
     /// Encodes a dictionary as a JSON string. Returns an error JSON on failure.
     static func encodeJSON(_ dict: [String: Any]) -> String {
         guard let data = try? JSONSerialization.data(withJSONObject: dict),
