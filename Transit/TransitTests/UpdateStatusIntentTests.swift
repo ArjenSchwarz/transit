@@ -79,6 +79,29 @@ struct UpdateStatusIntentTests {
         #expect(task.completionDate != nil)
     }
 
+    @Test func noOpUpdatePreservesTerminalTimestamps() throws {
+        let (taskService, context) = try makeService()
+        let project = makeProject(in: context)
+        let task = makeTask(in: context, project: project, displayId: 11, status: .done)
+
+        let originalStatusChangeDate = Date(timeIntervalSince1970: 2_222)
+        let originalCompletionDate = Date(timeIntervalSince1970: 2_111)
+        task.lastStatusChangeDate = originalStatusChangeDate
+        task.completionDate = originalCompletionDate
+
+        let input = """
+        {"displayId":11,"status":"done"}
+        """
+
+        let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["previousStatus"] as? String == "done")
+        #expect(parsed["status"] as? String == "done")
+        #expect(task.lastStatusChangeDate == originalStatusChangeDate)
+        #expect(task.completionDate == originalCompletionDate)
+    }
+
     // MARK: - Error Cases
 
     @Test func unknownDisplayIdReturnsTaskNotFound() throws {

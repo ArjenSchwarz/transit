@@ -129,6 +129,25 @@ struct TaskServiceTests {
         #expect(task.completionDate != nil)
     }
 
+    @Test func updateStatusNoOpPreservesTimestamps() async throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+        let task = try await service.createTask(name: "Task", description: nil, type: .feature, project: project)
+
+        try service.updateStatus(task: task, to: .done)
+
+        let originalStatusChangeDate = Date(timeIntervalSince1970: 1_234)
+        let originalCompletionDate = Date(timeIntervalSince1970: 1_111)
+        task.lastStatusChangeDate = originalStatusChangeDate
+        task.completionDate = originalCompletionDate
+
+        try service.updateStatus(task: task, to: .done)
+
+        #expect(task.status == .done)
+        #expect(task.lastStatusChangeDate == originalStatusChangeDate)
+        #expect(task.completionDate == originalCompletionDate)
+    }
+
     // MARK: - abandon
 
     @Test func abandonSetsStatusToAbandonedWithCompletionDate() async throws {

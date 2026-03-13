@@ -108,6 +108,9 @@ final class TaskService {
     /// Transitions a task to a new status via StatusEngine.
     /// When comment parameters are provided, creates a comment atomically
     /// in the same save operation.
+    /// Same-status updates are treated as no-ops so callers can safely retry
+    /// or re-send the current status without mutating timestamps.
+    /// Comment parameters passed with a no-op status request are ignored.
     func updateStatus(
         task: TransitTask,
         to newStatus: TaskStatus,
@@ -116,6 +119,8 @@ final class TaskService {
         commentService: CommentService? = nil,
         save: Bool = true
     ) throws {
+        guard task.status != newStatus else { return }
+
         StatusEngine.applyTransition(task: task, to: newStatus)
 
         do {
