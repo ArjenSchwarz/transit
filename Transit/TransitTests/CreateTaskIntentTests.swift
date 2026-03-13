@@ -62,7 +62,7 @@ struct CreateTaskIntentTests {
         let project = makeProject(in: svc.context)
 
         let input = """
-        {"projectId":"\(project.id.uuidString)","name":"Task With Meta","type":"bug","metadata":{"git.branch":"main"}}
+        {"projectId":"\(project.id.uuidString)","name":"Task With Meta","type":"bug","metadata":{"git.branch":"main","agent.id":"copilot"}}
         """
 
         let result = await CreateTaskIntent.execute(
@@ -71,7 +71,32 @@ struct CreateTaskIntentTests {
 
         let parsed = try parseJSON(result)
         #expect(parsed["status"] as? String == "idea")
-        #expect(parsed["taskId"] is String)
+        let taskIDString = try #require(parsed["taskId"] as? String)
+        let taskID = try #require(UUID(uuidString: taskIDString))
+        let task = try svc.task.findByID(taskID)
+        #expect(task.metadata["git.branch"] == "main")
+        #expect(task.metadata["agent.id"] == "copilot")
+    }
+
+    @Test func mixedTypeMetadataPreservesStringValues() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        let input = """
+        {"projectId":"\(project.id.uuidString)","name":"Task With Mixed Meta","type":"bug","metadata":{"git.branch":"main","agent.id":"copilot","attempts":3}}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        let taskIDString = try #require(parsed["taskId"] as? String)
+        let taskID = try #require(UUID(uuidString: taskIDString))
+        let task = try svc.task.findByID(taskID)
+        #expect(task.metadata["git.branch"] == "main")
+        #expect(task.metadata["agent.id"] == "copilot")
+        #expect(task.metadata["attempts"] == nil)
     }
 
     // MARK: - Error Cases
