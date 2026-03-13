@@ -95,7 +95,7 @@ struct CreateTaskIntent: AppIntent {
                 description: json["description"] as? String,
                 type: taskType,
                 project: project,
-                metadata: json["metadata"] as? [String: String]
+                metadata: IntentHelpers.stringMetadata(from: json["metadata"])
             )
         } catch {
             return IntentError.invalidInput(hint: "Task creation failed").json

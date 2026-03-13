@@ -62,7 +62,12 @@ struct CreateTaskIntentTests {
         let project = makeProject(in: svc.context)
 
         let input = """
-        {"projectId":"\(project.id.uuidString)","name":"Task With Meta","type":"bug","metadata":{"git.branch":"main","agent.id":"copilot"}}
+        {
+            "projectId":"\(project.id.uuidString)",
+            "name":"Task With Meta",
+            "type":"bug",
+            "metadata":{"git.branch":"main","agent.id":"copilot"}
+        }
         """
 
         let result = await CreateTaskIntent.execute(
@@ -83,7 +88,12 @@ struct CreateTaskIntentTests {
         let project = makeProject(in: svc.context)
 
         let input = """
-        {"projectId":"\(project.id.uuidString)","name":"Task With Mixed Meta","type":"bug","metadata":{"git.branch":"main","agent.id":"copilot","attempts":3}}
+        {
+            "projectId":"\(project.id.uuidString)",
+            "name":"Task With Mixed Meta",
+            "type":"bug",
+            "metadata":{"git.branch":"main","agent.id":"copilot","attempts":3}
+        }
         """
 
         let result = await CreateTaskIntent.execute(
