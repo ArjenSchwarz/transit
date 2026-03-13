@@ -79,7 +79,12 @@ final class DisplayIDAllocator: @unchecked Sendable {
 
     /// Finds tasks with provisional display IDs (permanentDisplayId == nil),
     /// sorts them by creation date, and allocates permanent IDs one at a time.
-    func promoteProvisionalTasks(in context: ModelContext) async {
+    /// `save` is injectable for tests that need to simulate a save failure
+    /// after the permanent ID has been assigned in memory.
+    func promoteProvisionalTasks(
+        in context: ModelContext,
+        save: (ModelContext) throws -> Void = { try $0.save() }
+    ) async {
         let descriptor = FetchDescriptor<TransitTask>(
             predicate: #Predicate { $0.permanentDisplayId == nil },
             sortBy: [SortDescriptor(\.creationDate, order: .forward)]
@@ -93,11 +98,11 @@ final class DisplayIDAllocator: @unchecked Sendable {
             do {
                 let newID = try await allocateNextID()
                 task.permanentDisplayId = newID
-                try context.save()
+                try save(context)
             } catch {
-                // Revert the in-memory permanentDisplayId so the UI doesn't
-                // show a permanent ID that was never persisted (T-281).
-                context.rollback()
+                // Revert only this promotion attempt so unrelated unsaved edits
+                // on the shared context survive connectivity-triggered retries.
+                task.permanentDisplayId = nil
                 // Stop on first failure -- remaining tasks will be retried next pass.
                 break
             }

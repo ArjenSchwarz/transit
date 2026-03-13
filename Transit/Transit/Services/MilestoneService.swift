@@ -170,7 +170,11 @@ final class MilestoneService {
 
     /// Finds milestones with provisional display IDs, allocates permanent IDs.
     /// Called from ConnectivityMonitor.onRestore and ScenePhaseModifier.
-    func promoteProvisionalMilestones() async {
+    /// `save` is injectable for tests that need to simulate a save failure
+    /// after the permanent ID has been assigned in memory.
+    func promoteProvisionalMilestones(
+        save: (ModelContext) throws -> Void = { try $0.save() }
+    ) async {
         let descriptor = FetchDescriptor<Milestone>(
             predicate: #Predicate { $0.permanentDisplayId == nil },
             sortBy: [SortDescriptor(\.creationDate, order: .forward)]
@@ -184,11 +188,11 @@ final class MilestoneService {
             do {
                 let newID = try await displayIDAllocator.allocateNextID()
                 milestone.permanentDisplayId = newID
-                try modelContext.save()
+                try save(modelContext)
             } catch {
-                // Revert the in-memory permanentDisplayId so the UI doesn't
-                // show a permanent ID that was never persisted (T-281).
-                modelContext.rollback()
+                // Revert only this promotion attempt so unrelated unsaved edits
+                // on the shared context survive connectivity-triggered retries.
+                milestone.permanentDisplayId = nil
                 // Stop on first failure -- remaining milestones will be retried next pass.
                 break
             }
