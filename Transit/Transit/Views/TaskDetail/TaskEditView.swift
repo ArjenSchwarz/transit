@@ -25,9 +25,12 @@ struct TaskEditView: View {
         return projects.first { $0.id == id }
     }
 
-    private var openMilestones: [Milestone] {
-        guard let project = selectedProject else { return [] }
-        return milestoneService.milestonesForProject(project, status: .open)
+    private var availableMilestones: [Milestone] {
+        Self.availableMilestones(
+            project: selectedProject,
+            selectedMilestone: selectedMilestone,
+            milestoneService: milestoneService
+        )
     }
 
     private var canSave: Bool {
@@ -114,7 +117,7 @@ struct TaskEditView: View {
 
             Picker("Milestone", selection: $selectedMilestone) {
                 Text("None").tag(nil as Milestone?)
-                ForEach(openMilestones) { milestone in
+                ForEach(availableMilestones) { milestone in
                     Text(milestone.name).tag(milestone as Milestone?)
                 }
             }
@@ -203,7 +206,7 @@ struct TaskEditView: View {
                         FormRow("Milestone", labelWidth: Self.labelWidth) {
                             Picker("", selection: $selectedMilestone) {
                                 Text("None").tag(nil as Milestone?)
-                                ForEach(openMilestones) { milestone in
+                                ForEach(availableMilestones) { milestone in
                                     Text(milestone.name).tag(milestone as Milestone?)
                                 }
                             }
@@ -264,6 +267,15 @@ struct TaskEditView: View {
 // MARK: - Data Loading & Actions
 
 extension TaskEditView {
+
+    static func availableMilestones(
+        project: Project?,
+        selectedMilestone: Milestone?,
+        milestoneService: MilestoneService
+    ) -> [Milestone] {
+        guard let project else { return [] }
+        return milestoneService.milestonesForProject(project, status: .open)
+    }
 
     fileprivate func loadTask() {
         name = task.name
