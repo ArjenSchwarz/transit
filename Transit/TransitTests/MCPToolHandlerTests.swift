@@ -177,6 +177,31 @@ struct MCPToolHandlerTests {
         #expect(result["status"] as? String == "in-progress")
     }
 
+    @Test func updateStatusNoOpPreservesTerminalTimestamps() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let task = try await env.taskService.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+        try env.taskService.updateStatus(task: task, to: .done)
+
+        let originalStatusChangeDate = Date(timeIntervalSince1970: 3_333)
+        let originalCompletionDate = Date(timeIntervalSince1970: 3_111)
+        task.lastStatusChangeDate = originalStatusChangeDate
+        task.completionDate = originalCompletionDate
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "update_task_status",
+            arguments: ["displayId": 1, "status": "done"]
+        ))
+
+        let result = try MCPTestHelpers.decodeResult(response)
+        #expect(result["previousStatus"] as? String == "done")
+        #expect(result["status"] as? String == "done")
+        #expect(task.lastStatusChangeDate == originalStatusChangeDate)
+        #expect(task.completionDate == originalCompletionDate)
+    }
+
     @Test func updateStatusMissingStatusReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 

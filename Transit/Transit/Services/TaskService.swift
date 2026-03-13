@@ -116,6 +116,8 @@ final class TaskService {
         commentService: CommentService? = nil,
         save: Bool = true
     ) throws {
+        guard task.status != newStatus else { return }
+
         StatusEngine.applyTransition(task: task, to: newStatus)
 
         do {
