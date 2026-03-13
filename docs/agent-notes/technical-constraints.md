@@ -83,6 +83,14 @@ Each test gets a fresh `ModelContext` via `TestModelContainer.newContext()` for 
 
 Test files that use SwiftData need `@Suite(.serialized)` to avoid concurrent access issues.
 
+## SwiftData ModelContext.rollback() Re-Fault Bug
+
+`ModelContext.rollback()` clears dirty state (`hasChanges → false`) and reverts the persistent store, but does NOT re-fault `@Model` property accessors when multiple `ModelContainer` instances exist in the same process. The in-memory Swift properties retain their mutated values even though the store was rolled back. A subsequent `fetch()` forces re-faulting and restores correct values. This affects both in-memory and file-backed stores.
+
+**In tests**: Use `TestModelContainer.rollback(context)` instead of `context.rollback()`. The helper performs the rollback then fetches all entity types to trigger re-faulting. If a new `@Model` entity is added, it must be registered in the helper.
+
+**In production**: T-452 tracks the production-side fix. All `rollback()` call sites in views and services (TaskEditView, ProjectEditView, TaskService, MilestoneService, CommentService, MCPToolHandler) are affected — after rollback, views may still display stale mutated values.
+
 ## Test File Imports
 
 With `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, test files must explicitly `import Foundation` to use `Date`, `UUID`, `JSONSerialization`, etc. These aren't automatically available in the test target even though the app module imports them.
