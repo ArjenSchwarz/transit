@@ -18,6 +18,20 @@ enum TestModelContainer {
         let container = try ModelContainer(for: schema, configurations: [config])
         return ModelContext(container)
     }
+    /// Performs a rollback and forces re-faulting of all @Model objects.
+    ///
+    /// Workaround for a SwiftData bug: `ModelContext.rollback()` clears dirty
+    /// state and reverts the persistent store, but does NOT re-fault @Model
+    /// property accessors when multiple ModelContainers exist in the same
+    /// process. A subsequent `fetch()` triggers the re-fault, updating
+    /// in-memory properties to match the reverted store.
+    static func rollback(_ context: ModelContext) {
+        context.rollback()
+        _ = try? context.fetch(FetchDescriptor<Project>())
+        _ = try? context.fetch(FetchDescriptor<TransitTask>())
+        _ = try? context.fetch(FetchDescriptor<Comment>())
+        _ = try? context.fetch(FetchDescriptor<Milestone>())
+    }
 }
 
 // MARK: - InMemoryCounterStore

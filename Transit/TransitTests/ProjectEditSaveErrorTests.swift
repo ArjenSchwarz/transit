@@ -45,7 +45,7 @@ struct ProjectEditSaveErrorTests {
         #expect(project.name == "Renamed Project")
 
         // Rollback should revert to the last persisted state
-        context.rollback()
+        TestModelContainer.rollback(context)
         #expect(project.name == "Test Project")
     }
 
@@ -57,7 +57,7 @@ struct ProjectEditSaveErrorTests {
         project.projectDescription = "Updated description"
         #expect(project.projectDescription == "Updated description")
 
-        context.rollback()
+        TestModelContainer.rollback(context)
         #expect(project.projectDescription == "A test project")
     }
 
@@ -77,7 +77,7 @@ struct ProjectEditSaveErrorTests {
         #expect(project.gitRepo == "https://github.com/other/repo")
         #expect(project.colorHex == "#00FF00")
 
-        context.rollback()
+        TestModelContainer.rollback(context)
 
         #expect(project.name == "Test Project")
         #expect(project.projectDescription == "A test project")
@@ -94,7 +94,7 @@ struct ProjectEditSaveErrorTests {
         project.gitRepo = nil
         #expect(project.gitRepo == nil)
 
-        context.rollback()
+        TestModelContainer.rollback(context)
         #expect(project.gitRepo == "https://github.com/example/repo")
     }
 }
