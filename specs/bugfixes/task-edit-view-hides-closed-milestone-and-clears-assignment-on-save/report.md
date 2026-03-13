@@ -35,8 +35,10 @@ Used a structured inspection of the edit view’s milestone selection flow, then
 ## Resolution for the Issue
 
 **Changes made:**
+- `Transit/Transit/Views/TaskDetail/TaskEditView.swift:28-33,118-123,206-212,271-287` - Replaced the open-only picker source with a shared helper that keeps the task’s currently selected milestone available during edit when it belongs to the same project.
+- `Transit/TransitTests/TaskEditViewMilestoneTests.swift:22-75` - Added regression coverage for including a selected closed milestone, avoiding duplicate open milestones, and excluding milestones from other projects.
 
-**Approach rationale:**
+**Approach rationale:** Preserve the current assignment without broadening the picker to every closed milestone in the project. This fixes the data-loss path while keeping the edit UI focused on open milestones plus the existing selection.
 
 **Alternatives considered:**
 - Show all milestones during edit - workable, but broader than necessary when the only required behaviour is preserving the current assignment.
@@ -54,18 +56,20 @@ Used a structured inspection of the edit view’s milestone selection flow, then
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Views/TaskDetail/TaskEditView.swift` | Will update edit-view milestone option logic so current closed assignments stay selectable. |
+| `Transit/Transit/Views/TaskDetail/TaskEditView.swift` | Keeps the current closed milestone available in the edit picker while still filtering new choices to open milestones. |
 | `Transit/TransitTests/TaskEditViewMilestoneTests.swift` | Adds regression coverage for preserving a closed selected milestone in the picker. |
 
 ## Verification
 
 **Automated:**
 - [x] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] macOS unit suite passes (`make test-quick`)
+- [x] iOS regression test passes (`xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit -destination 'platform=iOS Simulator,name=iPhone 17' -configuration Debug -derivedDataPath ./DerivedData -only-testing:TransitTests/TaskEditViewMilestoneTests | xcbeautify`)
+- [ ] Linters/validators pass (`make lint` still fails on the pre-existing `type_body_length` violation in `Transit/TransitTests/TaskEditSaveErrorTests.swift`)
 
 **Manual verification:**
 - Reproduced the bug with a focused failing regression test before implementation.
+- Confirmed the fix keeps edit-only closed assignments selectable without exposing closed milestones from other projects.
 
 ## Prevention
 

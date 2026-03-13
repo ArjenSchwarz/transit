@@ -34,4 +34,43 @@ struct TaskEditViewMilestoneTests {
 
         #expect(Set(availableMilestones.map(\.id)) == [openMilestone.id, doneMilestone.id])
     }
+
+    @Test func availableMilestonesDoesNotDuplicateSelectedOpenMilestone() async throws {
+        let (milestoneService, context) = try makeMilestoneService()
+        let project = makeProject(in: context)
+        let openMilestone = try await milestoneService.createMilestone(name: "Open", description: nil, project: project)
+
+        let availableMilestones = TaskEditView.availableMilestones(
+            project: project,
+            selectedMilestone: openMilestone,
+            milestoneService: milestoneService
+        )
+
+        #expect(availableMilestones.map(\.id) == [openMilestone.id])
+    }
+
+    @Test func availableMilestonesExcludesSelectedMilestoneFromAnotherProject() async throws {
+        let (milestoneService, context) = try makeMilestoneService()
+        let currentProject = makeProject(in: context, name: "Current")
+        let otherProject = makeProject(in: context, name: "Other")
+        let openMilestone = try await milestoneService.createMilestone(
+            name: "Open",
+            description: nil,
+            project: currentProject
+        )
+        let otherMilestone = try await milestoneService.createMilestone(
+            name: "Other Closed",
+            description: nil,
+            project: otherProject
+        )
+        try milestoneService.updateStatus(otherMilestone, to: .done)
+
+        let availableMilestones = TaskEditView.availableMilestones(
+            project: currentProject,
+            selectedMilestone: otherMilestone,
+            milestoneService: milestoneService
+        )
+
+        #expect(availableMilestones.map(\.id) == [openMilestone.id])
+    }
 }

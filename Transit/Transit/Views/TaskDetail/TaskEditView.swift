@@ -274,7 +274,17 @@ extension TaskEditView {
         milestoneService: MilestoneService
     ) -> [Milestone] {
         guard let project else { return [] }
-        return milestoneService.milestonesForProject(project, status: .open)
+        var milestones = milestoneService.milestonesForProject(project, status: .open)
+
+        guard let selectedMilestone, selectedMilestone.project?.id == project.id else {
+            return milestones
+        }
+
+        if milestones.contains(where: { $0.id == selectedMilestone.id }) == false {
+            milestones.append(selectedMilestone)
+        }
+
+        return milestones
     }
 
     fileprivate func loadTask() {
