@@ -183,6 +183,7 @@ struct MCPToolHandlerTests {
         let task = try await env.taskService.createTask(
             name: "Task", description: nil, type: .feature, project: project
         )
+        let displayId = try #require(task.permanentDisplayId)
         try env.taskService.updateStatus(task: task, to: .done)
 
         let originalStatusChangeDate = Date(timeIntervalSince1970: 3_333)
@@ -192,7 +193,7 @@ struct MCPToolHandlerTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "update_task_status",
-            arguments: ["displayId": 1, "status": "done"]
+            arguments: ["displayId": displayId, "status": "done"]
         ))
 
         let result = try MCPTestHelpers.decodeResult(response)
