@@ -334,7 +334,7 @@ extension TaskEditView {
             try modelContext.save()
             dismissAll()
         } catch {
-            modelContext.rollback()
+            modelContext.safeRollback()
             errorMessage = "Could not save task. Please try again."
         }
     }

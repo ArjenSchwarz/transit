@@ -180,7 +180,7 @@ struct ProjectEditView: View {
                 // Rollback reverts the model to its last-persisted values. The @State
                 // variables (name, projectDescription, etc.) are unaffected, so the form
                 // keeps the user's in-progress edits for retry.
-                modelContext.rollback()
+                modelContext.safeRollback()
                 errorMessage = "Could not save project. Please try again."
                 return
             }

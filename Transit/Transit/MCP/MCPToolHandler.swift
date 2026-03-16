@@ -481,7 +481,7 @@ extension MCPToolHandler {
             do {
                 try projectService.context.save()
             } catch {
-                projectService.context.rollback()
+                projectService.context.safeRollback()
                 return errorResult("Update failed: \(error)")
             }
         }
