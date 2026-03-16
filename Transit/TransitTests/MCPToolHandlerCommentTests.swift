@@ -47,7 +47,7 @@ struct MCPToolHandlerCommentTests {
             name: "Task", description: nil, type: .feature, project: project
         )
         let displayId = try #require(task.permanentDisplayId)
-        try env.taskService.updateStatus(task: task, to: .done)
+        try env.taskService.updateStatus(task: task, to: .planning)
 
         // Add a pre-existing comment
         try env.commentService.addComment(
@@ -57,7 +57,7 @@ struct MCPToolHandlerCommentTests {
         // No-op status change WITHOUT a comment — must not return stale comment
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "update_task_status",
-            arguments: ["displayId": displayId, "status": "done"]
+            arguments: ["displayId": displayId, "status": "planning"]
         ))
 
         let result = try MCPTestHelpers.decodeResult(response)

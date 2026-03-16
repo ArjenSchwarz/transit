@@ -120,6 +120,8 @@ final class TaskService {
         save: Bool = true
     ) throws {
         let statusChanged = task.status != newStatus
+        let hasComment = comment.map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? false
+        guard statusChanged || hasComment else { return }
 
         if statusChanged {
             StatusEngine.applyTransition(task: task, to: newStatus)
