@@ -301,6 +301,30 @@ struct TaskServiceTests {
         #expect(comments.first?.isAgent == true)
     }
 
+    @Test func updateStatusNoOpWithCommentStillAddsComment() async throws {
+        let (service, context) = try makeService()
+        let commentService = CommentService(modelContext: context)
+        let project = makeProject(in: context)
+        let task = try await service.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+        try service.updateStatus(task: task, to: .planning)
+
+        // Call updateStatus with the SAME status but with a comment
+        try service.updateStatus(
+            task: task,
+            to: .planning,
+            comment: "No-op status note",
+            commentAuthor: "Agent",
+            commentService: commentService
+        )
+
+        #expect(task.status == .planning)
+        let comments = try commentService.fetchComments(for: task.id)
+        #expect(comments.count == 1)
+        #expect(comments.first?.content == "No-op status note")
+    }
+
     @Test func updateStatusWithoutCommentBehavesAsExisting() async throws {
         let (service, context) = try makeService()
         let commentService = CommentService(modelContext: context)

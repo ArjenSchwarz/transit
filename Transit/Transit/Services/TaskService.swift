@@ -110,7 +110,7 @@ final class TaskService {
     /// in the same save operation.
     /// Same-status updates are treated as no-ops so callers can safely retry
     /// or re-send the current status without mutating timestamps.
-    /// Comment parameters passed with a no-op status request are ignored.
+    /// Comments are always persisted regardless of whether the status changed.
     func updateStatus(
         task: TransitTask,
         to newStatus: TaskStatus,
@@ -119,9 +119,11 @@ final class TaskService {
         commentService: CommentService? = nil,
         save: Bool = true
     ) throws {
-        guard task.status != newStatus else { return }
+        let statusChanged = task.status != newStatus
 
-        StatusEngine.applyTransition(task: task, to: newStatus)
+        if statusChanged {
+            StatusEngine.applyTransition(task: task, to: newStatus)
+        }
 
         do {
             if let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
