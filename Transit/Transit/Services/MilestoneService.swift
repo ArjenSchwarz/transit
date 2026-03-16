@@ -44,7 +44,8 @@ final class MilestoneService {
     func createMilestone(
         name: String,
         description: String?,
-        project: Project
+        project: Project,
+        save: (ModelContext) throws -> Void = { try $0.save() }
     ) async throws -> Milestone {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
@@ -71,7 +72,12 @@ final class MilestoneService {
         )
 
         modelContext.insert(milestone)
-        try modelContext.save()
+        do {
+            try save(modelContext)
+        } catch {
+            modelContext.delete(milestone)
+            throw error
+        }
         return milestone
     }
 

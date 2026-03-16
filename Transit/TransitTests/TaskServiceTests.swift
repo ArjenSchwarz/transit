@@ -4,6 +4,7 @@ import Testing
 @testable import Transit
 
 @MainActor @Suite(.serialized)
+// swiftlint:disable:next type_body_length
 struct TaskServiceTests {
 
     // MARK: - Helpers
@@ -338,5 +339,49 @@ struct TaskServiceTests {
         #expect(task.status == .planning)
         let comments = try commentService.fetchComments(for: task.id)
         #expect(comments.isEmpty)
+    }
+
+    // MARK: - Save failure rollback (T-486)
+
+    /// Paired with `createTaskSucceedsWhenSaveWorks` to verify both the failure-rollback
+    /// and normal-success paths of the injectable save closure.
+    @Test func createTaskDeletesInsertedObjectOnSaveFailure() async throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+
+        do {
+            _ = try await service.createTask(
+                name: "Doomed Task",
+                description: nil,
+                type: .bug,
+                project: project,
+                save: { _ in throw SaveFailure.simulated }
+            )
+            Issue.record("Expected SaveFailure to be thrown")
+        } catch is SaveFailure {
+            // Expected
+        }
+
+        // The failed task must not remain in the context
+        let descriptor = FetchDescriptor<TransitTask>()
+        let tasks = try context.fetch(descriptor)
+        #expect(tasks.isEmpty, "Task should be deleted from context after save failure")
+    }
+
+    @Test func createTaskSucceedsWhenSaveWorks() async throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+
+        let task = try await service.createTask(
+            name: "Good Task",
+            description: nil,
+            type: .feature,
+            project: project
+        )
+
+        let descriptor = FetchDescriptor<TransitTask>()
+        let tasks = try context.fetch(descriptor)
+        #expect(tasks.count == 1)
+        #expect(tasks.first?.id == task.id)
     }
 }

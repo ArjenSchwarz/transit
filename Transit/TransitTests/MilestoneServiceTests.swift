@@ -291,4 +291,46 @@ struct MilestoneServiceTests {
         }
     }
 
+    // MARK: - Save failure rollback (T-486)
+
+    /// Paired with `createMilestoneSucceedsWhenSaveWorks` to verify both the failure-rollback
+    /// and normal-success paths of the injectable save closure.
+    @Test func createMilestoneDeletesInsertedObjectOnSaveFailure() async throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+
+        do {
+            _ = try await service.createMilestone(
+                name: "Doomed Milestone",
+                description: nil,
+                project: project,
+                save: { _ in throw SaveFailure.simulated }
+            )
+            Issue.record("Expected SaveFailure to be thrown")
+        } catch is SaveFailure {
+            // Expected
+        }
+
+        // The failed milestone must not remain in the context
+        let descriptor = FetchDescriptor<Milestone>()
+        let milestones = try context.fetch(descriptor)
+        #expect(milestones.isEmpty, "Milestone should be deleted from context after save failure")
+    }
+
+    @Test func createMilestoneSucceedsWhenSaveWorks() async throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+
+        let milestone = try await service.createMilestone(
+            name: "Good Milestone",
+            description: nil,
+            project: project
+        )
+
+        let descriptor = FetchDescriptor<Milestone>()
+        let milestones = try context.fetch(descriptor)
+        #expect(milestones.count == 1)
+        #expect(milestones.first?.id == milestone.id)
+    }
+
 }

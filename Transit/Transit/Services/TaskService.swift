@@ -73,7 +73,8 @@ final class TaskService {
         description: String?,
         type: TaskType,
         project: Project,
-        metadata: [String: String]? = nil
+        metadata: [String: String]? = nil,
+        save: (ModelContext) throws -> Void = { try $0.save() }
     ) async throws -> TransitTask {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
@@ -99,7 +100,12 @@ final class TaskService {
         StatusEngine.initializeNewTask(task)
 
         modelContext.insert(task)
-        try modelContext.save()
+        do {
+            try save(modelContext)
+        } catch {
+            modelContext.delete(task)
+            throw error
+        }
         return task
     }
 

@@ -13,10 +13,6 @@ import Testing
 @MainActor @Suite(.serialized)
 struct PromotionRollbackTests {
 
-    private enum SaveFailure: Swift.Error {
-        case simulated
-    }
-
     @Test func promoteProvisionalTasksFailedSavePreservesUnrelatedUnsavedEdits() async throws {
         let context = try TestModelContainer.newContext()
         let store = InMemoryCounterStore(initialNextDisplayID: 100)
