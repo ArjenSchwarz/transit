@@ -65,7 +65,7 @@ final class CommentService {
         do {
             try modelContext.save()
         } catch {
-            modelContext.rollback()
+            modelContext.safeRollback()
             throw error
         }
     }
@@ -81,7 +81,7 @@ final class CommentService {
         do {
             try modelContext.save()
         } catch {
-            modelContext.rollback()
+            modelContext.safeRollback()
             throw error
         }
     }

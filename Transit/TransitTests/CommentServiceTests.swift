@@ -102,7 +102,7 @@ struct CommentServiceTests {
         )
 
         // Roll back unsaved changes
-        context.rollback()
+        context.safeRollback()
 
         // After rollback, the comment should not exist
         let comments = try service.fetchComments(for: task.id)

@@ -105,7 +105,7 @@ final class MilestoneService {
         do {
             try modelContext.save()
         } catch {
-            modelContext.rollback()
+            modelContext.safeRollback()
             throw error
         }
     }
@@ -123,7 +123,7 @@ final class MilestoneService {
         do {
             try modelContext.save()
         } catch {
-            modelContext.rollback()
+            modelContext.safeRollback()
             throw error
         }
     }
@@ -133,7 +133,7 @@ final class MilestoneService {
         do {
             try modelContext.save()
         } catch {
-            modelContext.rollback()
+            modelContext.safeRollback()
             throw error
         }
     }
@@ -161,7 +161,7 @@ final class MilestoneService {
         do {
             try modelContext.save()
         } catch {
-            modelContext.rollback()
+            modelContext.safeRollback()
             throw error
         }
     }

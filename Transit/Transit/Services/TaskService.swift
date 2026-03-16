@@ -141,7 +141,7 @@ final class TaskService {
         } catch {
             // Note: all services share mainContext, so rollback discards all
             // unsaved mutations on that context, not just this method's changes.
-            modelContext.rollback()
+            modelContext.safeRollback()
             throw error
         }
     }
@@ -152,7 +152,7 @@ final class TaskService {
         do {
             try modelContext.save()
         } catch {
-            modelContext.rollback()
+            modelContext.safeRollback()
             throw error
         }
     }
@@ -166,7 +166,7 @@ final class TaskService {
         do {
             try modelContext.save()
         } catch {
-            modelContext.rollback()
+            modelContext.safeRollback()
             throw error
         }
     }
@@ -186,7 +186,7 @@ final class TaskService {
         do {
             try modelContext.save()
         } catch {
-            modelContext.rollback()
+            modelContext.safeRollback()
             throw error
         }
     }
