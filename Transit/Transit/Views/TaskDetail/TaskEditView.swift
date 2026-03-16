@@ -111,7 +111,8 @@ struct TaskEditView: View {
                     .tag(Optional(project.id))
                 }
             }
-            .onChange(of: selectedProjectID) { _, _ in
+            .onChange(of: selectedProjectID) { oldValue, _ in
+                guard oldValue != nil else { return }
                 selectedMilestone = nil
             }
 
@@ -198,7 +199,8 @@ struct TaskEditView: View {
                             .labelsHidden()
                             .pickerStyle(.menu)
                             .fixedSize()
-                            .onChange(of: selectedProjectID) { _, _ in
+                            .onChange(of: selectedProjectID) { oldValue, _ in
+                                guard oldValue != nil else { return }
                                 selectedMilestone = nil
                             }
                         }

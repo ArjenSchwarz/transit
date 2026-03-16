@@ -273,6 +273,39 @@ final class TransitUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Ship Active"].waitForExistence(timeout: 2))
     }
 
+    // MARK: - Edit View
+
+    @MainActor
+    func testEditViewPreservesTaskMilestone() throws {
+        let app = launchApp(scenario: "board")
+
+        // "Ship Active" (T-1) has milestone "v1.0" assigned
+        let taskCard = app.staticTexts["Ship Active"]
+        XCTAssertTrue(taskCard.waitForExistence(timeout: 5))
+        taskCard.tap()
+
+        // Detail view opens — verify milestone is shown
+        let detailMilestone = app.staticTexts["v1.0 (M-1)"]
+        XCTAssertTrue(detailMilestone.waitForExistence(timeout: 5))
+
+        // Tap edit button (pencil icon in toolbar)
+        let editButton = app.buttons["pencil"]
+        XCTAssertTrue(editButton.waitForExistence(timeout: 5))
+        editButton.tap()
+
+        // T-477: In the edit form, the milestone picker must show "v1.0"
+        // (not "None"). The bug was that .onChange(of: selectedProjectID)
+        // fired during loadTask() and cleared the milestone.
+        let editTitle = app.navigationBars["Edit Task"]
+        XCTAssertTrue(editTitle.waitForExistence(timeout: 5))
+
+        let milestonePicker = app.staticTexts["v1.0"]
+        XCTAssertTrue(
+            milestonePicker.waitForExistence(timeout: 5),
+            "T-477: Milestone should be preserved when opening the edit view"
+        )
+    }
+
     // MARK: - Abandoned Task Opacity
 
     @MainActor
