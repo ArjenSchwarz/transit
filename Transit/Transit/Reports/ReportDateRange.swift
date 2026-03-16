@@ -60,9 +60,12 @@ enum ReportDateRange: String, AppEnum, CaseIterable, Identifiable {
             return "\(label) (\(start.formatted(.dateTime.month(.abbreviated).day().year())))"
         }
 
-        let formatted = (start ..< end).formatted(
-            .interval.month(.abbreviated).day().year()
-        )
+        // Use DateIntervalFormatter with explicit start/end dates rather than
+        // Range<Date>.formatted, which misleadingly applies half-open range
+        // semantics (..< end) to dates that are already inclusive last days.
+        let formatter = DateIntervalFormatter()
+        formatter.dateTemplate = "MMMdy"
+        let formatted = formatter.string(from: start, to: end)
         return "\(label) (\(formatted))"
     }
 
