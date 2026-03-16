@@ -4,7 +4,6 @@ import Testing
 @testable import Transit
 
 @MainActor @Suite(.serialized)
-// swiftlint:disable:next type_body_length
 struct MilestoneServiceTests {
 
     // MARK: - Helpers
@@ -294,10 +293,8 @@ struct MilestoneServiceTests {
 
     // MARK: - Save failure rollback (T-486)
 
-    private enum SaveFailure: Swift.Error {
-        case simulated
-    }
-
+    /// Paired with `createMilestoneSucceedsWhenSaveWorks` to verify both the failure-rollback
+    /// and normal-success paths of the injectable save closure.
     @Test func createMilestoneDeletesInsertedObjectOnSaveFailure() async throws {
         let (service, context) = try makeService()
         let project = makeProject(in: context)

@@ -319,10 +319,8 @@ struct TaskServiceTests {
 
     // MARK: - Save failure rollback (T-486)
 
-    private enum SaveFailure: Swift.Error {
-        case simulated
-    }
-
+    /// Paired with `createTaskSucceedsWhenSaveWorks` to verify both the failure-rollback
+    /// and normal-success paths of the injectable save closure.
     @Test func createTaskDeletesInsertedObjectOnSaveFailure() async throws {
         let (service, context) = try makeService()
         let project = makeProject(in: context)
