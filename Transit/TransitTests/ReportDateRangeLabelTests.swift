@@ -38,7 +38,7 @@ struct ReportDateRangeLabelTests {
         let expectedLastDay = calendar.date(byAdding: .day, value: -1, to: monthInterval.end)!
 
         let label = ReportDateRange.lastMonth.labelWithDates(now: now)
-        let expectedEndStr = expectedLastDay.formatted(.dateTime.day())
+        let expectedEndStr = expectedLastDay.formatted(.dateTime.month(.abbreviated).day())
 
         // January 2026 has 31 days — label must show day 31, not 30
         #expect(

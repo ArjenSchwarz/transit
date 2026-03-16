@@ -63,11 +63,15 @@ enum ReportDateRange: String, AppEnum, CaseIterable, Identifiable {
         // Use DateIntervalFormatter with explicit start/end dates rather than
         // Range<Date>.formatted, which misleadingly applies half-open range
         // semantics (..< end) to dates that are already inclusive last days.
-        let formatter = DateIntervalFormatter()
-        formatter.dateTemplate = "MMMdy"
-        let formatted = formatter.string(from: start, to: end)
+        let formatted = Self.intervalFormatter.string(from: start, to: end)
         return "\(label) (\(formatted))"
     }
+
+    private static let intervalFormatter: DateIntervalFormatter = {
+        let formatter = DateIntervalFormatter()
+        formatter.dateTemplate = "MMMdy"
+        return formatter
+    }()
 
     private func dateInterval(now: Date, calendar: Calendar) -> (start: Date, end: Date) {
         switch self {
