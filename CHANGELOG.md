@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- MCP comments with literal `\n` sequences now store actual newlines instead of the raw escape characters (T-561)
+
 ### Changed
 
 - macOS Settings uses `NavigationSplitView` with sidebar categories (General, Projects, MCP Server, Acknowledgments) instead of a single scrolling pane (T-51)
@@ -21,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Tests for MCP comment literal `\n` unescaping in `add_comment` and `update_task_status` (T-561)
+- Implementation explanation for parse-comment-newlines spec (T-561)
+- Smolspec and task plan for parsing literal `\n` as newlines in MCP comments (T-561)
 - Smolspec, task plan, and decision log for macOS settings window (T-51)
 - Back/forward navigation chevrons in macOS Settings toolbar with category history tracking (T-51)
 - Cmd+Comma keyboard shortcut and Settings menu item via `SettingsCommand` (T-51)

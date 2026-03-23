@@ -166,6 +166,77 @@ struct MCPCommentTests {
         #expect(comments.isEmpty)
     }
 
+    // MARK: - Newline unescaping
+
+    @Test func addCommentUnescapesLiteralNewlines() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let task = try await env.taskService.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "add_comment",
+            arguments: [
+                "displayId": 1,
+                "content": "Line one\\nLine two",
+                "authorName": "Bot"
+            ]
+        ))
+
+        let result = try MCPTestHelpers.decodeResult(response)
+        #expect(result["content"] as? String == "Line one\nLine two")
+
+        let comments = try env.commentService.fetchComments(for: task.id)
+        #expect(comments.count == 1)
+        #expect(comments[0].content == "Line one\nLine two")
+    }
+
+    @Test func updateStatusCommentUnescapesLiteralNewlines() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let task = try await env.taskService.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "update_task_status",
+            arguments: [
+                "displayId": 1,
+                "status": "planning",
+                "comment": "Reason:\\nDetails here",
+                "authorName": "Bot"
+            ]
+        ))
+
+        let result = try MCPTestHelpers.decodeResult(response)
+        let commentDict = try #require(result["comment"] as? [String: Any])
+        #expect(commentDict["content"] as? String == "Reason:\nDetails here")
+
+        let comments = try env.commentService.fetchComments(for: task.id)
+        #expect(comments[0].content == "Reason:\nDetails here")
+    }
+
+    @Test func addCommentPreservesRealNewlines() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.taskService.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "add_comment",
+            arguments: [
+                "displayId": 1,
+                "content": "Line one\nLine two",
+                "authorName": "Bot"
+            ]
+        ))
+
+        let result = try MCPTestHelpers.decodeResult(response)
+        #expect(result["content"] as? String == "Line one\nLine two")
+    }
+
     // MARK: - query_tasks with comments
 
     @Test func queryTasksIncludesCommentsArray() async throws {
