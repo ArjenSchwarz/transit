@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Unified task form field order across Add Task, Edit Task, and Task Detail views: Name → Type → Project → Milestone → Description (T-54)
+- Merged project color picker into the main Details section on both iOS and macOS (T-54)
+- Removed separate "Type" section from Add Task macOS form; consolidated into single Task section (T-54)
+
+### Changed
+
 - Updated CLAUDE.md to reflect current architecture: 4 data models, MCP server, milestones, comments, reports, expanded intents, save/rollback patterns, and updated test infrastructure
 - Updated README.md to document milestones, comments, reports, MCP server, expanded CLI intents, search/filter, and distribution build targets
 

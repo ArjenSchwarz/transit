@@ -84,6 +84,14 @@ struct AddTaskSheet: View {
     private var iOSForm: some View {
         Form {
             Section {
+                TextField("Name", text: $name)
+
+                Picker("Type", selection: $selectedType) {
+                    ForEach(TaskType.allCases, id: \.self) { type in
+                        Text(type.rawValue.capitalized).tag(type)
+                    }
+                }
+
                 Picker("Project", selection: $selectedProjectID) {
                     ForEach(projects) { project in
                         HStack {
@@ -103,8 +111,6 @@ struct AddTaskSheet: View {
                         Text(milestone.name).tag(milestone as Milestone?)
                     }
                 }
-
-                TextField("Name", text: $name)
             }
 
             Section {
@@ -117,14 +123,6 @@ struct AddTaskSheet: View {
                     }
                     TextEditor(text: $taskDescription)
                         .frame(minHeight: 120, maxHeight: .infinity)
-                }
-            }
-
-            Section {
-                Picker("Type", selection: $selectedType) {
-                    ForEach(TaskType.allCases, id: \.self) { type in
-                        Text(type.rawValue.capitalized).tag(type)
-                    }
                 }
             }
         }
@@ -145,6 +143,21 @@ struct AddTaskSheet: View {
                         horizontalSpacing: 16,
                         verticalSpacing: 14
                     ) {
+                        FormRow("Name", labelWidth: Self.labelWidth) {
+                            TextField("", text: $name)
+                        }
+
+                        FormRow("Type", labelWidth: Self.labelWidth) {
+                            Picker("", selection: $selectedType) {
+                                ForEach(TaskType.allCases, id: \.self) { type in
+                                    Text(type.rawValue.capitalized).tag(type)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .fixedSize()
+                        }
+
                         FormRow("Project", labelWidth: Self.labelWidth) {
                             Picker("", selection: $selectedProjectID) {
                                 ForEach(projects) { project in
@@ -175,10 +188,6 @@ struct AddTaskSheet: View {
                             .fixedSize()
                         }
 
-                        FormRow("Name", labelWidth: Self.labelWidth) {
-                            TextField("", text: $name)
-                        }
-
                         FormRow("Description", labelWidth: Self.labelWidth) {
                             ZStack(alignment: .topLeading) {
                                 if taskDescription.isEmpty {
@@ -198,25 +207,6 @@ struct AddTaskSheet: View {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                                     .stroke(Color.primary.opacity(0.15), lineWidth: 1)
                             )
-                        }
-                    }
-                }
-
-                LiquidGlassSection(title: "Type") {
-                    Grid(
-                        alignment: .leadingFirstTextBaseline,
-                        horizontalSpacing: 16,
-                        verticalSpacing: 14
-                    ) {
-                        FormRow("Type", labelWidth: Self.labelWidth) {
-                            Picker("", selection: $selectedType) {
-                                ForEach(TaskType.allCases, id: \.self) { type in
-                                    Text(type.rawValue.capitalized).tag(type)
-                                }
-                            }
-                            .labelsHidden()
-                            .pickerStyle(.menu)
-                            .fixedSize()
                         }
                     }
                 }
