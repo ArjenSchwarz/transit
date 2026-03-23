@@ -154,27 +154,6 @@ struct TaskEditView: View {
                             TextField("", text: $name)
                         }
 
-                        FormRow("Description", labelWidth: Self.labelWidth) {
-                            ZStack(alignment: .topLeading) {
-                                if taskDescription.isEmpty {
-                                    Text("Description")
-                                        .foregroundStyle(.secondary)
-                                        .padding(.top, 8)
-                                        .padding(.leading, 4)
-                                }
-                                TextEditor(text: $taskDescription)
-                                    .frame(minHeight: 120)
-                                    .scrollContentBackground(.hidden)
-                            }
-                            .padding(4)
-                            .background(Color(.textBackgroundColor))
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(Color.primary.opacity(0.15), lineWidth: 1)
-                            )
-                        }
-
                         FormRow("Type", labelWidth: Self.labelWidth) {
                             Picker("", selection: $selectedType) {
                                 ForEach(TaskType.allCases, id: \.self) { type in
@@ -215,6 +194,27 @@ struct TaskEditView: View {
                             .labelsHidden()
                             .pickerStyle(.menu)
                             .fixedSize()
+                        }
+
+                        FormRow("Description", labelWidth: Self.labelWidth) {
+                            ZStack(alignment: .topLeading) {
+                                if taskDescription.isEmpty {
+                                    Text("Description")
+                                        .foregroundStyle(.secondary)
+                                        .padding(.top, 8)
+                                        .padding(.leading, 4)
+                                }
+                                TextEditor(text: $taskDescription)
+                                    .frame(minHeight: 120)
+                                    .scrollContentBackground(.hidden)
+                            }
+                            .padding(4)
+                            .background(Color(.textBackgroundColor))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(Color.primary.opacity(0.15), lineWidth: 1)
+                            )
                         }
                     }
                 }

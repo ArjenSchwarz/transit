@@ -52,8 +52,6 @@ struct ProjectEditView: View {
                     .textContentType(.URL)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
-            }
-            Section {
                 ColorPicker("Color", selection: $color, supportsOpacity: false)
             }
 
@@ -96,15 +94,7 @@ struct ProjectEditView: View {
                             TextField("", text: $gitRepo)
                                 .autocorrectionDisabled()
                         }
-                    }
-                }
 
-                LiquidGlassSection(title: "Appearance") {
-                    Grid(
-                        alignment: .leadingFirstTextBaseline,
-                        horizontalSpacing: 16,
-                        verticalSpacing: 14
-                    ) {
                         FormRow("Color", labelWidth: Self.labelWidth) {
                             ColorPicker("", selection: $color, supportsOpacity: false)
                                 .labelsHidden()
