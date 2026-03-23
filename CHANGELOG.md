@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Updated CLAUDE.md to reflect current architecture: 4 data models, MCP server, milestones, comments, reports, expanded intents, save/rollback patterns, and updated test infrastructure
+- Updated README.md to document milestones, comments, reports, MCP server, expanded CLI intents, search/filter, and distribution build targets
+
 ### Fixed
 
 - MCP comments with literal `\n` sequences now store actual newlines instead of the raw escape characters (T-561)
