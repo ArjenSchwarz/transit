@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Smolspec and task plan for Home Screen Quick Actions — long-press app icon to create a new task (T-27)
+
 ### Changed
 
 - Unified task form field order across Add Task, Edit Task, and Task Detail views: Name → Type → Project → Milestone → Description (T-54)
