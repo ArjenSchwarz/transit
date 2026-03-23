@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- MCP comments with literal `\n` sequences now store actual newlines instead of the raw escape characters (T-561)
+
 ### Changed
 
 - macOS Settings uses `NavigationSplitView` with sidebar categories (General, Projects, MCP Server, Acknowledgments) instead of a single scrolling pane (T-51)
