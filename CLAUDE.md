@@ -121,7 +121,7 @@ Intents exposed as Shortcuts, each accepting/returning structured JSON via `@Par
 - **AddCommentIntent** — add comment to a task
 - **GenerateReportIntent** — generate markdown report of completed/abandoned tasks
 
-Error responses are JSON-encoded in the return string (not thrown) so CLI callers get parseable output. Error codes: `TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`.
+Error responses are JSON-encoded in the return string (not thrown) so CLI callers get parseable output. Error codes: `TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`, `INVALID_INPUT`, `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `MILESTONE_PROJECT_MISMATCH`, `INTERNAL_ERROR`.
 
 **Visual intents** (in `Intents/Visual/`) use native App Intent entities and queries for Shortcuts UI integration: `AddTaskIntent`, `FindTasksIntent`.
 
@@ -149,7 +149,8 @@ The MCP server reuses the same service instances as the UI (shared `mainContext`
 - **ReportLogic** — filters terminal tasks/milestones by date range, groups by project
 - **ReportData** / **ReportDateRange** — value types for report structure and date range options
 - **ReportMarkdownFormatter** — renders report data as markdown
-- **ReportView** — SwiftUI view for in-app report viewing
+
+The in-app report view lives at `Views/Reports/ReportView.swift`.
 
 Reports are also exposed via `GenerateReportIntent` for CLI/automation use.
 

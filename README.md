@@ -55,11 +55,11 @@ Transit exposes App Intents accessible via the Shortcuts app or `shortcuts run` 
 - **Transit: Create Milestone** — create a milestone within a project
 - **Transit: Query Milestones** — list milestones with optional filters
 - **Transit: Update Milestone** — update milestone name, description, or status
-- **Transit: Delete Milestone** — delete a milestone (tasks keep their data)
+- **Transit: Delete Milestone** — delete a milestone (task associations are cleared)
 - **Transit: Add Comment** — add a comment to a task
 - **Transit: Generate Report** — produce a markdown report of completed tasks
 
-All intents accept a JSON string input and return a JSON string response, including structured error codes (`TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`).
+All intents accept a JSON string input and return a JSON string response, including structured error codes (`TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`, `INVALID_INPUT`, `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `MILESTONE_PROJECT_MISMATCH`, `INTERNAL_ERROR`).
 
 ## MCP Server (macOS)
 
