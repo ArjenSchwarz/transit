@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Smolspec and task plan for parsing literal `\n` as newlines in MCP comments (T-561)
 - Smolspec, task plan, and decision log for macOS settings window (T-51)
 - Back/forward navigation chevrons in macOS Settings toolbar with category history tracking (T-51)
 - Cmd+Comma keyboard shortcut and Settings menu item via `SettingsCommand` (T-51)
