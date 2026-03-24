@@ -329,6 +329,8 @@ final class QuickActionAppDelegate: NSObject, UIApplicationDelegate {
             quickActionService?.pendingNewTask = true
         }
         let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+        // Always register scene delegate so warm-start quick actions are delivered
+        // via windowScene(_:performActionFor:completionHandler:).
         config.delegateClass = QuickActionSceneDelegate.self
         return config
     }
@@ -340,12 +342,11 @@ final class QuickActionSceneDelegate: NSObject, UIWindowSceneDelegate {
         performActionFor shortcutItem: UIApplicationShortcutItem,
         completionHandler: @escaping (Bool) -> Void
     ) {
-        if shortcutItem.type == QuickActionService.newTaskActionType {
-            if let appDelegate = UIApplication.shared.delegate as? QuickActionAppDelegate {
-                appDelegate.quickActionService?.pendingNewTask = true
-            }
+        let handled = shortcutItem.type == QuickActionService.newTaskActionType
+        if handled, let appDelegate = UIApplication.shared.delegate as? QuickActionAppDelegate {
+            appDelegate.quickActionService?.pendingNewTask = true
         }
-        completionHandler(true)
+        completionHandler(handled)
     }
 }
 #endif

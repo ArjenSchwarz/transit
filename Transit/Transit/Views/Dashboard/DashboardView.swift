@@ -156,6 +156,8 @@ struct DashboardView: View {
         #if os(iOS)
         .onChange(of: quickActionService.pendingNewTask, initial: true) { _, isPending in
             guard isPending else { return }
+            // Clear before guard so the flag isn't re-evaluated on later view
+            // appearances. If a sheet is already open, the action is intentionally dropped.
             quickActionService.pendingNewTask = false
             guard DashboardLogic.shouldHandleNewTaskShortcut(
                 showAddTask: showAddTask, selectedTask: selectedTask
