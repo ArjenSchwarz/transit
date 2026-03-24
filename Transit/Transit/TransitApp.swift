@@ -320,14 +320,12 @@ private struct SettingsCommand: Commands {
 final class QuickActionAppDelegate: NSObject, UIApplicationDelegate {
     var quickActionService: QuickActionService?
 
-    private static let newTaskType = "com.arjen.transit.new-task"
-
     func application(
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
         options: UIScene.ConnectionOptions
     ) -> UISceneConfiguration {
-        if let shortcut = options.shortcutItem, shortcut.type == Self.newTaskType {
+        if let shortcut = options.shortcutItem, shortcut.type == QuickActionService.newTaskActionType {
             quickActionService?.pendingNewTask = true
         }
         let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
@@ -342,7 +340,7 @@ final class QuickActionSceneDelegate: NSObject, UIWindowSceneDelegate {
         performActionFor shortcutItem: UIApplicationShortcutItem,
         completionHandler: @escaping (Bool) -> Void
     ) {
-        if shortcutItem.type == "com.arjen.transit.new-task" {
+        if shortcutItem.type == QuickActionService.newTaskActionType {
             if let appDelegate = UIApplication.shared.delegate as? QuickActionAppDelegate {
                 appDelegate.quickActionService?.pendingNewTask = true
             }
