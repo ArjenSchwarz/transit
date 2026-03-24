@@ -2,9 +2,16 @@ import AppIntents
 import CloudKit
 import SwiftData
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 @main
 struct TransitApp: App {
+
+    #if os(iOS)
+    @UIApplicationDelegateAdaptor private var appDelegate: QuickActionAppDelegate
+    #endif
 
     private let container: ModelContainer
     private let taskService: TaskService
@@ -21,6 +28,10 @@ struct TransitApp: App {
     private let mcpServer: MCPServer
     #endif
 
+    #if os(iOS)
+    private let quickActionService: QuickActionService
+    #endif
+
     /// True when the app is launched as a unit test host (not UI tests, which set their own scenario).
     private static let isUnitTestHost: Bool = NSClassFromString("XCTestCase") != nil
         && ProcessInfo.processInfo.environment["TRANSIT_UI_TEST_SCENARIO"] == nil
@@ -29,6 +40,7 @@ struct TransitApp: App {
         UITestScenario(rawValue: ProcessInfo.processInfo.environment["TRANSIT_UI_TEST_SCENARIO"] ?? "")
     }
 
+    // swiftlint:disable:next function_body_length
     init() {
         let isInert = Self.isUnitTestHost
         let syncManager = SyncManager()
@@ -84,6 +96,12 @@ struct TransitApp: App {
         AppDependencyManager.shared.add(dependency: commentService)
         AppDependencyManager.shared.add(dependency: milestoneService)
 
+        #if os(iOS)
+        let quickActionService = QuickActionService()
+        self.quickActionService = quickActionService
+        appDelegate.quickActionService = quickActionService
+        #endif
+
         #if os(macOS)
         let mcpSettings = MCPSettings()
         self.mcpSettings = mcpSettings
@@ -138,6 +156,9 @@ struct TransitApp: App {
             .environment(milestoneService)
             .environment(syncManager)
             .environment(connectivityMonitor)
+            #if os(iOS)
+            .environment(quickActionService)
+            #endif
             #if os(macOS)
             .environment(mcpSettings)
             .environment(mcpServer)
@@ -289,6 +310,44 @@ private struct SettingsCommand: Commands {
             }
             .keyboardShortcut(",", modifiers: .command)
         }
+    }
+}
+#endif
+
+// MARK: - Quick Action App Delegate
+
+#if os(iOS)
+final class QuickActionAppDelegate: NSObject, UIApplicationDelegate {
+    var quickActionService: QuickActionService?
+
+    private static let newTaskType = "com.arjen.transit.new-task"
+
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        if let shortcut = options.shortcutItem, shortcut.type == Self.newTaskType {
+            quickActionService?.pendingNewTask = true
+        }
+        let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+        config.delegateClass = QuickActionSceneDelegate.self
+        return config
+    }
+}
+
+final class QuickActionSceneDelegate: NSObject, UIWindowSceneDelegate {
+    func windowScene(
+        _ windowScene: UIWindowScene,
+        performActionFor shortcutItem: UIApplicationShortcutItem,
+        completionHandler: @escaping (Bool) -> Void
+    ) {
+        if shortcutItem.type == "com.arjen.transit.new-task" {
+            if let appDelegate = UIApplication.shared.delegate as? QuickActionAppDelegate {
+                appDelegate.quickActionService?.pendingNewTask = true
+            }
+        }
+        completionHandler(true)
     }
 }
 #endif

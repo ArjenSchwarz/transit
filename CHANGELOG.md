@@ -8,7 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- Smolspec and task plan for Home Screen Quick Actions — long-press app icon to create a new task (T-27)
+- Home Screen Quick Actions: long-press the app icon on iOS to create a new task via "New Task" shortcut (T-27)
+- Static `UIApplicationShortcutItems` in Info.plist with SF Symbol `plus.square`
+- `QuickActionService` to communicate pending quick actions from AppDelegate to views
+- `QuickActionAppDelegate` and `QuickActionSceneDelegate` handling both cold and warm start quick actions
+- DashboardView observes quick action service and presents AddTaskSheet with existing guard logic
 
 ### Changed
 

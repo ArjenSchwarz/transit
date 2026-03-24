@@ -6,5 +6,16 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.arjen.transit.new-task</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>New Task</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>plus.square</string>
+		</dict>
+	</array>
 </dict>
 </plist>
