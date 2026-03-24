@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Home Screen Quick Actions: long-press the app icon on iOS to create a new task via "New Task" shortcut (T-27)
+- Static `UIApplicationShortcutItems` in Info.plist with SF Symbol `plus.square`
+- `QuickActionService` to communicate pending quick actions from AppDelegate to views
+- `QuickActionAppDelegate` and `QuickActionSceneDelegate` handling both cold and warm start quick actions
+- DashboardView observes quick action service and presents AddTaskSheet with existing guard logic
+- Unit tests for `QuickActionService` verifying flag defaults, setting, and clearing
+
 ### Changed
 
 - Unified task form field order across Add Task, Edit Task, and Task Detail views: Name → Type → Project → Milestone → Description (T-54)
@@ -16,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Home Screen Quick Actions now correctly open the Add Task sheet on cold start (T-27)
 - MCP comments with literal `\n` sequences now store actual newlines instead of the raw escape characters (T-561)
 
 ### Changed
