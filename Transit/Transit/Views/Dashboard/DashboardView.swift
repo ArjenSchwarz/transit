@@ -154,7 +154,7 @@ struct DashboardView: View {
             selectedMilestones.removeAll()
         }
         #if os(iOS)
-        .onChange(of: quickActionService.pendingNewTask) { _, isPending in
+        .onChange(of: quickActionService.pendingNewTask, initial: true) { _, isPending in
             guard isPending else { return }
             quickActionService.pendingNewTask = false
             guard DashboardLogic.shouldHandleNewTaskShortcut(
