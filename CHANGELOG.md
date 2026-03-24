@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `QuickActionService` to communicate pending quick actions from AppDelegate to views
 - `QuickActionAppDelegate` and `QuickActionSceneDelegate` handling both cold and warm start quick actions
 - DashboardView observes quick action service and presents AddTaskSheet with existing guard logic
+- Unit tests for `QuickActionService` verifying flag defaults, setting, and clearing
 
 ### Changed
 

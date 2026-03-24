@@ -33,20 +33,20 @@ references:
 
 ## Edge Cases and Testing
 
-- [ ] 5. Quick action is ignored when a sheet is already presented <!-- id:6yfh7qw -->
+- [x] 5. Quick action is ignored when a sheet is already presented <!-- id:6yfh7qw -->
   - Verify that tapping the quick action while AddTaskSheet or TaskDetailView sheet is already showing does not cause a crash or double-presentation.
   - The existing shouldHandleNewTaskShortcut guard handles this.
   - Verify: open a task detail sheet, background the app, trigger quick action, foreground — no crash, existing sheet remains.
   - Blocked-by: 6yfh7qv (DashboardView presents AddTaskSheet on quick action)
   - References: specs/home-screen-quick-actions/smolspec.md
 
-- [ ] 6. Unit tests for QuickActionService <!-- id:6yfh7qx -->
+- [x] 6. Unit tests for QuickActionService <!-- id:6yfh7qx -->
   - Add tests verifying: flag defaults to false, setting flag to true works, clearing the flag after consumption works.
   - Use Swift Testing framework with @Suite(.serialized).
   - Blocked-by: 6yfh7qt (QuickActionService communicates pending actions to views)
   - References: specs/home-screen-quick-actions/smolspec.md
 
-- [ ] 7. macOS build unaffected <!-- id:6yfh7qy -->
+- [x] 7. macOS build unaffected <!-- id:6yfh7qy -->
   - Verify make build-macos succeeds with no warnings related to quick action code.
   - All new code must be gated behind #if os(iOS).
   - Blocked-by: 6yfh7qv (DashboardView presents AddTaskSheet on quick action)
