@@ -1,5 +1,6 @@
 import AppIntents
 import Foundation
+import SwiftData
 
 /// Creates a new task via JSON input. Exposed as "Transit: Create Task" in Shortcuts.
 /// Always creates tasks in Idea status. [req 16.1-16.8]
@@ -105,10 +106,13 @@ struct CreateTaskIntent: AppIntent {
         // Assign pre-resolved milestone [req 13.6]
         // Safety: resolveMilestone already verified the milestone exists and belongs to the
         // correct project, so setMilestone should only fail on an unexpected persistence error.
+        // On failure, delete the task to avoid orphans [T-558], matching MCP create_task behavior.
         if let resolvedMilestone {
             do {
                 try milestoneService?.setMilestone(resolvedMilestone, on: task)
             } catch {
+                projectService.context.delete(task)
+                try? projectService.context.save()
                 return IntentError.internalError(hint: "Failed to assign milestone").json
             }
         }
@@ -144,6 +148,11 @@ struct CreateTaskIntent: AppIntent {
         let milestoneDisplayId = json["milestoneDisplayId"] as? Int
             ?? (json["milestoneDisplayId"] as? Double).flatMap { Int(exactly: $0) }
         let milestoneName = json["milestone"] as? String
+
+        // Reject non-integer milestoneDisplayId when key is present [T-613]
+        if json["milestoneDisplayId"] != nil, milestoneDisplayId == nil {
+            return (nil, IntentError.invalidInput(hint: "milestoneDisplayId must be an integer").json)
+        }
 
         if let milestoneDisplayId {
             do {

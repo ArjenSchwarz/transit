@@ -33,6 +33,10 @@ final class MilestoneService {
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
 
+    /// Single-flight guard for `promoteProvisionalMilestones`. Prevents
+    /// concurrent promotion runs from overlapping (T-597).
+    private var isPromotingMilestones = false
+
     init(modelContext: ModelContext, displayIDAllocator: DisplayIDAllocator) {
         self.modelContext = modelContext
         self.displayIDAllocator = displayIDAllocator
@@ -181,6 +185,10 @@ final class MilestoneService {
     func promoteProvisionalMilestones(
         save: (ModelContext) throws -> Void = { try $0.save() }
     ) async {
+        guard !isPromotingMilestones else { return }
+        isPromotingMilestones = true
+        defer { isPromotingMilestones = false }
+
         let descriptor = FetchDescriptor<Milestone>(
             predicate: #Predicate { $0.permanentDisplayId == nil },
             sortBy: [SortDescriptor(\.creationDate, order: .forward)]

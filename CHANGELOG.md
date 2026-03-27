@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `ContainerFactory` service for graceful `ModelContainer` creation with automatic fallback
+- Regression tests for container fallback behaviour (`ModelContainerFallbackTests`)
 - Home Screen Quick Actions: long-press the app icon on iOS to create a new task via "New Task" shortcut (T-27)
 - Static `UIApplicationShortcutItems` in Info.plist with SF Symbol `plus.square`
 - `QuickActionService` to communicate pending quick actions from AppDelegate to views
@@ -25,8 +27,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Concurrent ID promotion no longer overwrites assigned IDs when triggered simultaneously by ScenePhaseModifier and ConnectivityMonitor (T-597)
+- Fix `ConnectivityMonitor.onRestore` closure type to `@MainActor @Sendable` to resolve Swift 6.3 data race error (T-597)
+- `CommentService.addComment` now deletes the inserted comment from the model context on save failure, preventing orphaned comments from being persisted by later saves (T-509)
+- App no longer crashes on launch when the SwiftData store is corrupted or CloudKit is misconfigured; falls back to an in-memory container and shows an alert (T-504)
 - Home Screen Quick Actions now correctly open the Add Task sheet on cold start (T-27)
-- MCP comments with literal `\n` sequences now store actual newlines instead of the raw escape characters (T-561)
+- Reverted MCP comment `\n` unescape logic (T-561) that corrupted literal backslash-n in content (e.g., Windows paths like `C:\new`); JSON-RPC already decodes escape sequences at the transport layer (T-576)
+- Pre-existing `Sendable` build error in `TransitApp.swift` connectivity monitor closure
 
 ### Changed
 

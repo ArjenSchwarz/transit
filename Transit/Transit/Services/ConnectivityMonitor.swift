@@ -12,7 +12,7 @@ final class ConnectivityMonitor: @unchecked Sendable {
     nonisolated(unsafe) private var wasConnected = true
 
     /// Called on the main actor when connectivity is restored.
-    var onRestore: (@Sendable () async -> Void)?
+    var onRestore: (@MainActor @Sendable () async -> Void)?
 
     func start() {
         monitor.pathUpdateHandler = { [weak self] path in

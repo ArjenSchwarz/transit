@@ -98,7 +98,7 @@ struct CommentServiceTests {
         let task = makeTask(in: context)
 
         _ = try service.addComment(
-            to: task, content: "Deferred", authorName: "Alice", isAgent: false, save: false
+            to: task, content: "Deferred", authorName: "Alice", isAgent: false, save: nil
         )
 
         // Roll back unsaved changes
@@ -250,6 +250,50 @@ struct CommentServiceTests {
 
         let remaining = try service.fetchComments(for: task.id)
         #expect(remaining.count == 1)
+    }
+
+    // MARK: - Save failure rollback (T-509)
+
+    /// Verifies that a failed save deletes the inserted comment from the
+    /// context, preventing it from being persisted on a later unrelated save.
+    @Test func addComment_deletesInsertedCommentOnSaveFailure() throws {
+        let (service, context) = try makeService()
+        let task = makeTask(in: context)
+
+        do {
+            _ = try service.addComment(
+                to: task,
+                content: "Doomed comment",
+                authorName: "Alice",
+                isAgent: false,
+                save: { _ in throw SaveFailure.simulated }
+            )
+            Issue.record("Expected SaveFailure to be thrown")
+        } catch is SaveFailure {
+            // Expected
+        }
+
+        // The failed comment must not remain in the context
+        let comments = try service.fetchComments(for: task.id)
+        #expect(comments.isEmpty, "Comment should be deleted from context after save failure")
+    }
+
+    /// Paired with the failure test above — confirms the default save
+    /// parameter persists the comment without an explicit closure.
+    @Test func addComment_succeedsWithDefaultSave() throws {
+        let (service, context) = try makeService()
+        let task = makeTask(in: context)
+
+        let comment = try service.addComment(
+            to: task,
+            content: "Persisted comment",
+            authorName: "Alice",
+            isAgent: false
+        )
+
+        let fetched = try service.fetchComments(for: task.id)
+        #expect(fetched.count == 1)
+        #expect(fetched[0].id == comment.id)
     }
 
     // MARK: - Cascade Delete
