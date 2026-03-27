@@ -31,15 +31,15 @@ Several intent and MCP code paths parse `milestoneDisplayId` using `IntentHelper
 ## Resolution for the Issue
 
 **Changes made:**
-- `IntentHelpers.swift` — Added `parseRequiredIntValue()` that distinguishes "key missing" from "key present but non-integer". Updated `assignMilestone()` to validate when key is present but non-integral.
-- `CreateTaskIntent.swift` — Updated `resolveMilestone()` to check for key presence before parsing, returning INVALID_INPUT when value is non-integral.
-- `MCPToolHandler.swift` — Updated `handleCreateTask()`, `handleQueryTasks()`, and `handleUpdateTask()` to validate `milestoneDisplayId` when key is present but non-integral.
+- `IntentHelpers.swift` — Added an inline guard in `assignMilestone()` that checks whether `milestoneDisplayId` is present in the dictionary but non-integral, returning INVALID_INPUT if so.
+- `CreateTaskIntent.swift` — Added the same inline guard in `resolveMilestone()`, returning an error tuple when the key is present but `parseIntValue` returns `nil`.
+- `MCPToolHandler.swift` — Added inline guards in `handleCreateTask()`, `handleQueryTasks()`, and `handleUpdateTask()` that validate `milestoneDisplayId` when the key is present but non-integral.
 
-**Approach rationale:** Check for key presence in the dictionary separately from parsing the value. When the key exists but `parseIntValue` returns `nil`, return a validation error.
+**Approach rationale:** Check for key presence in the dictionary separately from parsing the value. When the key exists but `parseIntValue` returns `nil`, return a validation error. This is a minimal change that doesn't alter the `parseIntValue` API.
 
 **Alternatives considered:**
 - Changing `parseIntValue` to return a `Result` type — rejected because it would require changes to all callers including those where the current behavior is correct (e.g. `displayId` on tasks/milestones which have their own validation)
-- Adding a separate `isValidIntValue` function — rejected because checking key presence + calling `parseIntValue` is simpler and more direct
+- Adding a dedicated `parseRequiredIntValue()` function — rejected because the inline `json[key] != nil && parseIntValue(...) == nil` pattern is clear and avoids API proliferation
 
 ## Regression Test
 

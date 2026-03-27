@@ -81,8 +81,9 @@ struct TransitApp: App {
 
         if !isInert {
             // Wire up connectivity restore to trigger display ID promotion.
-            // nonisolated(unsafe) suppresses the Sendable diagnostic — safe because
-            // promoteProvisionalTasks is @MainActor and the closure runs on MainActor.
+            // nonisolated(unsafe) satisfies the Sendable requirement — safe because
+            // sendableContext is only accessed inside @MainActor methods that
+            // serialize access on the main actor before use.
             nonisolated(unsafe) let sendableContext = context
             connectivityMonitor.onRestore = { @Sendable in
                 await allocator.promoteProvisionalTasks(in: sendableContext)
