@@ -28,7 +28,9 @@ final class DisplayIDAllocator: @unchecked Sendable {
     private let retryLimit: Int
 
     /// Single-flight guard for `promoteProvisionalTasks`. Prevents concurrent
-    /// promotion runs from overlapping (T-597).
+    /// promotion runs from overlapping (T-597). Must only be accessed from
+    /// @MainActor callers — the compiler does not enforce this because the
+    /// class is @unchecked Sendable.
     private var isPromotingTasks = false
 
     init(store: CounterStore, retryLimit: Int = 5) {
