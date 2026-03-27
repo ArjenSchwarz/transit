@@ -34,7 +34,7 @@ final class CommentService {
         content: String,
         authorName: String,
         isAgent: Bool,
-        save: Bool = true
+        save: ((ModelContext) throws -> Void)? = { try $0.save() }
     ) throws -> Comment {
         let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedContent.isEmpty else { throw Error.emptyContent }
@@ -53,8 +53,13 @@ final class CommentService {
             task: resolvedTask
         )
         modelContext.insert(comment)
-        if save {
-            try modelContext.save()
+        if let save {
+            do {
+                try save(modelContext)
+            } catch {
+                modelContext.delete(comment)
+                throw error
+            }
         }
         return comment
     }

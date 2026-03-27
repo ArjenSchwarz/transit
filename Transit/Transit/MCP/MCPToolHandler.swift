@@ -148,6 +148,10 @@ final class MCPToolHandler {
         }
 
         // Pre-validate milestone before creating the task to avoid orphans.
+        // Reject non-integer milestoneDisplayId when key is present [T-613]
+        if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
+            return errorResult("milestoneDisplayId must be an integer")
+        }
         var resolvedMilestone: Milestone?
         if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
@@ -229,7 +233,7 @@ final class MCPToolHandler {
         case .failure(.message(let message)): return errorResult(message)
         }
 
-        let commentText = (args["comment"] as? String).map { unescapeNewlines($0) }
+        let commentText = args["comment"] as? String
         let commentAuthor = args["authorName"] as? String
         let (commentError, hasComment) = validateCommentArgs(comment: commentText, author: commentAuthor)
         if let commentError {
@@ -270,6 +274,10 @@ final class MCPToolHandler {
         }
 
         // Resolve milestone filter
+        // Reject non-integer milestoneDisplayId when key is present [T-613]
+        if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
+            return errorResult("milestoneDisplayId must be an integer")
+        }
         var milestoneFilter: Set<UUID>?
         if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
@@ -595,6 +603,10 @@ extension MCPToolHandler {
         }
 
         // Handle milestone assignment
+        // Reject non-integer milestoneDisplayId when key is present [T-613]
+        if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
+            return errorResult("milestoneDisplayId must be an integer")
+        }
         if args["clearMilestone"] as? Bool == true {
             do {
                 try milestoneService.setMilestone(nil, on: task)
@@ -681,12 +693,10 @@ extension MCPToolHandler {
         case .failure(.message(let message)): return errorResult(message)
         }
 
-        let unescapedContent = unescapeNewlines(content)
-
         let comment: Comment
         do {
             comment = try commentService.addComment(
-                to: task, content: unescapedContent, authorName: authorName, isAgent: true
+                to: task, content: content, authorName: authorName, isAgent: true
             )
         } catch CommentService.Error.emptyContent {
             return errorResult("Comment content cannot be empty")
@@ -707,10 +717,6 @@ extension MCPToolHandler {
     }
 
     // MARK: - Helpers
-
-    private func unescapeNewlines(_ text: String) -> String {
-        text.replacingOccurrences(of: "\\n", with: "\n")
-    }
 
     private func validateCommentArgs(comment: String?, author: String?) -> (MCPToolResult?, Bool) {
         guard let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

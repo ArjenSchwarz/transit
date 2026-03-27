@@ -22,6 +22,7 @@ struct DashboardView: View {
     #endif
     #if os(iOS)
     @Environment(QuickActionService.self) private var quickActionService
+    @Environment(\.sceneSessionID) private var sceneSessionID
     #endif
 
     /// Minimum width (in points) for a single kanban column.
@@ -154,15 +155,13 @@ struct DashboardView: View {
             selectedMilestones.removeAll()
         }
         #if os(iOS)
-        .onChange(of: quickActionService.pendingNewTask, initial: true) { _, isPending in
-            guard isPending else { return }
-            // Clear before guard so the flag isn't re-evaluated on later view
-            // appearances. If a sheet is already open, the action is intentionally dropped.
-            quickActionService.pendingNewTask = false
-            guard DashboardLogic.shouldHandleNewTaskShortcut(
-                showAddTask: showAddTask, selectedTask: selectedTask
-            ) else { return }
-            showAddTask = true
+        .onChange(of: quickActionService.pendingSceneSessionIDs, initial: true) { _, _ in
+            consumeQuickActionIfPending()
+        }
+        // Also watch sceneSessionID — on cold start, the session ID resolves
+        // after the initial onChange fires, so we need a second trigger.
+        .onChange(of: sceneSessionID) { _, _ in
+            consumeQuickActionIfPending()
         }
         #endif
     }
@@ -216,6 +215,25 @@ struct DashboardView: View {
     #if os(macOS)
     private func openSettingsWindow() {
         openWindow(id: "settings")
+    }
+    #endif
+
+    // MARK: - Quick Actions
+
+    #if os(iOS)
+    /// Consumes a pending quick action if one exists for this scene.
+    /// Called from two `onChange` handlers to cover both orderings:
+    /// the action may arrive before or after the scene session ID resolves.
+    private func consumeQuickActionIfPending() {
+        guard let sessionID = sceneSessionID,
+              quickActionService.hasPendingAction(forSceneSession: sessionID) else { return }
+        // Consume before guard so the flag isn't re-evaluated on later view
+        // appearances. If a sheet is already open, the action is intentionally dropped.
+        quickActionService.consumeNewTask(forSceneSession: sessionID)
+        guard DashboardLogic.shouldHandleNewTaskShortcut(
+            showAddTask: showAddTask, selectedTask: selectedTask
+        ) else { return }
+        showAddTask = true
     }
     #endif
 
