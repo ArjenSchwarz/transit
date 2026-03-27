@@ -229,7 +229,7 @@ final class MCPToolHandler {
         case .failure(.message(let message)): return errorResult(message)
         }
 
-        let commentText = (args["comment"] as? String).map { unescapeNewlines($0) }
+        let commentText = args["comment"] as? String
         let commentAuthor = args["authorName"] as? String
         let (commentError, hasComment) = validateCommentArgs(comment: commentText, author: commentAuthor)
         if let commentError {
@@ -681,12 +681,10 @@ extension MCPToolHandler {
         case .failure(.message(let message)): return errorResult(message)
         }
 
-        let unescapedContent = unescapeNewlines(content)
-
         let comment: Comment
         do {
             comment = try commentService.addComment(
-                to: task, content: unescapedContent, authorName: authorName, isAgent: true
+                to: task, content: content, authorName: authorName, isAgent: true
             )
         } catch CommentService.Error.emptyContent {
             return errorResult("Comment content cannot be empty")
@@ -707,10 +705,6 @@ extension MCPToolHandler {
     }
 
     // MARK: - Helpers
-
-    private func unescapeNewlines(_ text: String) -> String {
-        text.replacingOccurrences(of: "\\n", with: "\n")
-    }
 
     private func validateCommentArgs(comment: String?, author: String?) -> (MCPToolResult?, Bool) {
         guard let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
