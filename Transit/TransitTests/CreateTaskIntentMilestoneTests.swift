@@ -182,6 +182,37 @@ struct CreateTaskIntentMilestoneTests {
         #expect(tasks.isEmpty, "Task should not be created when milestone belongs to a different project")
     }
 
+    // Regression test for T-558: verify that task cleanup via context.delete + save
+    // removes a persisted task. This validates the cleanup mechanism used in
+    // CreateTaskIntent.execute when setMilestone fails after task creation.
+    @Test func taskCleanupDeletesPersistedTask() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        // Create a task (simulating what execute does before setMilestone)
+        let task = try await svc.task.createTask(
+            name: "T-558 Orphan Test",
+            description: nil,
+            type: .bug,
+            project: project
+        )
+
+        // Verify the task exists
+        let beforeDescriptor = FetchDescriptor<TransitTask>()
+        let beforeTasks = try svc.context.fetch(beforeDescriptor)
+        #expect(beforeTasks.count == 1)
+
+        // Simulate the cleanup path from the T-558 fix:
+        // projectService.context.delete(task); try? projectService.context.save()
+        svc.project.context.delete(task)
+        try svc.project.context.save()
+
+        // Verify the task was removed
+        let afterDescriptor = FetchDescriptor<TransitTask>()
+        let afterTasks = try svc.context.fetch(afterDescriptor)
+        #expect(afterTasks.isEmpty, "Task should be deleted after cleanup [T-558]")
+    }
+
     @Test func createTaskWithoutMilestoneServiceSkipsMilestone() async throws {
         let svc = try makeServices()
         let project = makeProject(in: svc.context)
