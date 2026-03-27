@@ -18,9 +18,17 @@ struct ConcurrentPromotionTests {
 
     // MARK: - Task Promotion Guard
 
-    @Test func taskPromotionIsNotReentrant() async throws {
-        // Verifies that the isPromoting guard on DisplayIDAllocator prevents
-        // a second call from entering while the first is still running.
+    @Test func taskPromotionSecondCallIsNoOp() async throws {
+        // Verifies that a second sequential promotion call does not allocate
+        // duplicate IDs. The first call promotes all provisional tasks; the
+        // second finds nothing to promote and exits cleanly.
+        //
+        // Note: This does not exercise the isPromoting guard directly because
+        // Swift's cooperative concurrency model completes the first call before
+        // the second begins. True concurrent overlap would require injecting a
+        // suspension point inside promoteProvisionalTasks, which is not worth
+        // the production-code complexity. The guard is tested indirectly via
+        // the GuardResetsAfterFailure/Completion tests below.
         let context = try TestModelContainer.newContext()
         let store = InMemoryCounterStore(initialNextDisplayID: 10)
         let allocator = DisplayIDAllocator(store: store, retryLimit: 3)
@@ -35,9 +43,6 @@ struct ConcurrentPromotionTests {
         context.insert(task)
         try context.save()
 
-        // The isPromoting flag should prevent concurrent execution.
-        // We verify this by checking that only one ID is consumed after
-        // two sequential calls (the second sees no provisional tasks).
         await allocator.promoteProvisionalTasks(in: context)
         await allocator.promoteProvisionalTasks(in: context)
 
@@ -109,7 +114,10 @@ struct ConcurrentPromotionTests {
 
     // MARK: - Milestone Promotion Guard
 
-    @Test func milestonePromotionIsNotReentrant() async throws {
+    @Test func milestonePromotionSecondCallIsNoOp() async throws {
+        // Verifies that a second sequential promotion call does not allocate
+        // duplicate IDs. See taskPromotionSecondCallIsNoOp for the rationale
+        // on why this does not exercise the guard directly.
         let context = try TestModelContainer.newContext()
         let store = InMemoryCounterStore(initialNextDisplayID: 20)
         let allocator = DisplayIDAllocator(store: store, retryLimit: 3)
