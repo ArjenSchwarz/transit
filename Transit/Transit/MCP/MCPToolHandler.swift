@@ -602,21 +602,21 @@ extension MCPToolHandler {
         case .failure(.message(let message)): return errorResult(message)
         }
 
-        // Handle milestone assignment
+        // Handle milestone assignment (save: false — deferred to single atomic save below)
         // Reject non-integer milestoneDisplayId when key is present [T-613]
         if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
             return errorResult("milestoneDisplayId must be an integer")
         }
         if args["clearMilestone"] as? Bool == true {
             do {
-                try milestoneService.setMilestone(nil, on: task)
+                try milestoneService.setMilestone(nil, on: task, save: false)
             } catch {
                 return errorResult("Failed to clear milestone: \(error)")
             }
         } else if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
                 let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)
-                try milestoneService.setMilestone(milestone, on: task)
+                try milestoneService.setMilestone(milestone, on: task, save: false)
             } catch MilestoneService.Error.milestoneNotFound {
                 return errorResult("No milestone with displayId \(milestoneDisplayId)")
             } catch MilestoneService.Error.projectMismatch {
@@ -634,7 +634,7 @@ extension MCPToolHandler {
                 return errorResult("No milestone named '\(milestoneName)' in project '\(project.name)'")
             }
             do {
-                try milestoneService.setMilestone(milestone, on: task)
+                try milestoneService.setMilestone(milestone, on: task, save: false)
             } catch {
                 return errorResult("Failed to set milestone: \(error)")
             }
@@ -643,6 +643,7 @@ extension MCPToolHandler {
         do {
             try projectService.context.save()
         } catch {
+            projectService.context.safeRollback()
             return errorResult("Failed to save: \(error)")
         }
 
