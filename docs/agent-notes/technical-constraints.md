@@ -91,6 +91,12 @@ Test files that use SwiftData need `@Suite(.serialized)` to avoid concurrent acc
 
 **In production**: T-452 tracks the production-side fix. All `rollback()` call sites in views and services (TaskEditView, ProjectEditView, TaskService, MilestoneService, CommentService, MCPToolHandler) are affected — after rollback, views may still display stale mutated values.
 
+## Display ID Promotion Single-Flight Guard
+
+`DisplayIDAllocator.promoteProvisionalTasks(in:)` and `MilestoneService.promoteProvisionalMilestones()` are guarded by `isPromotingTasks` and `isPromotingMilestones` flags respectively. These prevent concurrent promotion runs from overlapping when triggered simultaneously by `ScenePhaseModifier.task`, `ScenePhaseModifier.onChange(.active)`, and `ConnectivityMonitor.onRestore`. The guard uses `defer` to reset on both success and failure. See T-597.
+
+`ConnectivityMonitor.onRestore` is typed as `@MainActor @Sendable` (not just `@Sendable`) because the closure captures MainActor-isolated state (ModelContext) and Swift 6.3 enforces sendability checks on captured values.
+
 ## Test File Imports
 
 With `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, test files must explicitly `import Foundation` to use `Date`, `UUID`, `JSONSerialization`, etc. These aren't automatically available in the test target even though the app module imports them.

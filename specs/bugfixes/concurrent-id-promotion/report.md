@@ -1,7 +1,7 @@
 # Bugfix Report: Concurrent ID Promotion Can Overwrite Assigned IDs
 
 **Date:** 2026-03-27
-**Status:** In Progress
+**Status:** Fixed
 **Ticket:** T-597
 
 ## Description of the Issue
@@ -38,7 +38,17 @@ All three call the same async promotion methods. Since these are async and run o
 
 ## Resolution for the Issue
 
-*To be filled after fix is implemented.*
+**Changes made:**
+- `DisplayIDAllocator.swift:32` — Added `isPromotingTasks` Bool flag, checked at entry of `promoteProvisionalTasks(in:save:)` with `defer` reset
+- `MilestoneService.swift:38` — Added `isPromotingMilestones` Bool flag, checked at entry of `promoteProvisionalMilestones(save:)` with `defer` reset
+- `ConnectivityMonitor.swift:15` — Changed `onRestore` type from `(@Sendable () async -> Void)?` to `(@MainActor @Sendable () async -> Void)?`
+
+**Approach rationale:** A simple Bool flag guarding method entry is sufficient because all promotion calls run on MainActor. The flag is checked and set synchronously before the first suspension point, so no two runs can pass the guard simultaneously. `defer` ensures the flag resets on both success and failure paths.
+
+**Alternatives considered:**
+- Actor-based serialization — Heavier than needed since all callers are already on MainActor
+- Centralized promotion scheduler — Adds a new type for what amounts to two Bool flags
+- Deduplicating at the call site (ScenePhaseModifier/ConnectivityMonitor) — Fragile; any new call site would need the same deduplication
 
 ## Regression Test
 
@@ -64,9 +74,9 @@ All three call the same async promotion methods. Since these are async and run o
 ## Verification
 
 **Automated:**
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression test passes
+- [x] Full test suite passes
+- [x] Linters/validators pass
 
 ## Prevention
 

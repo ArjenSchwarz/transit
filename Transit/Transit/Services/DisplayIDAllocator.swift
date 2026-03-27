@@ -27,6 +27,10 @@ final class DisplayIDAllocator: @unchecked Sendable {
     private let store: CounterStore
     private let retryLimit: Int
 
+    /// Single-flight guard for `promoteProvisionalTasks`. Prevents concurrent
+    /// promotion runs from overlapping (T-597).
+    private var isPromotingTasks = false
+
     init(store: CounterStore, retryLimit: Int = 5) {
         self.store = store
         self.retryLimit = max(1, retryLimit)
@@ -85,6 +89,10 @@ final class DisplayIDAllocator: @unchecked Sendable {
         in context: ModelContext,
         save: (ModelContext) throws -> Void = { try $0.save() }
     ) async {
+        guard !isPromotingTasks else { return }
+        isPromotingTasks = true
+        defer { isPromotingTasks = false }
+
         let descriptor = FetchDescriptor<TransitTask>(
             predicate: #Predicate { $0.permanentDisplayId == nil },
             sortBy: [SortDescriptor(\.creationDate, order: .forward)]
