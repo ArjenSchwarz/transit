@@ -168,6 +168,7 @@ struct TransitApp: App {
             .environment(connectivityMonitor)
             #if os(iOS)
             .environment(quickActionService)
+            .readSceneSession()
             #endif
             #if os(macOS)
             .environment(mcpSettings)
@@ -348,7 +349,9 @@ final class QuickActionAppDelegate: NSObject, UIApplicationDelegate {
         options: UIScene.ConnectionOptions
     ) -> UISceneConfiguration {
         if let shortcut = options.shortcutItem, shortcut.type == QuickActionService.newTaskActionType {
-            quickActionService?.pendingNewTask = true
+            quickActionService?.requestNewTask(
+                forSceneSession: connectingSceneSession.persistentIdentifier
+            )
         }
         let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
         // Always register scene delegate so warm-start quick actions are delivered
@@ -366,7 +369,9 @@ final class QuickActionSceneDelegate: NSObject, UIWindowSceneDelegate {
     ) {
         let handled = shortcutItem.type == QuickActionService.newTaskActionType
         if handled, let appDelegate = UIApplication.shared.delegate as? QuickActionAppDelegate {
-            appDelegate.quickActionService?.pendingNewTask = true
+            appDelegate.quickActionService?.requestNewTask(
+                forSceneSession: windowScene.session.persistentIdentifier
+            )
         }
         completionHandler(handled)
     }
