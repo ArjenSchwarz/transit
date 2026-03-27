@@ -8,7 +8,7 @@ import Testing
 struct ModelContainerFallbackTests {
 
     @Test("Successful container creation returns no error")
-    func successfulCreation() throws {
+    func successfulCreation() {
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self])
         let config = ModelConfiguration(
             schema: schema,
@@ -20,7 +20,7 @@ struct ModelContainerFallbackTests {
     }
 
     @Test("Failed container creation falls back to in-memory container")
-    func fallbackOnFailure() throws {
+    func fallbackOnFailure() {
         // Use an invalid store URL to force a ModelContainer init failure.
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self])
         let bogusURL = URL(fileURLWithPath: "/dev/null/impossible/store.sqlite")

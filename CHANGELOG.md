@@ -6,17 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Fixed
-
-- App no longer crashes on launch when the SwiftData store is corrupted or CloudKit is misconfigured; falls back to an in-memory container and shows an alert (T-504)
-
 ### Added
 
 - `ContainerFactory` service for graceful `ModelContainer` creation with automatic fallback
 - Regression tests for container fallback behaviour (`ModelContainerFallbackTests`)
-
-### Added
-
 - Home Screen Quick Actions: long-press the app icon on iOS to create a new task via "New Task" shortcut (T-27)
 - Static `UIApplicationShortcutItems` in Info.plist with SF Symbol `plus.square`
 - `QuickActionService` to communicate pending quick actions from AppDelegate to views
@@ -34,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- App no longer crashes on launch when the SwiftData store is corrupted or CloudKit is misconfigured; falls back to an in-memory container and shows an alert (T-504)
 - Home Screen Quick Actions now correctly open the Add Task sheet on cold start (T-27)
 - MCP comments with literal `\n` sequences now store actual newlines instead of the raw escape characters (T-561)
 

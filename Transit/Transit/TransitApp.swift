@@ -60,7 +60,7 @@ struct TransitApp: App {
         self.container = container
         self.containerError = containerResult.error
 
-        if !isInert && Self.uiTestScenario == nil {
+        if !isInert && Self.uiTestScenario == nil && containerResult.error == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
 
