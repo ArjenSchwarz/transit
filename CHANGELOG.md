@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `CommentService.addComment` now deletes the inserted comment from the model context on save failure, preventing orphaned comments from being persisted by later saves (T-509)
 - Home Screen Quick Actions now correctly open the Add Task sheet on cold start (T-27)
 - MCP comments with literal `\n` sequences now store actual newlines instead of the raw escape characters (T-561)
 
