@@ -63,12 +63,14 @@ Several intent and MCP code paths parse `milestoneDisplayId` using `IntentHelper
 ## Verification
 
 **Automated:**
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression test passes (10/10 tests green)
+- [x] Full test suite passes (all TransitTests pass on macOS)
+- [x] Linters/validators pass (0 violations)
 
 **Manual verification:**
 - Confirmed all 10 regression tests fail before the fix (red phase)
+- Confirmed all 10 regression tests pass after the fix (green phase)
+- Full test suite shows no regressions
 
 ## Prevention
 
