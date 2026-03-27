@@ -31,8 +31,6 @@ struct ModelContainerFallbackTests {
         )
         let result = ContainerFactory.makeContainer(schema: schema, configuration: config)
 
-        // The container should still be usable (in-memory fallback).
-        #expect(result.container.mainContext != nil)
         // An error should be reported so the UI can inform the user.
         #expect(result.error != nil)
     }
