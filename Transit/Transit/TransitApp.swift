@@ -81,8 +81,11 @@ struct TransitApp: App {
 
         if !isInert {
             // Wire up connectivity restore to trigger display ID promotion.
+            // context is mainContext and the awaited methods hop to @MainActor,
+            // so the cross-isolation send is safe.
+            nonisolated(unsafe) let unsafeContext = context
             connectivityMonitor.onRestore = { @Sendable in
-                await allocator.promoteProvisionalTasks(in: context)
+                await allocator.promoteProvisionalTasks(in: unsafeContext)
                 await milestoneService.promoteProvisionalMilestones()
             }
             connectivityMonitor.start()

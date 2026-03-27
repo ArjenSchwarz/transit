@@ -166,55 +166,59 @@ struct MCPCommentTests {
         #expect(comments.isEmpty)
     }
 
-    // MARK: - Newline unescaping
+    // MARK: - Literal backslash-n preservation (T-576)
 
-    @Test func addCommentUnescapesLiteralNewlines() async throws {
+    @Test func addCommentPreservesLiteralBackslashN() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
         let task = try await env.taskService.createTask(
             name: "Task", description: nil, type: .feature, project: project
         )
 
+        // Swift string "C:\\new\\notes" contains literal backslash-n sequences.
+        // This simulates a JSON-decoded string from: "C:\\\\new\\\\notes" in JSON,
+        // where the user intended to keep the literal backslash-n (e.g., Windows path).
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "add_comment",
             arguments: [
                 "displayId": 1,
-                "content": "Line one\\nLine two",
+                "content": "Path: C:\\new\\notes",
                 "authorName": "Bot"
             ]
         ))
 
         let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["content"] as? String == "Line one\nLine two")
+        #expect(result["content"] as? String == "Path: C:\\new\\notes")
 
         let comments = try env.commentService.fetchComments(for: task.id)
         #expect(comments.count == 1)
-        #expect(comments[0].content == "Line one\nLine two")
+        #expect(comments[0].content == "Path: C:\\new\\notes")
     }
 
-    @Test func updateStatusCommentUnescapesLiteralNewlines() async throws {
+    @Test func updateStatusCommentPreservesLiteralBackslashN() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
         let task = try await env.taskService.createTask(
             name: "Task", description: nil, type: .feature, project: project
         )
 
+        // The comment contains a literal backslash-n that should NOT be turned into a newline.
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "update_task_status",
             arguments: [
                 "displayId": 1,
                 "status": "planning",
-                "comment": "Reason:\\nDetails here",
+                "comment": "See C:\\new folder",
                 "authorName": "Bot"
             ]
         ))
 
         let result = try MCPTestHelpers.decodeResult(response)
         let commentDict = try #require(result["comment"] as? [String: Any])
-        #expect(commentDict["content"] as? String == "Reason:\nDetails here")
+        #expect(commentDict["content"] as? String == "See C:\\new folder")
 
         let comments = try env.commentService.fetchComments(for: task.id)
-        #expect(comments[0].content == "Reason:\nDetails here")
+        #expect(comments[0].content == "See C:\\new folder")
     }
 
     @Test func addCommentPreservesRealNewlines() async throws {

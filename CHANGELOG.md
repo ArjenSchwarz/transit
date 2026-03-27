@@ -27,6 +27,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Home Screen Quick Actions now correctly open the Add Task sheet on cold start (T-27)
 - MCP comments with literal `\n` sequences now store actual newlines instead of the raw escape characters (T-561)
+- MCP comment content containing literal backslash-n (e.g., Windows paths like `C:\new`) is no longer corrupted by newline unescape logic (T-576)
+- Pre-existing `Sendable` build error in `TransitApp.swift` connectivity monitor closure
 
 ### Changed
 
