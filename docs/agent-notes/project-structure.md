@@ -37,6 +37,7 @@ Transit/Transit/
 - **ProjectService** (`Services/ProjectService.swift`) — Project creation, lookup (by ID or case-insensitive name), and active task counting. Returns `Result<Project, ProjectLookupError>` for find operations. `@MainActor @Observable`.
 - **ConnectivityMonitor** (`Services/ConnectivityMonitor.swift`) — NWPathMonitor wrapper that tracks connectivity state and fires `onRestore` callback when connectivity transitions from unsatisfied to satisfied. `@Observable @unchecked Sendable` since NWPathMonitor callbacks come from a background queue.
 - **SyncManager** (`Services/SyncManager.swift`) — Manages CloudKit sync enabled/disabled preference via UserDefaults (key: `syncEnabled`, shared with SettingsView's `@AppStorage`). Provides `makeModelConfiguration(schema:)` factory that creates the appropriate `ModelConfiguration` based on the sync preference. Sync toggle takes effect on next app launch since `ModelContainer` must be recreated. `@Observable`.
+- **ContainerFactory** (`Services/ContainerFactory.swift`) — Creates `ModelContainer` with graceful fallback. Returns `ContainerOutcome` containing the container and any error. On primary init failure, falls back to in-memory container and logs via OSLog. Used by `TransitApp.init()` to avoid crashing on corrupted stores or CloudKit misconfiguration (T-504).
 
 ## Navigation
 
@@ -48,6 +49,8 @@ Transit/Transit/
 ## App Entry Point (TransitApp.swift)
 
 - Creates `SyncManager` first, then uses it to build `ModelConfiguration` (CloudKit-enabled or not based on preference).
+- `ModelContainer` creation is handled by `ContainerFactory.makeContainer()` which catches init failures and falls back to an in-memory container. On fallback, an alert is shown to the user (T-504).
+- CloudKit schema init (`initializeCloudKitSchemaIfNeeded`) only runs when the primary container succeeded (not the in-memory fallback).
 - Stores `DisplayIDAllocator` as a property for promotion triggers.
 - `ConnectivityMonitor` is started in `init()` with `onRestore` wired to `displayIDAllocator.promoteProvisionalTasks`.
 - `ScenePhaseModifier` (private ViewModifier) observes `@Environment(\.scenePhase)` from within a View context (required by SwiftUI — cannot observe scenePhase in the App struct's Scene). Triggers promotion on `.task` (app launch) and `.onChange(of: scenePhase)` when returning to `.active`.

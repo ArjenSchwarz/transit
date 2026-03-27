@@ -148,6 +148,10 @@ final class MCPToolHandler {
         }
 
         // Pre-validate milestone before creating the task to avoid orphans.
+        // Reject non-integer milestoneDisplayId when key is present [T-613]
+        if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
+            return errorResult("milestoneDisplayId must be an integer")
+        }
         var resolvedMilestone: Milestone?
         if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
@@ -270,6 +274,10 @@ final class MCPToolHandler {
         }
 
         // Resolve milestone filter
+        // Reject non-integer milestoneDisplayId when key is present [T-613]
+        if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
+            return errorResult("milestoneDisplayId must be an integer")
+        }
         var milestoneFilter: Set<UUID>?
         if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
@@ -595,6 +603,10 @@ extension MCPToolHandler {
         }
 
         // Handle milestone assignment
+        // Reject non-integer milestoneDisplayId when key is present [T-613]
+        if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
+            return errorResult("milestoneDisplayId must be an integer")
+        }
         if args["clearMilestone"] as? Bool == true {
             do {
                 try milestoneService.setMilestone(nil, on: task)

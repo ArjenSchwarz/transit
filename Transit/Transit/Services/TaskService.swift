@@ -141,7 +141,7 @@ final class TaskService {
                     content: comment,
                     authorName: commentAuthor,
                     isAgent: true,
-                    save: false
+                    save: nil
                 )
             }
 
