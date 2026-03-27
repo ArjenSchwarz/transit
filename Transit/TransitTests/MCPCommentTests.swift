@@ -175,8 +175,8 @@ struct MCPCommentTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        // Swift string "C:\\new\\notes" contains literal backslash-n sequences.
-        // This simulates a JSON-decoded string from: "C:\\\\new\\\\notes" in JSON,
+        // Swift string "C:\\new\\notes" is runtime C:\new\notes (literal backslash-n).
+        // This simulates a JSON-decoded string from: "C:\\new\\notes" in JSON,
         // where the user intended to keep the literal backslash-n (e.g., Windows path).
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "add_comment",
