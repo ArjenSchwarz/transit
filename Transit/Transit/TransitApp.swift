@@ -14,6 +14,8 @@ struct TransitApp: App {
     #endif
 
     private let container: ModelContainer
+    /// Non-nil when the primary ModelContainer failed and an in-memory fallback is in use.
+    private let containerError: (any Error)?
     private let taskService: TaskService
     private let projectService: ProjectService
     private let commentService: CommentService
@@ -53,11 +55,12 @@ struct TransitApp: App {
         } else {
             config = syncManager.makeModelConfiguration(schema: schema)
         }
-        // swiftlint:disable:next force_try
-        let container = try! ModelContainer(for: schema, configurations: [config])
+        let containerResult = ContainerFactory.makeContainer(schema: schema, configuration: config)
+        let container = containerResult.container
         self.container = container
+        self.containerError = containerResult.error
 
-        if !isInert && Self.uiTestScenario == nil {
+        if !isInert && Self.uiTestScenario == nil && containerResult.error == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
 
@@ -111,8 +114,11 @@ struct TransitApp: App {
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
         #endif
+
+        _showContainerError = State(initialValue: containerResult.error != nil)
     }
 
+    @State private var showContainerError: Bool
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @Environment(\.colorScheme) private var colorScheme
 
@@ -165,6 +171,18 @@ struct TransitApp: App {
             .task { startMCPServerIfEnabled() }
             #endif
             .task { seedUITestDataIfNeeded() }
+            .alert(
+                "Unable to Load Data",
+                isPresented: $showContainerError
+            ) {
+                Button("OK") {}
+            } message: {
+                Text(
+                    "Transit couldn't open its database and is running with temporary storage. "
+                    + "Your existing data is not lost — try restarting the app. "
+                    + "If the problem persists, check available device storage."
+                )
+            }
         }
         .modelContainer(container)
         #if os(macOS)
