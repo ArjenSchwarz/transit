@@ -81,6 +81,7 @@ struct TransitApp: App {
 
         if !isInert {
             // Wire up connectivity restore to trigger display ID promotion.
+            // Safety: context is MainActor-created; the awaited methods manage their own isolation.
             nonisolated(unsafe) let capturedContext = context
             connectivityMonitor.onRestore = { @Sendable in
                 await allocator.promoteProvisionalTasks(in: capturedContext)
