@@ -58,6 +58,7 @@ private struct SceneSessionResolver: UIViewRepresentable {
         return view
     }
 
+    // Session ID is resolved imperatively in didMoveToWindow; no SwiftUI-driven updates needed.
     func updateUIView(_ uiView: SessionResolverView, context: Context) {}
 }
 

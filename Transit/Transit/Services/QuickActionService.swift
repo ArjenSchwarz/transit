@@ -6,7 +6,9 @@ final class QuickActionService {
     static let newTaskActionType = "com.arjen.transit.new-task"
 
     /// Scene session identifiers with a pending "new task" action.
-    var pendingSceneSessionIDs: Set<String> = []
+    /// Orphaned entries (from scenes closed before consumption) are harmless —
+    /// they are never matched again once the scene is gone.
+    private(set) var pendingSceneSessionIDs: Set<String> = []
 
     /// Request a new-task action for a specific scene session.
     func requestNewTask(forSceneSession sessionID: String) {
