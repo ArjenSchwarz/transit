@@ -278,9 +278,9 @@ struct CommentServiceTests {
         #expect(comments.isEmpty, "Comment should be deleted from context after save failure")
     }
 
-    /// Paired with the failure test above — confirms the default save path
-    /// still works when the injectable closure succeeds.
-    @Test func addComment_succeedsWhenSaveWorks() throws {
+    /// Paired with the failure test above — confirms the default save
+    /// parameter persists the comment without an explicit closure.
+    @Test func addComment_succeedsWithDefaultSave() throws {
         let (service, context) = try makeService()
         let task = makeTask(in: context)
 
@@ -288,8 +288,7 @@ struct CommentServiceTests {
             to: task,
             content: "Persisted comment",
             authorName: "Alice",
-            isAgent: false,
-            save: { try $0.save() }
+            isAgent: false
         )
 
         let fetched = try service.fetchComments(for: task.id)
