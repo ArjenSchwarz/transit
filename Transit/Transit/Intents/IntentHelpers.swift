@@ -207,6 +207,9 @@ nonisolated enum IntentHelpers {
         to task: TransitTask,
         milestoneService: MilestoneService
     ) -> String? {
+        if json["milestoneDisplayId"] != nil, parseIntValue(json["milestoneDisplayId"]) == nil {
+            return IntentError.invalidInput(hint: "milestoneDisplayId must be an integer").json
+        }
         if let milestoneDisplayId = parseIntValue(json["milestoneDisplayId"]) {
             do {
                 let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)

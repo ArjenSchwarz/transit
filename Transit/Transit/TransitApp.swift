@@ -14,6 +14,8 @@ struct TransitApp: App {
     #endif
 
     private let container: ModelContainer
+    /// Non-nil when the primary ModelContainer failed and an in-memory fallback is in use.
+    private let containerError: (any Error)?
     private let taskService: TaskService
     private let projectService: ProjectService
     private let commentService: CommentService
@@ -53,11 +55,12 @@ struct TransitApp: App {
         } else {
             config = syncManager.makeModelConfiguration(schema: schema)
         }
-        // swiftlint:disable:next force_try
-        let container = try! ModelContainer(for: schema, configurations: [config])
+        let containerResult = ContainerFactory.makeContainer(schema: schema, configuration: config)
+        let container = containerResult.container
         self.container = container
+        self.containerError = containerResult.error
 
-        if !isInert && Self.uiTestScenario == nil {
+        if !isInert && Self.uiTestScenario == nil && containerResult.error == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
 
@@ -81,10 +84,12 @@ struct TransitApp: App {
 
         if !isInert {
             // Wire up connectivity restore to trigger display ID promotion.
-            // Safety: context is MainActor-created; the awaited methods manage their own isolation.
-            nonisolated(unsafe) let capturedContext = context
+            // nonisolated(unsafe) satisfies the Sendable requirement — safe because
+            // sendableContext is only accessed inside @MainActor methods that
+            // serialize access on the main actor before use.
+            nonisolated(unsafe) let sendableContext = context
             connectivityMonitor.onRestore = { @Sendable in
-                await allocator.promoteProvisionalTasks(in: capturedContext)
+                await allocator.promoteProvisionalTasks(in: sendableContext)
                 await milestoneService.promoteProvisionalMilestones()
             }
             connectivityMonitor.start()
@@ -113,8 +118,11 @@ struct TransitApp: App {
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
         #endif
+
+        _showContainerError = State(initialValue: containerResult.error != nil)
     }
 
+    @State private var showContainerError: Bool
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @Environment(\.colorScheme) private var colorScheme
 
@@ -160,6 +168,7 @@ struct TransitApp: App {
             .environment(connectivityMonitor)
             #if os(iOS)
             .environment(quickActionService)
+            .readSceneSession()
             #endif
             #if os(macOS)
             .environment(mcpSettings)
@@ -167,6 +176,18 @@ struct TransitApp: App {
             .task { startMCPServerIfEnabled() }
             #endif
             .task { seedUITestDataIfNeeded() }
+            .alert(
+                "Unable to Load Data",
+                isPresented: $showContainerError
+            ) {
+                Button("OK") {}
+            } message: {
+                Text(
+                    "Transit couldn't open its database and is running with temporary storage. "
+                    + "Your existing data is not lost — try restarting the app. "
+                    + "If the problem persists, check available device storage."
+                )
+            }
         }
         .modelContainer(container)
         #if os(macOS)
@@ -328,7 +349,9 @@ final class QuickActionAppDelegate: NSObject, UIApplicationDelegate {
         options: UIScene.ConnectionOptions
     ) -> UISceneConfiguration {
         if let shortcut = options.shortcutItem, shortcut.type == QuickActionService.newTaskActionType {
-            quickActionService?.pendingNewTask = true
+            quickActionService?.requestNewTask(
+                forSceneSession: connectingSceneSession.persistentIdentifier
+            )
         }
         let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
         // Always register scene delegate so warm-start quick actions are delivered
@@ -346,7 +369,9 @@ final class QuickActionSceneDelegate: NSObject, UIWindowSceneDelegate {
     ) {
         let handled = shortcutItem.type == QuickActionService.newTaskActionType
         if handled, let appDelegate = UIApplication.shared.delegate as? QuickActionAppDelegate {
-            appDelegate.quickActionService?.pendingNewTask = true
+            appDelegate.quickActionService?.requestNewTask(
+                forSceneSession: windowScene.session.persistentIdentifier
+            )
         }
         completionHandler(handled)
     }

@@ -149,6 +149,11 @@ struct CreateTaskIntent: AppIntent {
             ?? (json["milestoneDisplayId"] as? Double).flatMap { Int(exactly: $0) }
         let milestoneName = json["milestone"] as? String
 
+        // Reject non-integer milestoneDisplayId when key is present [T-613]
+        if json["milestoneDisplayId"] != nil, milestoneDisplayId == nil {
+            return (nil, IntentError.invalidInput(hint: "milestoneDisplayId must be an integer").json)
+        }
+
         if let milestoneDisplayId {
             do {
                 let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)

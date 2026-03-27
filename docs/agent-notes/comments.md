@@ -10,7 +10,7 @@ Fields: `id` (UUID), `content` (String), `authorName` (String), `isAgent` (Bool)
 
 `CommentService` (`@MainActor @Observable`) — CRUD for comments.
 
-- `addComment(to:content:authorName:isAgent:save:)` — validates non-empty content/author, trims whitespace, resolves the task in the service's own `ModelContext` (to avoid cross-context relationship issues), inserts and optionally saves. `save: false` allows batching with other mutations.
+- `addComment(to:content:authorName:isAgent:save:)` — validates non-empty content/author, trims whitespace, resolves the task in the service's own `ModelContext` (to avoid cross-context relationship issues), inserts and optionally saves. `save` is an injectable closure `((ModelContext) throws -> Void)?` — pass `nil` to skip saving (for batching with other mutations), or a custom closure for testing. On save failure, the inserted comment is deleted from the context (T-509).
 - `deleteComment(_:)` — permanent single-comment delete.
 - `deleteComments(_:)` — batch delete. Deletes all comments before saving once. Used by iOS `onDelete` to avoid array-mutation issues when multiple offsets are provided.
 - `fetchComments(for taskID:)` — queries from Comment side (predicate on `task?.id`), sorted by creationDate ascending.
