@@ -58,11 +58,19 @@ struct QuickActionServiceTests {
         let service = QuickActionService()
         #expect(service.pendingSceneSessionIDs.isEmpty)
         service.requestNewTask(forSceneSession: "scene-A")
-        #expect(service.pendingSceneSessionIDs == ["scene-A"])
+        #expect(service.pendingSceneSessionIDs == Set(["scene-A"]))
         service.requestNewTask(forSceneSession: "scene-B")
-        #expect(service.pendingSceneSessionIDs == ["scene-A", "scene-B"])
+        #expect(service.pendingSceneSessionIDs == Set(["scene-A", "scene-B"]))
         _ = service.consumeNewTask(forSceneSession: "scene-A")
-        #expect(service.pendingSceneSessionIDs == ["scene-B"])
+        #expect(service.pendingSceneSessionIDs == Set(["scene-B"]))
+    }
+
+    @Test("duplicate requestNewTask for same scene is idempotent")
+    func duplicateRequestIsIdempotent() {
+        let service = QuickActionService()
+        service.requestNewTask(forSceneSession: "scene-A")
+        service.requestNewTask(forSceneSession: "scene-A")
+        #expect(service.pendingSceneSessionIDs.count == 1)
     }
 }
 #endif

@@ -40,10 +40,10 @@ On iPadOS with multiple windows open, triggering the "New Task" home screen quic
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Services/QuickActionService.swift` — Replaced `pendingNewTask: Bool` with `pendingSceneSessionIDs: [String]` and methods `requestNewTask(forSceneSession:)`, `consumeNewTask(forSceneSession:)`, `hasPendingAction(forSceneSession:)`
+- `Transit/Transit/Services/QuickActionService.swift` — Replaced `pendingNewTask: Bool` with `pendingSceneSessionIDs: Set<String>` and methods `requestNewTask(forSceneSession:)`, `consumeNewTask(forSceneSession:)`, `hasPendingAction(forSceneSession:)`
 - `Transit/Transit/TransitApp.swift` — Updated `QuickActionAppDelegate` to pass `connectingSceneSession.persistentIdentifier` and `QuickActionSceneDelegate` to pass `windowScene.session.persistentIdentifier`
 - `Transit/Transit/Extensions/SceneSessionReader.swift` — New file: UIViewRepresentable bridge that discovers the hosting `UIWindowScene` session identifier and exposes it via `@Environment(\.sceneSessionID)`
-- `Transit/Transit/Views/Dashboard/DashboardView.swift` — Reads `sceneSessionID` from environment, observes `pendingSceneSessionIDs`, and only consumes actions matching its own scene
+- `Transit/Transit/Views/Dashboard/DashboardView.swift` — Reads `sceneSessionID` from environment, observes both `pendingSceneSessionIDs` and `sceneSessionID` changes (dual `onChange` to cover cold-start timing), and only consumes actions matching its own scene
 
 **Approach rationale:** Per-scene state via scene session identifiers is the natural fit because UIKit already provides the scene identity at both cold-start (app delegate) and warm-start (scene delegate) paths. The UIViewRepresentable bridge is a lightweight, standard pattern for exposing UIKit scene identity to SwiftUI views.
 
@@ -54,7 +54,7 @@ On iPadOS with multiple windows open, triggering the "New Task" home screen quic
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/QuickActionServiceTests.swift`
-**Test names:** `pendingScopedToScene`, `consumeClearsMatchingScene`, `consumeReturnsFalseForWrongScene`, `multipleScenesPending`, `pendingSceneSessionIDsObservable`
+**Test names:** `pendingScopedToScene`, `consumeClearsMatchingScene`, `consumeReturnsFalseForWrongScene`, `multipleScenesPending`, `pendingSceneSessionIDsObservable`, `duplicateRequestIsIdempotent`
 
 **What it verifies:** That pending actions are scoped to specific scene session IDs, that only the matching scene can consume its action, and that independent scenes maintain separate pending state.
 
@@ -64,10 +64,10 @@ On iPadOS with multiple windows open, triggering the "New Task" home screen quic
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Services/QuickActionService.swift` | Replaced global boolean with per-scene tracking |
+| `Transit/Transit/Services/QuickActionService.swift` | Replaced global boolean with per-scene Set tracking |
 | `Transit/Transit/TransitApp.swift` | Pass scene session identifiers to QuickActionService |
 | `Transit/Transit/Extensions/SceneSessionReader.swift` | New: UIKit-to-SwiftUI scene session bridge |
-| `Transit/Transit/Views/Dashboard/DashboardView.swift` | Consume action only for own scene |
+| `Transit/Transit/Views/Dashboard/DashboardView.swift` | Consume action only for own scene, dual onChange for cold-start |
 | `Transit/TransitTests/QuickActionServiceTests.swift` | Updated tests for per-scene API |
 
 ## Verification
