@@ -113,26 +113,12 @@ struct CommentsSection: View {
 
     private var commentInputField: some View {
         HStack(alignment: .bottom) {
-            ZStack(alignment: .topLeading) {
-                if newCommentText.isEmpty {
-                    Text("Add a comment...")
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 8)
-                        .padding(.leading, 4)
-                }
-                TextEditor(text: $newCommentText)
-                    .frame(minHeight: 60, maxHeight: 120)
-                    .scrollContentBackground(.hidden)
-            }
-            #if os(macOS)
-            .padding(4)
-            .background(Color(.textBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(Color.primary.opacity(0.15), lineWidth: 1)
+            PlaceholderTextEditor(
+                text: $newCommentText,
+                placeholder: "Add a comment...",
+                minHeight: 60,
+                maxHeight: 120
             )
-            #endif
             Button { addComment() } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.title2)
