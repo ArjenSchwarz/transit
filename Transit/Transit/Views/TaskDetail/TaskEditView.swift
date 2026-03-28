@@ -298,12 +298,16 @@ extension TaskEditView {
                 try taskService.changeProject(task: task, to: newProject, save: false)
             }
 
-            // Apply direct property mutations after project change succeeds
-            // but before milestone/status so rollback covers everything.
-            task.name = trimmedName
-            task.taskDescription = trimmedDesc.isEmpty ? nil : trimmedDesc
-            task.type = selectedType
-            task.metadata = metadata
+            // Apply field mutations through TaskService for validation.
+            // Uses save: false to defer persistence until the atomic save below.
+            try taskService.updateTask(
+                task,
+                name: trimmedName,
+                description: trimmedDesc.isEmpty ? nil : trimmedDesc,
+                type: selectedType,
+                metadata: metadata,
+                save: false
+            )
 
             // Update milestone via service for validation
             try milestoneService.setMilestone(selectedMilestone, on: task, save: false)

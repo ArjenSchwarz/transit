@@ -223,6 +223,38 @@ final class TaskService {
         throw Error.taskNotFound
     }
 
+    // MARK: - Field Updates
+
+    /// Update task fields. Only non-nil parameters are applied.
+    func updateTask(
+        _ task: TransitTask,
+        name: String? = nil,
+        description: String? = nil,
+        type: TaskType? = nil,
+        metadata: [String: String]? = nil,
+        save: Bool = true
+    ) throws {
+        if let name {
+            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                throw Error.invalidName
+            }
+            task.name = trimmed
+        }
+        if let description { task.taskDescription = description }
+        if let type { task.type = type }
+        if let metadata { task.metadata = metadata }
+
+        guard save else { return }
+
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.safeRollback()
+            throw error
+        }
+    }
+
     // MARK: - Lookup
 
     /// Finds a task by its UUID. Throws on not-found.
