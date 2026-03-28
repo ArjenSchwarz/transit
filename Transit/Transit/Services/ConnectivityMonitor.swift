@@ -9,19 +9,18 @@ final class ConnectivityMonitor: @unchecked Sendable {
     private(set) var isConnected = true
     private let monitor = NWPathMonitor()
     private let queue = DispatchQueue(label: "me.nore.ig.Transit.connectivity")
-    nonisolated(unsafe) private var wasConnected = true
+    private var wasConnected = true
 
     /// Called on the main actor when connectivity is restored.
     var onRestore: (@MainActor @Sendable () async -> Void)?
 
     func start() {
         monitor.pathUpdateHandler = { [weak self] path in
-            guard let self else { return }
             let connected = path.status == .satisfied
-            let restored = !self.wasConnected && connected
-            self.wasConnected = connected
-
             Task { @MainActor in
+                guard let self else { return }
+                let restored = !self.wasConnected && connected
+                self.wasConnected = connected
                 self.isConnected = connected
                 if restored, let onRestore = self.onRestore {
                     await onRestore()
