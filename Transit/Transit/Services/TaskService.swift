@@ -8,7 +8,6 @@ final class TaskService {
 
     enum Error: Swift.Error, LocalizedError, Equatable {
         case invalidName
-        case invalidInput(String)
         case taskNotFound
         case projectNotFound
         case duplicateDisplayID
@@ -18,8 +17,6 @@ final class TaskService {
             switch self {
             case .invalidName:
                 "Task name cannot be empty."
-            case .invalidInput(let message):
-                message
             case .taskNotFound:
                 "The specified task could not be found."
             case .projectNotFound:
@@ -238,10 +235,11 @@ final class TaskService {
         save: Bool = true
     ) throws {
         if let name {
-            guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                throw Error.invalidInput("Task name cannot be empty")
+            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                throw Error.invalidName
             }
-            task.name = name
+            task.name = trimmed
         }
         if let description { task.taskDescription = description }
         if let type { task.type = type }

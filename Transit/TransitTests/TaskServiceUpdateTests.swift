@@ -66,7 +66,7 @@ struct TaskServiceUpdateTests {
             name: "Valid", description: nil, type: .feature, project: project
         )
 
-        #expect(throws: TaskService.Error.self) {
+        #expect(throws: TaskService.Error.invalidName) {
             try service.updateTask(task, name: "   ")
         }
         #expect(task.name == "Valid", "Name should not change on validation failure")
