@@ -20,6 +20,8 @@ struct SettingsView: View {
     #if os(macOS)
     @Environment(MCPSettings.self) private var mcpSettings
     @Environment(MCPServer.self) private var mcpServer
+    @Environment(SyncManager.self) private var syncManager
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedCategory: SettingsCategory? = .general
     @State private var detailPath = NavigationPath()
     @State private var categoryHistory: [SettingsCategory] = [.general]
@@ -305,8 +307,10 @@ extension SettingsView {
                         .onChange(of: mcpSettings.isEnabled) { _, enabled in
                             if enabled {
                                 mcpServer.start(port: mcpSettings.port)
+                                syncManager.startHeartbeat(context: modelContext)
                             } else {
                                 mcpServer.stop()
+                                syncManager.stopHeartbeat()
                             }
                         }
                 }

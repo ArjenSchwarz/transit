@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- CloudKit sync heartbeat: periodic SwiftData write every 60s while the MCP server is running on macOS, forcing `NSPersistentCloudKitContainer` to pull remote changes from iPhone/iPad within ~60s (T-631)
+- `SyncHeartbeat` SwiftData model — singleton record that triggers sync cycles
+- `SyncManager.startHeartbeat(context:)` / `stopHeartbeat()` — timer lifecycle management
 - `ContainerFactory` service for graceful `ModelContainer` creation with automatic fallback
 - Regression tests for container fallback behaviour (`ModelContainerFallbackTests`)
 - Home Screen Quick Actions: long-press the app icon on iOS to create a new task via "New Task" shortcut (T-27)

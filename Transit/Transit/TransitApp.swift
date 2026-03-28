@@ -48,7 +48,7 @@ struct TransitApp: App {
         let syncManager = SyncManager()
         self.syncManager = syncManager
 
-        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self])
+        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
         let config: ModelConfiguration
         if isInert || Self.uiTestScenario != nil {
             config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
@@ -59,6 +59,7 @@ struct TransitApp: App {
         let container = containerResult.container
         self.container = container
         self.containerError = containerResult.error
+        _showContainerError = State(initialValue: containerResult.error != nil)
 
         if !isInert && Self.uiTestScenario == nil && containerResult.error == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
@@ -119,7 +120,6 @@ struct TransitApp: App {
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
         #endif
 
-        _showContainerError = State(initialValue: containerResult.error != nil)
     }
 
     @State private var showContainerError: Bool
@@ -225,6 +225,7 @@ struct TransitApp: App {
         // Skip MCP server in unit test host to avoid port conflicts across test runs
         guard mcpSettings.isEnabled, !Self.isUnitTestHost else { return }
         mcpServer.start(port: mcpSettings.port)
+        syncManager.startHeartbeat(context: container.mainContext)
     }
     #endif
 
@@ -377,31 +378,3 @@ final class QuickActionSceneDelegate: NSObject, UIWindowSceneDelegate {
     }
 }
 #endif
-
-// MARK: - Scene Phase Tracking
-
-/// Observes scenePhase from within a View context (required by SwiftUI) and
-/// triggers display ID promotion on app launch and return to foreground.
-private struct ScenePhaseModifier: ViewModifier {
-    @Environment(\.scenePhase) private var scenePhase
-
-    let displayIDAllocator: DisplayIDAllocator
-    let milestoneService: MilestoneService
-    let modelContext: ModelContext
-
-    func body(content: Content) -> some View {
-        content
-            .task {
-                await displayIDAllocator.promoteProvisionalTasks(in: modelContext)
-                await milestoneService.promoteProvisionalMilestones()
-            }
-            .onChange(of: scenePhase) { _, newPhase in
-                if newPhase == .active {
-                    Task {
-                        await displayIDAllocator.promoteProvisionalTasks(in: modelContext)
-                        await milestoneService.promoteProvisionalMilestones()
-                    }
-                }
-            }
-    }
-}
