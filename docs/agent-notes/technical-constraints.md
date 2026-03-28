@@ -53,6 +53,13 @@
 - Test structs need `@MainActor` annotation to access main-actor-isolated types from the app module.
 - `@Model` classes should take raw stored types (e.g., `colorHex: String`) in their init, not SwiftUI types like `Color`. Convert at the view layer.
 
+## ConnectivityMonitor and MainActor Isolation
+
+The `ConnectivityMonitor` uses NWPathMonitor which runs its callback on a background DispatchQueue. To avoid `nonisolated(unsafe)`:
+- Capture only simple `Sendable` values (like `Bool`) from the background callback
+- Move all mutable state access (`wasConnected`, `isConnected`) into the `Task { @MainActor in }` block
+- The `onRestore` closure is typed `@MainActor @Sendable` — MainActor-isolated callers (like TransitApp) can capture their context directly without unsafe wrappers
+
 ## CloudKit Sync
 
 - SwiftData handles sync automatically for Project/Task models.
