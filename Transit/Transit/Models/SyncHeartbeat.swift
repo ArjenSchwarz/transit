@@ -11,11 +11,8 @@ import SwiftData
 final class SyncHeartbeat {
     static let singletonID = "sync-heartbeat"
 
-    var id: String
-    var lastBeat: Date
+    var id: String = "sync-heartbeat"
+    var lastBeat: Date = Date()
 
-    init() {
-        self.id = Self.singletonID
-        self.lastBeat = Date()
-    }
+    init() {}
 }
