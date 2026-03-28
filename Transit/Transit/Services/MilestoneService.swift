@@ -265,6 +265,16 @@ final class MilestoneService {
         try modelContext.fetch(FetchDescriptor<Milestone>())
     }
 
+    /// Fetches terminal (done/abandoned) milestones with project relationship prefetched.
+    func fetchTerminalMilestones() throws -> [Milestone] {
+        let predicate = #Predicate<Milestone> {
+            $0.statusRawValue == "done" || $0.statusRawValue == "abandoned"
+        }
+        var descriptor = FetchDescriptor<Milestone>(predicate: predicate)
+        descriptor.relationshipKeyPathsForPrefetching = [\.project]
+        return try modelContext.fetch(descriptor)
+    }
+
     /// Saves the model context. Rolls back on failure.
     func save() throws {
         do {

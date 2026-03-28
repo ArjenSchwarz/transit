@@ -291,6 +291,16 @@ final class TaskService {
         try modelContext.fetch(FetchDescriptor<TransitTask>())
     }
 
+    /// Fetches terminal (done/abandoned) tasks with project relationship prefetched.
+    func fetchTerminalTasks() throws -> [TransitTask] {
+        let predicate = #Predicate<TransitTask> {
+            $0.statusRawValue == "done" || $0.statusRawValue == "abandoned"
+        }
+        var descriptor = FetchDescriptor<TransitTask>(predicate: predicate)
+        descriptor.relationshipKeyPathsForPrefetching = [\.project]
+        return try modelContext.fetch(descriptor)
+    }
+
     // MARK: - Delete
 
     /// Deletes a task and optionally saves the context.

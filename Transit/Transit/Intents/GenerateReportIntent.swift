@@ -40,10 +40,8 @@ struct GenerateReportIntent: AppIntent {
         let tasks: [TransitTask]
         let milestones: [Milestone]
         do {
-            let allTasks = try taskService.fetchAllTasks()
-            tasks = allTasks.filter { $0.status.isTerminal }
-            let allMilestones = try milestoneService.fetchAllMilestones()
-            milestones = allMilestones.filter { MilestoneStatus(rawValue: $0.statusRawValue)?.isTerminal == true }
+            tasks = try taskService.fetchTerminalTasks()
+            milestones = try milestoneService.fetchTerminalMilestones()
         } catch {
             Logger(subsystem: "com.transit", category: "report")
                 .error("Failed to fetch data for report: \(error.localizedDescription)")
