@@ -53,6 +53,48 @@ final class SyncManager {
         }
     }
 
+    // MARK: - Heartbeat
+
+    private var heartbeatTask: Task<Void, Never>?
+
+    /// Starts a 60-second repeating heartbeat that writes to SwiftData,
+    /// triggering CloudKit to pull pending remote changes.
+    func startHeartbeat(context: ModelContext) {
+        heartbeatTask?.cancel()
+        guard isSyncEnabled else { return }
+
+        heartbeatTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+                guard !Task.isCancelled else { break }
+                beat(context: context)
+            }
+        }
+    }
+
+    /// Stops the heartbeat timer.
+    func stopHeartbeat() {
+        heartbeatTask?.cancel()
+        heartbeatTask = nil
+    }
+
+    /// Writes a timestamp to the `SyncHeartbeat` singleton, triggering a
+    /// CloudKit sync cycle that pulls pending remote changes.
+    private func beat(context: ModelContext) {
+        let singletonID = SyncHeartbeat.singletonID
+        let descriptor = FetchDescriptor<SyncHeartbeat>(
+            predicate: #Predicate { $0.id == singletonID }
+        )
+        let heartbeat = (try? context.fetch(descriptor))?.first ?? SyncHeartbeat()
+        heartbeat.lastBeat = Date()
+        if heartbeat.modelContext == nil {
+            context.insert(heartbeat)
+        }
+        try? context.save()
+    }
+
+    // MARK: - CloudKit Schema
+
     /// Call when re-enabling sync to initialize the CloudKit schema.
     /// This ensures the schema is pushed to CloudKit on first sync after re-enable.
     func initializeCloudKitSchemaIfNeeded(container: ModelContainer) {
