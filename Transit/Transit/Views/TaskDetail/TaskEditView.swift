@@ -60,16 +60,11 @@ struct TaskEditView: View {
             iOSFieldsSection
 
             Section {
-                ZStack(alignment: .topLeading) {
-                    if taskDescription.isEmpty {
-                        Text("Description")
-                            .foregroundStyle(.secondary)
-                            .padding(.top, 8)
-                            .padding(.leading, 4)
-                    }
-                    TextEditor(text: $taskDescription)
-                        .frame(minHeight: 120, maxHeight: .infinity)
-                }
+                PlaceholderTextEditor(
+                    text: $taskDescription,
+                    placeholder: "Description",
+                    minHeight: 120
+                )
             }
 
             iOSStatusSection
@@ -197,23 +192,10 @@ struct TaskEditView: View {
                         }
 
                         FormRow("Description", labelWidth: Self.labelWidth) {
-                            ZStack(alignment: .topLeading) {
-                                if taskDescription.isEmpty {
-                                    Text("Description")
-                                        .foregroundStyle(.secondary)
-                                        .padding(.top, 8)
-                                        .padding(.leading, 4)
-                                }
-                                TextEditor(text: $taskDescription)
-                                    .frame(minHeight: 120)
-                                    .scrollContentBackground(.hidden)
-                            }
-                            .padding(4)
-                            .background(Color(.textBackgroundColor))
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(Color.primary.opacity(0.15), lineWidth: 1)
+                            PlaceholderTextEditor(
+                                text: $taskDescription,
+                                placeholder: "Description",
+                                minHeight: 120
                             )
                         }
                     }
