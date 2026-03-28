@@ -73,6 +73,14 @@ curl -X POST http://localhost:3141/mcp -H 'Content-Type: application/json' \
 claude mcp add transit --transport http http://localhost:3141/mcp
 ```
 
+## Task Resolution
+
+Task resolution (looking up a task by display ID or UUID) is centralised in `TaskService.resolveTask(from:)`:
+- `resolveTask(from identifier: String)` — accepts display ID as integer string or UUID string
+- `resolveTask(from dict: [String: Any])` — accepts dictionary with `displayId` or `taskId` keys, uses `IntentHelpers.parseIntValue` for numeric handling
+
+MCPToolHandler, App Intents, and IntentHelpers all delegate to these methods rather than implementing their own resolution logic.
+
 ## Gotchas
 
 - `nonisolated` on struct/enum declarations is essential in this project due to `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Without it, all types inherit MainActor isolation, breaking Codable conformance on NIO threads.

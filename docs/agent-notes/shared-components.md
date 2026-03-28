@@ -28,6 +28,13 @@
 - `AddMetadataRow` is a `private` struct in the same file
 - Platform-adaptive: on iOS wraps content in `Section("Metadata")` for Form/List; on macOS outputs bare content (caller wraps in `LiquidGlassSection`)
 
+### PlaceholderTextEditor
+- Takes `@Binding var text: String`, `placeholder: String`, `minHeight: CGFloat`, optional `maxHeight: CGFloat` (defaults to `.infinity`)
+- ZStack with placeholder text overlay that disappears when text is entered
+- On macOS: adds `.scrollContentBackground(.hidden)`, padding, `textBackgroundColor` background, rounded corners, and a subtle border
+- On iOS: bare TextEditor with no custom background (`.scrollContentBackground(.hidden)` is macOS-only)
+- Used in: TaskEditView, AddTaskSheet (both platforms), CommentsSection (macOS)
+
 ### FormRow (macOS only)
 - Generic `GridRow`-based component: right-aligned label + content column
 - Takes `label: String`, `labelWidth: CGFloat`, and `@ViewBuilder content`
