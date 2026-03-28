@@ -78,7 +78,7 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, name: "Task C", displayId: 3)
 
         let result = QueryTasksIntent.execute(
-            input: "{}", projectService: svc.project, modelContext: svc.context
+            input: "{}", projectService: svc.project, taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
@@ -91,7 +91,7 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, name: "Task A", displayId: 1)
 
         let result = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, modelContext: svc.context
+            input: "", projectService: svc.project, taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
@@ -108,7 +108,7 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, name: "Another Idea", displayId: 3, status: .idea)
 
         let result = QueryTasksIntent.execute(
-            input: "{\"status\":\"idea\"}", projectService: svc.project, modelContext: svc.context
+            input: "{\"status\":\"idea\"}", projectService: svc.project, taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
@@ -130,7 +130,7 @@ struct QueryTasksIntentTests {
         let result = QueryTasksIntent.execute(
             input: "{\"projectId\":\"\(projectA.id.uuidString)\"}",
             projectService: svc.project,
-            modelContext: svc.context
+            taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
@@ -145,7 +145,7 @@ struct QueryTasksIntentTests {
         let result = QueryTasksIntent.execute(
             input: "{\"projectId\":\"\(fakeId)\"}",
             projectService: svc.project,
-            modelContext: svc.context
+            taskService: svc.task
         )
 
         let parsed = try parseJSON(result)
@@ -161,7 +161,7 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, name: "Feature Task", type: .feature, displayId: 2)
 
         let result = QueryTasksIntent.execute(
-            input: "{\"type\":\"bug\"}", projectService: svc.project, modelContext: svc.context
+            input: "{\"type\":\"bug\"}", projectService: svc.project, taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
@@ -186,7 +186,7 @@ struct QueryTasksIntentTests {
         svc.context.insert(task)
 
         let result = QueryTasksIntent.execute(
-            input: "{\"displayId\":42}", projectService: svc.project, modelContext: svc.context
+            input: "{\"displayId\":42}", projectService: svc.project, taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
@@ -205,7 +205,7 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, displayId: 1)
 
         let result = QueryTasksIntent.execute(
-            input: "{\"displayId\":999}", projectService: svc.project, modelContext: svc.context
+            input: "{\"displayId\":999}", projectService: svc.project, taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
@@ -220,7 +220,7 @@ struct QueryTasksIntentTests {
         let result = QueryTasksIntent.execute(
             input: "{\"displayId\":10,\"status\":\"done\"}",
             projectService: svc.project,
-            modelContext: svc.context
+            taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
@@ -235,7 +235,7 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, displayId: 5)
 
         let result = QueryTasksIntent.execute(
-            input: "{}", projectService: svc.project, modelContext: svc.context
+            input: "{}", projectService: svc.project, taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)

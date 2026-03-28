@@ -1,6 +1,5 @@
 import AppIntents
 import Foundation
-import SwiftData
 
 struct AddTaskIntent: AppIntent {
     struct Services {
@@ -73,7 +72,7 @@ struct AddTaskIntent: AppIntent {
 
         let parsedMetadata = try parseMetadata(metadata)
 
-        guard hasAnyProjects(modelContext: services.projectService.context) else {
+        guard services.projectService.hasAnyProjects() else {
             throw VisualIntentError.noProjects
         }
 
@@ -103,14 +102,6 @@ struct AddTaskIntent: AppIntent {
         }
 
         return try TaskCreationResult.from(task)
-    }
-
-    @MainActor
-    private static func hasAnyProjects(modelContext: ModelContext) -> Bool {
-        var descriptor = FetchDescriptor<Project>()
-        descriptor.fetchLimit = 1
-        let projects = (try? modelContext.fetch(descriptor)) ?? []
-        return !projects.isEmpty
     }
 
     private static func parseMetadata(_ rawMetadata: String?) throws -> [String: String]? {

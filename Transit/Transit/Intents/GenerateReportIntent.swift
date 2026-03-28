@@ -1,7 +1,6 @@
 import AppIntents
 import Foundation
 import os
-import SwiftData
 
 struct GenerateReportIntent: AppIntent {
     nonisolated(unsafe) static var title: LocalizedStringResource = "Transit: Generate Report"
@@ -17,36 +16,32 @@ struct GenerateReportIntent: AppIntent {
     var dateRange: ReportDateRange
 
     @Dependency
-    private var projectService: ProjectService
+    private var taskService: TaskService
+
+    @Dependency
+    private var milestoneService: MilestoneService
 
     @MainActor
     func perform() async throws -> some ReturnsValue<String> {
         let result = GenerateReportIntent.execute(
             dateRange: dateRange,
-            modelContext: projectService.context
+            taskService: taskService,
+            milestoneService: milestoneService
         )
         return .result(value: result)
     }
 
     @MainActor
-    static func execute(dateRange: ReportDateRange, modelContext: ModelContext) -> String {
-        let taskPredicate = #Predicate<TransitTask> {
-            $0.statusRawValue == "done" || $0.statusRawValue == "abandoned"
-        }
-        var taskDescriptor = FetchDescriptor<TransitTask>(predicate: taskPredicate)
-        taskDescriptor.relationshipKeyPathsForPrefetching = [\.project]
-
-        let milestonePredicate = #Predicate<Milestone> {
-            $0.statusRawValue == "done" || $0.statusRawValue == "abandoned"
-        }
-        var milestoneDescriptor = FetchDescriptor<Milestone>(predicate: milestonePredicate)
-        milestoneDescriptor.relationshipKeyPathsForPrefetching = [\.project]
-
+    static func execute(
+        dateRange: ReportDateRange,
+        taskService: TaskService,
+        milestoneService: MilestoneService
+    ) -> String {
         let tasks: [TransitTask]
         let milestones: [Milestone]
         do {
-            tasks = try modelContext.fetch(taskDescriptor)
-            milestones = try modelContext.fetch(milestoneDescriptor)
+            tasks = try taskService.fetchTerminalTasks()
+            milestones = try milestoneService.fetchTerminalMilestones()
         } catch {
             Logger(subsystem: "com.transit", category: "report")
                 .error("Failed to fetch data for report: \(error.localizedDescription)")

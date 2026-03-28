@@ -111,8 +111,7 @@ struct CreateTaskIntent: AppIntent {
             do {
                 try milestoneService?.setMilestone(resolvedMilestone, on: task)
             } catch {
-                projectService.context.delete(task)
-                try? projectService.context.save()
+                try? taskService.deleteTask(task)
                 return IntentError.internalError(hint: "Failed to assign milestone").json
             }
         }

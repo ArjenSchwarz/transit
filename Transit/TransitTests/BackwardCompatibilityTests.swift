@@ -72,7 +72,7 @@ struct BackwardCompatibilityTests {
         makeTask(in: svc.context, project: project, name: "B", displayId: 2)
 
         let result = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, modelContext: svc.context
+            input: "", projectService: svc.project, taskService: svc.task
         )
         let parsed = try parseJSONArray(result)
         #expect(parsed.count >= 2)
@@ -86,7 +86,7 @@ struct BackwardCompatibilityTests {
         makeTask(in: svc.context, project: project, name: "BCTask", displayId: 1)
 
         let result = QueryTasksIntent.execute(
-            input: "{}", projectService: svc.project, modelContext: svc.context
+            input: "{}", projectService: svc.project, taskService: svc.task
         )
         let parsed = try parseJSONArray(result)
         #expect(parsed.contains { $0["name"] as? String == "BCTask" })
@@ -100,7 +100,7 @@ struct BackwardCompatibilityTests {
 
         let result = QueryTasksIntent.execute(
             input: "{\"status\":\"planning\",\"projectId\":\"\(project.id.uuidString)\"}",
-            projectService: svc.project, modelContext: svc.context
+            projectService: svc.project, taskService: svc.task
         )
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 1)
@@ -116,7 +116,7 @@ struct BackwardCompatibilityTests {
 
         let result = QueryTasksIntent.execute(
             input: "{\"type\":\"bug\",\"projectId\":\"\(project.id.uuidString)\"}",
-            projectService: svc.project, modelContext: svc.context
+            projectService: svc.project, taskService: svc.task
         )
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 1)
@@ -132,7 +132,7 @@ struct BackwardCompatibilityTests {
 
         let result = QueryTasksIntent.execute(
             input: "{\"projectId\":\"\(projectA.id.uuidString)\"}",
-            projectService: svc.project, modelContext: svc.context
+            projectService: svc.project, taskService: svc.task
         )
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 1)

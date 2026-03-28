@@ -14,8 +14,19 @@ struct FindTasksIntentIntegrationTests {
         let lastStatusChangeDate: Date
     }
 
-    private func makeContext() throws -> ModelContext {
-        try TestModelContainer.newContext()
+    private struct TestEnv {
+        let context: ModelContext
+        let taskService: TaskService
+    }
+
+    private func makeEnv() throws -> TestEnv {
+        let context = try TestModelContainer.newContext()
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        return TestEnv(
+            context: context,
+            taskService: TaskService(modelContext: context, displayIDAllocator: allocator)
+        )
     }
 
     @discardableResult
@@ -53,12 +64,12 @@ struct FindTasksIntentIntegrationTests {
     }
 
     @Test func findTasksIntentReturnsTaskEntitiesWithExpectedFields() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context, name: "Integration")
+        let env = try makeEnv()
+        let project = makeProject(in: env.context, name: "Integration")
         let now = Date.now
 
         let task = makeTask(
-            in: context,
+            in: env.context,
             project: project,
             seed: TaskSeed(
                 name: "Find me",
@@ -82,7 +93,7 @@ struct FindTasksIntentIntegrationTests {
                 lastStatusChangeFromDate: nil,
                 lastStatusChangeToDate: nil
             ),
-            modelContext: context
+            taskService: env.taskService
         )
 
         #expect(entities.count == 1)
@@ -98,11 +109,11 @@ struct FindTasksIntentIntegrationTests {
     }
 
     @Test func findTasksIntentReturnsEmptyArrayForNoMatchesWithoutThrowing() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context, name: "Integration")
+        let env = try makeEnv()
+        let project = makeProject(in: env.context, name: "Integration")
 
         _ = makeTask(
-            in: context,
+            in: env.context,
             project: project,
             seed: TaskSeed(
                 name: "Only task",
@@ -125,7 +136,7 @@ struct FindTasksIntentIntegrationTests {
                 lastStatusChangeFromDate: nil,
                 lastStatusChangeToDate: nil
             ),
-            modelContext: context
+            taskService: env.taskService
         )
 
         #expect(entities.isEmpty)

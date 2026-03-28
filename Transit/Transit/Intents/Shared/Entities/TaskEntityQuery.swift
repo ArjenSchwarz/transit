@@ -1,23 +1,22 @@
 import AppIntents
 import Foundation
-import SwiftData
 
 struct TaskEntityQuery: EntityQuery {
     @Dependency
-    private var projectService: ProjectService
+    private var taskService: TaskService
 
     @MainActor
     func entities(for identifiers: [String]) async throws -> [TaskEntity] {
-        Self.entities(for: identifiers, modelContext: projectService.context)
+        Self.entities(for: identifiers, taskService: taskService)
     }
 
     @MainActor
     func suggestedEntities() async throws -> [TaskEntity] {
-        Self.suggestedEntities(modelContext: projectService.context)
+        Self.suggestedEntities(taskService: taskService)
     }
 
     @MainActor
-    static func entities(for identifiers: [String], modelContext: ModelContext) -> [TaskEntity] {
+    static func entities(for identifiers: [String], taskService: TaskService) -> [TaskEntity] {
         if identifiers.isEmpty {
             return []
         }
@@ -34,23 +33,20 @@ struct TaskEntityQuery: EntityQuery {
             return []
         }
 
-        let tasks = (try? modelContext.fetch(FetchDescriptor<TransitTask>())) ?? []
+        let tasks = (try? taskService.fetchAllTasks()) ?? []
         let matchingTasks = tasks.filter { wantedIDs.contains($0.id) }
         return entities(from: matchingTasks)
     }
 
     @MainActor
-    static func suggestedEntities(modelContext: ModelContext) -> [TaskEntity] {
-        let descriptor = FetchDescriptor<TransitTask>(
-            sortBy: [SortDescriptor(\TransitTask.lastStatusChangeDate, order: .reverse)]
-        )
-
-        let tasks = (try? modelContext.fetch(descriptor)) ?? []
+    static func suggestedEntities(taskService: TaskService) -> [TaskEntity] {
+        let tasks = (try? taskService.fetchAllTasks()) ?? []
         if tasks.isEmpty {
             return []
         }
 
-        return entities(from: Array(tasks.prefix(10)))
+        let sorted = tasks.sorted { $0.lastStatusChangeDate > $1.lastStatusChangeDate }
+        return entities(from: Array(sorted.prefix(10)))
     }
 
     static func entities(from tasks: [TransitTask]) -> [TaskEntity] {

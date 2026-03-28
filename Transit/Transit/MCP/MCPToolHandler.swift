@@ -190,8 +190,7 @@ final class MCPToolHandler {
                 try milestoneService.setMilestone(milestone, on: task)
             } catch {
                 // Pre-validation should prevent this, but clean up the task on unexpected failures.
-                projectService.context.delete(task)
-                try? projectService.context.save()
+                try? taskService.deleteTask(task)
                 return errorResult("Failed to set milestone: \(error)")
             }
         }
@@ -290,8 +289,7 @@ final class MCPToolHandler {
                   !milestoneName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if let projectFilter {
                 // Scoped to a single project — at most one milestone matches
-                let projects = (try? projectService.context.fetch(FetchDescriptor<Project>())) ?? []
-                if let project = projects.first(where: { $0.id == projectFilter }),
+                if case .success(let project) = projectService.findProject(id: projectFilter),
                    let milestone = milestoneService.findByName(milestoneName, in: project) {
                     milestoneFilter = [milestone.id]
                 } else {
@@ -299,7 +297,7 @@ final class MCPToolHandler {
                 }
             } else {
                 // No project filter — collect ALL milestones with this name across projects
-                let allMilestones = (try? projectService.context.fetch(FetchDescriptor<Milestone>())) ?? []
+                let allMilestones = (try? milestoneService.fetchAllMilestones()) ?? []
                 let matchingIds = Set(
                     allMilestones
                         .filter { $0.name.localizedCaseInsensitiveCompare(milestoneName) == .orderedSame }
@@ -327,7 +325,7 @@ final class MCPToolHandler {
         // Full-table query
         let allTasks: [TransitTask]
         do {
-            allTasks = try projectService.context.fetch(FetchDescriptor<TransitTask>())
+            allTasks = try taskService.fetchAllTasks()
         } catch {
             return errorResult("Failed to fetch tasks: \(error)")
         }
@@ -420,7 +418,7 @@ extension MCPToolHandler {
         // Full query with filters
         let allMilestones: [Milestone]
         do {
-            allMilestones = try projectService.context.fetch(FetchDescriptor<Milestone>())
+            allMilestones = try milestoneService.fetchAllMilestones()
         } catch {
             return errorResult("Failed to fetch milestones: \(error)")
         }
@@ -488,9 +486,8 @@ extension MCPToolHandler {
 
         if validated.hasChanges {
             do {
-                try projectService.context.save()
+                try milestoneService.save()
             } catch {
-                projectService.context.safeRollback()
                 return errorResult("Update failed: \(error)")
             }
         }
@@ -643,9 +640,8 @@ extension MCPToolHandler {
         }
 
         do {
-            try projectService.context.save()
+            try taskService.save()
         } catch {
-            projectService.context.safeRollback()
             return errorResult("Failed to save: \(error)")
         }
 
@@ -659,10 +655,9 @@ extension MCPToolHandler {
 extension MCPToolHandler {
 
     private func handleGetProjects() -> MCPToolResult {
-        let descriptor = FetchDescriptor<Project>(sortBy: [SortDescriptor(\Project.name)])
         let projects: [Project]
         do {
-            projects = try projectService.context.fetch(descriptor)
+            projects = try projectService.fetchAllProjects(sortedByName: true)
         } catch {
             return errorResult("Failed to fetch projects: \(error)")
         }

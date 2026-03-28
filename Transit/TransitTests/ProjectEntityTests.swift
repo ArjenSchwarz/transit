@@ -5,7 +5,12 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct ProjectEntityTests {
-    private func makeContext() throws -> ModelContext {
+    private struct TestEnv {
+        let context: ModelContext
+        let projectService: ProjectService
+    }
+
+    private func makeEnv() throws -> TestEnv {
         let schema = Schema([Project.self, TransitTask.self, Milestone.self])
         let config = ModelConfiguration(
             "ProjectEntityTests-\(UUID().uuidString)",
@@ -14,13 +19,17 @@ struct ProjectEntityTests {
             cloudKitDatabase: .none
         )
         let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
+        let context = ModelContext(container)
+        return TestEnv(
+            context: context,
+            projectService: ProjectService(modelContext: context)
+        )
     }
 
     @Test func fromProjectMapsFields() throws {
-        let context = try makeContext()
+        let env = try makeEnv()
         let project = Project(name: "Alpha", description: "desc", gitRepo: nil, colorHex: "#112233")
-        context.insert(project)
+        env.context.insert(project)
 
         let entity = ProjectEntity.from(project)
         #expect(entity.id == project.id.uuidString)
@@ -29,15 +38,15 @@ struct ProjectEntityTests {
     }
 
     @Test func entitiesForIdentifiersReturnsMatchesOnly() throws {
-        let context = try makeContext()
+        let env = try makeEnv()
         let alpha = Project(name: "Alpha", description: "desc", gitRepo: nil, colorHex: "#111111")
         let beta = Project(name: "Beta", description: "desc", gitRepo: nil, colorHex: "#222222")
-        context.insert(alpha)
-        context.insert(beta)
+        env.context.insert(alpha)
+        env.context.insert(beta)
 
         let entities = ProjectEntityQuery.entities(
             for: [alpha.id.uuidString, UUID().uuidString, "not-a-uuid"],
-            modelContext: context
+            projectService: env.projectService
         )
 
         #expect(entities.count == 1)
@@ -45,8 +54,8 @@ struct ProjectEntityTests {
     }
 
     @Test func suggestedEntitiesReturnsEmptyArrayWhenNoProjects() throws {
-        let context = try makeContext()
-        let entities = ProjectEntityQuery.suggestedEntities(modelContext: context)
+        let env = try makeEnv()
+        let entities = ProjectEntityQuery.suggestedEntities(projectService: env.projectService)
         #expect(entities.isEmpty)
     }
 }

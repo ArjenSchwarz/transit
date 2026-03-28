@@ -135,7 +135,7 @@ struct IntentCompatibilityTests {
         let result = QueryTasksIntent.execute(
             input: "{\"status\":\"in-progress\"}",
             projectService: svc.projectService,
-            modelContext: svc.context
+            taskService: svc.taskService
         )
 
         let parsed = try parseJSONArray(result)

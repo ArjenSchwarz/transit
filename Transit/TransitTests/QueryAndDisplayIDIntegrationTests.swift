@@ -74,7 +74,7 @@ struct QueryAndDisplayIDIntegrationTests {
         let queryResult = QueryTasksIntent.execute(
             input: "{\"status\":\"idea\"}",
             projectService: svc.project,
-            modelContext: svc.context
+            taskService: svc.task
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.count == 1)
@@ -95,7 +95,7 @@ struct QueryAndDisplayIDIntegrationTests {
         )
 
         let queryResult = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, modelContext: svc.context
+            input: "", projectService: svc.project, taskService: svc.task
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.count == 2)
@@ -118,7 +118,7 @@ struct QueryAndDisplayIDIntegrationTests {
         let queryResult = QueryTasksIntent.execute(
             input: "{\"projectId\":\"\(projectA.id.uuidString)\"}",
             projectService: svc.project,
-            modelContext: svc.context
+            taskService: svc.task
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.count == 1)
@@ -167,7 +167,7 @@ struct QueryAndDisplayIDIntegrationTests {
         )
 
         let queryResult = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, modelContext: svc.context
+            input: "", projectService: svc.project, taskService: svc.task
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.count == 1)

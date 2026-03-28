@@ -1,6 +1,5 @@
 import AppIntents
 import Foundation
-import SwiftData
 
 private struct DateRangeFilter: Codable {
     var relative: String?
@@ -86,12 +85,15 @@ struct QueryTasksIntent: AppIntent {
     @Dependency
     private var projectService: ProjectService
 
+    @Dependency
+    private var taskService: TaskService
+
     @MainActor
     func perform() async throws -> some ReturnsValue<String> {
         let result = QueryTasksIntent.execute(
             input: input,
             projectService: projectService,
-            modelContext: projectService.context
+            taskService: taskService
         )
         return .result(value: result)
     }
@@ -102,7 +104,7 @@ struct QueryTasksIntent: AppIntent {
     static func execute(
         input: String,
         projectService: ProjectService,
-        modelContext: ModelContext
+        taskService: TaskService
     ) -> String {
         let filters = parseInput(input)
         guard let filters else {
@@ -121,19 +123,17 @@ struct QueryTasksIntent: AppIntent {
 
         // Single-task lookup by displayId
         if let displayId = filters.displayId {
-            var descriptor = FetchDescriptor<TransitTask>(
-                predicate: #Predicate { $0.permanentDisplayId == displayId }
-            )
-            descriptor.fetchLimit = 1
-            let matches = (try? modelContext.fetch(descriptor)) ?? []
-            let filtered = applyFilters(filters, to: matches)
-            let formatter = ISO8601DateFormatter()
-            return IntentHelpers.encodeJSONArray(filtered.map {
-                IntentHelpers.taskToDict($0, formatter: formatter, detailed: true)
-            })
+            if let task = try? taskService.findByDisplayID(displayId) {
+                let filtered = applyFilters(filters, to: [task])
+                let formatter = ISO8601DateFormatter()
+                return IntentHelpers.encodeJSONArray(filtered.map {
+                    IntentHelpers.taskToDict($0, formatter: formatter, detailed: true)
+                })
+            }
+            return IntentHelpers.encodeJSONArray([])
         }
 
-        let allTasks = (try? modelContext.fetch(FetchDescriptor<TransitTask>())) ?? []
+        let allTasks = (try? taskService.fetchAllTasks()) ?? []
         let filtered = applyFilters(filters, to: allTasks)
         let formatter = ISO8601DateFormatter()
         return IntentHelpers.encodeJSONArray(filtered.map {
