@@ -384,4 +384,5 @@ struct TaskServiceTests {
         #expect(tasks.count == 1)
         #expect(tasks.first?.id == task.id)
     }
+
 }
