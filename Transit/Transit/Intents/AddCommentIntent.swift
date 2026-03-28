@@ -57,9 +57,14 @@ struct AddCommentIntent: AppIntent {
         isAgent: Bool,
         services: Services
     ) throws {
-        let task = try resolveTask(
-            identifier: taskIdentifier, taskService: services.taskService
-        )
+        let task: TransitTask
+        do {
+            task = try services.taskService.resolveTask(from: taskIdentifier)
+        } catch {
+            throw VisualIntentError.taskNotFound(
+                "No task matching '\(taskIdentifier)'."
+            )
+        }
 
         let trimmed = commentText
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -78,34 +83,5 @@ struct AddCommentIntent: AppIntent {
             authorName: trimmedAuthor,
             isAgent: isAgent
         )
-    }
-
-    // MARK: - Private
-
-    @MainActor
-    private static func resolveTask(
-        identifier: String, taskService: TaskService
-    ) throws -> TransitTask {
-        if let displayId = Int(identifier) {
-            do {
-                return try taskService.findByDisplayID(displayId)
-            } catch {
-                throw VisualIntentError.taskNotFound(
-                    "No task with display ID \(identifier)."
-                )
-            }
-        } else if let uuid = UUID(uuidString: identifier) {
-            do {
-                return try taskService.findByID(uuid)
-            } catch {
-                throw VisualIntentError.taskNotFound(
-                    "No task with ID \(identifier)."
-                )
-            }
-        } else {
-            throw VisualIntentError.invalidInput(
-                "'\(identifier)' is not a valid display ID or UUID."
-            )
-        }
     }
 }

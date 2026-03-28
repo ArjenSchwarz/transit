@@ -228,9 +228,10 @@ final class MCPToolHandler {
         }
 
         let task: TransitTask
-        switch resolveTask(from: args) {
-        case .success(let found): task = found
-        case .failure(.message(let message)): return errorResult(message)
+        do {
+            task = try taskService.resolveTask(from: args)
+        } catch {
+            return errorResult("Provide either displayId (integer) or taskId (UUID string)")
         }
 
         let commentText = args["comment"] as? String
@@ -597,9 +598,10 @@ extension MCPToolHandler {
     // swiftlint:disable:next cyclomatic_complexity
     private func handleUpdateTask(_ args: [String: Any]) -> MCPToolResult {
         let task: TransitTask
-        switch resolveTask(from: args) {
-        case .success(let found): task = found
-        case .failure(.message(let message)): return errorResult(message)
+        do {
+            task = try taskService.resolveTask(from: args)
+        } catch {
+            return errorResult("Provide either displayId (integer) or taskId (UUID string)")
         }
 
         // Handle milestone assignment (save: false — deferred to single atomic save below)
@@ -689,9 +691,10 @@ extension MCPToolHandler {
         }
 
         let task: TransitTask
-        switch resolveTask(from: args) {
-        case .success(let found): task = found
-        case .failure(.message(let message)): return errorResult(message)
+        do {
+            task = try taskService.resolveTask(from: args)
+        } catch {
+            return errorResult("Provide either displayId (integer) or taskId (UUID string)")
         }
 
         let comment: Comment
@@ -751,24 +754,6 @@ extension MCPToolHandler {
 
     enum ResolveError: Error {
         case message(String)
-    }
-
-    private func resolveTask(from args: [String: Any]) -> Result<TransitTask, ResolveError> {
-        if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
-            do {
-                return .success(try taskService.findByDisplayID(displayId))
-            } catch {
-                return .failure(.message("No task with displayId \(displayId)"))
-            }
-        } else if let idStr = args["taskId"] as? String, let taskId = UUID(uuidString: idStr) {
-            do {
-                return .success(try taskService.findByID(taskId))
-            } catch {
-                return .failure(.message("No task with taskId \(idStr)"))
-            }
-        } else {
-            return .failure(.message("Provide either displayId (integer) or taskId (UUID string)"))
-        }
     }
 
     private func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }

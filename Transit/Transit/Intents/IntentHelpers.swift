@@ -87,25 +87,19 @@ nonisolated enum IntentHelpers {
     }
 
     /// Resolves a task from JSON containing displayId or taskId.
+    /// Delegates to `TaskService.resolveTask(from:)` and maps errors to `IntentError`.
     @MainActor
     static func resolveTask(
         from json: [String: Any],
         taskService: TaskService
     ) -> Result<TransitTask, IntentError> {
-        if let displayId = parseIntValue(json["displayId"]) {
-            do {
-                return .success(try taskService.findByDisplayID(displayId))
-            } catch {
-                return .failure(.taskNotFound(hint: "No task with displayId \(displayId)"))
-            }
-        } else if let idString = json["taskId"] as? String, let uuid = UUID(uuidString: idString) {
-            do {
-                return .success(try taskService.findByID(uuid))
-            } catch {
-                return .failure(.taskNotFound(hint: "No task with taskId \(idString)"))
-            }
+        do {
+            return .success(try taskService.resolveTask(from: json))
+        } catch {
+            return .failure(.taskNotFound(
+                hint: "Provide either displayId (integer) or taskId (UUID)"
+            ))
         }
-        return .failure(.invalidInput(hint: "Provide either displayId (integer) or taskId (UUID)"))
     }
 
     /// Resolves a milestone from JSON containing displayId or milestoneId.
