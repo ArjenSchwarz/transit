@@ -16,9 +16,9 @@ struct PlaceholderTextEditor: View {
             }
             TextEditor(text: $text)
                 .frame(minHeight: minHeight, maxHeight: maxHeight)
-                .scrollContentBackground(.hidden)
         }
         #if os(macOS)
+        .scrollContentBackground(.hidden)
         .padding(4)
         .background(Color(.textBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
