@@ -75,6 +75,17 @@ Services that accept model objects from views **must** use `container.mainContex
 
 Rule: Never use `ModelContext(container)` for services that interact with view-provided model objects. Always use `container.mainContext`.
 
+## Service Encapsulation Pattern
+
+All services keep their `ModelContext` private (named `modelContext`). External code must never access a service's context directly — use service methods instead.
+
+Available query/utility methods:
+- **ProjectService**: `fetchAllProjects(sortedByName:)`, `hasAnyProjects()`, `findProject(id:)`
+- **TaskService**: `fetchAllTasks()`, `fetchTerminalTasks()`, `resolveTask(from:)`, `deleteTask(_:save:)`, `save()`
+- **MilestoneService**: `fetchAllMilestones()`, `fetchTerminalMilestones()`, `save()`
+
+For report generation, use `fetchTerminalTasks()` / `fetchTerminalMilestones()` — these apply predicates and prefetch the `project` relationship to avoid full-table scans and N+1 lazy loads.
+
 ## SwiftData Test Container
 
 Creating multiple `ModelContainer` instances for the same schema in one process causes `loadIssueModelContainer` errors. The app's CloudKit entitlements trigger auto-discovery of `@Model` types at test host launch, conflicting with test containers.
