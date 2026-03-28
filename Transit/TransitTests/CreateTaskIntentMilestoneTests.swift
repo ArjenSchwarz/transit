@@ -203,9 +203,8 @@ struct CreateTaskIntentMilestoneTests {
         #expect(beforeTasks.count == 1)
 
         // Simulate the cleanup path from the T-558 fix:
-        // projectService.context.delete(task); try? projectService.context.save()
-        svc.project.context.delete(task)
-        try svc.project.context.save()
+        // taskService.deleteTask(task)
+        try svc.task.deleteTask(task)
 
         // Verify the task was removed
         let afterDescriptor = FetchDescriptor<TransitTask>()

@@ -71,8 +71,7 @@ struct QueryMilestonesIntentTests {
         makeMilestone(in: svc.context, name: "v2.0", project: project, displayId: 2)
 
         let result = QueryMilestonesIntent.execute(
-            input: "", milestoneService: svc.milestone, projectService: svc.project, modelContext: svc.context
-        )
+            input: "", milestoneService: svc.milestone, projectService: svc.project        )
 
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 2)
@@ -86,8 +85,7 @@ struct QueryMilestonesIntentTests {
 
         let result = QueryMilestonesIntent.execute(
             input: "{\"displayId\":1}", milestoneService: svc.milestone,
-            projectService: svc.project, modelContext: svc.context
-        )
+            projectService: svc.project        )
 
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 1)
@@ -105,8 +103,7 @@ struct QueryMilestonesIntentTests {
 
         let result = QueryMilestonesIntent.execute(
             input: "{\"project\":\"Alpha\"}", milestoneService: svc.milestone,
-            projectService: svc.project, modelContext: svc.context
-        )
+            projectService: svc.project        )
 
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 1)
@@ -121,8 +118,7 @@ struct QueryMilestonesIntentTests {
 
         let result = QueryMilestonesIntent.execute(
             input: "{\"status\":\"open\"}", milestoneService: svc.milestone,
-            projectService: svc.project, modelContext: svc.context
-        )
+            projectService: svc.project        )
 
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 1)
@@ -146,8 +142,7 @@ struct QueryMilestonesIntentTests {
 
         let result = QueryMilestonesIntent.execute(
             input: "{\"search\":\"alpha\"}", milestoneService: svc.milestone,
-            projectService: svc.project, modelContext: svc.context
-        )
+            projectService: svc.project        )
 
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 2)
@@ -158,8 +153,7 @@ struct QueryMilestonesIntentTests {
 
         let result = QueryMilestonesIntent.execute(
             input: "{\"displayId\":999}", milestoneService: svc.milestone,
-            projectService: svc.project, modelContext: svc.context
-        )
+            projectService: svc.project        )
 
         let parsed = try parseJSONArray(result)
         #expect(parsed.isEmpty)
@@ -175,8 +169,7 @@ struct QueryMilestonesIntentTests {
         // 1.9 should NOT silently truncate to 1
         let result = QueryMilestonesIntent.execute(
             input: "{\"displayId\":1.9}", milestoneService: svc.milestone,
-            projectService: svc.project, modelContext: svc.context
-        )
+            projectService: svc.project        )
 
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")
@@ -188,8 +181,7 @@ struct QueryMilestonesIntentTests {
 
         let result = QueryMilestonesIntent.execute(
             input: "not json", milestoneService: svc.milestone,
-            projectService: svc.project, modelContext: svc.context
-        )
+            projectService: svc.project        )
 
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")

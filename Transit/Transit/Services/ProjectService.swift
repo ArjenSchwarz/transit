@@ -20,10 +20,10 @@ enum ProjectMutationError: Error {
 @MainActor @Observable
 final class ProjectService {
 
-    let context: ModelContext
+    private let modelContext: ModelContext
 
     init(modelContext: ModelContext) {
-        self.context = modelContext
+        self.modelContext = modelContext
     }
 
     // MARK: - Creation
@@ -43,11 +43,11 @@ final class ProjectService {
             throw ProjectMutationError.duplicateName(trimmedName)
         }
         let project = Project(name: trimmedName, description: description, gitRepo: gitRepo, colorHex: colorHex)
-        context.insert(project)
+        modelContext.insert(project)
         do {
-            try context.save()
+            try modelContext.save()
         } catch {
-            context.delete(project)
+            modelContext.delete(project)
             throw error
         }
         return project
@@ -67,7 +67,7 @@ final class ProjectService {
             let descriptor = FetchDescriptor<Project>(
                 predicate: #Predicate { $0.id == id }
             )
-            guard let project = try? context.fetch(descriptor).first else {
+            guard let project = try? modelContext.fetch(descriptor).first else {
                 return .failure(.notFound(hint: "No project with ID \(id.uuidString)"))
             }
             return .success(project)
@@ -79,7 +79,7 @@ final class ProjectService {
             // arbitrary case-insensitive equality. Fetch all and filter in memory
             // for exact case-insensitive match (project count is small).
             let descriptor = FetchDescriptor<Project>()
-            let allProjects = (try? context.fetch(descriptor)) ?? []
+            let allProjects = (try? modelContext.fetch(descriptor)) ?? []
             let matches = allProjects.filter {
                 $0.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
             }
@@ -107,7 +107,7 @@ final class ProjectService {
     func projectNameExists(_ name: String, excluding projectId: UUID? = nil) -> Bool {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let descriptor = FetchDescriptor<Project>()
-        let allProjects = (try? context.fetch(descriptor)) ?? []
+        let allProjects = (try? modelContext.fetch(descriptor)) ?? []
         return allProjects.contains { project in
             if let projectId, project.id == projectId { return false }
             return project.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
@@ -120,5 +120,23 @@ final class ProjectService {
     func activeTaskCount(for project: Project) -> Int {
         let tasks = project.tasks ?? []
         return tasks.filter { !$0.status.isTerminal }.count
+    }
+
+    /// Fetches all projects, optionally sorted by name.
+    func fetchAllProjects(sortedByName: Bool = false) throws -> [Project] {
+        let descriptor: FetchDescriptor<Project>
+        if sortedByName {
+            descriptor = FetchDescriptor<Project>(sortBy: [SortDescriptor(\Project.name)])
+        } else {
+            descriptor = FetchDescriptor<Project>()
+        }
+        return try modelContext.fetch(descriptor)
+    }
+
+    /// Returns true if at least one project exists.
+    func hasAnyProjects() -> Bool {
+        var descriptor = FetchDescriptor<Project>()
+        descriptor.fetchLimit = 1
+        return ((try? modelContext.fetch(descriptor)) ?? []).isEmpty == false
     }
 }

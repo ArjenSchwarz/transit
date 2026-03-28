@@ -1,6 +1,5 @@
 import AppIntents
 import Foundation
-import SwiftData
 
 struct ProjectEntityQuery: EntityQuery {
     @Dependency
@@ -8,16 +7,16 @@ struct ProjectEntityQuery: EntityQuery {
 
     @MainActor
     func entities(for identifiers: [String]) async throws -> [ProjectEntity] {
-        Self.entities(for: identifiers, modelContext: projectService.context)
+        Self.entities(for: identifiers, projectService: projectService)
     }
 
     @MainActor
     func suggestedEntities() async throws -> [ProjectEntity] {
-        Self.suggestedEntities(modelContext: projectService.context)
+        Self.suggestedEntities(projectService: projectService)
     }
 
     @MainActor
-    static func entities(for identifiers: [String], modelContext: ModelContext) -> [ProjectEntity] {
+    static func entities(for identifiers: [String], projectService: ProjectService) -> [ProjectEntity] {
         if identifiers.isEmpty {
             return []
         }
@@ -34,7 +33,7 @@ struct ProjectEntityQuery: EntityQuery {
             return []
         }
 
-        let projects = (try? modelContext.fetch(FetchDescriptor<Project>())) ?? []
+        let projects = (try? projectService.fetchAllProjects()) ?? []
         return projects.compactMap { project in
             guard wantedIDs.contains(project.id) else { return nil }
             return ProjectEntity.from(project)
@@ -42,11 +41,8 @@ struct ProjectEntityQuery: EntityQuery {
     }
 
     @MainActor
-    static func suggestedEntities(modelContext: ModelContext) -> [ProjectEntity] {
-        let descriptor = FetchDescriptor<Project>(
-            sortBy: [SortDescriptor(\Project.name)]
-        )
-        let projects = (try? modelContext.fetch(descriptor)) ?? []
+    static func suggestedEntities(projectService: ProjectService) -> [ProjectEntity] {
+        let projects = (try? projectService.fetchAllProjects(sortedByName: true)) ?? []
         if projects.isEmpty {
             return []
         }

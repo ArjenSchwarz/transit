@@ -1,6 +1,5 @@
 import AppIntents
 import Foundation
-import SwiftData
 
 enum DateFilterOption: String, AppEnum {
     case today
@@ -123,7 +122,7 @@ struct FindTasksIntent: AppIntent {
     }
 
     @Dependency
-    private var projectService: ProjectService
+    private var taskService: TaskService
 
     @MainActor
     func perform() async throws -> some ReturnsValue<[TaskEntity]> {
@@ -139,7 +138,7 @@ struct FindTasksIntent: AppIntent {
                 lastStatusChangeFromDate: lastStatusChangeFromDate,
                 lastStatusChangeToDate: lastStatusChangeToDate
             ),
-            modelContext: projectService.context
+            taskService: taskService
         )
         return .result(value: entities)
     }
@@ -147,7 +146,7 @@ struct FindTasksIntent: AppIntent {
     // MARK: - Logic (testable without @Dependency)
 
     @MainActor
-    static func execute(filters: Filters, modelContext: ModelContext) throws -> [TaskEntity] {
+    static func execute(filters: Filters, taskService: TaskService) throws -> [TaskEntity] {
         let completionRange = try buildDateRange(
             option: filters.completionDateFilter,
             from: filters.completionFromDate,
@@ -162,10 +161,8 @@ struct FindTasksIntent: AppIntent {
             fieldName: "lastStatusChangeDate"
         )
 
-        let descriptor = FetchDescriptor<TransitTask>(
-            sortBy: [SortDescriptor(\TransitTask.lastStatusChangeDate, order: .reverse)]
-        )
-        let tasks = try modelContext.fetch(descriptor)
+        let tasks = try taskService.fetchAllTasks()
+            .sorted { $0.lastStatusChangeDate > $1.lastStatusChangeDate }
         if tasks.isEmpty {
             return []
         }

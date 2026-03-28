@@ -37,8 +37,22 @@ private func makeFindFilters(
 }
 
 @MainActor @Suite(.serialized)
+// swiftlint:disable:next type_body_length
 struct FindTasksIntentTests {
-    private func makeContext() throws -> ModelContext { try TestModelContainer.newContext() }
+    private struct TestEnv {
+        let context: ModelContext
+        let taskService: TaskService
+    }
+
+    private func makeEnv() throws -> TestEnv {
+        let context = try TestModelContainer.newContext()
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        return TestEnv(
+            context: context,
+            taskService: TaskService(modelContext: context, displayIDAllocator: allocator)
+        )
+    }
 
     @discardableResult
     private func makeProject(in context: ModelContext, name: String) -> Project {
@@ -64,11 +78,11 @@ struct FindTasksIntentTests {
     }
 
     @Test func executeReturnsAllTasksWhenNoFiltersAreProvided() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context, name: "Main")
+        let env = try makeEnv()
+        let project = makeProject(in: env.context, name: "Main")
         let now = Date.now
         _ = makeTask(
-            in: context,
+            in: env.context,
             project: project,
             seed: FindTaskSeed(
                 name: "Oldest",
@@ -79,7 +93,7 @@ struct FindTasksIntentTests {
             )
         )
         _ = makeTask(
-            in: context,
+            in: env.context,
             project: project,
             seed: FindTaskSeed(
                 name: "Newest",
@@ -89,18 +103,18 @@ struct FindTasksIntentTests {
                 lastStatusChangeDate: now
             )
         )
-        let result = try FindTasksIntent.execute(filters: makeFindFilters(), modelContext: context)
+        let result = try FindTasksIntent.execute(filters: makeFindFilters(), taskService: env.taskService)
         #expect(result.count == 2)
         #expect(result[0].name == "Newest")
         #expect(result[1].name == "Oldest")
     }
 
     @Test func executeAppliesAndLogicAcrossAllFilters() throws {
-        let context = try makeContext()
-        let (alpha, beta) = (makeProject(in: context, name: "Alpha"), makeProject(in: context, name: "Beta"))
+        let env = try makeEnv()
+        let (alpha, beta) = (makeProject(in: env.context, name: "Alpha"), makeProject(in: env.context, name: "Beta"))
         let now = Date.now
         _ = makeTask(
-            in: context,
+            in: env.context,
             project: alpha,
             seed: FindTaskSeed(
                 name: "Expected",
@@ -112,7 +126,7 @@ struct FindTasksIntentTests {
             )
         )
         _ = makeTask(
-            in: context,
+            in: env.context,
             project: alpha,
             seed: FindTaskSeed(
                 name: "Wrong Type",
@@ -124,7 +138,7 @@ struct FindTasksIntentTests {
             )
         )
         _ = makeTask(
-            in: context,
+            in: env.context,
             project: beta,
             seed: FindTaskSeed(
                 name: "Wrong Project",
@@ -143,21 +157,21 @@ struct FindTasksIntentTests {
                 completionDateFilter: .today,
                 lastStatusChangeDateFilter: .today
             ),
-            modelContext: context
+            taskService: env.taskService
         )
         #expect(result.map(\.name) == ["Expected"])
     }
 
     @Test func executeSupportsCompletionDateCustomRange() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context, name: "Date")
+        let env = try makeEnv()
+        let project = makeProject(in: env.context, name: "Date")
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         let dayMinus1 = calendar.date(byAdding: .day, value: -1, to: today)!
         let dayMinus2 = calendar.date(byAdding: .day, value: -2, to: today)!
         let dayMinus3 = calendar.date(byAdding: .day, value: -3, to: today)!
         _ = makeTask(
-            in: context,
+            in: env.context,
             project: project,
             seed: FindTaskSeed(
                 name: "In Range",
@@ -169,7 +183,7 @@ struct FindTasksIntentTests {
             )
         )
         _ = makeTask(
-            in: context,
+            in: env.context,
             project: project,
             seed: FindTaskSeed(
                 name: "Out Of Range",
@@ -186,21 +200,21 @@ struct FindTasksIntentTests {
                 completionFromDate: dayMinus2,
                 completionToDate: dayMinus1
             ),
-            modelContext: context
+            taskService: env.taskService
         )
         #expect(result.count == 1)
         #expect(result[0].name == "In Range")
     }
 
     @Test func executeSupportsLastStatusChangeDateCustomRange() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context, name: "Changed")
+        let env = try makeEnv()
+        let project = makeProject(in: env.context, name: "Changed")
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         let dayMinus1 = calendar.date(byAdding: .day, value: -1, to: today)!
         let dayMinus2 = calendar.date(byAdding: .day, value: -2, to: today)!
         _ = makeTask(
-            in: context,
+            in: env.context,
             project: project,
             seed: FindTaskSeed(
                 name: "In Range",
@@ -211,7 +225,7 @@ struct FindTasksIntentTests {
             )
         )
         _ = makeTask(
-            in: context,
+            in: env.context,
             project: project,
             seed: FindTaskSeed(
                 name: "Out Of Range",
@@ -227,19 +241,19 @@ struct FindTasksIntentTests {
                 lastStatusChangeFromDate: dayMinus1,
                 lastStatusChangeToDate: today
             ),
-            modelContext: context
+            taskService: env.taskService
         )
         #expect(result.count == 1)
         #expect(result[0].name == "In Range")
     }
 
     @Test func executeLimitsResultsToTwoHundred() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context, name: "Many")
+        let env = try makeEnv()
+        let project = makeProject(in: env.context, name: "Many")
         let base = Date.now
         for index in 0..<205 {
             _ = makeTask(
-                in: context,
+                in: env.context,
                 project: project,
                 seed: FindTaskSeed(
                     name: "Task \(index)",
@@ -250,17 +264,17 @@ struct FindTasksIntentTests {
                 )
             )
         }
-        let result = try FindTasksIntent.execute(filters: makeFindFilters(), modelContext: context)
+        let result = try FindTasksIntent.execute(filters: makeFindFilters(), taskService: env.taskService)
         #expect(result.count == 200)
         #expect(result.first?.name == "Task 204")
         #expect(result.last?.name == "Task 5")
     }
 
     @Test func executeReturnsEmptyArrayWhenNoMatches() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context, name: "Main")
+        let env = try makeEnv()
+        let project = makeProject(in: env.context, name: "Main")
         _ = makeTask(
-            in: context,
+            in: env.context,
             project: project,
             seed: FindTaskSeed(
                 name: "Task",
@@ -272,13 +286,13 @@ struct FindTasksIntentTests {
         )
         let result = try FindTasksIntent.execute(
             filters: makeFindFilters(status: .abandoned),
-            modelContext: context
+            taskService: env.taskService
         )
         #expect(result.isEmpty)
     }
 
     @Test func executeThrowsInvalidDateWhenCustomRangeIsInverted() throws {
-        let context = try makeContext()
+        let env = try makeEnv()
         let today = Calendar.current.startOfDay(for: .now)
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
         #expect(throws: VisualIntentError.self) {
@@ -288,7 +302,7 @@ struct FindTasksIntentTests {
                     completionFromDate: tomorrow,
                     completionToDate: today
                 ),
-                modelContext: context
+                taskService: env.taskService
             )
         }
     }

@@ -82,7 +82,7 @@ struct IntentEndToEndTests {
         // Retrieve via visual FindTasksIntent
         let findResults = try FindTasksIntent.execute(
             filters: makeFindFilters(type: .bug, project: entity),
-            modelContext: svc.context
+            taskService: svc.task
         )
 
         #expect(findResults.contains { $0.taskId == createResult.taskId })
@@ -92,7 +92,7 @@ struct IntentEndToEndTests {
         let queryResult = QueryTasksIntent.execute(
             input: "{\"type\":\"bug\",\"projectId\":\"\(project.id.uuidString)\"}",
             projectService: svc.project,
-            modelContext: svc.context
+            taskService: svc.task
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.contains { $0["name"] as? String == "E2E Test Task" })
@@ -124,7 +124,7 @@ struct IntentEndToEndTests {
         // Find via visual FindTasksIntent with status + project filter
         let findResults = try FindTasksIntent.execute(
             filters: makeFindFilters(project: entity, status: .inProgress),
-            modelContext: svc.context
+            taskService: svc.task
         )
 
         #expect(findResults.contains { $0.name == "Status Flow Task" && $0.status == "in-progress" })
@@ -148,7 +148,7 @@ struct IntentEndToEndTests {
         let entity = ProjectEntity.from(project)
         let findResults = try FindTasksIntent.execute(
             filters: makeFindFilters(type: .chore, project: entity),
-            modelContext: svc.context
+            taskService: svc.task
         )
 
         #expect(findResults.contains { $0.id == taskId })
@@ -178,20 +178,20 @@ struct IntentEndToEndTests {
 
         // Filter by type AND project
         let bugsInAlpha = try FindTasksIntent.execute(
-            filters: makeFindFilters(type: .bug, project: entityA), modelContext: svc.context
+            filters: makeFindFilters(type: .bug, project: entityA), taskService: svc.task
         )
         #expect(bugsInAlpha.count == 1)
         #expect(bugsInAlpha.first?.name == "Bug in Alpha")
 
         // Filter by project only
         let alphaResults = try FindTasksIntent.execute(
-            filters: makeFindFilters(project: entityA), modelContext: svc.context
+            filters: makeFindFilters(project: entityA), taskService: svc.task
         )
         #expect(alphaResults.count == 2)
 
         // Filter by type AND project B
         let bugsInBeta = try FindTasksIntent.execute(
-            filters: makeFindFilters(type: .bug, project: entityB), modelContext: svc.context
+            filters: makeFindFilters(type: .bug, project: entityB), taskService: svc.task
         )
         #expect(bugsInBeta.count == 1)
         #expect(bugsInBeta.first?.name == "Bug in Beta")
@@ -216,7 +216,7 @@ struct IntentEndToEndTests {
         let result = QueryTasksIntent.execute(
             input: "not valid json",
             projectService: svc.project,
-            modelContext: svc.context
+            taskService: svc.task
         )
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")

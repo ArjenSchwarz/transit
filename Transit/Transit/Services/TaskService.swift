@@ -283,4 +283,37 @@ final class TaskService {
         }
         return first
     }
+
+    // MARK: - Fetch
+
+    /// Fetches all tasks from the model context.
+    func fetchAllTasks() throws -> [TransitTask] {
+        try modelContext.fetch(FetchDescriptor<TransitTask>())
+    }
+
+    // MARK: - Delete
+
+    /// Deletes a task and optionally saves the context.
+    func deleteTask(_ task: TransitTask, save: Bool = true) throws {
+        modelContext.delete(task)
+        guard save else { return }
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.safeRollback()
+            throw error
+        }
+    }
+
+    // MARK: - Persistence
+
+    /// Saves the model context. Rolls back on failure.
+    func save() throws {
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.safeRollback()
+            throw error
+        }
+    }
 }

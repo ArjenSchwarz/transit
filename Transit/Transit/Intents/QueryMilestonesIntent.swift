@@ -1,6 +1,5 @@
 import AppIntents
 import Foundation
-import SwiftData
 
 /// Queries milestones with optional filters via JSON input. Exposed as "Transit: Query Milestones"
 /// in Shortcuts. [req 13.2]
@@ -37,8 +36,7 @@ struct QueryMilestonesIntent: AppIntent {
         let result = QueryMilestonesIntent.execute(
             input: input,
             milestoneService: milestoneService,
-            projectService: projectService,
-            modelContext: projectService.context
+            projectService: projectService
         )
         return .result(value: result)
     }
@@ -49,8 +47,7 @@ struct QueryMilestonesIntent: AppIntent {
     static func execute(
         input: String,
         milestoneService: MilestoneService,
-        projectService: ProjectService,
-        modelContext: ModelContext
+        projectService: ProjectService
     ) -> String {
         let json = parseInput(input)
         guard let json else {
@@ -68,16 +65,14 @@ struct QueryMilestonesIntent: AppIntent {
                 return IntentError.invalidInput(hint: "displayId must be an integer").json
             }
 
-            var descriptor = FetchDescriptor<Milestone>(
-                predicate: #Predicate { $0.permanentDisplayId == displayId }
-            )
-            descriptor.fetchLimit = 1
-            let matches = (try? modelContext.fetch(descriptor)) ?? []
-            return IntentHelpers.encodeJSONArray(matches.map { milestoneToDict($0, detailed: true) })
+            if let milestone = try? milestoneService.findByDisplayID(displayId) {
+                return IntentHelpers.encodeJSONArray([milestoneToDict(milestone, detailed: true)])
+            }
+            return IntentHelpers.encodeJSONArray([])
         }
 
         // Fetch all milestones and filter in-memory
-        let allMilestones = (try? modelContext.fetch(FetchDescriptor<Milestone>())) ?? []
+        let allMilestones = (try? milestoneService.fetchAllMilestones()) ?? []
         let filtered = applyFilters(json, to: allMilestones, projectService: projectService)
         return IntentHelpers.encodeJSONArray(filtered.map { milestoneToDict($0) })
     }

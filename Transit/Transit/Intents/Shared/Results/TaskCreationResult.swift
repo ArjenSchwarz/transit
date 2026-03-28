@@ -1,6 +1,5 @@
 import AppIntents
 import Foundation
-import SwiftData
 
 struct TaskCreationResult: AppEntity {
     typealias DefaultQueryType = TaskCreationResultQuery
@@ -47,20 +46,20 @@ struct TaskCreationResult: AppEntity {
 
 struct TaskCreationResultQuery: EntityQuery {
     @Dependency
-    private var projectService: ProjectService
+    private var taskService: TaskService
 
     @MainActor
     func entities(for identifiers: [String]) async throws -> [TaskCreationResult] {
-        Self.entities(for: identifiers, modelContext: projectService.context)
+        Self.entities(for: identifiers, taskService: taskService)
     }
 
     @MainActor
     func suggestedEntities() async throws -> [TaskCreationResult] {
-        Self.suggestedEntities(modelContext: projectService.context)
+        Self.suggestedEntities(taskService: taskService)
     }
 
     @MainActor
-    static func entities(for identifiers: [String], modelContext: ModelContext) -> [TaskCreationResult] {
+    static func entities(for identifiers: [String], taskService: TaskService) -> [TaskCreationResult] {
         if identifiers.isEmpty {
             return []
         }
@@ -77,7 +76,7 @@ struct TaskCreationResultQuery: EntityQuery {
             return []
         }
 
-        let tasks = (try? modelContext.fetch(FetchDescriptor<TransitTask>())) ?? []
+        let tasks = (try? taskService.fetchAllTasks()) ?? []
         var results: [TaskCreationResult] = []
         results.reserveCapacity(min(tasks.count, wantedIDs.count))
 
@@ -92,18 +91,16 @@ struct TaskCreationResultQuery: EntityQuery {
     }
 
     @MainActor
-    static func suggestedEntities(modelContext: ModelContext) -> [TaskCreationResult] {
-        let descriptor = FetchDescriptor<TransitTask>(
-            sortBy: [SortDescriptor(\TransitTask.creationDate, order: .reverse)]
-        )
-        let tasks = (try? modelContext.fetch(descriptor)) ?? []
+    static func suggestedEntities(taskService: TaskService) -> [TaskCreationResult] {
+        let tasks = (try? taskService.fetchAllTasks()) ?? []
         if tasks.isEmpty {
             return []
         }
 
+        let sorted = tasks.sorted { $0.creationDate > $1.creationDate }
         var results: [TaskCreationResult] = []
-        results.reserveCapacity(min(tasks.count, 10))
-        for task in tasks.prefix(10) {
+        results.reserveCapacity(min(sorted.count, 10))
+        for task in sorted.prefix(10) {
             if let result = try? TaskCreationResult.from(task) {
                 results.append(result)
             }

@@ -5,7 +5,12 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct TaskEntityQueryTests {
-    private func makeContext() throws -> ModelContext {
+    private struct TestEnv {
+        let context: ModelContext
+        let taskService: TaskService
+    }
+
+    private func makeEnv() throws -> TestEnv {
         let schema = Schema([Project.self, TransitTask.self, Milestone.self])
         let config = ModelConfiguration(
             "TaskEntityQueryTests-\(UUID().uuidString)",
@@ -14,7 +19,13 @@ struct TaskEntityQueryTests {
             cloudKitDatabase: .none
         )
         let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
+        let context = ModelContext(container)
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        return TestEnv(
+            context: context,
+            taskService: TaskService(modelContext: context, displayIDAllocator: allocator)
+        )
     }
 
     private func makeProject(in context: ModelContext, name: String = "Project") -> Project {
@@ -38,14 +49,14 @@ struct TaskEntityQueryTests {
     }
 
     @Test func entitiesForIdentifiersResolvesUUIDs() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context)
-        let first = makeTask(in: context, project: project, name: "First", displayID: 1, lastChange: .now)
-        _ = makeTask(in: context, project: project, name: "Second", displayID: 2, lastChange: .now)
+        let env = try makeEnv()
+        let project = makeProject(in: env.context)
+        let first = makeTask(in: env.context, project: project, name: "First", displayID: 1, lastChange: .now)
+        _ = makeTask(in: env.context, project: project, name: "Second", displayID: 2, lastChange: .now)
 
         let entities = TaskEntityQuery.entities(
             for: [first.id.uuidString, UUID().uuidString, "invalid"],
-            modelContext: context
+            taskService: env.taskService
         )
 
         #expect(entities.count == 1)
@@ -53,23 +64,23 @@ struct TaskEntityQueryTests {
     }
 
     @Test func entitiesForIdentifiersSkipsTasksMissingProject() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context)
-        let task = makeTask(in: context, project: project, name: "Synced", displayID: 10, lastChange: .now)
+        let env = try makeEnv()
+        let project = makeProject(in: env.context)
+        let task = makeTask(in: env.context, project: project, name: "Synced", displayID: 10, lastChange: .now)
         task.project = nil
 
-        let entities = TaskEntityQuery.entities(for: [task.id.uuidString], modelContext: context)
+        let entities = TaskEntityQuery.entities(for: [task.id.uuidString], taskService: env.taskService)
         #expect(entities.isEmpty)
     }
 
     @Test func suggestedEntitiesReturnsMostRecentTen() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context)
+        let env = try makeEnv()
+        let project = makeProject(in: env.context)
         let base = Date.now
 
         for index in 0..<12 {
             _ = makeTask(
-                in: context,
+                in: env.context,
                 project: project,
                 name: "Task \(index)",
                 displayID: index + 1,
@@ -77,7 +88,7 @@ struct TaskEntityQueryTests {
             )
         }
 
-        let entities = TaskEntityQuery.suggestedEntities(modelContext: context)
+        let entities = TaskEntityQuery.suggestedEntities(taskService: env.taskService)
 
         #expect(entities.count == 10)
         #expect(entities.first?.name == "Task 11")

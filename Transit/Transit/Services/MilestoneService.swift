@@ -260,6 +260,21 @@ final class MilestoneService {
         return milestones
     }
 
+    /// Fetches all milestones from the model context.
+    func fetchAllMilestones() throws -> [Milestone] {
+        try modelContext.fetch(FetchDescriptor<Milestone>())
+    }
+
+    /// Saves the model context. Rolls back on failure.
+    func save() throws {
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.safeRollback()
+            throw error
+        }
+    }
+
     func milestoneNameExists(_ name: String, in project: Project, excluding milestoneId: UUID? = nil) -> Bool {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let projectID = project.id
