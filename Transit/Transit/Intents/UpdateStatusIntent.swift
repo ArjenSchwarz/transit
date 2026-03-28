@@ -50,20 +50,12 @@ struct UpdateStatusIntent: AppIntent {
         }
 
         let task: TransitTask
-        if let displayId = IntentHelpers.parseIntValue(json["displayId"]) {
-            do {
-                task = try taskService.findByDisplayID(displayId)
-            } catch {
-                return IntentError.taskNotFound(hint: "No task with displayId \(displayId)").json
-            }
-        } else if let taskIdString = json["taskId"] as? String, let taskId = UUID(uuidString: taskIdString) {
-            do {
-                task = try taskService.findByID(taskId)
-            } catch {
-                return IntentError.taskNotFound(hint: "No task with taskId \(taskIdString)").json
-            }
-        } else {
-            return IntentError.invalidInput(hint: "Provide either displayId (integer) or taskId (UUID)").json
+        do {
+            task = try taskService.resolveTask(from: json)
+        } catch {
+            return IntentError.taskNotFound(
+                hint: "Provide either displayId (integer) or taskId (UUID)"
+            ).json
         }
 
         let previousStatus = task.statusRawValue

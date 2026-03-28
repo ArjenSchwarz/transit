@@ -201,6 +201,28 @@ final class TaskService {
         }
     }
 
+    // MARK: - Resolution
+
+    /// Resolves a task from a string identifier (display ID as integer string, or UUID string).
+    func resolveTask(from identifier: String) throws -> TransitTask {
+        if let displayId = Int(identifier) {
+            return try findByDisplayID(displayId)
+        } else if let uuid = UUID(uuidString: identifier) {
+            return try findByID(uuid)
+        }
+        throw Error.taskNotFound
+    }
+
+    /// Resolves a task from a dictionary with optional "displayId" or "taskId" keys.
+    func resolveTask(from dict: [String: Any]) throws -> TransitTask {
+        if let displayId = IntentHelpers.parseIntValue(dict["displayId"]) {
+            return try findByDisplayID(displayId)
+        } else if let taskIdStr = dict["taskId"] as? String, let uuid = UUID(uuidString: taskIdStr) {
+            return try findByID(uuid)
+        }
+        throw Error.taskNotFound
+    }
+
     // MARK: - Lookup
 
     /// Finds a task by its UUID. Throws on not-found.
