@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Specs overview catalogue (`specs/OVERVIEW.md`) — tabular index of all 27 feature specs with creation dates, statuses, summaries, and per-spec file listings
 - CloudKit sync heartbeat: periodic SwiftData write every 60s while the MCP server is running on macOS, forcing `NSPersistentCloudKitContainer` to pull remote changes from iPhone/iPad within ~60s (T-631)
 - `SyncHeartbeat` SwiftData model — singleton record that triggers sync cycles
 - `SyncManager.startHeartbeat(context:)` / `stopHeartbeat()` — timer lifecycle management
