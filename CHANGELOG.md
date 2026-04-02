@@ -8,6 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- macOS: Task detail opens in a dedicated window instead of a sheet, with share and edit buttons in the toolbar (T-35)
+- macOS: New Task opens in a dedicated window instead of a sheet (T-35)
+- macOS: Edit Task replaces detail content in the same window instead of presenting a sheet (T-35)
+- macOS: `BoardBackground` applied to task detail, edit, and new task windows for consistent styling (T-35)
+- `TaskDetailWindowView` — macOS-only wrapper managing detail/edit state transitions within a window
+- `UITestScenario` extracted to its own file for cleaner `TransitApp` organisation
+- `withCoreEnvironments` helper in `TransitApp` to consolidate shared environment modifiers across window scenes
+
+### Changed
+
+- macOS: Cmd+N command opens a new task window via `openWindow` instead of using focused bindings (T-35)
+- macOS: Save buttons use `.confirmationAction` toolbar placement with "Save" text; iOS retains checkmark icon (T-35)
+- macOS: Edit Task back chevron uses `.navigation` placement (leading side) instead of `.cancellationAction` (T-35)
+- macOS: Removed inline `.borderedProminent` save buttons from ProjectEditView, MilestoneEditView, and TaskEditView macOS forms — save is now in the toolbar (T-35)
+- Fixed milestone picker in TaskEditView and AddTaskSheet to use UUID-based tags, avoiding `Hashable` requirement on `@Model` classes
+- iOS: Always hide system back button on ProjectEditView and MilestoneEditView to prevent duplicate chevrons
+
 - Specs overview catalogue (`specs/OVERVIEW.md`) — tabular index of all 27 feature specs with creation dates, statuses, summaries, and per-spec file listings
 - CloudKit sync heartbeat: periodic SwiftData write every 60s while the MCP server is running on macOS, forcing `NSPersistentCloudKitContainer` to pull remote changes from iPhone/iPad within ~60s (T-631)
 - `SyncHeartbeat` SwiftData model — singleton record that triggers sync cycles
