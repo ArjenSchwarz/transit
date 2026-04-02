@@ -63,7 +63,7 @@ struct DashboardView: View {
                 SingleColumnView(
                     columns: filteredColumns,
                     selectedColumn: $selectedColumn,
-                    onTaskTap: { selectedTask = $0 },
+                    onTaskTap: { handleTaskTap($0) },
                     onDrop: handleDrop
                 )
             } else {
@@ -71,7 +71,7 @@ struct DashboardView: View {
                     columns: filteredColumns,
                     visibleCount: min(columnCount, 5),
                     initialScrollTarget: isPhoneLandscape ? .planning : nil,
-                    onTaskTap: { selectedTask = $0 },
+                    onTaskTap: { handleTaskTap($0) },
                     onDrop: handleDrop
                 )
             }
@@ -132,12 +132,16 @@ struct DashboardView: View {
                 #endif
             }
         }
+        #if os(iOS)
         .sheet(item: $selectedTask) { task in
             TaskDetailView(task: task, dismissAll: { selectedTask = nil })
         }
+        #endif
+        #if os(iOS)
         .sheet(isPresented: $showAddTask) {
             AddTaskSheet()
         }
+        #endif
         .focusedValue(\.showAddTask, $showAddTask)
         .focusedValue(\.isTaskSelected, selectedTask != nil)
         .focusable()
@@ -148,7 +152,7 @@ struct DashboardView: View {
             ) else {
                 return .ignored
             }
-            showAddTask = true
+            handleAddTask()
             return .handled
         }
         .onChange(of: selectedProjectIDs) { _, _ in
@@ -200,13 +204,31 @@ struct DashboardView: View {
 
     private var addButton: some View {
         Button {
-            showAddTask = true
+            handleAddTask()
         } label: {
             Label("Add Task", systemImage: "plus")
         }
         .accessibilityIdentifier("dashboard.addButton")
         #if !os(macOS)
         .keyboardShortcut("n", modifiers: .command)
+        #endif
+    }
+
+    // MARK: - Task Tap
+
+    private func handleTaskTap(_ task: TransitTask) {
+        #if os(macOS)
+        openWindow(id: "task-detail", value: task.id)
+        #else
+        selectedTask = task
+        #endif
+    }
+
+    private func handleAddTask() {
+        #if os(macOS)
+        openWindow(id: "add-task")
+        #else
+        showAddTask = true
         #endif
     }
 

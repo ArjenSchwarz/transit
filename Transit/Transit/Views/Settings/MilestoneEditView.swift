@@ -39,7 +39,7 @@ struct MilestoneEditView: View {
         }
         .navigationTitle(isEditing ? "Edit Milestone" : "New Milestone")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(isEditing)
+        .navigationBarBackButtonHidden(true)
         .toolbar { editToolbar }
         .alert("Save Failed", isPresented: $errorMessage.isPresent) {
             Button("OK") { errorMessage = nil }
@@ -75,12 +75,6 @@ struct MilestoneEditView: View {
                     }
                 }
 
-                HStack {
-                    Spacer()
-                    Button("Save") { save() }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(!canSave || isSaving)
-                }
             }
             .padding(32)
             .frame(maxWidth: 760, alignment: .leading)
@@ -89,6 +83,12 @@ struct MilestoneEditView: View {
         .scrollContentBackground(.hidden)
         .background { BoardBackground(theme: resolvedTheme) }
         .navigationTitle(isEditing ? "Edit Milestone" : "New Milestone")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") { save() }
+                    .disabled(!canSave || isSaving)
+            }
+        }
         .alert("Save Failed", isPresented: $errorMessage.isPresent) {
             Button("OK") { errorMessage = nil }
         } message: {

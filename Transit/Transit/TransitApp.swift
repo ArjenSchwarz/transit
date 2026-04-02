@@ -197,23 +197,47 @@ struct TransitApp: App {
 
         #if os(macOS)
         Window("Settings", id: "settings") {
-            SettingsView()
-                .preferredColorScheme(currentTheme.preferredColorScheme)
-                .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
-                .environment(taskService)
-                .environment(projectService)
-                .environment(commentService)
-                .environment(milestoneService)
-                .environment(syncManager)
-                .environment(connectivityMonitor)
-                .environment(mcpSettings)
-                .environment(mcpServer)
+            withCoreEnvironments(
+                SettingsView()
+                    .environment(syncManager)
+                    .environment(connectivityMonitor)
+                    .environment(mcpSettings)
+                    .environment(mcpServer)
+            )
         }
         .modelContainer(container)
         .windowToolbarStyle(.unified)
         .defaultSize(width: 780, height: 500)
         .windowResizability(.contentSize)
+
+        WindowGroup("Task Detail", id: "task-detail", for: UUID.self) { $taskID in
+            if let taskID {
+                withCoreEnvironments(TaskDetailWindowView(taskID: taskID))
+            }
+        }
+        .modelContainer(container)
+        .windowToolbarStyle(.unified)
+        .defaultSize(width: 600, height: 700)
+
+        Window("New Task", id: "add-task") {
+            withCoreEnvironments(AddTaskSheet())
+        }
+        .modelContainer(container)
+        .windowToolbarStyle(.unified)
+        .defaultSize(width: 600, height: 500)
         #endif
+    }
+
+    // MARK: - Shared Environment
+
+    private func withCoreEnvironments<V: View>(_ view: V) -> some View {
+        view
+            .preferredColorScheme(currentTheme.preferredColorScheme)
+            .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
+            .environment(taskService)
+            .environment(projectService)
+            .environment(commentService)
+            .environment(milestoneService)
     }
 
     // MARK: - MCP Server
@@ -231,93 +255,22 @@ struct TransitApp: App {
 
     private func seedUITestDataIfNeeded() {
         guard let scenario = Self.uiTestScenario else { return }
-        switch scenario {
-        case .empty:
-            return
-        case .board:
-            seedBoardScenario()
-        }
+        scenario.seed(into: container.mainContext)
     }
-
-    private func seedBoardScenario() {
-        let now = Date()
-        let ctx = container.mainContext
-
-        let alpha = Project(
-            name: "Alpha", description: "Primary project", gitRepo: nil, colorHex: "#0A84FF"
-        )
-        let beta = Project(
-            name: "Beta", description: "Secondary project", gitRepo: nil, colorHex: "#30D158"
-        )
-        ctx.insert(alpha)
-        ctx.insert(beta)
-
-        let shipActive = TransitTask(
-            name: "Ship Active", description: nil, type: .feature, project: alpha, displayID: .permanent(1)
-        )
-        shipActive.creationDate = now.addingTimeInterval(-120)
-        shipActive.lastStatusChangeDate = now.addingTimeInterval(-60)
-        shipActive.statusRawValue = TaskStatus.inProgress.rawValue
-        ctx.insert(shipActive)
-
-        let backlogIdea = TransitTask(
-            name: "Backlog Idea", description: nil, type: .research, project: alpha, displayID: .permanent(2)
-        )
-        backlogIdea.creationDate = now.addingTimeInterval(-560)
-        backlogIdea.lastStatusChangeDate = now.addingTimeInterval(-500)
-        backlogIdea.statusRawValue = TaskStatus.idea.rawValue
-        ctx.insert(backlogIdea)
-
-        let oldAbandoned = TransitTask(
-            name: "Old Abandoned", description: nil, type: .chore, project: alpha, displayID: .permanent(3)
-        )
-        oldAbandoned.creationDate = now.addingTimeInterval(-360)
-        oldAbandoned.lastStatusChangeDate = now.addingTimeInterval(-300)
-        oldAbandoned.statusRawValue = TaskStatus.abandoned.rawValue
-        oldAbandoned.completionDate = now.addingTimeInterval(-300)
-        ctx.insert(oldAbandoned)
-
-        let betaReview = TransitTask(
-            name: "Beta Review", description: nil, type: .bug, project: beta, displayID: .permanent(4)
-        )
-        betaReview.creationDate = now.addingTimeInterval(-260)
-        betaReview.lastStatusChangeDate = now.addingTimeInterval(-200)
-        betaReview.statusRawValue = TaskStatus.readyForReview.rawValue
-        ctx.insert(betaReview)
-
-        // Sample milestones
-        let alphaV1 = Milestone(name: "v1.0", description: "First release", project: alpha, displayID: .permanent(1))
-        ctx.insert(alphaV1)
-        shipActive.milestone = alphaV1
-        backlogIdea.milestone = alphaV1
-
-        let betaV1 = Milestone(name: "Beta v1", description: nil, project: beta, displayID: .permanent(2))
-        ctx.insert(betaV1)
-        betaReview.milestone = betaV1
-    }
-}
-
-// MARK: - UI Test Scenarios
-
-private enum UITestScenario: String {
-    case empty
-    case board
 }
 
 // MARK: - macOS Commands
 
 #if os(macOS)
 private struct NewTaskCommand: Commands {
-    @FocusedBinding(\.showAddTask) private var showAddTask
-    @FocusedValue(\.isTaskSelected) private var isTaskSelected
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("New Task") {
-                showAddTask = true
+                openWindow(id: "add-task")
             }
             .keyboardShortcut("n", modifiers: .command)
-            .disabled(showAddTask != false || isTaskSelected == true)
         }
     }
 }

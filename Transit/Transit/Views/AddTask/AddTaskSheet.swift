@@ -7,6 +7,7 @@ struct AddTaskSheet: View {
     @Environment(MilestoneService.self) private var milestoneService
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.resolvedTheme) private var resolvedTheme
     @Query(sort: \Project.name) private var projects: [Project]
 
     @State private var name = ""
@@ -50,22 +51,33 @@ struct AddTaskSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
                     }
                     .disabled(isSaving)
                 }
+                #endif
                 ToolbarItem(placement: .confirmationAction) {
+                    #if os(macOS)
+                    Button("Save") {
+                        Task { await save() }
+                    }
+                    .disabled(!canSave || isSaving)
+                    #else
                     Button("Save", systemImage: "checkmark") {
                         Task { await save() }
                     }
                     .disabled(!canSave || isSaving)
+                    #endif
                 }
             }
         }
+        #if os(iOS)
         .interactiveDismissDisabled(isSaving)
         .presentationDetents([.medium, .large], selection: $selectedDetent)
+        #endif
         .alert("Save Failed", isPresented: $errorMessage.isPresent) {
             Button("OK") { errorMessage = nil }
         } message: {
@@ -105,10 +117,10 @@ struct AddTaskSheet: View {
                     selectedMilestone = nil
                 }
 
-                Picker("Milestone", selection: $selectedMilestone) {
-                    Text("None").tag(nil as Milestone?)
+                Picker("Milestone", selection: $selectedMilestone.milestoneID(from: openMilestones)) {
+                    Text("None").tag(nil as UUID?)
                     ForEach(openMilestones) { milestone in
-                        Text(milestone.name).tag(milestone as Milestone?)
+                        Text(milestone.name).tag(milestone.id as UUID?)
                     }
                 }
             }
@@ -172,10 +184,10 @@ struct AddTaskSheet: View {
                         }
 
                         FormRow("Milestone", labelWidth: Self.labelWidth) {
-                            Picker("", selection: $selectedMilestone) {
-                                Text("None").tag(nil as Milestone?)
-                                ForEach(openMilestones) { milestone in
-                                    Text(milestone.name).tag(milestone as Milestone?)
+                            Picker("", selection: $selectedMilestone.milestoneID(from: openMilestones)) {
+                                Text("None").tag(nil as UUID?)
+                                ForEach(openMilestones, id: \.id) { milestone in
+                                    Text(milestone.name).tag(milestone.id as UUID?)
                                 }
                             }
                             .labelsHidden()
@@ -196,6 +208,8 @@ struct AddTaskSheet: View {
             .padding(32)
             .frame(maxWidth: 760, alignment: .leading)
         }
+        .scrollContentBackground(.hidden)
+        .background { BoardBackground(theme: resolvedTheme) }
     }
     #endif
 

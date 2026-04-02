@@ -8,6 +8,7 @@ struct TaskEditView: View {
     @Environment(MilestoneService.self) private var milestoneService
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.resolvedTheme) private var resolvedTheme
     @Query(sort: \Project.name) private var projects: [Project]
 
     @State private var name: String = ""
@@ -111,10 +112,10 @@ struct TaskEditView: View {
                 selectedMilestone = nil
             }
 
-            Picker("Milestone", selection: $selectedMilestone) {
-                Text("None").tag(nil as Milestone?)
+            Picker("Milestone", selection: $selectedMilestone.milestoneID(from: availableMilestones)) {
+                Text("None").tag(nil as UUID?)
                 ForEach(availableMilestones) { milestone in
-                    Text(milestone.name).tag(milestone as Milestone?)
+                    Text(milestone.name).tag(milestone.id as UUID?)
                 }
             }
         }
@@ -180,10 +181,10 @@ struct TaskEditView: View {
                         }
 
                         FormRow("Milestone", labelWidth: Self.labelWidth) {
-                            Picker("", selection: $selectedMilestone) {
-                                Text("None").tag(nil as Milestone?)
-                                ForEach(availableMilestones) { milestone in
-                                    Text(milestone.name).tag(milestone as Milestone?)
+                            Picker("", selection: $selectedMilestone.milestoneID(from: availableMilestones)) {
+                                Text("None").tag(nil as UUID?)
+                                ForEach(availableMilestones, id: \.id) { milestone in
+                                    Text(milestone.name).tag(milestone.id as UUID?)
                                 }
                             }
                             .labelsHidden()
@@ -223,23 +224,22 @@ struct TaskEditView: View {
                 LiquidGlassSection(title: "Metadata") {
                     MetadataSection(metadata: $metadata, isEditing: true)
                 }
-
-                HStack {
-                    Spacer()
-                    Button("Save") { save() }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(!canSave)
-                }
             }
             .padding(32)
             .frame(maxWidth: 760, alignment: .leading)
         }
+        .scrollContentBackground(.hidden)
+        .background { BoardBackground(theme: resolvedTheme) }
         .navigationTitle("Edit Task")
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button { dismiss() } label: {
+            ToolbarItem(placement: .navigation) {
+                Button { dismissAll() } label: {
                     Image(systemName: "chevron.left")
                 }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") { save() }
+                    .disabled(!canSave)
             }
         }
         .onAppear { loadTask() }

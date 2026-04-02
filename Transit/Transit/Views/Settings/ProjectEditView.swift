@@ -61,7 +61,7 @@ struct ProjectEditView: View {
         }
         .navigationTitle(isEditing ? "Edit Project" : "New Project")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(isEditing)
+        .navigationBarBackButtonHidden(true)
         .toolbar { editToolbar }
         .onAppear { loadProject() }
     }
@@ -106,13 +106,6 @@ struct ProjectEditView: View {
                 if let project {
                     MilestoneListSection(project: project)
                 }
-
-                HStack {
-                    Spacer()
-                    Button("Save") { save() }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(!canSave)
-                }
             }
             .padding(32)
             .frame(maxWidth: 760, alignment: .leading)
@@ -121,6 +114,12 @@ struct ProjectEditView: View {
         .scrollContentBackground(.hidden)
         .background { BoardBackground(theme: resolvedTheme) }
         .navigationTitle(isEditing ? "Edit Project" : "New Project")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") { save() }
+                    .disabled(!canSave)
+            }
+        }
         .onAppear { loadProject() }
     }
     #endif
