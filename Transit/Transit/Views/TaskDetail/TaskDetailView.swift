@@ -176,8 +176,10 @@ struct TaskDetailView: View {
             ShareLink(item: exportText, subject: Text(task.name)) {
                 Image(systemName: "square.and.arrow.up")
             }
-            Button { onEdit?() } label: {
-                Image(systemName: "pencil")
+            if let onEdit {
+                Button { onEdit() } label: {
+                    Image(systemName: "pencil")
+                }
             }
         }
         #else
