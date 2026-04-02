@@ -29,15 +29,6 @@ struct AddTaskSheet: View {
         return milestoneService.milestonesForProject(project, status: .open)
     }
 
-    private var selectedMilestoneID: Binding<UUID?> {
-        Binding(
-            get: { selectedMilestone?.id },
-            set: { newID in
-                selectedMilestone = openMilestones.first { $0.id == newID }
-            }
-        )
-    }
-
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedProject != nil
     }
@@ -126,7 +117,7 @@ struct AddTaskSheet: View {
                     selectedMilestone = nil
                 }
 
-                Picker("Milestone", selection: selectedMilestoneID) {
+                Picker("Milestone", selection: $selectedMilestone.milestoneID(from: openMilestones)) {
                     Text("None").tag(nil as UUID?)
                     ForEach(openMilestones) { milestone in
                         Text(milestone.name).tag(milestone.id as UUID?)
@@ -193,9 +184,9 @@ struct AddTaskSheet: View {
                         }
 
                         FormRow("Milestone", labelWidth: Self.labelWidth) {
-                            Picker("", selection: selectedMilestoneID) {
+                            Picker("", selection: $selectedMilestone.milestoneID(from: openMilestones)) {
                                 Text("None").tag(nil as UUID?)
-                                ForEach(openMilestones) { milestone in
+                                ForEach(openMilestones, id: \.id) { milestone in
                                     Text(milestone.name).tag(milestone.id as UUID?)
                                 }
                             }

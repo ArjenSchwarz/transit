@@ -34,15 +34,6 @@ struct TaskEditView: View {
         )
     }
 
-    private var selectedMilestoneID: Binding<UUID?> {
-        Binding(
-            get: { selectedMilestone?.id },
-            set: { newID in
-                selectedMilestone = availableMilestones.first { $0.id == newID }
-            }
-        )
-    }
-
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedProjectID != nil
     }
@@ -121,7 +112,7 @@ struct TaskEditView: View {
                 selectedMilestone = nil
             }
 
-            Picker("Milestone", selection: selectedMilestoneID) {
+            Picker("Milestone", selection: $selectedMilestone.milestoneID(from: availableMilestones)) {
                 Text("None").tag(nil as UUID?)
                 ForEach(availableMilestones) { milestone in
                     Text(milestone.name).tag(milestone.id as UUID?)
@@ -190,9 +181,9 @@ struct TaskEditView: View {
                         }
 
                         FormRow("Milestone", labelWidth: Self.labelWidth) {
-                            Picker("", selection: selectedMilestoneID) {
+                            Picker("", selection: $selectedMilestone.milestoneID(from: availableMilestones)) {
                                 Text("None").tag(nil as UUID?)
-                                ForEach(availableMilestones) { milestone in
+                                ForEach(availableMilestones, id: \.id) { milestone in
                                     Text(milestone.name).tag(milestone.id as UUID?)
                                 }
                             }
