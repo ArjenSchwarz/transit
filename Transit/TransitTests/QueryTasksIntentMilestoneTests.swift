@@ -63,9 +63,9 @@ struct QueryTasksIntentMilestoneTests {
         makeTask(in: context, name: "In milestone", project: project, milestone: milestone, displayId: 10)
         makeTask(in: context, name: "No milestone", project: project, displayId: 11)
 
-        let projectService = ProjectService(taskService: taskService)
+        let projectService = ProjectService(modelContext: context)
         let taskService = TaskService(
-            taskService: taskService, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
+            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
         )
         let result = QueryTasksIntent.execute(
             input: "{\"milestoneDisplayId\":1}",
@@ -85,9 +85,9 @@ struct QueryTasksIntentMilestoneTests {
         makeTask(in: context, name: "In milestone", project: project, milestone: milestone, displayId: 10)
         makeTask(in: context, name: "No milestone", project: project, displayId: 11)
 
-        let projectService = ProjectService(taskService: taskService)
+        let projectService = ProjectService(modelContext: context)
         let taskService = TaskService(
-            taskService: taskService, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
+            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
         )
         let result = QueryTasksIntent.execute(
             input: "{\"milestone\":\"v1.0\"}",
@@ -106,9 +106,9 @@ struct QueryTasksIntentMilestoneTests {
         let milestone = makeMilestone(in: context, name: "v1.0", project: project, displayId: 1)
         makeTask(in: context, name: "Task", project: project, milestone: milestone, displayId: 10)
 
-        let projectService = ProjectService(taskService: taskService)
+        let projectService = ProjectService(modelContext: context)
         let taskService = TaskService(
-            taskService: taskService, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
+            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
         )
         let result = QueryTasksIntent.execute(
             input: "", projectService: projectService, taskService: taskService
@@ -126,9 +126,9 @@ struct QueryTasksIntentMilestoneTests {
         let project = makeProject(in: context)
         makeTask(in: context, name: "Task", project: project, displayId: 10)
 
-        let projectService = ProjectService(taskService: taskService)
+        let projectService = ProjectService(modelContext: context)
         let taskService = TaskService(
-            taskService: taskService, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
+            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
         )
         let result = QueryTasksIntent.execute(
             input: "", projectService: projectService, taskService: taskService

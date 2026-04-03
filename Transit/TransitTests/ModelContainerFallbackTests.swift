@@ -48,7 +48,7 @@ struct ModelContainerFallbackTests {
 
         // Verify the fallback container can actually store and retrieve data.
         let context = result.container.mainContext
-        let project = Project(name: "Test", description: nil, gitRepo: nil, colorHex: "#FF0000")
+        let project = Project(name: "Test", description: "", gitRepo: nil, colorHex: "#FF0000")
         context.insert(project)
         try context.save()
 
