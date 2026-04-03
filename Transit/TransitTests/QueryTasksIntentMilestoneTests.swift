@@ -9,8 +9,21 @@ struct QueryTasksIntentMilestoneTests {
 
     // MARK: - Helpers
 
-    private func makeContext() throws -> ModelContext {
-        try TestModelContainer.newContext()
+    private struct Services {
+        let task: TaskService
+        let project: ProjectService
+        let context: ModelContext
+    }
+
+    private func makeServices() throws -> Services {
+        let context = try TestModelContainer.newContext()
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        return Services(
+            task: TaskService(modelContext: context, displayIDAllocator: allocator),
+            project: ProjectService(modelContext: context),
+            context: context
+        )
     }
 
     @discardableResult
@@ -57,20 +70,16 @@ struct QueryTasksIntentMilestoneTests {
     // MARK: - Milestone Filter
 
     @Test func filterByMilestoneDisplayId() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context)
-        let milestone = makeMilestone(in: context, name: "v1.0", project: project, displayId: 1)
-        makeTask(in: context, name: "In milestone", project: project, milestone: milestone, displayId: 10)
-        makeTask(in: context, name: "No milestone", project: project, displayId: 11)
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        makeTask(in: svc.context, name: "In milestone", project: project, milestone: milestone, displayId: 10)
+        makeTask(in: svc.context, name: "No milestone", project: project, displayId: 11)
 
-        let projectService = ProjectService(modelContext: context)
-        let taskService = TaskService(
-            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
-        )
         let result = QueryTasksIntent.execute(
             input: "{\"milestoneDisplayId\":1}",
-            projectService: projectService,
-            taskService: taskService
+            projectService: svc.project,
+            taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
@@ -79,20 +88,16 @@ struct QueryTasksIntentMilestoneTests {
     }
 
     @Test func filterByMilestoneName() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context)
-        let milestone = makeMilestone(in: context, name: "v1.0", project: project, displayId: 1)
-        makeTask(in: context, name: "In milestone", project: project, milestone: milestone, displayId: 10)
-        makeTask(in: context, name: "No milestone", project: project, displayId: 11)
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        makeTask(in: svc.context, name: "In milestone", project: project, milestone: milestone, displayId: 10)
+        makeTask(in: svc.context, name: "No milestone", project: project, displayId: 11)
 
-        let projectService = ProjectService(modelContext: context)
-        let taskService = TaskService(
-            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
-        )
         let result = QueryTasksIntent.execute(
             input: "{\"milestone\":\"v1.0\"}",
-            projectService: projectService,
-            taskService: taskService
+            projectService: svc.project,
+            taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
@@ -101,17 +106,13 @@ struct QueryTasksIntentMilestoneTests {
     }
 
     @Test func taskResponseIncludesMilestoneInfo() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context)
-        let milestone = makeMilestone(in: context, name: "v1.0", project: project, displayId: 1)
-        makeTask(in: context, name: "Task", project: project, milestone: milestone, displayId: 10)
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        makeTask(in: svc.context, name: "Task", project: project, milestone: milestone, displayId: 10)
 
-        let projectService = ProjectService(modelContext: context)
-        let taskService = TaskService(
-            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
-        )
         let result = QueryTasksIntent.execute(
-            input: "", projectService: projectService, taskService: taskService
+            input: "", projectService: svc.project, taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
@@ -122,16 +123,12 @@ struct QueryTasksIntentMilestoneTests {
     }
 
     @Test func taskWithoutMilestoneOmitsMilestoneField() throws {
-        let context = try makeContext()
-        let project = makeProject(in: context)
-        makeTask(in: context, name: "Task", project: project, displayId: 10)
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
 
-        let projectService = ProjectService(modelContext: context)
-        let taskService = TaskService(
-            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
-        )
         let result = QueryTasksIntent.execute(
-            input: "", projectService: projectService, taskService: taskService
+            input: "", projectService: svc.project, taskService: svc.task
         )
 
         let parsed = try parseJSONArray(result)
