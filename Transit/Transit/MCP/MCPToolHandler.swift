@@ -158,6 +158,8 @@ final class MCPToolHandler {
                 resolvedMilestone = try milestoneService.findByDisplayID(milestoneDisplayId)
             } catch MilestoneService.Error.milestoneNotFound {
                 return errorResult("No milestone with displayId \(milestoneDisplayId)")
+            } catch MilestoneService.Error.duplicateDisplayID {
+                return errorResult("Duplicate milestone identifier detected for displayId \(milestoneDisplayId)")
             } catch {
                 return errorResult("Failed to find milestone: \(error)")
             }
@@ -282,6 +284,8 @@ final class MCPToolHandler {
         if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
                 milestoneFilter = [try milestoneService.findByDisplayID(milestoneDisplayId).id]
+            } catch MilestoneService.Error.duplicateDisplayID {
+                return errorResult("Duplicate milestone identifier detected for displayId \(milestoneDisplayId)")
             } catch {
                 return textResult(IntentHelpers.encodeJSONArray([]))
             }
@@ -405,14 +409,7 @@ extension MCPToolHandler {
     private func handleQueryMilestones(_ args: [String: Any]) -> MCPToolResult {
         // Single-milestone lookup by displayId
         if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
-            do {
-                let milestone = try milestoneService.findByDisplayID(displayId)
-                let formatter = ISO8601DateFormatter()
-                let dict = milestoneToDict(milestone, formatter: formatter, detailed: true)
-                return textResult(IntentHelpers.encodeJSONArray([dict]))
-            } catch {
-                return textResult(IntentHelpers.encodeJSONArray([]))
-            }
+            return lookupMilestoneByDisplayId(displayId)
         }
 
         // Full query with filters
@@ -458,6 +455,19 @@ extension MCPToolHandler {
         let formatter = ISO8601DateFormatter()
         let results = filtered.map { milestoneToDict($0, formatter: formatter) }
         return textResult(IntentHelpers.encodeJSONArray(results))
+    }
+
+    private func lookupMilestoneByDisplayId(_ displayId: Int) -> MCPToolResult {
+        do {
+            let milestone = try milestoneService.findByDisplayID(displayId)
+            let formatter = ISO8601DateFormatter()
+            let dict = milestoneToDict(milestone, formatter: formatter, detailed: true)
+            return textResult(IntentHelpers.encodeJSONArray([dict]))
+        } catch MilestoneService.Error.duplicateDisplayID {
+            return errorResult("Duplicate milestone identifier detected for displayId \(displayId)")
+        } catch {
+            return textResult(IntentHelpers.encodeJSONArray([]))
+        }
     }
 }
 
@@ -618,6 +628,8 @@ extension MCPToolHandler {
                 try milestoneService.setMilestone(milestone, on: task, save: false)
             } catch MilestoneService.Error.milestoneNotFound {
                 return errorResult("No milestone with displayId \(milestoneDisplayId)")
+            } catch MilestoneService.Error.duplicateDisplayID {
+                return errorResult("Duplicate milestone identifier detected for displayId \(milestoneDisplayId)")
             } catch MilestoneService.Error.projectMismatch {
                 return errorResult("Milestone and task must belong to the same project")
             } catch MilestoneService.Error.projectRequired {
@@ -765,6 +777,8 @@ extension MCPToolHandler {
         if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
             do {
                 return .success(try milestoneService.findByDisplayID(displayId))
+            } catch MilestoneService.Error.duplicateDisplayID {
+                return .failure(.message("Duplicate milestone identifier detected for displayId \(displayId)"))
             } catch {
                 return .failure(.message("No milestone with displayId \(displayId)"))
             }

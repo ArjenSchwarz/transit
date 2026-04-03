@@ -65,10 +65,14 @@ struct QueryMilestonesIntent: AppIntent {
                 return IntentError.invalidInput(hint: "displayId must be an integer").json
             }
 
-            if let milestone = try? milestoneService.findByDisplayID(displayId) {
+            do {
+                let milestone = try milestoneService.findByDisplayID(displayId)
                 return IntentHelpers.encodeJSONArray([milestoneToDict(milestone, detailed: true)])
+            } catch MilestoneService.Error.duplicateDisplayID {
+                return IntentHelpers.mapMilestoneError(.duplicateDisplayID).json
+            } catch {
+                return IntentHelpers.encodeJSONArray([])
             }
-            return IntentHelpers.encodeJSONArray([])
         }
 
         // Fetch all milestones and filter in-memory

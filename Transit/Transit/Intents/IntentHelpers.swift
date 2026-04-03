@@ -79,6 +79,8 @@ nonisolated enum IntentHelpers {
             .milestoneNotFound(hint: "No matching milestone found")
         case .duplicateName:
             .duplicateMilestoneName(hint: "A milestone with this name already exists in the project")
+        case .duplicateDisplayID:
+            .internalError(hint: "A duplicate milestone identifier was detected")
         case .projectRequired:
             .invalidInput(hint: "Task must belong to a project before assigning a milestone")
         case .projectMismatch:
@@ -115,6 +117,10 @@ nonisolated enum IntentHelpers {
             }
             do {
                 return .success(try milestoneService.findByDisplayID(displayId))
+            } catch MilestoneService.Error.duplicateDisplayID {
+                return .failure(.internalError(
+                    hint: "Duplicate milestone identifier detected for displayId \(displayId)"
+                ))
             } catch {
                 return .failure(.milestoneNotFound(hint: "No milestone with displayId \(displayId)"))
             }

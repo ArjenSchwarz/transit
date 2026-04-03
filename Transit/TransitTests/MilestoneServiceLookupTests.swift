@@ -58,6 +58,26 @@ struct MilestoneServiceLookupTests {
         }
     }
 
+    /// T-687 regression: When multiple milestones share the same permanentDisplayId
+    /// (possible under CloudKit which cannot enforce unique constraints),
+    /// findByDisplayID should throw .duplicateDisplayID instead of silently
+    /// returning the first match.
+    @Test func findByDisplayIDThrowsForDuplicates() throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+
+        // Manually insert two milestones with the same permanentDisplayId
+        // to simulate a CloudKit sync edge case.
+        let first = Milestone(name: "Alpha", description: nil, project: project, displayID: .permanent(42))
+        let second = Milestone(name: "Beta", description: nil, project: project, displayID: .permanent(42))
+        context.insert(first)
+        context.insert(second)
+
+        #expect(throws: MilestoneService.Error.duplicateDisplayID) {
+            try service.findByDisplayID(42)
+        }
+    }
+
     // MARK: - findByName
 
     @Test func findByNameReturnsCaseInsensitiveMatch() async throws {

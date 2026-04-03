@@ -11,6 +11,7 @@ final class MilestoneService {
         case invalidName
         case milestoneNotFound
         case duplicateName
+        case duplicateDisplayID
         case projectRequired
         case projectMismatch
 
@@ -22,6 +23,8 @@ final class MilestoneService {
                 "The specified milestone could not be found."
             case .duplicateName:
                 "A milestone with this name already exists in the project."
+            case .duplicateDisplayID:
+                "A duplicate milestone identifier was detected."
             case .projectRequired:
                 "Task must belong to a project before assigning a milestone."
             case .projectMismatch:
@@ -229,10 +232,15 @@ final class MilestoneService {
         let descriptor = FetchDescriptor<Milestone>(
             predicate: #Predicate { $0.permanentDisplayId == displayId }
         )
-        guard let milestone = try modelContext.fetch(descriptor).first else {
+        let milestones = try modelContext.fetch(descriptor)
+
+        guard let first = milestones.first else {
             throw Error.milestoneNotFound
         }
-        return milestone
+        guard milestones.count == 1 else {
+            throw Error.duplicateDisplayID
+        }
+        return first
     }
 
     func findByName(_ name: String, in project: Project) -> Milestone? {
