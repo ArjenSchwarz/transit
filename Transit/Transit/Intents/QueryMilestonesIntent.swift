@@ -65,10 +65,19 @@ struct QueryMilestonesIntent: AppIntent {
                 return IntentError.invalidInput(hint: "displayId must be an integer").json
             }
 
-            if let milestone = try? milestoneService.findByDisplayID(displayId) {
+            do {
+                let milestone = try milestoneService.findByDisplayID(displayId)
                 return IntentHelpers.encodeJSONArray([milestoneToDict(milestone, detailed: true)])
+            } catch MilestoneService.Error.duplicateDisplayID {
+                return IntentHelpers.mapMilestoneError(.duplicateDisplayID).json
+            } catch {
+                return IntentHelpers.encodeJSONArray([])
             }
-            return IntentHelpers.encodeJSONArray([])
+        }
+
+        // Validate projectId format before filtering
+        if let projectIdStr = json["projectId"] as? String, UUID(uuidString: projectIdStr) == nil {
+            return IntentError.invalidInput(hint: "Invalid projectId: expected a UUID string").json
         }
 
         // Fetch all milestones and filter in-memory
@@ -93,18 +102,18 @@ struct QueryMilestonesIntent: AppIntent {
         to milestones: [Milestone],
         projectService: ProjectService
     ) -> [Milestone] {
-        let projectId: UUID? = (json["projectId"] as? String).flatMap(UUID.init)
-        let projectName = json["project"] as? String
         let statusFilter = json["status"] as? String
         let searchText = (json["search"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let effectiveSearch = (searchText?.isEmpty == true) ? nil : searchText
 
-        // Resolve project filter
+        // Resolve project filter — callers must pre-validate projectId format.
+        // Guard here as defense-in-depth: return empty on invalid UUID rather than silently ignoring it.
         var resolvedProjectId: UUID?
-        if let projectId {
-            resolvedProjectId = projectId
-        } else if let projectName {
+        if let projectIdStr = json["projectId"] as? String {
+            guard let pid = UUID(uuidString: projectIdStr) else { return [] }
+            resolvedProjectId = pid
+        } else if let projectName = json["project"] as? String {
             if case .success(let project) = projectService.findProject(name: projectName) {
                 resolvedProjectId = project.id
             } else {
