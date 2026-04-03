@@ -143,6 +143,7 @@ struct UpdateMilestoneIntent: AppIntent {
 
     // MARK: - Apply
 
+    // Mirrors MilestoneService.updateStatus for status side effects — keep in sync.
     @MainActor
     private static func applyUpdate(_ update: ValidatedUpdate, to milestone: Milestone) {
         if let newStatus = update.status {

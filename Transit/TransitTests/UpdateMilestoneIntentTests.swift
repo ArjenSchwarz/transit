@@ -332,5 +332,9 @@ struct UpdateMilestoneIntentTests {
         #expect(parsed["name"] as? String == "v2.0")
         #expect(parsed["status"] as? String == "done")
         #expect(parsed["previousStatus"] as? String == "open")
+
+        // Verify the description was also applied on the model
+        let milestone = try svc.milestone.findByDisplayID(1)
+        #expect(milestone.milestoneDescription == "New description")
     }
 }
