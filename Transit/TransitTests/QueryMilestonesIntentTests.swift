@@ -161,6 +161,21 @@ struct QueryMilestonesIntentTests {
 
     // MARK: - Error Cases
 
+    // T-665: Invalid projectId UUID should return an INVALID_INPUT error, not silently drop the filter
+    @Test func invalidProjectIdReturnsError() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"projectId\":\"not-a-uuid\"}", milestoneService: svc.milestone,
+            projectService: svc.project        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
+
     @Test func fractionalDisplayIdReturnsInvalidInput() throws {
         let svc = try makeServices()
         let project = makeProject(in: svc.context)

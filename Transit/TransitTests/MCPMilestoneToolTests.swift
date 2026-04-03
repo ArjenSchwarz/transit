@@ -203,6 +203,20 @@ struct MCPMilestoneToolTests {
         #expect(results.isEmpty)
     }
 
+    // T-665: Invalid projectId UUID should return an error, not silently drop the filter
+    @Test func queryMilestonesInvalidProjectIdReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["projectId": "not-a-uuid"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+    }
+
     // MARK: - update_milestone
 
     @Test func updateMilestoneStatus() async throws {
