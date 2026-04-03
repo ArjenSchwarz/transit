@@ -1,7 +1,7 @@
 # Bugfix Report: milestone-update-non-atomic
 
 **Date:** 2026-04-03
-**Status:** In Progress
+**Status:** Fixed
 **Ticket:** T-626
 
 ## Description of the Issue
@@ -34,7 +34,13 @@ In `UpdateMilestoneIntent.execute()`, `applyStatusChange()` calls `milestoneServ
 
 ## Resolution for the Issue
 
-_To be filled in after fix is implemented._
+**Changes made:**
+- `Transit/Transit/Intents/UpdateMilestoneIntent.swift` - Replaced the two-step `applyStatusChange()` + `applyFieldUpdates()` pattern with a validate-then-apply-atomically pattern matching the MCP handler
+
+**Approach:** Validate all inputs (status string parsing, name non-empty check, name uniqueness check) before mutating any state. Once validation passes, apply all changes in memory, then save once with `milestoneService.save()`. This mirrors the pattern already used by `MCPToolHandler.handleUpdateMilestone()` (T-391).
+
+**Alternatives considered:**
+- Rolling back status on field failure -- rejected because it adds complexity and the validate-first approach is cleaner and already proven in the MCP handler
 
 ## Regression Test
 
@@ -55,9 +61,9 @@ _To be filled in after fix is implemented._
 ## Verification
 
 **Automated:**
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression test passes
+- [x] Full test suite passes (one pre-existing failure in ModelContainerFallbackTests unrelated to this change)
+- [x] Linters/validators pass
 
 ## Prevention
 
