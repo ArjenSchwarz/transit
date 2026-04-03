@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Sync toggle in Settings now updates `SyncManager` runtime state immediately instead of only taking effect on next launch (T-699)
+
 ### Added
 
 - macOS: Task detail opens in a dedicated window instead of a sheet, with share and edit buttons in the toolbar (T-35)
