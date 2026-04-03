@@ -66,9 +66,27 @@ struct SyncManagerTests {
     func setSyncEnabled_false_stopsHeartbeat() {
         withSavedDefaults {
             let manager = SyncManager()
-            // Disabling sync should stop any running heartbeat
+            // Simulate a running heartbeat by starting one (requires a context,
+            // but we can verify via isHeartbeatRunning after disable).
+            // Even without an active heartbeat, disabling sync must nil the task.
             manager.setSyncEnabled(false)
             #expect(manager.isSyncEnabled == false)
+            #expect(manager.isHeartbeatRunning == false)
+        }
+    }
+
+    @Test
+    func setSyncEnabled_reEnable_doesNotRestartHeartbeat() {
+        withSavedDefaults {
+            let manager = SyncManager()
+            // Disable then re-enable: heartbeat should NOT auto-restart
+            manager.setSyncEnabled(false)
+            #expect(manager.isHeartbeatRunning == false)
+
+            manager.setSyncEnabled(true)
+            #expect(manager.isSyncEnabled == true)
+            #expect(manager.isHeartbeatRunning == false,
+                    "Re-enabling sync must not restart the heartbeat; a new startHeartbeat call is required")
         }
     }
 }

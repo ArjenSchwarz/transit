@@ -62,6 +62,9 @@ final class SyncManager {
 
     private var heartbeatTask: Task<Void, Never>?
 
+    /// Whether a heartbeat loop is currently scheduled.
+    var isHeartbeatRunning: Bool { heartbeatTask != nil }
+
     /// Starts a 60-second repeating heartbeat that writes to SwiftData,
     /// triggering CloudKit to pull pending remote changes.
     func startHeartbeat(context: ModelContext) {
