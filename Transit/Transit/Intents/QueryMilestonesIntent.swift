@@ -71,6 +71,11 @@ struct QueryMilestonesIntent: AppIntent {
             return IntentHelpers.encodeJSONArray([])
         }
 
+        // Validate projectId format before filtering
+        if let projectIdStr = json["projectId"] as? String, UUID(uuidString: projectIdStr) == nil {
+            return IntentError.invalidInput(hint: "Invalid projectId format").json
+        }
+
         // Fetch all milestones and filter in-memory
         let allMilestones = (try? milestoneService.fetchAllMilestones()) ?? []
         let filtered = applyFilters(json, to: allMilestones, projectService: projectService)
