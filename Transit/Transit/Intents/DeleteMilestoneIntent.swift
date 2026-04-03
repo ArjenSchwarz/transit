@@ -59,6 +59,8 @@ struct DeleteMilestoneIntent: AppIntent {
             }
             do {
                 milestone = try milestoneService.findByDisplayID(displayId)
+            } catch let error as MilestoneService.Error {
+                return IntentHelpers.mapMilestoneError(error).json
             } catch {
                 return IntentError.milestoneNotFound(hint: "No milestone with displayId \(displayId)").json
             }

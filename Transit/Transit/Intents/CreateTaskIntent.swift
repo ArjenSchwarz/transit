@@ -160,6 +160,8 @@ struct CreateTaskIntent: AppIntent {
                     return (nil, IntentHelpers.mapMilestoneError(.projectMismatch).json)
                 }
                 return (milestone, nil)
+            } catch let error as MilestoneService.Error {
+                return (nil, IntentHelpers.mapMilestoneError(error).json)
             } catch {
                 return (nil, IntentError.milestoneNotFound(
                     hint: "No milestone with displayId \(milestoneDisplayId)"
