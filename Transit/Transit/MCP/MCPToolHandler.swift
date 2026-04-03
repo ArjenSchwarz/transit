@@ -226,6 +226,11 @@ final class MCPToolHandler {
             return errorResult("Invalid status: \(statusString). Must be one of: \(valid)")
         }
 
+        // Reject non-integer displayId when key is present [T-634]
+        if args["displayId"] != nil, IntentHelpers.parseIntValue(args["displayId"]) == nil {
+            return errorResult("displayId must be an integer")
+        }
+
         let task: TransitTask
         do {
             task = try taskService.resolveTask(from: args)
@@ -318,7 +323,11 @@ final class MCPToolHandler {
         )
 
         // Single-task lookup by displayId — returns early with detailed response
-        if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
+        // Reject non-integer displayId when key is present [T-634]
+        if args["displayId"] != nil {
+            guard let displayId = IntentHelpers.parseIntValue(args["displayId"]) else {
+                return errorResult("displayId must be an integer")
+            }
             return handleDisplayIdLookup(displayId, filters: filters)
         }
 
@@ -402,9 +411,14 @@ extension MCPToolHandler {
 
 extension MCPToolHandler {
 
+    // swiftlint:disable:next cyclomatic_complexity
     private func handleQueryMilestones(_ args: [String: Any]) -> MCPToolResult {
         // Single-milestone lookup by displayId
-        if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
+        // Reject non-integer displayId when key is present [T-634]
+        if args["displayId"] != nil {
+            guard let displayId = IntentHelpers.parseIntValue(args["displayId"]) else {
+                return errorResult("displayId must be an integer")
+            }
             do {
                 let milestone = try milestoneService.findByDisplayID(displayId)
                 let formatter = ISO8601DateFormatter()
@@ -592,8 +606,13 @@ extension MCPToolHandler {
 
 extension MCPToolHandler {
 
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func handleUpdateTask(_ args: [String: Any]) -> MCPToolResult {
+        // Reject non-integer displayId when key is present [T-634]
+        if args["displayId"] != nil, IntentHelpers.parseIntValue(args["displayId"]) == nil {
+            return errorResult("displayId must be an integer")
+        }
+
         let task: TransitTask
         do {
             task = try taskService.resolveTask(from: args)
@@ -685,6 +704,11 @@ extension MCPToolHandler {
             return errorResult("Missing required argument: authorName")
         }
 
+        // Reject non-integer displayId when key is present [T-634]
+        if args["displayId"] != nil, IntentHelpers.parseIntValue(args["displayId"]) == nil {
+            return errorResult("displayId must be an integer")
+        }
+
         let task: TransitTask
         do {
             task = try taskService.resolveTask(from: args)
@@ -762,7 +786,11 @@ extension MCPToolHandler {
     }
 
     private func resolveMilestone(from args: [String: Any]) -> Result<Milestone, ResolveError> {
-        if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
+        // Reject non-integer displayId when key is present [T-634]
+        if args["displayId"] != nil {
+            guard let displayId = IntentHelpers.parseIntValue(args["displayId"]) else {
+                return .failure(.message("displayId must be an integer"))
+            }
             do {
                 return .success(try milestoneService.findByDisplayID(displayId))
             } catch {
