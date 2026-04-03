@@ -11,6 +11,7 @@ struct SettingsView: View {
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @AppStorage("userDisplayName") private var userDisplayName = ""
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(SyncManager.self) private var syncManager
 
     private var resolvedTheme: ResolvedTheme {
         (AppTheme(rawValue: appTheme) ?? .followSystem).resolved(with: colorScheme)
@@ -20,7 +21,6 @@ struct SettingsView: View {
     #if os(macOS)
     @Environment(MCPSettings.self) private var mcpSettings
     @Environment(MCPServer.self) private var mcpServer
-    @Environment(SyncManager.self) private var syncManager
     @Environment(\.modelContext) private var modelContext
     @State private var selectedCategory: SettingsCategory? = .general
     @State private var detailPath = NavigationPath()
@@ -98,6 +98,9 @@ struct SettingsView: View {
             TextField("Your Name", text: $userDisplayName)
             LabeledContent("About Transit", value: appVersion)
             Toggle("iCloud Sync", isOn: $syncEnabled)
+                .onChange(of: syncEnabled) { _, enabled in
+                    syncManager.setSyncEnabled(enabled)
+                }
             NavigationLink(value: NavigationDestination.acknowledgments) {
                 Text("Acknowledgments")
             }
@@ -383,6 +386,9 @@ extension SettingsView {
                     Toggle("", isOn: $syncEnabled)
                         .labelsHidden()
                         .toggleStyle(.switch)
+                        .onChange(of: syncEnabled) { _, enabled in
+                            syncManager.setSyncEnabled(enabled)
+                        }
                 }
             }
         }
