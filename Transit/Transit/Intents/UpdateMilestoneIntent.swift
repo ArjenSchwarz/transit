@@ -65,45 +65,58 @@ struct UpdateMilestoneIntent: AppIntent {
 
         let previousStatus = milestone.statusRawValue
 
-        if let error = applyStatusChange(json, milestone: milestone, milestoneService: milestoneService) {
-            return error
+        // Validate all inputs before applying any changes (T-626: avoid partial updates)
+        let validated: ValidatedUpdate
+        switch validateUpdate(json, milestone: milestone, milestoneService: milestoneService) {
+        case .valid(let update): validated = update
+        case .invalid(let error): return error
         }
 
-        if let error = applyFieldUpdates(
-            json, milestone: milestone, milestoneService: milestoneService
-        ) {
-            return error
+        // Apply all changes in memory, then save atomically
+        applyUpdate(validated, to: milestone)
+
+        if validated.hasChanges {
+            do {
+                try milestoneService.save()
+            } catch {
+                return IntentError.invalidInput(hint: "Update failed").json
+            }
         }
 
         return buildResponse(milestone, previousStatus: previousStatus)
     }
 
-    // MARK: - Private Helpers
+    // MARK: - Validation
 
-    @MainActor
-    private static func applyStatusChange(
-        _ json: [String: Any],
-        milestone: Milestone,
-        milestoneService: MilestoneService
-    ) -> String? {
-        guard let statusString = json["status"] as? String else { return nil }
-        guard let newStatus = MilestoneStatus(rawValue: statusString) else {
-            return IntentError.invalidStatus(hint: "Unknown status: \(statusString)").json
-        }
-        do {
-            try milestoneService.updateStatus(milestone, to: newStatus)
-        } catch {
-            return IntentError.invalidInput(hint: "Status update failed").json
-        }
-        return nil
+    private struct ValidatedUpdate {
+        let status: MilestoneStatus?
+        let name: String?
+        let description: String?
+        var hasChanges: Bool { status != nil || name != nil || description != nil }
+    }
+
+    private enum Validation {
+        case valid(ValidatedUpdate)
+        case invalid(String)
     }
 
     @MainActor
-    private static func applyFieldUpdates(
+    private static func validateUpdate(
         _ json: [String: Any],
         milestone: Milestone,
         milestoneService: MilestoneService
-    ) -> String? {
+    ) -> Validation {
+        // Validate status
+        var newStatus: MilestoneStatus?
+        if let statusString = json["status"] as? String {
+            guard let parsed = MilestoneStatus(rawValue: statusString) else {
+                return .invalid(IntentError.invalidStatus(hint: "Unknown status: \(statusString)").json)
+            }
+            newStatus = parsed
+        }
+
+        // Validate name
+        var trimmedName: String?
         // Only use "name" as a rename when identified by displayId or milestoneId
         let effectiveName: String?
         if json["displayId"] != nil || json["milestoneId"] != nil {
@@ -111,20 +124,39 @@ struct UpdateMilestoneIntent: AppIntent {
         } else {
             effectiveName = json["newName"] as? String
         }
-        let newDescription = json["description"] as? String
-
-        guard effectiveName != nil || newDescription != nil else { return nil }
-
-        do {
-            try milestoneService.updateMilestone(
-                milestone, name: effectiveName, description: newDescription
-            )
-        } catch let error as MilestoneService.Error {
-            return IntentHelpers.mapMilestoneError(error).json
-        } catch {
-            return IntentError.invalidInput(hint: "Update failed").json
+        if let name = effectiveName {
+            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                return .invalid(IntentHelpers.mapMilestoneError(.invalidName).json)
+            }
+            if let project = milestone.project,
+               milestoneService.milestoneNameExists(trimmed, in: project, excluding: milestone.id) {
+                return .invalid(IntentHelpers.mapMilestoneError(.duplicateName).json)
+            }
+            trimmedName = trimmed
         }
-        return nil
+
+        return .valid(ValidatedUpdate(
+            status: newStatus, name: trimmedName, description: json["description"] as? String
+        ))
+    }
+
+    // MARK: - Apply
+
+    // Mirrors MilestoneService.updateStatus for status side effects — keep in sync.
+    @MainActor
+    private static func applyUpdate(_ update: ValidatedUpdate, to milestone: Milestone) {
+        if let newStatus = update.status {
+            milestone.statusRawValue = newStatus.rawValue
+            milestone.lastStatusChangeDate = Date.now
+            milestone.completionDate = newStatus.isTerminal ? Date.now : nil
+        }
+        if let name = update.name {
+            milestone.name = name
+        }
+        if let description = update.description {
+            milestone.milestoneDescription = description
+        }
     }
 
     @MainActor

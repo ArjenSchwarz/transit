@@ -424,16 +424,13 @@ extension MCPToolHandler {
         var filtered = allMilestones
 
         // Project filter
-        if let pidStr = args["projectId"] as? String, let pid = UUID(uuidString: pidStr) {
+        switch resolveProjectFilter(args) {
+        case .resolved(let pid):
             filtered = filtered.filter { $0.project?.id == pid }
-        } else if let name = args["project"] as? String,
-                  !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            switch projectService.findProject(id: nil, name: name) {
-            case .success(let found):
-                filtered = filtered.filter { $0.project?.id == found.id }
-            case .failure(let err):
-                return errorResult(IntentHelpers.mapProjectLookupError(err).hint)
-            }
+        case .none:
+            break
+        case .error(let message):
+            return errorResult(message)
         }
 
         // Status filter
@@ -468,6 +465,31 @@ extension MCPToolHandler {
         } catch {
             return textResult(IntentHelpers.encodeJSONArray([]))
         }
+    }
+
+    private enum ProjectFilterResult {
+        case resolved(UUID)
+        case none
+        case error(String)
+    }
+
+    private func resolveProjectFilter(_ args: [String: Any]) -> ProjectFilterResult {
+        if let pidStr = args["projectId"] as? String {
+            guard let pid = UUID(uuidString: pidStr) else {
+                return .error("Invalid projectId: expected a UUID string")
+            }
+            return .resolved(pid)
+        }
+        if let name = args["project"] as? String,
+           !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            switch projectService.findProject(id: nil, name: name) {
+            case .success(let found):
+                return .resolved(found.id)
+            case .failure(let err):
+                return .error(IntentHelpers.mapProjectLookupError(err).hint)
+            }
+        }
+        return .none
     }
 }
 

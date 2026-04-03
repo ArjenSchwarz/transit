@@ -75,6 +75,11 @@ struct QueryMilestonesIntent: AppIntent {
             }
         }
 
+        // Validate projectId format before filtering
+        if let projectIdStr = json["projectId"] as? String, UUID(uuidString: projectIdStr) == nil {
+            return IntentError.invalidInput(hint: "Invalid projectId: expected a UUID string").json
+        }
+
         // Fetch all milestones and filter in-memory
         let allMilestones = (try? milestoneService.fetchAllMilestones()) ?? []
         let filtered = applyFilters(json, to: allMilestones, projectService: projectService)
@@ -97,18 +102,18 @@ struct QueryMilestonesIntent: AppIntent {
         to milestones: [Milestone],
         projectService: ProjectService
     ) -> [Milestone] {
-        let projectId: UUID? = (json["projectId"] as? String).flatMap(UUID.init)
-        let projectName = json["project"] as? String
         let statusFilter = json["status"] as? String
         let searchText = (json["search"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let effectiveSearch = (searchText?.isEmpty == true) ? nil : searchText
 
-        // Resolve project filter
+        // Resolve project filter — callers must pre-validate projectId format.
+        // Guard here as defense-in-depth: return empty on invalid UUID rather than silently ignoring it.
         var resolvedProjectId: UUID?
-        if let projectId {
-            resolvedProjectId = projectId
-        } else if let projectName {
+        if let projectIdStr = json["projectId"] as? String {
+            guard let pid = UUID(uuidString: projectIdStr) else { return [] }
+            resolvedProjectId = pid
+        } else if let projectName = json["project"] as? String {
             if case .success(let project) = projectService.findProject(name: projectName) {
                 resolvedProjectId = project.id
             } else {

@@ -33,9 +33,14 @@ final class SyncManager {
     // MARK: - Public API
 
     /// Toggles CloudKit sync on or off. Persists the preference to UserDefaults.
+    /// Stops the heartbeat immediately when sync is disabled; re-enabling sync
+    /// does not restart the heartbeat (a new `startHeartbeat` call is needed).
     func setSyncEnabled(_ enabled: Bool) {
         isSyncEnabled = enabled
         UserDefaults.standard.set(enabled, forKey: Self.syncEnabledKey)
+        if !enabled {
+            stopHeartbeat()
+        }
     }
 
     /// Creates a ModelConfiguration based on the current sync preference.
@@ -56,6 +61,9 @@ final class SyncManager {
     // MARK: - Heartbeat
 
     private var heartbeatTask: Task<Void, Never>?
+
+    /// Whether a heartbeat loop is currently scheduled.
+    var isHeartbeatRunning: Bool { heartbeatTask != nil }
 
     /// Starts a 60-second repeating heartbeat that writes to SwiftData,
     /// triggering CloudKit to pull pending remote changes.
