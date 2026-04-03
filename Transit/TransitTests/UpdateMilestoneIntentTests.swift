@@ -306,7 +306,7 @@ struct UpdateMilestoneIntentTests {
         )
 
         let parsed = try parseJSON(result)
-        #expect(parsed["error"] != nil)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
 
         // The milestone's status must still be "open"
         let milestone = try svc.milestone.findByDisplayID(1)
