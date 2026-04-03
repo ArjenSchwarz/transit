@@ -215,6 +215,8 @@ struct MCPMilestoneToolTests {
         ))
 
         #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
     }
 
     // MARK: - update_milestone
