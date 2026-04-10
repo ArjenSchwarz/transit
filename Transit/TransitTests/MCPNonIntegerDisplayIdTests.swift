@@ -255,7 +255,8 @@ struct MCPNonIntegerDisplayIdTests {
         #expect(try MCPTestHelpers.isError(response))
         let text = try MCPTestHelpers.errorText(response)
         #expect(text.contains("displayId must be an integer"))
-        // Verify the milestone was NOT updated
+        // Verify the milestone was NOT updated.
+        // First milestone in a fresh in-memory context always gets provisional displayId 1.
         let refetched = try env.milestoneService.findByDisplayID(1)
         #expect(refetched.name == "v1.0")
     }
@@ -280,7 +281,8 @@ struct MCPNonIntegerDisplayIdTests {
         #expect(try MCPTestHelpers.isError(response))
         let text = try MCPTestHelpers.errorText(response)
         #expect(text.contains("displayId must be an integer"))
-        // Verify the milestone was NOT deleted
+        // Verify the milestone was NOT deleted.
+        // First milestone in a fresh in-memory context always gets provisional displayId 1.
         let refetched = try env.milestoneService.findByDisplayID(1)
         #expect(refetched.name == "v1.0")
     }
