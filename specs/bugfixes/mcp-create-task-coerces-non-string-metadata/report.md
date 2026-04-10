@@ -60,14 +60,15 @@ The MCP `create_task` tool handler coerces non-string metadata values into their
 | File | Change |
 |------|--------|
 | `Transit/Transit/MCP/MCPToolHandler.swift` | Replace private `stringMetadata` with `IntentHelpers.stringMetadata` |
-| `Transit/TransitTests/MCPToolHandlerTests.swift` | Add three regression tests for metadata handling |
+| `Transit/TransitTests/MCPCreateTaskMetadataTests.swift` | Add three regression tests for metadata handling (new file) |
+| `Transit/TransitTests/MCPToolHandlerTests.swift` | Remove metadata tests (moved to dedicated file) |
 
 ## Verification
 
 **Automated:**
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression test passes
+- [x] Full test suite passes (4 pre-existing failures unrelated to this change)
+- [x] Linters/validators pass (1 pre-existing superfluous_disable_command warning unrelated)
 
 ## Prevention
 
