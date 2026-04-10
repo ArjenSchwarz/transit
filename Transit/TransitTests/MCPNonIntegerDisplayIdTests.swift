@@ -193,6 +193,99 @@ struct MCPNonIntegerDisplayIdTests {
         let text = try MCPTestHelpers.errorText(response)
         #expect(text.contains("displayId must be an integer"))
     }
+
+    // MARK: - T-769: Malformed milestoneId must not silently fall through
+
+    // T-769: When milestoneId is present but not a valid UUID, the error must explicitly
+    // say the milestoneId is invalid, not give a generic "Provide either..." message.
+    @Test(arguments: ["not-a-uuid", "abc", "123", ""])
+    func updateMilestoneWithMalformedMilestoneIdReturnsSpecificError(milestoneId: String) async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "update_milestone",
+            arguments: ["milestoneId": milestoneId, "name": "v2.0"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("milestoneId must be a valid UUID"))
+    }
+
+    @Test(arguments: ["not-a-uuid", "abc", "123", ""])
+    func deleteMilestoneWithMalformedMilestoneIdReturnsSpecificError(milestoneId: String) async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "delete_milestone",
+            arguments: ["milestoneId": milestoneId]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("milestoneId must be a valid UUID"))
+    }
+
+    @Test func updateMilestoneWithMalformedDisplayIdDoesNotFallBackToMilestoneId() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let milestone = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: project
+        )
+
+        // Both displayId (malformed) and milestoneId (valid) are present.
+        // The handler must reject due to malformed displayId, not fall back to milestoneId.
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "update_milestone",
+            arguments: [
+                "displayId": "abc",
+                "milestoneId": milestone.id.uuidString,
+                "name": "v2.0"
+            ]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("displayId must be an integer"))
+        // Verify the milestone was NOT updated.
+        // First milestone in a fresh in-memory context always gets provisional displayId 1.
+        let refetched = try env.milestoneService.findByDisplayID(1)
+        #expect(refetched.name == "v1.0")
+    }
+
+    @Test func deleteMilestoneWithMalformedDisplayIdDoesNotFallBackToMilestoneId() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let milestone = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: project
+        )
+
+        // Both displayId (malformed) and milestoneId (valid) are present.
+        // The handler must reject due to malformed displayId, not fall back to milestoneId.
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "delete_milestone",
+            arguments: [
+                "displayId": "abc",
+                "milestoneId": milestone.id.uuidString
+            ]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("displayId must be an integer"))
+        // Verify the milestone was NOT deleted.
+        // First milestone in a fresh in-memory context always gets provisional displayId 1.
+        let refetched = try env.milestoneService.findByDisplayID(1)
+        #expect(refetched.name == "v1.0")
+    }
 }
 
 #endif

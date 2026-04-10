@@ -865,7 +865,11 @@ extension MCPToolHandler {
             } catch {
                 return .failure(.message("No milestone with displayId \(displayId)"))
             }
-        } else if let idStr = args["milestoneId"] as? String, let milestoneId = UUID(uuidString: idStr) {
+        } else if let idStr = args["milestoneId"] as? String {
+            // Validate UUID format separately from presence check [T-769]
+            guard let milestoneId = UUID(uuidString: idStr) else {
+                return .failure(.message("milestoneId must be a valid UUID string"))
+            }
             do {
                 return .success(try milestoneService.findByID(milestoneId))
             } catch {
