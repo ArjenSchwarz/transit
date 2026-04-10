@@ -319,6 +319,11 @@ final class MCPToolHandler {
             }
         }
 
+        // Validate enum filters before building MCPQueryFilters [T-732]
+        if let error = validateEnumFilter(args, key: "status", type: TaskStatus.self) { return error }
+        if let error = validateEnumFilter(args, key: "not_status", type: TaskStatus.self) { return error }
+        if let error = validateEnumFilter(args, key: "type", type: TaskType.self) { return error }
+
         let search = (args["search"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let filters = MCPQueryFilters.from(
             args: args, type: args["type"] as? String, projectId: projectFilter,
@@ -415,7 +420,6 @@ extension MCPToolHandler {
 
 extension MCPToolHandler {
 
-    // swiftlint:disable:next cyclomatic_complexity
     private func handleQueryMilestones(_ args: [String: Any]) -> MCPToolResult {
         // Single-milestone lookup by displayId
         // Reject non-integer displayId when key is present [T-634]
@@ -447,7 +451,8 @@ extension MCPToolHandler {
             return errorResult(message)
         }
 
-        // Status filter
+        // Status filter — validate enum values before filtering [T-732]
+        if let error = validateEnumFilter(args, key: "status", type: MilestoneStatus.self) { return error }
         if let statusArray = args["status"] as? [String] {
             filtered = filtered.filter { statusArray.contains($0.statusRawValue) }
         } else if let statusSingle = args["status"] as? String {
@@ -812,6 +817,31 @@ extension MCPToolHandler {
     private func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }
     private func errorResult(_ message: String) -> MCPToolResult {
         MCPToolResult(content: [.text(message)], isError: true)
+    }
+
+    /// Validate that all values for a given key are valid raw values of the specified enum.
+    /// Returns an error result if any value is invalid, or nil if all are valid (or the key is absent).
+    /// Works with both array and single-string inputs for backward compatibility.
+    private func validateEnumFilter<E: RawRepresentable & CaseIterable>(
+        _ args: [String: Any], key: String, type: E.Type
+    ) -> MCPToolResult? where E.RawValue == String {
+        let values: [String]
+        if let array = args[key] as? [String] {
+            values = array
+        } else if let single = args[key] as? String {
+            values = [single]
+        } else {
+            return nil
+        }
+        let allRaw = E.allCases.map(\.rawValue)
+        let validRaw = Set(allRaw)
+        let invalid = values.filter { !validRaw.contains($0) }
+        guard invalid.isEmpty else {
+            return errorResult(
+                "Invalid \(key): \(invalid.joined(separator: ", ")). Must be one of: \(allRaw.joined(separator: ", "))"
+            )
+        }
+        return nil
     }
 
     private func stringMetadata(from value: Any?) -> [String: String]? {
