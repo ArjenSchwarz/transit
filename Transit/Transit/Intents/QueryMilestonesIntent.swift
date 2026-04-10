@@ -80,6 +80,11 @@ struct QueryMilestonesIntent: AppIntent {
             return IntentError.invalidInput(hint: "Invalid projectId: expected a UUID string").json
         }
 
+        // Validate enum filters before filtering
+        if let status = json["status"] as? String, MilestoneStatus(rawValue: status) == nil {
+            return IntentError.invalidStatus(hint: "Unknown status: \(status)").json
+        }
+
         // Fetch all milestones and filter in-memory
         let allMilestones = (try? milestoneService.fetchAllMilestones()) ?? []
         let filtered = applyFilters(json, to: allMilestones, projectService: projectService)
