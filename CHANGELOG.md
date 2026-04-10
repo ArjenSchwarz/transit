@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `IntentHelpers.resolveMilestone` now rejects malformed `milestoneId` and `projectId` with `INVALID_INPUT` instead of silently falling back to name-based lookup (T-753)
 - Sync toggle in Settings now updates `SyncManager` runtime state immediately instead of only taking effect on next launch (T-699)
 
 ### Added
