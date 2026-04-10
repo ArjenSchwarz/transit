@@ -70,7 +70,8 @@ struct MCPCreateTaskMetadataTests {
         let taskIdStr = try #require(result["taskId"] as? String)
         let taskId = try #require(UUID(uuidString: taskIdStr))
         let task = try env.taskService.findByID(taskId)
-        // All values are non-string, so metadata should be empty
+        // All values are non-string: IntentHelpers.stringMetadata returns nil,
+        // so the task stores no metadata (property defaults to empty dict).
         #expect(task.metadata.isEmpty)
     }
 }

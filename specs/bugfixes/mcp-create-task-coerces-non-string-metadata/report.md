@@ -45,7 +45,7 @@ The MCP `create_task` tool handler coerces non-string metadata values into their
 
 ## Regression Test
 
-**Test file:** `Transit/TransitTests/MCPToolHandlerTests.swift`
+**Test file:** `Transit/TransitTests/MCPCreateTaskMetadataTests.swift`
 **Test names:** `createTaskDropsNonStringMetadataValues`, `createTaskPreservesAllStringMetadata`, `createTaskMetadataAllNonStringYieldsNoMetadata`
 
 **What it verifies:**
@@ -61,7 +61,6 @@ The MCP `create_task` tool handler coerces non-string metadata values into their
 |------|--------|
 | `Transit/Transit/MCP/MCPToolHandler.swift` | Replace private `stringMetadata` with `IntentHelpers.stringMetadata` |
 | `Transit/TransitTests/MCPCreateTaskMetadataTests.swift` | Add three regression tests for metadata handling (new file) |
-| `Transit/TransitTests/MCPToolHandlerTests.swift` | Remove metadata tests (moved to dedicated file) |
 
 ## Verification
 
