@@ -99,6 +99,22 @@ struct MCPMilestoneToolTests {
         #expect(try MCPTestHelpers.isError(response))
     }
 
+    @Test func createMilestoneMalformedProjectIdReturnsError() async throws {
+        // When projectId is present but not a valid UUID, should return error
+        // instead of falling back to name-based lookup [T-743]
+        let env = try MCPTestHelpers.makeEnv()
+        MCPTestHelpers.makeProject(in: env.context, name: "Decoy")
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_milestone",
+            arguments: ["name": "v1.0", "projectId": "not-a-uuid", "project": "Decoy"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
     // MARK: - query_milestones
 
     @Test func queryAllMilestones() async throws {
