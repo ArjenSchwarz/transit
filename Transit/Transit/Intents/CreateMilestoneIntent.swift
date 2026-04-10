@@ -57,6 +57,10 @@ struct CreateMilestoneIntent: AppIntent {
         }
 
         // Resolve project
+        // Reject malformed projectId when the key is present [T-743]
+        if let projectIdStr = json["projectId"] as? String, UUID(uuidString: projectIdStr) == nil {
+            return IntentError.invalidInput(hint: "Invalid projectId: expected a UUID string").json
+        }
         let projectId: UUID? = (json["projectId"] as? String).flatMap(UUID.init)
         let projectName = json["project"] as? String
         let lookupResult = projectService.findProject(id: projectId, name: projectName)
