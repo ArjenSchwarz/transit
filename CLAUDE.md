@@ -190,7 +190,7 @@ Services follow a consistent pattern: mutate in memory, then `save()`, rolling b
 ## Test Infrastructure
 
 - **Swift Testing** framework (not XCTest) for unit tests
-- **TestModelContainer** singleton (`TransitTests/TestModelContainer.swift`) — shared in-memory container with `cloudKitDatabase: .none` and explicit `Schema` including all four models. All three properties (schema, in-memory, no CloudKit) are required to avoid conflicts.
+- **TestModelContainer** singleton (`TransitTests/TestModelContainer.swift`) — shared in-memory container with `cloudKitDatabase: .none` and explicit `Schema` including all five models. All three properties (schema, in-memory, no CloudKit) are required to avoid conflicts.
 - Each test gets a fresh `ModelContext` via `TestModelContainer.newContext()`
 - SwiftData test suites must use `@Suite(.serialized)` to prevent concurrent access issues
 - UI tests use `TRANSIT_UI_TEST_SCENARIO` environment variable (`empty` or `board`) for deterministic seeded data

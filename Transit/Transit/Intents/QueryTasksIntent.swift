@@ -116,6 +116,11 @@ struct QueryTasksIntent: AppIntent {
             return error.json
         }
 
+        // Validate enum filters if present
+        if let error = validateEnumFilters(filters) {
+            return error.json
+        }
+
         // Validate date filters if present
         if let error = validateDateFilters(filters) {
             return error.json
@@ -163,6 +168,16 @@ struct QueryTasksIntent: AppIntent {
         }
         if case .failure = projectService.findProject(id: projectId) {
             return .projectNotFound(hint: "No project with ID \(idString)")
+        }
+        return nil
+    }
+
+    @MainActor private static func validateEnumFilters(_ filters: QueryFilters) -> IntentError? {
+        if let status = filters.status, TaskStatus(rawValue: status) == nil {
+            return .invalidStatus(hint: "Unknown status: \(status)")
+        }
+        if let type = filters.type, TaskType(rawValue: type) == nil {
+            return .invalidType(hint: "Unknown type: \(type)")
         }
         return nil
     }

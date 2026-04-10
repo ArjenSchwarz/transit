@@ -27,5 +27,6 @@ extension ModelContext {
         _ = try? fetch(FetchDescriptor<TransitTask>())
         _ = try? fetch(FetchDescriptor<Comment>())
         _ = try? fetch(FetchDescriptor<Milestone>())
+        _ = try? fetch(FetchDescriptor<SyncHeartbeat>())
     }
 }

@@ -22,6 +22,7 @@
 - Return JSON as a `String` via `ReturnsValue<String>`.
 - Error responses should be encoded as JSON in the return string (not thrown as errors) so CLI callers get parseable output.
 - **Integer parsing from JSON dictionaries**: Never use bare `as? Int` on values from `JSONSerialization` or MCP arguments. `JSONSerialization` deserializes JSON numbers as `NSNumber`, which may bridge to `Double` rather than `Int`. MCP tool arguments always deliver numbers as `Double`. Use `IntentHelpers.parseIntValue(_:)` which handles `Int`, `Double` (via `Int(exactly:)`), and rejects non-integral values. See T-370.
+- **UUID field validation in JSON dictionaries**: When resolving identifiers from JSON (e.g., `milestoneId`, `projectId`, `taskId`), always check for key presence separately from value validity. Do not use compound optional binding like `if let str = json["key"] as? String, let uuid = UUID(uuidString: str)` in `else if` chains — if UUID parsing fails, the branch is silently skipped and the next branch executes (fallback). Instead, check `json["key"] != nil` first, then validate. Use `IntentHelpers.validateUUIDField(_:in:)` for reusable UUID validation. See T-753.
 
 ## Liquid Glass
 
@@ -107,7 +108,7 @@ Test files that use SwiftData need `@Suite(.serialized)` to avoid concurrent acc
 
 **In tests**: Use `TestModelContainer.rollback(context)` instead of `context.rollback()`. The helper performs the rollback then fetches all entity types to trigger re-faulting. If a new `@Model` entity is added, it must be registered in the helper.
 
-**In production**: T-452 tracks the production-side fix. All `rollback()` call sites in views and services (TaskEditView, ProjectEditView, TaskService, MilestoneService, CommentService, MCPToolHandler) are affected — after rollback, views may still display stale mutated values.
+**In production**: The production `safeRollback()` extension (in `ModelContext+SafeRollback.swift`) calls `refaultAllEntities()` which fetches all five entity types: Project, TransitTask, Comment, Milestone, and SyncHeartbeat. If a new `@Model` entity is added, it must be added to `refaultAllEntities()` as well. T-777 fixed a gap where SyncHeartbeat was missing from this list.
 
 ## Display ID Promotion Single-Flight Guard
 

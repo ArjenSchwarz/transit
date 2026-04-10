@@ -263,4 +263,43 @@ struct CreateTaskIntentTests {
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")
     }
+
+    // MARK: - Malformed projectId [T-743]
+
+    @Test func malformedProjectIdReturnsInvalidInput() async throws {
+        // When projectId is present but not a valid UUID, should return INVALID_INPUT
+        // instead of falling back to name-based lookup or no-identifier handling.
+        let svc = try makeServices()
+        makeProject(in: svc.context, name: "Decoy")
+
+        let input = """
+        {"name":"Task","type":"feature","projectId":"not-a-uuid","project":"Decoy"}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
+
+    @Test func malformedProjectIdWithoutFallbackReturnsInvalidInput() async throws {
+        // Even without a project name fallback, malformed projectId should return
+        // a validation error, not a "no identifier" error.
+        let svc = try makeServices()
+
+        let input = """
+        {"name":"Task","type":"feature","projectId":"not-a-uuid"}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
 }
