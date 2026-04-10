@@ -185,7 +185,7 @@ final class MCPToolHandler {
                 description: args["description"] as? String,
                 type: taskType,
                 project: project,
-                metadata: stringMetadata(from: args["metadata"])
+                metadata: IntentHelpers.stringMetadata(from: args["metadata"])
             )
         } catch {
             return errorResult("Task creation failed: \(error)")
@@ -850,11 +850,6 @@ extension MCPToolHandler {
             )
         }
         return nil
-    }
-
-    private func stringMetadata(from value: Any?) -> [String: String]? {
-        guard let dict = value as? [String: Any], !dict.isEmpty else { return nil }
-        return dict.reduce(into: [:]) { result, pair in result[pair.key] = "\(pair.value)" }
     }
 
     private func resolveMilestone(from args: [String: Any]) -> Result<Milestone, ResolveError> {
