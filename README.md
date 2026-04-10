@@ -52,6 +52,7 @@ Transit exposes App Intents accessible via the Shortcuts app or `shortcuts run` 
 - **Transit: Create Task** — create a task with project, name, type, and optional description/metadata/milestone
 - **Transit: Update Status** — move a task to a new status by display ID (e.g., T-42), with optional comment
 - **Transit: Query Tasks** — filter tasks by project, status, type, milestone, and/or search text
+- **Transit: Update Task** — update task properties (description, metadata, milestone assignment)
 - **Transit: Create Milestone** — create a milestone within a project
 - **Transit: Query Milestones** — list milestones with optional filters
 - **Transit: Update Milestone** — update milestone name, description, or status
