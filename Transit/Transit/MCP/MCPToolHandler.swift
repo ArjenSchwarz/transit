@@ -320,14 +320,9 @@ final class MCPToolHandler {
         }
 
         // Validate enum filters before building MCPQueryFilters [T-732]
-        if let error = validateTaskStatusFilter(args, key: "status") { return error }
-        if let error = validateTaskStatusFilter(args, key: "not_status") { return error }
-        if let typeRaw = args["type"] as? String {
-            guard TaskType(rawValue: typeRaw) != nil else {
-                let valid = TaskType.allCases.map(\.rawValue).joined(separator: ", ")
-                return errorResult("Invalid type: \(typeRaw). Must be one of: \(valid)")
-            }
-        }
+        if let error = validateEnumFilter(args, key: "status", type: TaskStatus.self) { return error }
+        if let error = validateEnumFilter(args, key: "not_status", type: TaskStatus.self) { return error }
+        if let error = validateEnumFilter(args, key: "type", type: TaskType.self) { return error }
 
         let search = (args["search"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let filters = MCPQueryFilters.from(
@@ -457,7 +452,7 @@ extension MCPToolHandler {
         }
 
         // Status filter — validate enum values before filtering [T-732]
-        if let error = validateMilestoneStatusFilter(args) { return error }
+        if let error = validateEnumFilter(args, key: "status", type: MilestoneStatus.self) { return error }
         if let statusArray = args["status"] as? [String] {
             filtered = filtered.filter { statusArray.contains($0.statusRawValue) }
         } else if let statusSingle = args["status"] as? String {
@@ -824,9 +819,12 @@ extension MCPToolHandler {
         MCPToolResult(content: [.text(message)], isError: true)
     }
 
-    /// Validate that all values in a task status filter (status or not_status) are valid TaskStatus raw values.
+    /// Validate that all values for a given key are valid raw values of the specified enum.
     /// Returns an error result if any value is invalid, or nil if all are valid (or the key is absent).
-    private func validateTaskStatusFilter(_ args: [String: Any], key: String) -> MCPToolResult? {
+    /// Works with both array and single-string inputs for backward compatibility.
+    private func validateEnumFilter<E: RawRepresentable & CaseIterable>(
+        _ args: [String: Any], key: String, type: E.Type
+    ) -> MCPToolResult? where E.RawValue == String {
         let values: [String]
         if let array = args[key] as? [String] {
             values = array
@@ -835,33 +833,13 @@ extension MCPToolHandler {
         } else {
             return nil
         }
-        let validRaw = Set(TaskStatus.allCases.map(\.rawValue))
+        let allRaw = E.allCases.map(\.rawValue)
+        let validRaw = Set(allRaw)
         let invalid = values.filter { !validRaw.contains($0) }
         guard invalid.isEmpty else {
-            let valid = TaskStatus.allCases.map(\.rawValue).joined(separator: ", ")
-            let invalidList = invalid.joined(separator: ", ")
-            return errorResult("Invalid \(key): \(invalidList). Must be one of: \(valid)")
-        }
-        return nil
-    }
-
-    /// Validate that all values in a milestone status filter are valid MilestoneStatus raw values.
-    /// Returns an error result if any value is invalid, or nil if all are valid (or the key is absent).
-    private func validateMilestoneStatusFilter(_ args: [String: Any]) -> MCPToolResult? {
-        let values: [String]
-        if let array = args["status"] as? [String] {
-            values = array
-        } else if let single = args["status"] as? String {
-            values = [single]
-        } else {
-            return nil
-        }
-        let validRaw = Set(MilestoneStatus.allCases.map(\.rawValue))
-        let invalid = values.filter { !validRaw.contains($0) }
-        guard invalid.isEmpty else {
-            let valid = MilestoneStatus.allCases.map(\.rawValue).joined(separator: ", ")
-            let invalidList = invalid.joined(separator: ", ")
-            return errorResult("Invalid status: \(invalidList). Must be one of: \(valid)")
+            return errorResult(
+                "Invalid \(key): \(invalid.joined(separator: ", ")). Must be one of: \(allRaw.joined(separator: ", "))"
+            )
         }
         return nil
     }

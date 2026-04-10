@@ -113,6 +113,22 @@ struct MCPToolHandlerEnumValidationTests {
         #expect(results.count == 1)
     }
 
+    @Test func queryTasksValidNotStatusFilterStillWorks() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.taskService.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["not_status": ["done", "abandoned"]]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.count == 1)
+    }
+
     @Test func queryTasksValidTypeFilterStillWorks() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
