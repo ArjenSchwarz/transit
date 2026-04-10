@@ -104,6 +104,19 @@ nonisolated enum IntentHelpers {
         }
     }
 
+    /// Validates that a JSON field, if present, is a valid UUID string.
+    /// Returns the parsed UUID on success, nil when the key is absent,
+    /// or `.failure` when the key is present but malformed. [T-753]
+    static func validateUUIDField(
+        _ key: String, in json: [String: Any]
+    ) -> Result<UUID?, IntentError> {
+        guard json[key] != nil else { return .success(nil) }
+        guard let str = json[key] as? String, let uuid = UUID(uuidString: str) else {
+            return .failure(.invalidInput(hint: "\(key) must be a valid UUID"))
+        }
+        return .success(uuid)
+    }
+
     /// Resolves a milestone from JSON containing displayId or milestoneId.
     @MainActor
     static func resolveMilestone(
@@ -112,26 +125,64 @@ nonisolated enum IntentHelpers {
         projectService: ProjectService
     ) -> Result<Milestone, IntentError> {
         if json["displayId"] != nil {
-            guard let displayId = parseIntValue(json["displayId"]) else {
-                return .failure(.invalidInput(hint: "displayId must be an integer"))
-            }
-            do {
-                return .success(try milestoneService.findByDisplayID(displayId))
-            } catch MilestoneService.Error.duplicateDisplayID {
-                return .failure(.internalError(
-                    hint: "Duplicate milestone identifier detected for displayId \(displayId)"
-                ))
-            } catch {
-                return .failure(.milestoneNotFound(hint: "No milestone with displayId \(displayId)"))
-            }
-        } else if let idString = json["milestoneId"] as? String, let uuid = UUID(uuidString: idString) {
-            do {
-                return .success(try milestoneService.findByID(uuid))
-            } catch {
-                return .failure(.milestoneNotFound(hint: "No milestone with ID \(idString)"))
-            }
+            return resolveMilestoneByDisplayId(json, milestoneService: milestoneService)
+        } else if json["milestoneId"] != nil {
+            return resolveMilestoneById(json, milestoneService: milestoneService)
         } else if let name = json["name"] as? String {
-            let projectId: UUID? = (json["projectId"] as? String).flatMap(UUID.init)
+            return resolveMilestoneByName(
+                name, json: json,
+                milestoneService: milestoneService, projectService: projectService
+            )
+        }
+        return .failure(.invalidInput(hint: "Provide displayId, milestoneId, or name with project"))
+    }
+
+    @MainActor
+    private static func resolveMilestoneByDisplayId(
+        _ json: [String: Any], milestoneService: MilestoneService
+    ) -> Result<Milestone, IntentError> {
+        guard let displayId = parseIntValue(json["displayId"]) else {
+            return .failure(.invalidInput(hint: "displayId must be an integer"))
+        }
+        do {
+            return .success(try milestoneService.findByDisplayID(displayId))
+        } catch MilestoneService.Error.duplicateDisplayID {
+            return .failure(.internalError(
+                hint: "Duplicate milestone identifier detected for displayId \(displayId)"
+            ))
+        } catch {
+            return .failure(.milestoneNotFound(hint: "No milestone with displayId \(displayId)"))
+        }
+    }
+
+    // Reject malformed milestoneId instead of falling back to name lookup [T-753]
+    @MainActor
+    private static func resolveMilestoneById(
+        _ json: [String: Any], milestoneService: MilestoneService
+    ) -> Result<Milestone, IntentError> {
+        // Key is known-present; validateUUIDField returns non-nil UUID or failure.
+        guard case .success(let uuid?) = validateUUIDField("milestoneId", in: json) else {
+            return .failure(.invalidInput(hint: "milestoneId must be a valid UUID"))
+        }
+        do {
+            return .success(try milestoneService.findByID(uuid))
+        } catch {
+            let idStr = json["milestoneId"] as? String ?? "unknown"
+            return .failure(.milestoneNotFound(hint: "No milestone with ID \(idStr)"))
+        }
+    }
+
+    @MainActor
+    private static func resolveMilestoneByName(
+        _ name: String,
+        json: [String: Any],
+        milestoneService: MilestoneService,
+        projectService: ProjectService
+    ) -> Result<Milestone, IntentError> {
+        // Reject malformed projectId instead of falling back to name lookup [T-753]
+        switch validateUUIDField("projectId", in: json) {
+        case .failure(let error): return .failure(error)
+        case .success(let projectId):
             let projectName = json["project"] as? String
             let lookupResult = projectService.findProject(id: projectId, name: projectName)
             guard case .success(let project) = lookupResult else {
@@ -147,7 +198,6 @@ nonisolated enum IntentHelpers {
             }
             return .success(found)
         }
-        return .failure(.invalidInput(hint: "Provide displayId, milestoneId, or name with project"))
     }
 
     /// Converts a TransitTask to a JSON-compatible dictionary.
