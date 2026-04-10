@@ -319,6 +319,16 @@ final class MCPToolHandler {
             }
         }
 
+        // Validate enum filters before building MCPQueryFilters [T-732]
+        if let error = validateTaskStatusFilter(args, key: "status") { return error }
+        if let error = validateTaskStatusFilter(args, key: "not_status") { return error }
+        if let typeRaw = args["type"] as? String {
+            guard TaskType(rawValue: typeRaw) != nil else {
+                let valid = TaskType.allCases.map(\.rawValue).joined(separator: ", ")
+                return errorResult("Invalid type: \(typeRaw). Must be one of: \(valid)")
+            }
+        }
+
         let search = (args["search"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let filters = MCPQueryFilters.from(
             args: args, type: args["type"] as? String, projectId: projectFilter,
@@ -415,7 +425,6 @@ extension MCPToolHandler {
 
 extension MCPToolHandler {
 
-    // swiftlint:disable:next cyclomatic_complexity
     private func handleQueryMilestones(_ args: [String: Any]) -> MCPToolResult {
         // Single-milestone lookup by displayId
         // Reject non-integer displayId when key is present [T-634]
@@ -447,7 +456,8 @@ extension MCPToolHandler {
             return errorResult(message)
         }
 
-        // Status filter
+        // Status filter — validate enum values before filtering [T-732]
+        if let error = validateMilestoneStatusFilter(args) { return error }
         if let statusArray = args["status"] as? [String] {
             filtered = filtered.filter { statusArray.contains($0.statusRawValue) }
         } else if let statusSingle = args["status"] as? String {
@@ -812,6 +822,48 @@ extension MCPToolHandler {
     private func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }
     private func errorResult(_ message: String) -> MCPToolResult {
         MCPToolResult(content: [.text(message)], isError: true)
+    }
+
+    /// Validate that all values in a task status filter (status or not_status) are valid TaskStatus raw values.
+    /// Returns an error result if any value is invalid, or nil if all are valid (or the key is absent).
+    private func validateTaskStatusFilter(_ args: [String: Any], key: String) -> MCPToolResult? {
+        let values: [String]
+        if let array = args[key] as? [String] {
+            values = array
+        } else if let single = args[key] as? String {
+            values = [single]
+        } else {
+            return nil
+        }
+        let validRaw = Set(TaskStatus.allCases.map(\.rawValue))
+        let invalid = values.filter { !validRaw.contains($0) }
+        guard invalid.isEmpty else {
+            let valid = TaskStatus.allCases.map(\.rawValue).joined(separator: ", ")
+            let invalidList = invalid.joined(separator: ", ")
+            return errorResult("Invalid \(key): \(invalidList). Must be one of: \(valid)")
+        }
+        return nil
+    }
+
+    /// Validate that all values in a milestone status filter are valid MilestoneStatus raw values.
+    /// Returns an error result if any value is invalid, or nil if all are valid (or the key is absent).
+    private func validateMilestoneStatusFilter(_ args: [String: Any]) -> MCPToolResult? {
+        let values: [String]
+        if let array = args["status"] as? [String] {
+            values = array
+        } else if let single = args["status"] as? String {
+            values = [single]
+        } else {
+            return nil
+        }
+        let validRaw = Set(MilestoneStatus.allCases.map(\.rawValue))
+        let invalid = values.filter { !validRaw.contains($0) }
+        guard invalid.isEmpty else {
+            let valid = MilestoneStatus.allCases.map(\.rawValue).joined(separator: ", ")
+            let invalidList = invalid.joined(separator: ", ")
+            return errorResult("Invalid status: \(invalidList). Must be one of: \(valid)")
+        }
+        return nil
     }
 
     private func stringMetadata(from value: Any?) -> [String: String]? {
