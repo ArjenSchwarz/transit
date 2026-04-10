@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Task detail view shows creation date in secondary style on both iOS and macOS (T-755)
 - macOS: Task detail opens in a dedicated window instead of a sheet, with share and edit buttons in the toolbar (T-35)
 - macOS: New Task opens in a dedicated window instead of a sheet (T-35)
 - macOS: Edit Task replaces detail content in the same window instead of presenting a sheet (T-35)

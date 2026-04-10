@@ -71,6 +71,10 @@ struct TaskDetailView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            LabeledContent("Created") {
+                Text(task.creationDate.formatted(date: .abbreviated, time: .shortened))
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -132,6 +136,11 @@ struct TaskDetailView: View {
                                 Text("None")
                                     .foregroundStyle(.secondary)
                             }
+                        }
+
+                        FormRow("Created", labelWidth: Self.labelWidth) {
+                            Text(task.creationDate.formatted(date: .abbreviated, time: .shortened))
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
