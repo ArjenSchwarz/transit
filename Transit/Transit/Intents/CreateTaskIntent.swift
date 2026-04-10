@@ -68,6 +68,10 @@ struct CreateTaskIntent: AppIntent {
         let taskType = TaskType(rawValue: typeRaw)! // swiftlint:disable:this force_unwrapping
 
         // Resolve project: projectId takes precedence over project name
+        // Reject malformed projectId when the key is present [T-743]
+        if let projectIdStr = json["projectId"] as? String, UUID(uuidString: projectIdStr) == nil {
+            return IntentError.invalidInput(hint: "Invalid projectId: expected a UUID string").json
+        }
         let projectId: UUID? = (json["projectId"] as? String).flatMap(UUID.init)
         let projectName = json["project"] as? String
         let lookupResult = projectService.findProject(id: projectId, name: projectName)
