@@ -137,6 +137,10 @@ final class MCPToolHandler {
             return errorResult("Invalid type: \(typeRaw). Must be one of: \(valid)")
         }
 
+        // Reject malformed projectId when the key is present [T-743]
+        if let pidStr = args["projectId"] as? String, UUID(uuidString: pidStr) == nil {
+            return errorResult("Invalid projectId: expected a UUID string")
+        }
         let projectId = (args["projectId"] as? String).flatMap(UUID.init)
         let projectName = args["project"] as? String
         let project: Project
@@ -386,6 +390,10 @@ extension MCPToolHandler {
             return errorResult("Missing required argument: name")
         }
 
+        // Reject malformed projectId when the key is present [T-743]
+        if let pidStr = args["projectId"] as? String, UUID(uuidString: pidStr) == nil {
+            return errorResult("Invalid projectId: expected a UUID string")
+        }
         let projectId = (args["projectId"] as? String).flatMap(UUID.init)
         let projectName = args["project"] as? String
         let project: Project
