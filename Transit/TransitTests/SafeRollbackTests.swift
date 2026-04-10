@@ -219,4 +219,26 @@ struct SafeRollbackTests {
         #expect(task.metadata["git.branch"] == "main")
         #expect(task.metadata["agent.id"] == nil)
     }
+
+    // MARK: - SyncHeartbeat re-faulting (T-777)
+
+    @Test func safeRollbackRevertsSyncHeartbeatProperties() throws {
+        let context = try makeContext()
+
+        let heartbeat = SyncHeartbeat()
+        context.insert(heartbeat)
+        try context.save()
+
+        let originalBeat = heartbeat.lastBeat
+
+        // Mutate in memory — simulates a stale write that needs rollback
+        heartbeat.lastBeat = Date.distantFuture
+
+        #expect(heartbeat.lastBeat == Date.distantFuture)
+
+        context.safeRollback()
+
+        // After rollback + re-fault, lastBeat must match the saved value
+        #expect(heartbeat.lastBeat == originalBeat)
+    }
 }
