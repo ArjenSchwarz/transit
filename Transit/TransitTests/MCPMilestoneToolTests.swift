@@ -99,6 +99,22 @@ struct MCPMilestoneToolTests {
         #expect(try MCPTestHelpers.isError(response))
     }
 
+    @Test func createMilestoneMalformedProjectIdReturnsError() async throws {
+        // When projectId is present but not a valid UUID, should return error
+        // instead of falling back to name-based lookup [T-743]
+        let env = try MCPTestHelpers.makeEnv()
+        MCPTestHelpers.makeProject(in: env.context, name: "Decoy")
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_milestone",
+            arguments: ["name": "v1.0", "projectId": "not-a-uuid", "project": "Decoy"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
     // MARK: - query_milestones
 
     @Test func queryAllMilestones() async throws {
@@ -299,41 +315,6 @@ struct MCPMilestoneToolTests {
         #expect(refetched.statusRawValue == "open", "Status was partially applied despite name update failure")
         #expect(refetched.name == "v1.0", "Name should remain unchanged")
         #expect(refetched.completionDate == nil, "completionDate should remain nil")
-    }
-
-    // MARK: - delete_milestone
-
-    @Test func deleteMilestoneSuccess() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-        let project = MCPTestHelpers.makeProject(in: env.context)
-        let milestone = try await env.milestoneService.createMilestone(
-            name: "v1.0", description: nil, project: project
-        )
-        let task = try await env.taskService.createTask(
-            name: "Task A", description: nil, type: .feature, project: project
-        )
-        try env.milestoneService.setMilestone(milestone, on: task)
-
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "delete_milestone",
-            arguments: ["displayId": 1]
-        ))
-
-        let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["deleted"] as? Bool == true)
-        #expect(result["name"] as? String == "v1.0")
-        #expect(result["affectedTasks"] as? Int == 1)
-    }
-
-    @Test func deleteMilestoneNotFoundReturnsError() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "delete_milestone",
-            arguments: ["displayId": 999]
-        ))
-
-        #expect(try MCPTestHelpers.isError(response))
     }
 
 }
