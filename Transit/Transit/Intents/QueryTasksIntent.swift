@@ -173,17 +173,11 @@ struct QueryTasksIntent: AppIntent {
     }
 
     @MainActor private static func validateEnumFilters(_ filters: QueryFilters) -> IntentError? {
-        if let status = filters.status {
-            let valid = TaskStatus.allCases.map(\.rawValue)
-            if !valid.contains(status) {
-                return .invalidStatus(hint: "Unknown status: \(status)")
-            }
+        if let status = filters.status, TaskStatus(rawValue: status) == nil {
+            return .invalidStatus(hint: "Unknown status: \(status)")
         }
-        if let type = filters.type {
-            let valid = TaskType.allCases.map(\.rawValue)
-            if !valid.contains(type) {
-                return .invalidType(hint: "Unknown type: \(type)")
-            }
+        if let type = filters.type, TaskType(rawValue: type) == nil {
+            return .invalidType(hint: "Unknown type: \(type)")
         }
         return nil
     }

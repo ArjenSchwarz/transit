@@ -79,6 +79,20 @@ struct QueryIntentEnumValidationTests {
         #expect(parsed["error"] as? String == "INVALID_TYPE")
     }
 
+    @Test func queryTasksWithMixedCaseStatusReturnsError() throws {
+        // T-754: Enum matching is case-sensitive; "IDEA" and "In-Progress" are not valid
+        let svc = try makeTaskServices()
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"status\":\"IDEA\"}",
+            projectService: svc.project,
+            taskService: svc.task
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_STATUS")
+    }
+
     @Test func queryTasksWithValidStatusStillWorks() throws {
         // Ensure valid enum values continue to work after adding validation
         let svc = try makeTaskServices()
