@@ -88,8 +88,7 @@ nonisolated enum IntentHelpers {
         }
     }
 
-    /// Resolves a task from JSON containing displayId or taskId.
-    /// Delegates to `TaskService.resolveTask(from:)` and maps errors to `IntentError`.
+    /// Resolves a task from JSON containing displayId or taskId, mapping errors to `IntentError`.
     @MainActor
     static func resolveTask(
         from json: [String: Any],
@@ -104,9 +103,8 @@ nonisolated enum IntentHelpers {
         }
     }
 
-    /// Validates that a JSON field, if present, is a valid UUID string.
-    /// Returns the parsed UUID on success, nil when the key is absent,
-    /// or `.failure` when the key is present but malformed. [T-753]
+    /// Validates that a JSON field, if present, is a valid UUID string. Returns the parsed UUID,
+    /// nil when absent, or `.failure` when present but malformed. [T-753]
     static func validateUUIDField(
         _ key: String, in json: [String: Any]
     ) -> Result<UUID?, IntentError> {
@@ -137,6 +135,7 @@ nonisolated enum IntentHelpers {
         return .failure(.invalidInput(hint: "Provide displayId, milestoneId, or name with project"))
     }
 
+    /// Resolves a milestone by its integer display ID.
     @MainActor
     private static func resolveMilestoneByDisplayId(
         _ json: [String: Any], milestoneService: MilestoneService
@@ -147,30 +146,32 @@ nonisolated enum IntentHelpers {
         do {
             return .success(try milestoneService.findByDisplayID(displayId))
         } catch MilestoneService.Error.duplicateDisplayID {
-            return .failure(.internalError(
-                hint: "Duplicate milestone identifier detected for displayId \(displayId)"
-            ))
+            return .failure(.internalError(hint: "Duplicate milestone identifier for displayId \(displayId)"))
         } catch {
             return .failure(.milestoneNotFound(hint: "No milestone with displayId \(displayId)"))
         }
     }
 
-    // Reject malformed milestoneId instead of falling back to name lookup [T-753]
+    /// Resolves a milestone by its UUID identifier. Rejects non-UUID values with INVALID_INPUT. [T-753]
     @MainActor
     private static func resolveMilestoneById(
         _ json: [String: Any], milestoneService: MilestoneService
     ) -> Result<Milestone, IntentError> {
         switch validateUUIDField("milestoneId", in: json) {
         case .failure(let error): return .failure(error)
-        case .success(nil): return .failure(.invalidInput(hint: "milestoneId must be a valid UUID"))
+        case .success(nil): // unreachable: caller gates on key presence
+            return .failure(.invalidInput(hint: "milestoneId must be a valid UUID"))
         case .success(let uuid?):
-            do { return .success(try milestoneService.findByID(uuid)) } catch {
+            do {
+                return .success(try milestoneService.findByID(uuid))
+            } catch {
                 let idStr = json["milestoneId"] as? String ?? "unknown"
                 return .failure(.milestoneNotFound(hint: "No milestone with ID \(idStr)"))
             }
         }
     }
 
+    /// Resolves a milestone by name within a project. Rejects non-UUID projectId values. [T-753]
     @MainActor
     private static func resolveMilestoneByName(
         _ name: String,
@@ -178,7 +179,6 @@ nonisolated enum IntentHelpers {
         milestoneService: MilestoneService,
         projectService: ProjectService
     ) -> Result<Milestone, IntentError> {
-        // Reject malformed projectId instead of falling back to name lookup [T-753]
         switch validateUUIDField("projectId", in: json) {
         case .failure(let error): return .failure(error)
         case .success(let projectId):

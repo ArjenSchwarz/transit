@@ -162,6 +162,48 @@ struct UpdateMilestoneIdentifierValidationTests {
         #expect((parsed["hint"] as? String)?.contains("milestoneId") == true)
     }
 
+    @Test func nonStringProjectIdRejectsWithInvalidInput() throws {
+        // projectId provided as a number instead of a UUID string
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let input = """
+        {"name":"v1.0","projectId":456,"project":"Alpha","status":"done"}
+        """
+
+        let result = UpdateMilestoneIntent.execute(
+            input: input,
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
+
+    @Test func emptyStringProjectIdRejectsWithInvalidInput() throws {
+        // projectId as empty string is not a valid UUID
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let input = """
+        {"name":"v1.0","projectId":"","project":"Alpha","status":"done"}
+        """
+
+        let result = UpdateMilestoneIntent.execute(
+            input: input,
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
+
     // MARK: - Valid identifiers still work
 
     @Test func validMilestoneIdStillWorks() throws {
