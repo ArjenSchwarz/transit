@@ -110,8 +110,8 @@ nonisolated enum IntentHelpers {
     static func validateUUIDField(
         _ key: String, in json: [String: Any]
     ) -> Result<UUID?, IntentError> {
-        guard json[key] != nil else { return .success(nil) }
-        guard let str = json[key] as? String, let uuid = UUID(uuidString: str) else {
+        guard let value = json[key] else { return .success(nil) }
+        guard let str = value as? String, let uuid = UUID(uuidString: str) else {
             return .failure(.invalidInput(hint: "\(key) must be a valid UUID"))
         }
         return .success(uuid)
@@ -160,15 +160,14 @@ nonisolated enum IntentHelpers {
     private static func resolveMilestoneById(
         _ json: [String: Any], milestoneService: MilestoneService
     ) -> Result<Milestone, IntentError> {
-        // Key is known-present; validateUUIDField returns non-nil UUID or failure.
-        guard case .success(let uuid?) = validateUUIDField("milestoneId", in: json) else {
-            return .failure(.invalidInput(hint: "milestoneId must be a valid UUID"))
-        }
-        do {
-            return .success(try milestoneService.findByID(uuid))
-        } catch {
-            let idStr = json["milestoneId"] as? String ?? "unknown"
-            return .failure(.milestoneNotFound(hint: "No milestone with ID \(idStr)"))
+        switch validateUUIDField("milestoneId", in: json) {
+        case .failure(let error): return .failure(error)
+        case .success(nil): return .failure(.invalidInput(hint: "milestoneId must be a valid UUID"))
+        case .success(let uuid?):
+            do { return .success(try milestoneService.findByID(uuid)) } catch {
+                let idStr = json["milestoneId"] as? String ?? "unknown"
+                return .failure(.milestoneNotFound(hint: "No milestone with ID \(idStr)"))
+            }
         }
     }
 
