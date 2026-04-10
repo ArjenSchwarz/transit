@@ -33,10 +33,10 @@ Both query intents parse enum filter values as raw strings and pass them directl
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Intents/QueryTasksIntent.swift` — Added `validateEnumFilters` method that checks `status` against `TaskStatus.allCases` and `type` against `TaskType.allCases`, returning `INVALID_STATUS` or `INVALID_TYPE` errors respectively.
-- `Transit/Transit/Intents/QueryMilestonesIntent.swift` — Added status validation in `execute()` that checks the `status` field against `MilestoneStatus.allCases`, returning `INVALID_STATUS` on mismatch.
+- `Transit/Transit/Intents/QueryTasksIntent.swift` — Added `validateEnumFilters` method that checks `status` via `TaskStatus(rawValue:)` and `type` via `TaskType(rawValue:)`, returning `INVALID_STATUS` or `INVALID_TYPE` errors respectively.
+- `Transit/Transit/Intents/QueryMilestonesIntent.swift` — Added status validation in `execute()` that checks the `status` field via `MilestoneStatus(rawValue:)`, returning `INVALID_STATUS` on mismatch.
 
-**Approach rationale:** Validates early in the execute flow (fail-fast), consistent with how other intents handle enum validation. Uses `CaseIterable` to check membership without hardcoding values.
+**Approach rationale:** Validates early in the execute flow (fail-fast), consistent with how other intents handle enum validation. Uses the failable `rawValue` initializer on each enum to check membership without hardcoding values.
 
 **Alternatives considered:**
 - Validate inside `applyFilters` — rejected because errors should be caught before filtering begins, consistent with the existing projectId/date validation pattern.

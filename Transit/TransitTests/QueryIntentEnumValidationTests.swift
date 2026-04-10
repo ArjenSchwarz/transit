@@ -136,6 +136,20 @@ struct QueryIntentEnumValidationTests {
 
     // MARK: - QueryMilestonesIntent: Invalid status
 
+    @Test func queryMilestonesWithMixedCaseStatusReturnsError() throws {
+        // T-754: Enum matching is case-sensitive; "OPEN" is not a valid milestone status
+        let svc = try makeMilestoneServices()
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"status\":\"OPEN\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_STATUS")
+    }
+
     @Test func queryMilestonesWithInvalidStatusReturnsError() throws {
         // T-754: Passing an invalid status should return INVALID_STATUS, not silently filter
         let svc = try makeMilestoneServices()
