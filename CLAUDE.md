@@ -53,11 +53,12 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
 
 ### Data Model
 
-Four SwiftData entities:
+Five SwiftData entities:
 - **Project** → has many **Tasks** and many **Milestones**
 - **TransitTask** → belongs to one Project, optionally belongs to one Milestone, has many Comments
 - **Milestone** → belongs to one Project, has many Tasks. Statuses: open / done / abandoned
 - **Comment** → belongs to one Task. Has `authorName`, `isAgent` flag, and `content`
+- **SyncHeartbeat** → singleton record whose `lastBeat` timestamp triggers CloudKit sync cycles
 
 Both tasks and milestones have a UUID and a separate `permanentDisplayId` integer for human-facing use (T-1, M-3), allocated via CloudKit counter records with optimistic locking and provisional fallback when offline.
 
@@ -98,7 +99,9 @@ All business logic lives in `Services/`, not in views:
 - **MilestoneService** (`@MainActor @Observable`) — milestone CRUD, status changes, task assignment validation (project match), name uniqueness within project
 - **CommentService** (`@MainActor @Observable`) — comment CRUD on tasks, resolves task references across contexts
 - **SyncManager** — CloudKit sync preference via UserDefaults; toggle takes effect on next launch
+- **ContainerFactory** — creates ModelContainer with graceful fallback to in-memory on error
 - **ConnectivityMonitor** — NWPathMonitor wrapper, triggers display ID promotion for both tasks and milestones on connectivity restore
+- **QuickActionService** — home screen quick action handling
 
 ### Navigation
 
@@ -203,7 +206,7 @@ Services follow a consistent pattern: mutate in memory, then `save()`, rolling b
 - Abandoned tasks restore to Idea (not previous status)
 - Filter state is ephemeral (resets on launch)
 - Project picker uses native dropdown/menu (not chips or searchable list)
-- Free-form `[String: String]` metadata on tasks with reserved namespace prefixes: `git.`, `ci.`, `agent.`
+- Free-form `[String: String]` metadata on tasks for agent/automation use
 - Milestones are scoped to a project; names must be unique within a project (case-insensitive)
 - Milestone assignment validates project match — task and milestone must belong to the same project
 - Comments have an `isAgent` flag to distinguish human vs agent-authored comments
