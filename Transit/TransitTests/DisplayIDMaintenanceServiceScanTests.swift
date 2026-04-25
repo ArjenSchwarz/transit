@@ -16,9 +16,7 @@ struct DisplayIDMaintenanceServiceScanTests {
         return DisplayIDMaintenanceService(
             modelContext: context,
             taskAllocator: taskAllocator,
-            taskCounterStore: InMemoryCounterStore(),
             milestoneAllocator: milestoneAllocator,
-            milestoneCounterStore: InMemoryCounterStore(),
             commentService: commentService
         )
     }

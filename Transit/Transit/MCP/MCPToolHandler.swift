@@ -31,12 +31,6 @@ final class MCPToolHandler {
         self.settings = settings
     }
 
-    /// Names of maintenance tools gated behind `MCPSettings.maintenanceToolsEnabled`.
-    private static let maintenanceToolNames: Set<String> = [
-        "scan_duplicate_display_ids",
-        "reassign_duplicate_display_ids"
-    ]
-
     // MARK: - JSON-RPC Dispatch
 
     /// Returns `nil` for JSON-RPC notifications (no response required).
@@ -105,7 +99,7 @@ final class MCPToolHandler {
 
         // Gate maintenance tools behind the settings toggle. Distinct message so
         // callers can tell a disabled tool from an unknown one (AC 5.5).
-        if Self.maintenanceToolNames.contains(name), !settings.maintenanceToolsEnabled {
+        if MCPToolDefinitions.maintenanceToolNames.contains(name), !settings.maintenanceToolsEnabled {
             return JSONRPCResponse.error(
                 id: id,
                 code: JSONRPCErrorCode.methodNotFound,
@@ -155,27 +149,19 @@ final class MCPToolHandler {
     private func handleScanDuplicateDisplayIds() -> MCPToolResult {
         do {
             let report = try maintenanceService.scanDuplicates()
-            return try encodedTextResult(report)
+            return textResult(try IntentHelpers.encodeAsJSONString(report))
         } catch {
-            return errorResult("Failed to scan duplicates: \(error)")
+            return errorResult("Failed to scan duplicates: \(error.localizedDescription)")
         }
     }
 
     private func handleReassignDuplicateDisplayIds() async -> MCPToolResult {
         let result = await maintenanceService.reassignDuplicates()
         do {
-            return try encodedTextResult(result)
+            return textResult(try IntentHelpers.encodeAsJSONString(result))
         } catch {
-            return errorResult("Failed to encode reassignment result: \(error)")
+            return errorResult("Failed to encode reassignment result: \(error.localizedDescription)")
         }
-    }
-
-    private func encodedTextResult(_ value: some Encodable) throws -> MCPToolResult {
-        let data = try JSONEncoder().encode(value)
-        guard let text = String(data: data, encoding: .utf8) else {
-            return errorResult("Failed to encode response as UTF-8")
-        }
-        return textResult(text)
     }
 
     // MARK: - create_task

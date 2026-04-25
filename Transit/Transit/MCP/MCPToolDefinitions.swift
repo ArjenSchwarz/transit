@@ -20,6 +20,10 @@ nonisolated enum MCPToolDefinitions {
         includingMaintenance ? coreTools + maintenanceTools : coreTools
     }
 
+    /// Names of tools gated behind `MCPSettings.maintenanceToolsEnabled`,
+    /// derived from `maintenanceTools` so adding a tool there is a single edit.
+    static let maintenanceToolNames: Set<String> = Set(maintenanceTools.map(\.name))
+
     // MARK: - Maintenance Tools
 
     // swiftlint:disable:next line_length

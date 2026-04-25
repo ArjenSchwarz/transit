@@ -101,9 +101,7 @@ struct TransitApp: App {
         let maintenanceService = DisplayIDMaintenanceService(
             modelContext: context,
             taskAllocator: allocator,
-            taskCounterStore: allocator.counterStore,
             milestoneAllocator: milestoneAllocator,
-            milestoneCounterStore: milestoneAllocator.counterStore,
             commentService: commentService
         )
         self.maintenanceService = maintenanceService

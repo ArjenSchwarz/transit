@@ -33,9 +33,7 @@ struct DisplayIDMaintenanceServiceReassignTests {
         let service = DisplayIDMaintenanceService(
             modelContext: context,
             taskAllocator: taskAllocator,
-            taskCounterStore: taskStore,
             milestoneAllocator: milestoneAllocator,
-            milestoneCounterStore: milestoneStore,
             commentService: commentService,
             clock: clock
         )
@@ -238,6 +236,46 @@ struct DisplayIDMaintenanceServiceReassignTests {
         let after = try env.context.fetch(FetchDescriptor<TransitTask>())
         let updated = try #require(after.first(where: { $0.id == loserId }))
         #expect(updated.permanentDisplayId == 999, "Loser's manually-set ID preserved")
+    }
+
+    // MARK: - Per-Group Failure Isolation (AC 8.1 / 2.6)
+
+    @Test func allocationFailureOnOneGroupDoesNotAbortNextGroup() async throws {
+        let env = try makeEnv(taskCounterStart: 1)
+        // Two duplicate task groups. Counter advance succeeds, the first group's
+        // loser allocation exhausts retries (5 conflicts), but the second group
+        // still gets a successful allocation.
+        await env.taskStore.enqueueSaveOutcomes(
+            [.success]                               // counter advance
+            + Array(repeating: .conflict, count: 5)  // group 1 allocation: retries exhausted
+            + [.success]                             // group 2 allocation
+        )
+
+        // Group 1: displayId=5 (winner + loser).
+        makeTask(in: env, name: "W5", displayId: 5,
+                 creationDate: Date(timeIntervalSince1970: 1000))
+        makeTask(in: env, name: "L5", displayId: 5,
+                 creationDate: Date(timeIntervalSince1970: 2000))
+        // Group 2: displayId=6 (winner + loser).
+        makeTask(in: env, name: "W6", displayId: 6,
+                 creationDate: Date(timeIntervalSince1970: 1000))
+        makeTask(in: env, name: "L6", displayId: 6,
+                 creationDate: Date(timeIntervalSince1970: 2000))
+        try env.context.save()
+
+        let result = await env.service.reassignDuplicates()
+        #expect(result.status == .ok)
+
+        // Groups are emitted in ascending displayId order.
+        let group5 = try #require(result.groups.first(where: { $0.displayId == 5 }))
+        let group6 = try #require(result.groups.first(where: { $0.displayId == 6 }))
+
+        // Group 1 records allocation-failed and skips its loser.
+        #expect(group5.failure?.code == .allocationFailed)
+        #expect(group5.reassignments.isEmpty)
+        // Group 2 still runs and reassigns its loser successfully.
+        #expect(group6.failure == nil)
+        #expect(group6.reassignments.count == 1)
     }
 
     // MARK: - Counter Advance Failure

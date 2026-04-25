@@ -8,8 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `DisplayIDMaintenanceService.reassignDuplicates` now surfaces a fetch failure as a counter-advance warning on both record types instead of silently no-oping the run with empty arrays.
+- `DisplayIDMaintenanceService` group processing no longer fabricates winner identity (`UUID()` / `""`) for the unreachable empty-group case; the invariant is asserted via `preconditionFailure` and the existing `RecordRef` is propagated.
 - `IntentHelpers.resolveMilestone` now rejects malformed `milestoneId` and `projectId` with `INVALID_INPUT` instead of silently falling back to name-based lookup (T-753)
 - Sync toggle in Settings now updates `SyncManager` runtime state immediately instead of only taking effect on next launch (T-699)
+
+### Changed
+
+- `DisplayIDMaintenanceService` init no longer takes `taskCounterStore`/`milestoneCounterStore`; the stores are read from each `DisplayIDAllocator.counterStore` (single source of truth).
+- `IntentHelpers.encodeAsJSONString(_:)` is the shared JSON encoding helper used by `MCPToolHandler` and the maintenance App Intents, replacing three per-site copies of the same `JSONEncoder()` + UTF-8 guard.
+- `MCPToolHandler` now derives the gated maintenance tool name set from `MCPToolDefinitions.maintenanceToolNames` so the gate stays in sync with the definitions list.
+- Service-level error messages in `DisplayIDMaintenanceService` use `error.localizedDescription` rather than `"\(error)"` interpolation for more actionable output in the result envelope.
+- Decision 11 in the duplicate-displayid-cleanup decision log records the choice to use `FetchDescriptor` for the stale-ID guard (instead of `ModelContext.refresh(_:mergeChanges:)`) since the service hands `RecordRef` value types across the scan/reassign boundary rather than `@Model` references.
+
+### Added
+
+- Test for AC 8.1: an allocation failure on one duplicate group does not abort subsequent groups; the loser loop breaks for the failing group only and the next group still reassigns.
 
 ### Added
 

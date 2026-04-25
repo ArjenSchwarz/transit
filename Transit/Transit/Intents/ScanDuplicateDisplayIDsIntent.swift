@@ -43,21 +43,9 @@ struct ScanDuplicateDisplayIDsIntent: AppIntent {
     ) async -> String {
         do {
             let report = try maintenanceService.scanDuplicates()
-            return try encode(report)
+            return try IntentHelpers.encodeAsJSONString(report)
         } catch {
-            return IntentError.internalError(hint: "Failed to scan duplicates: \(error)").json
+            return IntentError.internalError(hint: "Failed to scan duplicates: \(error.localizedDescription)").json
         }
     }
-
-    /// Reuses the same JSONEncoder configuration as the MCP dispatch handler so
-    /// Intent and MCP outputs share a byte-equal encoding for the same input.
-    private static func encode(_ value: some Encodable) throws -> String {
-        let data = try JSONEncoder().encode(value)
-        guard let text = String(data: data, encoding: .utf8) else {
-            throw IntentEncodingError.utf8
-        }
-        return text
-    }
-
-    private enum IntentEncodingError: Swift.Error { case utf8 }
 }

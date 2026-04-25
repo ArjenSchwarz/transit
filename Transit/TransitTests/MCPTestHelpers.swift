@@ -31,9 +31,7 @@ enum MCPTestHelpers {
         let maintenanceService = DisplayIDMaintenanceService(
             modelContext: context,
             taskAllocator: taskAllocator,
-            taskCounterStore: taskStore,
             milestoneAllocator: milestoneAllocator,
-            milestoneCounterStore: milestoneStore,
             commentService: commentService
         )
         let mcpSettings = MCPSettings()

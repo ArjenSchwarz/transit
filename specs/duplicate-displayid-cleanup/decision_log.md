@@ -336,3 +336,35 @@ Once the counter is past the existing max, every `allocateNextID` — from this 
 - **Windows where a reassigned task is seen without its audit comment.** Decision 7's two-save order leaves a short window where a reader can see the new ID without the comment explaining the change.
 - **Winner changed between scan and reassign.** AC 2.3's stale-ID guard covers losers only. If a peer device has mutated the winner's `permanentDisplayId` between scan and reassign, the group still proceeds with the scanned winner identity. The worst case is a residual duplicate detected on the next run, which is acceptable for a deliberately-run maintenance operation.
 - **Local-only visibility of peer changes via `refresh(_:mergeChanges:)`.** The stale-ID re-fetch calls `ModelContext.refresh(_:mergeChanges: true)`, which re-reads from the local SwiftData store. Peer-device changes are only visible after CloudKit has merged them locally; a change in flight is not detected. Acceptable because the counter-advance fence (Decision 10) prevents the race the stale-ID guard primarily exists to catch; the refresh is a belt-and-braces measure.
+
+---
+
+## Decision 11: Stale-ID Guard via FetchDescriptor, Not refresh(_:mergeChanges:)
+
+**Date**: 2026-04-25
+**Status**: accepted (supersedes the implementation guidance under Decision 6 / design.md component table)
+
+### Context
+
+The original design called for `modelContext.refresh(loser, mergeChanges: true)` followed by reading `loser.permanentDisplayId`. That assumed the maintenance service held the @Model object across the scan/reassign boundary. The implementation passes a `RecordRef` value type from scan to reassign instead — there is no @Model object to refresh. Refreshing would require a fetch by UUID first anyway.
+
+### Decision
+
+The stale-ID guard performs a fresh `FetchDescriptor<Type>(predicate: #Predicate { $0.id == id })` lookup keyed on the loser's UUID, then compares `permanentDisplayId` against the value captured during the scan. The original `refresh(_:mergeChanges:)` mention in the design and Decision 6 is superseded by this entry.
+
+### Rationale
+
+Both mechanisms surface the same committed local state, which is what the guard needs. Fetching by UUID is one round-trip to the local store either way; the design's `refresh` step would have been on top of an implicit fetch. Passing value types (`RecordRef`) across the scan/reassign boundary keeps the data path narrow and avoids retaining @Model references that may have been invalidated by SwiftData's faulting.
+
+### Alternatives Considered
+
+- **Hold @Model references across scan/reassign and call `refresh(_:mergeChanges:)`**: Matches the original design literal — Rejected because it requires the scan to return @Model objects rather than the value-typed `DuplicateReport`, complicating both the JSON shape and the test seam. The fetch-by-UUID approach achieves the same outcome with smaller surface area.
+
+### Consequences
+
+**Positive:**
+- The `DuplicateReport` value type is a clean cross-process boundary (MCP, App Intents, UI) with no @Model leakage.
+- Test setup is straightforward: insert/mutate via the same `ModelContext` and re-fetch returns the up-to-date row.
+
+**Negative:**
+- The design document and Decision 6 reference a mechanism (`refresh(_:mergeChanges:)`) that the code does not call. This entry resolves that contradiction.

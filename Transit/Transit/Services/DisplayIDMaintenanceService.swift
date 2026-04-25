@@ -10,9 +10,7 @@ final class DisplayIDMaintenanceService {
 
     private let modelContext: ModelContext
     private let taskAllocator: DisplayIDAllocator
-    private let taskCounterStore: DisplayIDAllocator.CounterStore
     private let milestoneAllocator: DisplayIDAllocator
-    private let milestoneCounterStore: DisplayIDAllocator.CounterStore
     private let commentService: CommentService
     private let clock: () -> Date
 
@@ -22,17 +20,13 @@ final class DisplayIDMaintenanceService {
     init(
         modelContext: ModelContext,
         taskAllocator: DisplayIDAllocator,
-        taskCounterStore: DisplayIDAllocator.CounterStore,
         milestoneAllocator: DisplayIDAllocator,
-        milestoneCounterStore: DisplayIDAllocator.CounterStore,
         commentService: CommentService,
         clock: @escaping () -> Date = { Date.now }
     ) {
         self.modelContext = modelContext
         self.taskAllocator = taskAllocator
-        self.taskCounterStore = taskCounterStore
         self.milestoneAllocator = milestoneAllocator
-        self.milestoneCounterStore = milestoneCounterStore
         self.commentService = commentService
         self.clock = clock
     }
@@ -125,22 +119,39 @@ final class DisplayIDMaintenanceService {
         isReassigning = true
         defer { isReassigning = false }
 
-        guard let report = try? scanDuplicates() else {
+        // One pair of fetches feeds both the duplicate report and the per-type
+        // sampled max used for the counter-advance fence. A fetch failure surfaces
+        // as a counter-advance warning rather than silently no-oping the run.
+        let tasks: [TransitTask]
+        let milestones: [Milestone]
+        do {
+            tasks = try modelContext.fetch(FetchDescriptor<TransitTask>())
+            milestones = try modelContext.fetch(FetchDescriptor<Milestone>())
+        } catch {
+            let warning = "Fetch failed: \(error.localizedDescription)"
             return ReassignmentResult(
                 status: .ok, groups: [],
-                counterAdvance: CounterAdvanceResult(task: nil, milestone: nil)
+                counterAdvance: CounterAdvanceResult(
+                    task: CounterAdvanceEntry(advancedTo: nil, warning: warning),
+                    milestone: CounterAdvanceEntry(advancedTo: nil, warning: warning)
+                )
             )
         }
 
-        // Sample max IDs across all records of each type for the counter fence.
-        let allTasks = (try? modelContext.fetch(FetchDescriptor<TransitTask>())) ?? []
-        let allMilestones = (try? modelContext.fetch(FetchDescriptor<Milestone>())) ?? []
-        let taskMax = allTasks.compactMap(\.permanentDisplayId).max()
-        let milestoneMax = allMilestones.compactMap(\.permanentDisplayId).max()
+        let report = DuplicateReport(
+            tasks: groupTasks(tasks),
+            milestones: groupMilestones(milestones)
+        )
+        let taskMax = tasks.compactMap(\.permanentDisplayId).max()
+        let milestoneMax = milestones.compactMap(\.permanentDisplayId).max()
 
         // Counter advance per type, independent. A failure aborts that type only.
-        let taskAdvance = await advanceCounterIfNeeded(store: taskCounterStore, sampledMax: taskMax)
-        let milestoneAdvance = await advanceCounterIfNeeded(store: milestoneCounterStore, sampledMax: milestoneMax)
+        let taskAdvance = await advanceCounterIfNeeded(
+            store: taskAllocator.counterStore, sampledMax: taskMax
+        )
+        let milestoneAdvance = await advanceCounterIfNeeded(
+            store: milestoneAllocator.counterStore, sampledMax: milestoneMax
+        )
 
         var groupResults: [GroupResult] = []
         for group in report.tasks {
@@ -158,41 +169,31 @@ final class DisplayIDMaintenanceService {
     }
 
     private func processTaskGroup(_ group: DuplicateGroup, advanceFailed: Bool) async -> GroupResult {
-        let winnerRef = group.records.first
-        let winnerName = winnerRef?.name ?? ""
-        let winnerId = winnerRef?.id ?? UUID()
+        // `count >= 2` is a `groupTasks`/`groupMilestones` invariant, so the
+        // winner is always present.
+        guard let winnerRef = group.records.first else { preconditionFailure("Empty duplicate group") }
+        let winner = GroupResultWinner(id: winnerRef.id, name: winnerRef.name)
         let losers = Array(group.records.dropFirst())
         if advanceFailed {
             return GroupResult(
                 type: .task, displayId: group.displayId,
-                winner: GroupResultWinner(id: winnerId, name: winnerName),
-                reassignments: [], failure: nil
+                winner: winner, reassignments: [], failure: nil
             )
         }
-        return await reassignTaskGroup(
-            displayId: group.displayId,
-            winnerId: winnerId, winnerName: winnerName,
-            losers: losers
-        )
+        return await reassignTaskGroup(displayId: group.displayId, winner: winner, losers: losers)
     }
 
     private func processMilestoneGroup(_ group: DuplicateGroup, advanceFailed: Bool) async -> GroupResult {
-        let winnerRef = group.records.first
-        let winnerName = winnerRef?.name ?? ""
-        let winnerId = winnerRef?.id ?? UUID()
+        guard let winnerRef = group.records.first else { preconditionFailure("Empty duplicate group") }
+        let winner = GroupResultWinner(id: winnerRef.id, name: winnerRef.name)
         let losers = Array(group.records.dropFirst())
         if advanceFailed {
             return GroupResult(
                 type: .milestone, displayId: group.displayId,
-                winner: GroupResultWinner(id: winnerId, name: winnerName),
-                reassignments: [], failure: nil
+                winner: winner, reassignments: [], failure: nil
             )
         }
-        return await reassignMilestoneGroup(
-            displayId: group.displayId,
-            winnerId: winnerId, winnerName: winnerName,
-            losers: losers
-        )
+        return await reassignMilestoneGroup(displayId: group.displayId, winner: winner, losers: losers)
     }
 
     /// Advances the counter to `sampledMax + 1` if `sampledMax` is non-nil.
@@ -207,12 +208,12 @@ final class DisplayIDMaintenanceService {
             let snapshot = try await store.loadCounter()
             return CounterAdvanceEntry(advancedTo: snapshot.nextDisplayID, warning: nil)
         } catch {
-            return CounterAdvanceEntry(advancedTo: nil, warning: "\(error)")
+            return CounterAdvanceEntry(advancedTo: nil, warning: error.localizedDescription)
         }
     }
 
     private func reassignTaskGroup(
-        displayId: Int, winnerId: UUID, winnerName: String, losers: [RecordRef]
+        displayId: Int, winner: GroupResultWinner, losers: [RecordRef]
     ) async -> GroupResult {
         var entries: [ReassignmentEntry] = []
         var failure: GroupFailure?
@@ -230,8 +231,7 @@ final class DisplayIDMaintenanceService {
 
         return GroupResult(
             type: .task, displayId: displayId,
-            winner: GroupResultWinner(id: winnerId, name: winnerName),
-            reassignments: entries, failure: failure
+            winner: winner, reassignments: entries, failure: failure
         )
     }
 
@@ -251,14 +251,14 @@ final class DisplayIDMaintenanceService {
         do {
             newId = try await taskAllocator.allocateNextID()
         } catch {
-            return .failed(GroupFailure(code: .allocationFailed, message: "\(error)"))
+            return .failed(GroupFailure(code: .allocationFailed, message: error.localizedDescription))
         }
         loserTask.permanentDisplayId = newId
         do {
             try modelContext.save()
         } catch {
             modelContext.safeRollback()
-            return .failed(GroupFailure(code: .saveFailed, message: "\(error)"))
+            return .failed(GroupFailure(code: .saveFailed, message: error.localizedDescription))
         }
         let commentWarning = appendAuditComment(to: loserTask, oldId: displayId, newId: newId)
         return .reassigned(ReassignmentEntry(
@@ -279,12 +279,12 @@ final class DisplayIDMaintenanceService {
             )
             return nil
         } catch {
-            return "\(error)"
+            return error.localizedDescription
         }
     }
 
     private func reassignMilestoneGroup(
-        displayId: Int, winnerId: UUID, winnerName: String, losers: [RecordRef]
+        displayId: Int, winner: GroupResultWinner, losers: [RecordRef]
     ) async -> GroupResult {
         var entries: [ReassignmentEntry] = []
         var failure: GroupFailure?
@@ -304,7 +304,7 @@ final class DisplayIDMaintenanceService {
             do {
                 newId = try await milestoneAllocator.allocateNextID()
             } catch {
-                failure = GroupFailure(code: .allocationFailed, message: "\(error)")
+                failure = GroupFailure(code: .allocationFailed, message: error.localizedDescription)
                 break
             }
 
@@ -314,7 +314,7 @@ final class DisplayIDMaintenanceService {
                 try modelContext.save()
             } catch {
                 modelContext.safeRollback()
-                failure = GroupFailure(code: .saveFailed, message: "\(error)")
+                failure = GroupFailure(code: .saveFailed, message: error.localizedDescription)
                 break
             }
 
@@ -327,8 +327,7 @@ final class DisplayIDMaintenanceService {
 
         return GroupResult(
             type: .milestone, displayId: displayId,
-            winner: GroupResultWinner(id: winnerId, name: winnerName),
-            reassignments: entries, failure: failure
+            winner: winner, reassignments: entries, failure: failure
         )
     }
 
