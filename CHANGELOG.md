@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- MCP server exposes `scan_duplicate_display_ids` and `reassign_duplicate_display_ids` tools, gated behind a new `MCPSettings.maintenanceToolsEnabled` toggle (UserDefaults `mcpMaintenanceToolsEnabled`, default off). When the toggle is off, both tools are excluded from `tools/list` and `tools/call` returns JSON-RPC `methodNotFound` with a distinct "Tool '<name>' is disabled. Enable maintenance tools in Transit Settings." message.
+- `MCPToolDefinitions.tools(includingMaintenance:)` helper splits core tools from maintenance tools so the maintenance tools no longer cost MCP context for every agent session.
+- `DisplayIDAllocator.counterStore` accessor exposes the underlying `CounterStore` so callers needing direct counter access (e.g. `DisplayIDMaintenanceService`'s counter-advance fence) can share the allocator's store.
 - `DisplayIDMaintenanceService` with `scanDuplicates` and `reassignDuplicates` for repairing tasks/milestones sharing a `permanentDisplayId`. Counter advance happens before loser allocation; reassigned tasks receive a "Transit Maintenance" audit comment recording the old and new display IDs and the date.
 - `DisplayIDMaintenanceTypes`: `DuplicateReport`, `ReassignmentResult`, `FailureCode`, and Codable encoders matching the JSON shape shared by MCP and App Intents.
 - `CounterStore.advanceCounter(toAtLeast:retryLimit:)` extension with default implementation that retries on conflict and short-circuits when a racing writer has already moved the counter past the target.

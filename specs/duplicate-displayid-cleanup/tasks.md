@@ -46,7 +46,7 @@ references:
   - New test file: Transit/TransitTests/DisplayIDMaintenanceServiceScanTests.swift
   - @Suite(.serialized) using TestModelContainer.newContext()
   - Cases: two tasks sharing id reported once; two milestones sharing id reported once; provisional (nil) records excluded; task T-5 + milestone M-5 NOT reported as duplicate; oldest creationDate wins; UUID-ascending tiebreaker when creationDate equal; project==nil yields projectName '(no project)'; empty input yields empty groups; groups ordered by ascending displayId; winner-first ordering within each group
-  - Blocked-by: 4zgmwan (Implement DisplayIDMaintenanceTypes (structs + FailureCode + Codable encoders)), structs, structs, structs, structs, structs, structs, structs, structs
+  - Blocked-by: 4zgmwan (Implement DisplayIDMaintenanceTypes (structs + FailureCode + Codable encoders)), structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs
   - Stream: 1
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [1.7](requirements.md#1.7), [1.8](requirements.md#1.8)
   - References: specs/duplicate-displayid-cleanup/design.md#displayidmaintenanceservice
@@ -88,7 +88,7 @@ references:
 
 ## MCP
 
-- [ ] 9. Extend MCPSettings with maintenanceToolsEnabled <!-- id:4zgmwas -->
+- [x] 9. Extend MCPSettings with maintenanceToolsEnabled <!-- id:4zgmwas -->
   - Modify Transit/Transit/MCP/MCPSettings.swift (file is already #if os(macOS))
   - Add var maintenanceToolsEnabled: Bool with didSet UserDefaults write, key 'mcpMaintenanceToolsEnabled'
   - Default off (UserDefaults.bool returns false for missing key)
@@ -97,7 +97,7 @@ references:
   - Requirements: [5.5](requirements.md#5.5), [5.6](requirements.md#5.6)
   - References: specs/duplicate-displayid-cleanup/design.md#mcpsettings-addition
 
-- [ ] 10. Split MCPToolDefinitions into coreTools + maintenanceTools and add tools(includingMaintenance:) helper <!-- id:4zgmwat -->
+- [x] 10. Split MCPToolDefinitions into coreTools + maintenanceTools and add tools(includingMaintenance:) helper <!-- id:4zgmwat -->
   - Modify Transit/Transit/MCP/MCPToolDefinitions.swift
   - Keep existing 10 tools as 'coreTools'; add 'maintenanceTools' with two definitions: scan_duplicate_display_ids (no required params), reassign_duplicate_display_ids (no required params)
   - Add 'static func tools(includingMaintenance: Bool) -> [MCPToolDefinition]'
@@ -107,7 +107,7 @@ references:
   - Requirements: [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.5](requirements.md#5.5)
   - References: specs/duplicate-displayid-cleanup/design.md#mcptooldefinitions-split
 
-- [ ] 11. Write tests for MCPToolHandler maintenance gating and dispatch <!-- id:4zgmwau -->
+- [x] 11. Write tests for MCPToolHandler maintenance gating and dispatch <!-- id:4zgmwau -->
   - Extend existing MCP handler test suites (e.g. MCPToolHandlerTests.swift) or add MCPMaintenanceHandlerTests.swift under Transit/TransitTests
   - Gating off: tools/list excludes both maintenance tools; tools/call for either returns methodNotFound with message 'Tool ... is disabled. Enable maintenance tools in Transit Settings.'
   - Gating on: tools/list includes both; tools/call for scan returns DuplicateReport JSON wrapped in {content:[{type:'text', text}], isError:false}; tools/call for reassign returns ReassignmentResult JSON
@@ -118,7 +118,7 @@ references:
   - Requirements: [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [5.6](requirements.md#5.6)
   - References: specs/duplicate-displayid-cleanup/design.md#mcptoolhandler-changes
 
-- [ ] 12. Update MCPToolHandler: new init signature, maintenance gating, scan/reassign dispatch; update MCPTestHelpers <!-- id:4zgmwav -->
+- [x] 12. Update MCPToolHandler: new init signature, maintenance gating, scan/reassign dispatch; update MCPTestHelpers <!-- id:4zgmwav -->
   - Modify Transit/Transit/MCP/MCPToolHandler.swift: add maintenanceService + settings to init; handleToolsList uses MCPToolDefinitions.tools(includingMaintenance: settings.maintenanceToolsEnabled); handleToolCall dispatch adds scan_duplicate_display_ids and reassign_duplicate_display_ids cases, each preceded by a gate check that returns methodNotFound with the disabled-message text when the flag is off
   - Dispatch handlers invoke the service and wrap JSON via the existing MCPToolResult/content[text] convention
   - Update Transit/TransitTests/MCPTestHelpers.swift to accept and supply a default maintenanceService + MCPSettings for existing test call sites; update any other MCPToolHandler(...) constructions under TransitTests to match
@@ -168,7 +168,7 @@ references:
   - Confirmation uses .alert with a Button(role: .destructive) primary action
   - Buttons disabled during .scanning and .reassigning
   - Accessibility identifiers for UI test hooks: 'dataMaintenance.scanButton', 'dataMaintenance.reassignButton', 'dataMaintenance.confirmButton', 'dataMaintenance.resultList'
-  - Blocked-by: 4zgmway (Write UI test for Data Maintenance golden path (scan, confirm alert, result)), confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm
+  - Blocked-by: 4zgmway (Write UI test for Data Maintenance golden path (scan, confirm alert, result)), confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm
   - Stream: 4
   - Requirements: [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [4.6](requirements.md#4.6), [4.7](requirements.md#4.7)
   - References: specs/duplicate-displayid-cleanup/design.md#datamaintenanceview-state-machine

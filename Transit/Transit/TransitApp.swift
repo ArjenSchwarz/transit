@@ -111,9 +111,18 @@ struct TransitApp: App {
         #if os(macOS)
         let mcpSettings = MCPSettings()
         self.mcpSettings = mcpSettings
+        let maintenanceService = DisplayIDMaintenanceService(
+            modelContext: context,
+            taskAllocator: allocator,
+            taskCounterStore: allocator.counterStore,
+            milestoneAllocator: milestoneAllocator,
+            milestoneCounterStore: milestoneAllocator.counterStore,
+            commentService: commentService
+        )
         let mcpToolHandler = MCPToolHandler(
             taskService: taskService, projectService: projectService,
-            commentService: commentService, milestoneService: milestoneService
+            commentService: commentService, milestoneService: milestoneService,
+            maintenanceService: maintenanceService, settings: mcpSettings
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
         #endif
