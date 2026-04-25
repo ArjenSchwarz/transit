@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Spec for duplicate display ID cleanup: requirements, design, decision log, and 18-task implementation plan in `specs/duplicate-displayid-cleanup/`
 - Task detail view shows creation date in secondary style on both iOS and macOS (T-755)
 - macOS: Task detail opens in a dedicated window instead of a sheet, with share and edit buttons in the toolbar (T-35)
 - macOS: New Task opens in a dedicated window instead of a sheet (T-35)
