@@ -4,11 +4,15 @@ import SwiftData
 enum UITestScenario: String {
     case empty
     case board
+    case duplicateDisplayIds
 
     // swiftlint:disable:next function_body_length
     func seed(into ctx: ModelContext) {
         switch self {
         case .empty:
+            return
+        case .duplicateDisplayIds:
+            seedDuplicateDisplayIds(into: ctx)
             return
         case .board:
             break
@@ -68,5 +72,34 @@ enum UITestScenario: String {
         let betaV1 = Milestone(name: "Beta v1", description: nil, project: beta, displayID: .permanent(2))
         ctx.insert(betaV1)
         betaReview.milestone = betaV1
+    }
+
+    /// Seeds two tasks sharing the same `permanentDisplayId` so the Data
+    /// Maintenance scan reports at least one duplicate group.
+    private func seedDuplicateDisplayIds(into ctx: ModelContext) {
+        let now = Date()
+
+        let project = Project(
+            name: "Alpha", description: "Primary project", gitRepo: nil, colorHex: "#0A84FF"
+        )
+        ctx.insert(project)
+
+        let winner = TransitTask(
+            name: "Winner Task", description: nil, type: .feature,
+            project: project, displayID: .permanent(5)
+        )
+        winner.creationDate = now.addingTimeInterval(-600)
+        winner.lastStatusChangeDate = now.addingTimeInterval(-600)
+        winner.statusRawValue = TaskStatus.idea.rawValue
+        ctx.insert(winner)
+
+        let loser = TransitTask(
+            name: "Loser Task", description: nil, type: .feature,
+            project: project, displayID: .permanent(5)
+        )
+        loser.creationDate = now.addingTimeInterval(-300)
+        loser.lastStatusChangeDate = now.addingTimeInterval(-300)
+        loser.statusRawValue = TaskStatus.idea.rawValue
+        ctx.insert(loser)
     }
 }

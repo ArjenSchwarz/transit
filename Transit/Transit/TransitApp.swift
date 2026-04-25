@@ -157,6 +157,8 @@ struct TransitApp: App {
                             AcknowledgmentsView()
                         case .licenseText:
                             LicenseTextView()
+                        case .dataMaintenance:
+                            DataMaintenanceView()
                         }
                     }
             }

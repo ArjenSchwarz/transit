@@ -46,7 +46,7 @@ references:
   - New test file: Transit/TransitTests/DisplayIDMaintenanceServiceScanTests.swift
   - @Suite(.serialized) using TestModelContainer.newContext()
   - Cases: two tasks sharing id reported once; two milestones sharing id reported once; provisional (nil) records excluded; task T-5 + milestone M-5 NOT reported as duplicate; oldest creationDate wins; UUID-ascending tiebreaker when creationDate equal; project==nil yields projectName '(no project)'; empty input yields empty groups; groups ordered by ascending displayId; winner-first ordering within each group
-  - Blocked-by: 4zgmwan (Implement DisplayIDMaintenanceTypes (structs + FailureCode + Codable encoders)), structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs
+  - Blocked-by: 4zgmwan (Implement DisplayIDMaintenanceTypes (structs + FailureCode + Codable encoders)), structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs
   - Stream: 1
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [1.7](requirements.md#1.7), [1.8](requirements.md#1.8)
   - References: specs/duplicate-displayid-cleanup/design.md#displayidmaintenanceservice
@@ -129,7 +129,7 @@ references:
 
 ## Intents
 
-- [ ] 13. Write tests for ScanDuplicateDisplayIDsIntent and ReassignDuplicateDisplayIDsIntent <!-- id:4zgmwaw -->
+- [x] 13. Write tests for ScanDuplicateDisplayIDsIntent and ReassignDuplicateDisplayIDsIntent <!-- id:4zgmwaw -->
   - New test file: Transit/TransitTests/DisplayIDMaintenanceIntentsTests.swift
   - Scan intent: invokes service, returns JSON string; shape matches the same scenario encoded via MCP path (same top-level keys and value types per AC 6.3)
   - Reassign intent: invokes service, returns JSON string; status 'ok' on success; error payloads (JSON) instead of thrown errors (matches existing Transit intent convention)
@@ -139,7 +139,7 @@ references:
   - Requirements: [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4)
   - References: specs/duplicate-displayid-cleanup/design.md#json-shapes-shared-across-mcp-and-intent
 
-- [ ] 14. Implement ScanDuplicateDisplayIDsIntent and ReassignDuplicateDisplayIDsIntent <!-- id:4zgmwax -->
+- [x] 14. Implement ScanDuplicateDisplayIDsIntent and ReassignDuplicateDisplayIDsIntent <!-- id:4zgmwax -->
   - New files: Transit/Transit/Intents/ScanDuplicateDisplayIDsIntent.swift and Transit/Transit/Intents/ReassignDuplicateDisplayIDsIntent.swift
   - Use @Dependency var maintenanceService: DisplayIDMaintenanceService (registered in TransitApp in task 18)
   - Return ReturnsValue<String> with JSONEncoder-encoded payload from DisplayIDMaintenanceTypes; reuse the same encoder path as MCP
@@ -151,7 +151,7 @@ references:
 
 ## UI
 
-- [ ] 15. Write UI test for Data Maintenance golden path (scan, confirm alert, result) <!-- id:4zgmway -->
+- [x] 15. Write UI test for Data Maintenance golden path (scan, confirm alert, result) <!-- id:4zgmway -->
   - New UI test in Transit/TransitUITests covering: open Settings → Data Maintenance → tap Scan → (with seeded duplicates via TRANSIT_UI_TEST_SCENARIO) report shows ≥1 group → tap Reassign Losers → alert appears with destructive-styled confirm button → tap confirm → result view shows per-group outcome
   - Add a new UITestScenario case that seeds two tasks sharing a permanentDisplayId so the report is non-empty
   - Use accessibility identifiers (do not match by text) for Scan button, Reassign Losers button, alert primary button, and result list
@@ -160,7 +160,7 @@ references:
   - Requirements: [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [4.6](requirements.md#4.6), [4.7](requirements.md#4.7)
   - References: specs/duplicate-displayid-cleanup/design.md#datamaintenanceview-state-machine, specs/duplicate-displayid-cleanup/design.md#testing-strategy
 
-- [ ] 16. Implement DataMaintenanceView with state machine and confirmation alert <!-- id:4zgmwaz -->
+- [x] 16. Implement DataMaintenanceView with state machine and confirmation alert <!-- id:4zgmwaz -->
   - New file: Transit/Transit/Views/Settings/DataMaintenanceView.swift
   - Single @State enum with cases .idle, .scanning, .scanned(DuplicateReport), .reassigning, .done(ReassignmentResult)
   - Consume maintenance service via @Environment(DisplayIDMaintenanceService.self)
@@ -168,12 +168,12 @@ references:
   - Confirmation uses .alert with a Button(role: .destructive) primary action
   - Buttons disabled during .scanning and .reassigning
   - Accessibility identifiers for UI test hooks: 'dataMaintenance.scanButton', 'dataMaintenance.reassignButton', 'dataMaintenance.confirmButton', 'dataMaintenance.resultList'
-  - Blocked-by: 4zgmway (Write UI test for Data Maintenance golden path (scan, confirm alert, result)), confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm
+  - Blocked-by: 4zgmway (Write UI test for Data Maintenance golden path (scan, confirm alert, result)), confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm
   - Stream: 4
   - Requirements: [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [4.6](requirements.md#4.6), [4.7](requirements.md#4.7)
   - References: specs/duplicate-displayid-cleanup/design.md#datamaintenanceview-state-machine
 
-- [ ] 17. Wire NavigationDestination case, iOS/macOS SettingsView entries, and MCP toggle row <!-- id:4zgmwb0 -->
+- [x] 17. Wire NavigationDestination case, iOS/macOS SettingsView entries, and MCP toggle row <!-- id:4zgmwb0 -->
   - Add .dataMaintenance case to NavigationDestination enum (the declaration used by SettingsView — locate via grep for existing cases like .acknowledgments)
   - iOS SettingsView: new 'Data Maintenance' Section with NavigationLink(value: NavigationDestination.dataMaintenance) { Label } and navigationDestination { DataMaintenanceView() }
   - macOS SettingsView: add .dataMaintenance case to SettingsCategory enum (title 'Data Maintenance', icon e.g. 'wrench.and.screwdriver'); add settingsDetailWrapper { DataMaintenanceView() } case in settingsDetailContent

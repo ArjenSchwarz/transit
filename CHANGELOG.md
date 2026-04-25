@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `ScanDuplicateDisplayIDsIntent` and `ReassignDuplicateDisplayIDsIntent` App Intents for running duplicate cleanup from Shortcuts. Both reuse the same `JSONEncoder` path as the MCP tools so payloads are byte-equal across surfaces; service errors land inside the JSON envelope rather than thrown.
+- `DataMaintenanceView` in Settings — scan → confirm (destructive alert) → reassign → result flow, available on iOS and macOS. macOS Settings adds a "Data Maintenance" sidebar category and an "Expose maintenance tools" Toggle in the MCP Server section.
+- `NavigationDestination.dataMaintenance` case wires the new view into both the iOS settings stack and the macOS settings window.
+- UI test for the Data Maintenance golden path with seeded duplicates via a new `UITestScenario.duplicateDisplayIds` case; matched accessibility identifiers `dataMaintenance.scanButton/.reassignButton/.confirmButton/.resultList`.
 - MCP server exposes `scan_duplicate_display_ids` and `reassign_duplicate_display_ids` tools, gated behind a new `MCPSettings.maintenanceToolsEnabled` toggle (UserDefaults `mcpMaintenanceToolsEnabled`, default off). When the toggle is off, both tools are excluded from `tools/list` and `tools/call` returns JSON-RPC `methodNotFound` with a distinct "Tool '<name>' is disabled. Enable maintenance tools in Transit Settings." message.
 - `MCPToolDefinitions.tools(includingMaintenance:)` helper splits core tools from maintenance tools so the maintenance tools no longer cost MCP context for every agent session.
 - `DisplayIDAllocator.counterStore` accessor exposes the underlying `CounterStore` so callers needing direct counter access (e.g. `DisplayIDMaintenanceService`'s counter-advance fence) can share the allocator's store.
