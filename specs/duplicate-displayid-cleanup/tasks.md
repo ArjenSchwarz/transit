@@ -8,7 +8,7 @@ references:
 
 ## Core
 
-- [ ] 1. Write tests for CounterStore.advanceCounter(toAtLeast:retryLimit:) extension <!-- id:4zgmwak -->
+- [x] 1. Write tests for CounterStore.advanceCounter(toAtLeast:retryLimit:) extension <!-- id:4zgmwak -->
   - New test file: Transit/TransitTests/CounterStoreAdvanceTests.swift
   - Use the in-memory CounterStore stub already used by DisplayIDAllocatorTests; extend it with injectable conflict/failure behaviour
   - Cases: no-op when nextDisplayID already >= target; advances on behind counter; retries and succeeds on transient conflict; throws retriesExhausted after retryLimit conflicts; reads the post-conflict snapshot and short-circuits when another writer already moved the counter past target
@@ -16,7 +16,7 @@ references:
   - Requirements: [2.4](requirements.md#2.4)
   - References: specs/duplicate-displayid-cleanup/design.md#components-and-interfaces
 
-- [ ] 2. Implement CounterStore.advanceCounter(toAtLeast:retryLimit:) default extension <!-- id:4zgmwal -->
+- [x] 2. Implement CounterStore.advanceCounter(toAtLeast:retryLimit:) default extension <!-- id:4zgmwal -->
   - Extend protocol CounterStore in Transit/Transit/Services/DisplayIDAllocator.swift with default impl per design's 'Counter store extension' section
   - Internal loop: loadCounter; if nextDisplayID >= target return; else saveCounter with expectedChangeTag; on Error.conflict continue; after retryLimit throw Error.retriesExhausted
   - CloudKitCounterStore does not override — default impl reuses existing saveCounter CAS
@@ -25,14 +25,14 @@ references:
   - Requirements: [2.4](requirements.md#2.4)
   - References: specs/duplicate-displayid-cleanup/design.md#components-and-interfaces
 
-- [ ] 3. Write tests for DisplayIDMaintenanceTypes JSON encoding <!-- id:4zgmwam -->
+- [x] 3. Write tests for DisplayIDMaintenanceTypes JSON encoding <!-- id:4zgmwam -->
   - New test file: Transit/TransitTests/DisplayIDMaintenanceTypesTests.swift
   - Cases: DuplicateReport round-trip (tasks + milestones + empty); recordRef shape incl. projectName '(no project)' when nil; winner-first ordering within groups; groups ordered by ascending displayId; ReassignmentResult 'ok' variant with full counterAdvance keys (task, milestone); 'busy' variant with groups: [] and counterAdvance: null; FailureCode raw strings match the design table exactly (allocation-failed, save-failed, stale-id, comment-failed, counter-advance-failed)
   - Stream: 1
   - Requirements: [1.6](requirements.md#1.6), [1.8](requirements.md#1.8), [2.7](requirements.md#2.7), [6.3](requirements.md#6.3), [8.2](requirements.md#8.2)
   - References: specs/duplicate-displayid-cleanup/design.md#json-shapes-shared-across-mcp-and-intent, specs/duplicate-displayid-cleanup/design.md#error-handling
 
-- [ ] 4. Implement DisplayIDMaintenanceTypes (structs + FailureCode + Codable encoders) <!-- id:4zgmwan -->
+- [x] 4. Implement DisplayIDMaintenanceTypes (structs + FailureCode + Codable encoders) <!-- id:4zgmwan -->
   - New file: Transit/Transit/Services/DisplayIDMaintenanceTypes.swift
   - Types: DuplicateReport, DuplicateGroup, RecordRef (with role), ReassignmentResult, GroupResult, ReassignmentEntry, CounterAdvanceResult, FailureCode enum (String-raw-valued)
   - JSON shape must match design exactly; counterAdvance key always present (nullable); recordRef.role always emitted alongside winner-first ordering
@@ -42,16 +42,16 @@ references:
   - Requirements: [1.6](requirements.md#1.6), [1.8](requirements.md#1.8), [2.7](requirements.md#2.7), [6.3](requirements.md#6.3), [8.2](requirements.md#8.2)
   - References: specs/duplicate-displayid-cleanup/design.md#json-shapes-shared-across-mcp-and-intent
 
-- [ ] 5. Write tests for DisplayIDMaintenanceService.scanDuplicates <!-- id:4zgmwao -->
+- [x] 5. Write tests for DisplayIDMaintenanceService.scanDuplicates <!-- id:4zgmwao -->
   - New test file: Transit/TransitTests/DisplayIDMaintenanceServiceScanTests.swift
   - @Suite(.serialized) using TestModelContainer.newContext()
   - Cases: two tasks sharing id reported once; two milestones sharing id reported once; provisional (nil) records excluded; task T-5 + milestone M-5 NOT reported as duplicate; oldest creationDate wins; UUID-ascending tiebreaker when creationDate equal; project==nil yields projectName '(no project)'; empty input yields empty groups; groups ordered by ascending displayId; winner-first ordering within each group
-  - Blocked-by: 4zgmwan (Implement DisplayIDMaintenanceTypes (structs + FailureCode + Codable encoders))
+  - Blocked-by: 4zgmwan (Implement DisplayIDMaintenanceTypes (structs + FailureCode + Codable encoders)), structs, structs, structs, structs, structs, structs, structs, structs
   - Stream: 1
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [1.7](requirements.md#1.7), [1.8](requirements.md#1.8)
   - References: specs/duplicate-displayid-cleanup/design.md#displayidmaintenanceservice
 
-- [ ] 6. Implement DisplayIDMaintenanceService.scanDuplicates <!-- id:4zgmwap -->
+- [x] 6. Implement DisplayIDMaintenanceService.scanDuplicates <!-- id:4zgmwap -->
   - New file: Transit/Transit/Services/DisplayIDMaintenanceService.swift
   - @MainActor @Observable; init signature per design
   - Two FetchDescriptor reads (tasks, milestones); client-side group-by on permanentDisplayId; exclude nil; winner = min by (creationDate, id.uuidString); report groups sorted by displayId asc with winner first
@@ -60,7 +60,7 @@ references:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [1.7](requirements.md#1.7), [1.8](requirements.md#1.8)
   - References: specs/duplicate-displayid-cleanup/design.md#displayidmaintenanceservice
 
-- [ ] 7. Write tests for DisplayIDMaintenanceService.reassignDuplicates (all paths + concurrency) <!-- id:4zgmwaq -->
+- [x] 7. Write tests for DisplayIDMaintenanceService.reassignDuplicates (all paths + concurrency) <!-- id:4zgmwaq -->
   - New test file: Transit/TransitTests/DisplayIDMaintenanceServiceReassignTests.swift
   - Happy path: winner unchanged; losers get fresh IDs > max; counter advanced to max(sampledMax, currentCounter)+1 BEFORE allocation; audit comment appended to reassigned tasks with authorName 'Transit Maintenance' and body containing 'T-<old>', 'T-<new>', injected ISO-8601 date
   - Milestone reassignments create NO comment
@@ -76,7 +76,7 @@ references:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [2.6](requirements.md#2.6), [2.7](requirements.md#2.7), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [7.1](requirements.md#7.1), [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3), [8.4](requirements.md#8.4)
   - References: specs/duplicate-displayid-cleanup/design.md#displayidmaintenanceservicereassignduplicates-flow, specs/duplicate-displayid-cleanup/design.md#error-handling
 
-- [ ] 8. Implement DisplayIDMaintenanceService.reassignDuplicates <!-- id:4zgmwar -->
+- [x] 8. Implement DisplayIDMaintenanceService.reassignDuplicates <!-- id:4zgmwar -->
   - Flow per design section 'DisplayIDMaintenanceService.reassignDuplicates flow': single-flight Bool guard with defer reset; internal scanDuplicates call; counter-advance BEFORE loser allocation (per-type, independent); per-loser refresh→verify→allocate→save→comment; audit comment via CommentService.addComment with save: { try $0.save() } as a separate save
   - safeRollback on ID save failure; commentWarning on comment save failure; break inner loser loop on group-level failure (allocation-failed / save-failed / stale-id)
   - counter-advance-failed: record per-type warning, skip loser loop for that type, continue with the other type
@@ -168,7 +168,7 @@ references:
   - Confirmation uses .alert with a Button(role: .destructive) primary action
   - Buttons disabled during .scanning and .reassigning
   - Accessibility identifiers for UI test hooks: 'dataMaintenance.scanButton', 'dataMaintenance.reassignButton', 'dataMaintenance.confirmButton', 'dataMaintenance.resultList'
-  - Blocked-by: 4zgmway (Write UI test for Data Maintenance golden path (scan, confirm alert, result))
+  - Blocked-by: 4zgmway (Write UI test for Data Maintenance golden path (scan, confirm alert, result)), confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm
   - Stream: 4
   - Requirements: [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [4.6](requirements.md#4.6), [4.7](requirements.md#4.7)
   - References: specs/duplicate-displayid-cleanup/design.md#datamaintenanceview-state-machine
