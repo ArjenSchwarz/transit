@@ -29,7 +29,7 @@
 | [Parse Comment Newlines](#parse-comment-newlines) | 2026-03-23 | Done | Fix literal \n in MCP comments by unescaping at input boundary |
 | [Home Screen Quick Actions](#home-screen-quick-actions) | 2026-03-24 | Done | iOS Home Screen quick action to create a new task |
 | [Sync Heartbeat](#sync-heartbeat) | 2026-03-28 | No Tasks | Periodic SwiftData write to force CloudKit sync on macOS |
-| [Duplicate Display ID Cleanup](#duplicate-display-id-cleanup) | 2026-04-25 | In Progress | Scan and reassign tasks/milestones sharing a permanentDisplayId |
+| [Duplicate Display ID Cleanup](#duplicate-display-id-cleanup) | 2026-04-25 | Done | Scan and reassign tasks/milestones sharing a permanentDisplayId |
 
 ---
 

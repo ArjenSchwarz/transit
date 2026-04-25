@@ -46,7 +46,7 @@ references:
   - New test file: Transit/TransitTests/DisplayIDMaintenanceServiceScanTests.swift
   - @Suite(.serialized) using TestModelContainer.newContext()
   - Cases: two tasks sharing id reported once; two milestones sharing id reported once; provisional (nil) records excluded; task T-5 + milestone M-5 NOT reported as duplicate; oldest creationDate wins; UUID-ascending tiebreaker when creationDate equal; project==nil yields projectName '(no project)'; empty input yields empty groups; groups ordered by ascending displayId; winner-first ordering within each group
-  - Blocked-by: 4zgmwan (Implement DisplayIDMaintenanceTypes (structs + FailureCode + Codable encoders)), structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs
+  - Blocked-by: 4zgmwan (Implement DisplayIDMaintenanceTypes (structs + FailureCode + Codable encoders)), structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs, structs
   - Stream: 1
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [1.7](requirements.md#1.7), [1.8](requirements.md#1.8)
   - References: specs/duplicate-displayid-cleanup/design.md#displayidmaintenanceservice
@@ -168,7 +168,7 @@ references:
   - Confirmation uses .alert with a Button(role: .destructive) primary action
   - Buttons disabled during .scanning and .reassigning
   - Accessibility identifiers for UI test hooks: 'dataMaintenance.scanButton', 'dataMaintenance.reassignButton', 'dataMaintenance.confirmButton', 'dataMaintenance.resultList'
-  - Blocked-by: 4zgmway (Write UI test for Data Maintenance golden path (scan, confirm alert, result)), confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm
+  - Blocked-by: 4zgmway (Write UI test for Data Maintenance golden path (scan, confirm alert, result)), confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm, confirm
   - Stream: 4
   - Requirements: [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [4.6](requirements.md#4.6), [4.7](requirements.md#4.7)
   - References: specs/duplicate-displayid-cleanup/design.md#datamaintenanceview-state-machine
@@ -186,7 +186,7 @@ references:
 
 ## Wiring
 
-- [ ] 18. Wire DisplayIDMaintenanceService and updated MCPToolHandler in TransitApp <!-- id:4zgmwb1 -->
+- [x] 18. Wire DisplayIDMaintenanceService and updated MCPToolHandler in TransitApp <!-- id:4zgmwb1 -->
   - Modify Transit/Transit/TransitApp.swift: construct DisplayIDMaintenanceService passing both allocators and their counter stores (may require exposing the CounterStore used by each DisplayIDAllocator — add a public accessor on the allocator if needed), commentService, container.mainContext
   - Register maintenanceService via AppDependencyManager.shared.add(dependency:) for App Intents
   - Expose service as .environment(maintenanceService) on the root NavigationStack and within withCoreEnvironments (macOS Settings window and Task Detail window) so DataMaintenanceView can consume it

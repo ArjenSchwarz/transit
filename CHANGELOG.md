@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `DisplayIDMaintenanceService` is now constructed cross-platform in `TransitApp`, registered via `AppDependencyManager` for App Intents, and exposed via `.environment` on the root `NavigationStack` and `withCoreEnvironments` so `DataMaintenanceView` resolves it on iOS, the macOS Settings window, and the macOS Task Detail window.
 - `ScanDuplicateDisplayIDsIntent` and `ReassignDuplicateDisplayIDsIntent` App Intents for running duplicate cleanup from Shortcuts. Both reuse the same `JSONEncoder` path as the MCP tools so payloads are byte-equal across surfaces; service errors land inside the JSON envelope rather than thrown.
 - `DataMaintenanceView` in Settings — scan → confirm (destructive alert) → reassign → result flow, available on iOS and macOS. macOS Settings adds a "Data Maintenance" sidebar category and an "Expose maintenance tools" Toggle in the MCP Server section.
 - `NavigationDestination.dataMaintenance` case wires the new view into both the iOS settings stack and the macOS settings window.

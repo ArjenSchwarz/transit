@@ -12,6 +12,7 @@
 - When no projects exist, shows `EmptyStateView` directing to Settings
 - Default project selection: first project on appear
 - **Error handling (T-153)**: `save()` is async, awaits `createTask` before dismissing. On failure, shows "Save Failed" alert via `errorMessage` state (same pattern as TaskEditView/ProjectEditView). `isSaving` state disables the save button during the async operation to prevent double-taps. Sheet stays open on failure so user can retry.
+- Known gap: task creation and milestone assignment are not atomic. `createTask` saves before `setMilestone`; if milestone assignment fails, the task remains even though the sheet shows "Save Failed" (T-855).
 - **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow`
 
 ## TaskDetailView
@@ -33,6 +34,7 @@
 - Loads task data into local `@State` on appear, saves back on Save
 - **Error handling (T-148, T-378)**: `save()` uses `do/catch` with `modelContext.rollback()` on failure. Shows "Save Failed" alert via `errorMessage` state. Editor stays open on failure so user can retry. **Mutation ordering matters**: direct property mutations (name, desc, type, metadata) must happen inside the `do` block, after service calls that save internally (like `changeProject`), so that rollback can revert them if a later step fails (T-378).
 - **Atomic saves (T-361)**: `save()` passes `save: false` to `changeProject`, `setMilestone`, and `updateStatus`, then performs a single `modelContext.save()`. This ensures all changes persist or roll back together. Follow this pattern whenever composing multiple service calls in a view save action.
+- Known gap: clearing the description does not remove an existing description. `TaskEditView` passes `nil` for an empty description, and `TaskService.updateTask` interprets `nil` as "no description update" (T-854).
 - **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow` for right-aligned labels, text fields fill row width, pickers use `.fixedSize()`, and a bottom-right Save button
 
 ## SettingsView
