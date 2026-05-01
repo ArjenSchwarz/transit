@@ -17,8 +17,9 @@ Known gaps filed by the code-issue automation:
 - T-789: `DeleteMilestoneIntent` treats malformed `milestoneId` as missing.
 - T-808: task identifier resolution can ignore malformed `displayId` / `taskId`
   values before falling back to another identifier or a generic not-found error.
-- T-809: MCP enum filters ignore non-string `status`, `not_status`, and `type`
-  values instead of rejecting malformed filter shapes.
+- T-809 (fixed): MCP `validateEnumFilter` now rejects non-string and mixed-type
+  array values for `status`, `not_status`, and `type` with a field-specific error
+  instead of silently treating them as absent.
 - T-810: MCP milestone resolution treats non-string `milestoneId` values as
   missing for `update_milestone` and `delete_milestone`.
 - T-813: `make lint` can fail after 0 SwiftLint violations because SwiftLint

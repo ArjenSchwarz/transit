@@ -205,6 +205,138 @@ struct MCPToolHandlerEnumValidationTests {
         let results = try MCPTestHelpers.decodeArrayResult(response)
         #expect(results.count == 1)
     }
+
+    // MARK: - T-809: Non-string enum filter shapes must be rejected
+
+    // Bug T-809: validateEnumFilter only validated string and [String] inputs. Other
+    // shapes silently fell through, so {"status": 123} or {"status": true} produced
+    // no error and the query returned an unfiltered result. The expected behaviour is
+    // a field-specific error response when the key is present with a non-string value.
+
+    @Test func queryTasksNumericStatusReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["status": 123]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("status"))
+    }
+
+    @Test func queryTasksBooleanNotStatusReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["not_status": true]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("not_status"))
+    }
+
+    @Test func queryTasksNumericTypeReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["type": 5]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("type"))
+    }
+
+    @Test func queryTasksMixedTypeStatusArrayReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["status": ["idea", 123] as [Any]]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("status"))
+    }
+
+    @Test func queryTasksMixedTypeNotStatusArrayReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["not_status": ["done", true] as [Any]]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("not_status"))
+    }
+
+    @Test func queryTasksDictionaryStatusReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["status": ["foo": "bar"]]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("status"))
+    }
+
+    @Test func queryMilestonesNumericStatusReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["status": 42]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("status"))
+    }
+
+    @Test func queryMilestonesMixedTypeStatusArrayReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["status": ["open", 1] as [Any]]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("status"))
+    }
+
+    // Critical regression check — without the fix, this query would return all tasks.
+    @Test func queryTasksNumericStatusDoesNotReturnUnfilteredResults() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.taskService.createTask(
+            name: "Task A", description: nil, type: .feature, project: project
+        )
+        _ = try await env.taskService.createTask(
+            name: "Task B", description: nil, type: .bug, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["status": 123]
+        ))
+
+        // Bug behaviour: filter is silently treated as absent and all tasks are returned.
+        // Fixed behaviour: an isError response is produced, not a list of tasks.
+        #expect(try MCPTestHelpers.isError(response))
+    }
 }
 
 #endif
