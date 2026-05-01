@@ -76,7 +76,13 @@ struct RecordRef: Codable, Sendable {
         self.name = try container.decode(String.self, forKey: .name)
         self.projectName = try container.decode(String.self, forKey: .projectName)
         let dateString = try container.decode(String.self, forKey: .creationDate)
-        self.creationDate = Self.dateFormatter.date(from: dateString) ?? Date()
+        guard let parsedDate = Self.dateFormatter.date(from: dateString) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .creationDate, in: container,
+                debugDescription: "Invalid ISO 8601 date string"
+            )
+        }
+        self.creationDate = parsedDate
         self.role = try container.decode(RecordRole.self, forKey: .role)
     }
 
