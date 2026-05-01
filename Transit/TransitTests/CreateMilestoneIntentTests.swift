@@ -231,4 +231,43 @@ struct CreateMilestoneIntentTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
         #expect((parsed["hint"] as? String)?.contains("projectId") == true)
     }
+
+    // MARK: - Non-string projectId [T-788]
+
+    @Test func numericProjectIdRejectsWithInvalidInput() async throws {
+        // projectId provided as a JSON number must not silently fall back to
+        // name-based lookup. Expect INVALID_INPUT, not a successful create using "Decoy".
+        let svc = try makeServices()
+        makeProject(in: svc.context, name: "Decoy")
+
+        let input = """
+        {"name":"v1.0","projectId":456,"project":"Decoy"}
+        """
+
+        let result = await CreateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
+
+    @Test func numericProjectIdWithoutFallbackRejectsWithInvalidInput() async throws {
+        // Without a project name fallback, a numeric projectId still must be
+        // rejected as INVALID_INPUT rather than treated as missing.
+        let svc = try makeServices()
+
+        let input = """
+        {"name":"v1.0","projectId":456}
+        """
+
+        let result = await CreateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
 }

@@ -4,6 +4,7 @@ import SwiftData
 import Testing
 @testable import Transit
 
+// swiftlint:disable type_body_length
 @MainActor @Suite(.serialized)
 struct MCPMilestoneToolTests {
 
@@ -108,6 +109,34 @@ struct MCPMilestoneToolTests {
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "create_milestone",
             arguments: ["name": "v1.0", "projectId": "not-a-uuid", "project": "Decoy"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
+    // T-788: Non-string projectId must be rejected, not treated as missing.
+    @Test func createMilestoneNumericProjectIdReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        MCPTestHelpers.makeProject(in: env.context, name: "Decoy")
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_milestone",
+            arguments: ["name": "v1.0", "projectId": 456, "project": "Decoy"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
+    @Test func createMilestoneNumericProjectIdWithoutFallbackReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_milestone",
+            arguments: ["name": "v1.0", "projectId": 456]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
@@ -235,6 +264,37 @@ struct MCPMilestoneToolTests {
         #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
     }
 
+    // T-788: query_milestones must reject non-string projectId rather than silently dropping the filter.
+    @Test func queryMilestonesNumericProjectIdReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: alpha)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["projectId": 123, "project": "Alpha"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
+    @Test func queryMilestonesNumericProjectIdWithoutFallbackReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: alpha)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["projectId": 123]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
     // MARK: - update_milestone
 
     @Test func updateMilestoneStatus() async throws {
@@ -318,5 +378,6 @@ struct MCPMilestoneToolTests {
     }
 
 }
+// swiftlint:enable type_body_length
 
 #endif

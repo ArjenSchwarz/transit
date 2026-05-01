@@ -50,6 +50,7 @@ struct CreateTaskIntent: AppIntent {
     // MARK: - Logic (testable without @Dependency)
 
     @MainActor
+    // swiftlint:disable:next cyclomatic_complexity
     static func execute(
         input: String,
         taskService: TaskService,
@@ -67,12 +68,14 @@ struct CreateTaskIntent: AppIntent {
         let typeRaw = json["type"] as! String // swiftlint:disable:this force_cast
         let taskType = TaskType(rawValue: typeRaw)! // swiftlint:disable:this force_unwrapping
 
-        // Resolve project: projectId takes precedence over project name
-        // Reject malformed projectId when the key is present [T-743]
-        if let projectIdStr = json["projectId"] as? String, UUID(uuidString: projectIdStr) == nil {
-            return IntentError.invalidInput(hint: "Invalid projectId: expected a UUID string").json
+        // Resolve project: projectId takes precedence over project name.
+        // Validate key presence separately from string/UUID parsing so non-string
+        // values (numbers, bools, etc.) are rejected too [T-743, T-788].
+        let projectId: UUID?
+        switch IntentHelpers.validateUUIDField("projectId", in: json) {
+        case .failure(let error): return error.json
+        case .success(let parsed): projectId = parsed
         }
-        let projectId: UUID? = (json["projectId"] as? String).flatMap(UUID.init)
         let projectName = json["project"] as? String
         let lookupResult = projectService.findProject(id: projectId, name: projectName)
 

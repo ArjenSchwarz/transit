@@ -182,11 +182,13 @@ final class MCPToolHandler {
             return errorResult("Invalid type: \(typeRaw). Must be one of: \(valid)")
         }
 
-        // Reject malformed projectId when the key is present [T-743]
-        if let pidStr = args["projectId"] as? String, UUID(uuidString: pidStr) == nil {
-            return errorResult("Invalid projectId: expected a UUID string")
+        // Reject malformed or non-string projectId when the key is present
+        // [T-743, T-788].
+        let projectId: UUID?
+        switch parseProjectIdArgument(args) {
+        case .failure(.message(let message)): return errorResult(message)
+        case .success(let parsed): projectId = parsed
         }
-        let projectId = (args["projectId"] as? String).flatMap(UUID.init)
         let projectName = args["project"] as? String
         let project: Project
         switch projectService.findProject(id: projectId, name: projectName) {
@@ -319,11 +321,15 @@ final class MCPToolHandler {
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func handleQueryTasks(_ args: [String: Any]) -> MCPToolResult {
+        // Reject malformed or non-string projectId when the key is present
+        // [T-665, T-788].
+        let parsedProjectId: UUID?
+        switch parseProjectIdArgument(args) {
+        case .failure(.message(let message)): return errorResult(message)
+        case .success(let parsed): parsedProjectId = parsed
+        }
         var projectFilter: UUID?
-        if let pidStr = args["projectId"] as? String {
-            guard let pid = UUID(uuidString: pidStr) else {
-                return errorResult("Invalid projectId: expected a UUID string")
-            }
+        if let pid = parsedProjectId {
             projectFilter = pid
         } else if let name = args["project"] as? String,
                   !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -439,11 +445,13 @@ extension MCPToolHandler {
             return errorResult("Missing required argument: name")
         }
 
-        // Reject malformed projectId when the key is present [T-743]
-        if let pidStr = args["projectId"] as? String, UUID(uuidString: pidStr) == nil {
-            return errorResult("Invalid projectId: expected a UUID string")
+        // Reject malformed or non-string projectId when the key is present
+        // [T-743, T-788].
+        let projectId: UUID?
+        switch parseProjectIdArgument(args) {
+        case .failure(.message(let message)): return errorResult(message)
+        case .success(let parsed): projectId = parsed
         }
-        let projectId = (args["projectId"] as? String).flatMap(UUID.init)
         let projectName = args["project"] as? String
         let project: Project
         switch projectService.findProject(id: projectId, name: projectName) {
@@ -550,22 +558,23 @@ extension MCPToolHandler {
     }
 
     private func resolveProjectFilter(_ args: [String: Any]) -> ProjectFilterResult {
-        if let pidStr = args["projectId"] as? String {
-            guard let pid = UUID(uuidString: pidStr) else {
-                return .error("Invalid projectId: expected a UUID string")
+        // Reject malformed or non-string projectId when the key is present
+        // [T-665, T-788].
+        switch parseProjectIdArgument(args) {
+        case .failure(.message(let message)): return .error(message)
+        case .success(let pid?): return .resolved(pid)
+        case .success(nil):
+            if let name = args["project"] as? String,
+               !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                switch projectService.findProject(id: nil, name: name) {
+                case .success(let found):
+                    return .resolved(found.id)
+                case .failure(let err):
+                    return .error(IntentHelpers.mapProjectLookupError(err).hint)
+                }
             }
-            return .resolved(pid)
+            return .none
         }
-        if let name = args["project"] as? String,
-           !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            switch projectService.findProject(id: nil, name: name) {
-            case .success(let found):
-                return .resolved(found.id)
-            case .failure(let err):
-                return .error(IntentHelpers.mapProjectLookupError(err).hint)
-            }
-        }
-        return .none
     }
 }
 
@@ -882,6 +891,18 @@ extension MCPToolHandler {
     private func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }
     private func errorResult(_ message: String) -> MCPToolResult {
         MCPToolResult(content: [.text(message)], isError: true)
+    }
+
+    /// Validates a UUID-shaped argument by key. Returns `.success(nil)` when the
+    /// key is absent, `.success(uuid)` when the value is a valid UUID string,
+    /// or `.failure(.message(...))` when the key is present but the value is not
+    /// a valid UUID string (covers non-string types too) [T-743, T-788].
+    private func parseProjectIdArgument(_ args: [String: Any]) -> Result<UUID?, ResolveError> {
+        guard args["projectId"] != nil else { return .success(nil) }
+        guard let pidStr = args["projectId"] as? String, let pid = UUID(uuidString: pidStr) else {
+            return .failure(.message("Invalid projectId: expected a UUID string"))
+        }
+        return .success(pid)
     }
 
     /// Validate that all values for a given key are valid raw values of the specified enum.

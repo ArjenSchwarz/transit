@@ -201,4 +201,40 @@ struct QueryMilestonesIntentTests {
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")
     }
+
+    // T-788: Non-string projectId should return INVALID_INPUT, not silently drop the filter
+    @Test func numericProjectIdReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        makeMilestone(in: svc.context, name: "v1.0", project: alpha, displayId: 1)
+
+        // Decoy project name must not be used as a fallback when projectId is numeric.
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"projectId\":123,\"project\":\"Alpha\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
+
+    @Test func numericProjectIdWithoutFallbackReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        makeMilestone(in: svc.context, name: "v1.0", project: alpha, displayId: 1)
+
+        // No project name fallback — numeric projectId still must be rejected,
+        // not treated as a missing filter that returns all milestones.
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"projectId\":123}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
 }

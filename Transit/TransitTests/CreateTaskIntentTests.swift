@@ -302,4 +302,43 @@ struct CreateTaskIntentTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
         #expect((parsed["hint"] as? String)?.contains("projectId") == true)
     }
+
+    // MARK: - Non-string projectId [T-788]
+
+    @Test func numericProjectIdRejectsWithInvalidInput() async throws {
+        // projectId provided as a JSON number must not silently fall back to
+        // name-based lookup. Expect INVALID_INPUT, not a successful create using "Decoy".
+        let svc = try makeServices()
+        makeProject(in: svc.context, name: "Decoy")
+
+        let input = """
+        {"name":"Task","type":"feature","projectId":123,"project":"Decoy"}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
+
+    @Test func numericProjectIdWithoutFallbackRejectsWithInvalidInput() async throws {
+        // Without a project name fallback, a numeric projectId still must be
+        // rejected as INVALID_INPUT rather than treated as missing.
+        let svc = try makeServices()
+
+        let input = """
+        {"name":"Task","type":"feature","projectId":123}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
 }

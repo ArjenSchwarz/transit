@@ -13,7 +13,6 @@ such as `projectId`, `taskId`, or `milestoneId` exists but is not a valid UUID
 string, reject it before any fallback lookup by name or display ID.
 
 Known gaps filed by the code-issue automation:
-- T-788: non-string `projectId` values can be ignored in create/query paths.
 - T-789: `DeleteMilestoneIntent` treats malformed `milestoneId` as missing.
 - T-808: task identifier resolution can ignore malformed `displayId` / `taskId`
   values before falling back to another identifier or a generic not-found error.
