@@ -15,7 +15,7 @@ struct MilestoneEditView: View {
     private var isEditing: Bool { milestone != nil }
 
     private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
+        !name.trimmedForFormInput().isEmpty
     }
 
     var body: some View {
@@ -121,8 +121,8 @@ struct MilestoneEditView: View {
     }
 
     private func save() {
-        let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        let trimmedDesc = milestoneDescription.trimmingCharacters(in: .whitespaces)
+        let trimmedName = name.trimmedForFormInput()
+        let trimmedDesc = milestoneDescription.trimmedForFormInput()
 
         if let milestone {
             do {
