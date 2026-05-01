@@ -238,4 +238,94 @@ struct UpdateTaskIntentTests {
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")
     }
+
+    // MARK: - clearMilestone Type Validation [T-1060]
+
+    /// T-1060: A `clearMilestone` value that is a string must be rejected with
+    /// INVALID_INPUT. Previously the malformed value was silently ignored and the
+    /// milestone remained assigned, returning a misleading success response.
+    @Test func clearMilestoneStringValueReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        let task = makeTask(in: svc.context, name: "Task 1", project: project, milestone: milestone, displayId: 10)
+
+        let input = """
+        {"displayId":10,"clearMilestone":"true"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(task.milestone?.id == milestone.id, "Milestone should remain assigned after rejected request")
+    }
+
+    /// T-1060: A numeric `clearMilestone` value must be rejected with INVALID_INPUT.
+    @Test func clearMilestoneNumericValueReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        let task = makeTask(in: svc.context, name: "Task 1", project: project, milestone: milestone, displayId: 10)
+
+        let input = """
+        {"displayId":10,"clearMilestone":1}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(task.milestone?.id == milestone.id, "Milestone should remain assigned after rejected request")
+    }
+
+    /// T-1060: A `null` `clearMilestone` value must be rejected with INVALID_INPUT.
+    @Test func clearMilestoneNullValueReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        let task = makeTask(in: svc.context, name: "Task 1", project: project, milestone: milestone, displayId: 10)
+
+        let input = """
+        {"displayId":10,"clearMilestone":null}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(task.milestone?.id == milestone.id, "Milestone should remain assigned after rejected request")
+    }
+
+    /// T-1060: An explicit `clearMilestone:false` must be accepted (no-op for clearing)
+    /// and should not error. The milestone stays assigned because the caller did not
+    /// request clearing, which is the documented behaviour.
+    @Test func clearMilestoneFalseIsAcceptedAsNoOp() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        let task = makeTask(in: svc.context, name: "Task 1", project: project, milestone: milestone, displayId: 10)
+
+        let input = """
+        {"displayId":10,"clearMilestone":false}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] == nil, "clearMilestone:false should not error")
+        #expect(task.milestone?.id == milestone.id, "Milestone should remain assigned when clearMilestone is false")
+    }
 }
