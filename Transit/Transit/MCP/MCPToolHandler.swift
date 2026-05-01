@@ -630,8 +630,14 @@ extension MCPToolHandler {
     private func validateMilestoneUpdate(
         _ args: [String: Any], milestone: Milestone
     ) -> MilestoneValidation {
+        // When the key is present it MUST be a string — a non-string value (e.g. integer,
+        // boolean, null) would otherwise be silently dropped by `as? String`, letting other
+        // update fields (name, description) apply with the malformed status quietly ignored [T-830].
         var newStatus: MilestoneStatus?
-        if let statusRaw = args["status"] as? String {
+        if args["status"] != nil {
+            guard let statusRaw = args["status"] as? String else {
+                return .invalid(errorResult("status must be a string"))
+            }
             guard let parsed = MilestoneStatus(rawValue: statusRaw) else {
                 let valid = MilestoneStatus.allCases.map(\.rawValue).joined(separator: ", ")
                 return .invalid(errorResult("Invalid status: \(statusRaw). Must be one of: \(valid)"))
@@ -921,7 +927,7 @@ extension MCPToolHandler {
     ///
     /// If the key is present but the value is neither a String nor a [String] (e.g. a number,
     /// boolean, dictionary, or array containing non-string elements), this returns a
-    /// field-specific error so malformed shapes cannot be silently treated as absent. [T-809]
+    /// field-specific error so malformed shapes cannot be silently treated as absent. [T-809, T-830]
     private func validateEnumFilter<E: RawRepresentable & CaseIterable>(
         _ args: [String: Any], key: String, type: E.Type
     ) -> MCPToolResult? where E.RawValue == String {

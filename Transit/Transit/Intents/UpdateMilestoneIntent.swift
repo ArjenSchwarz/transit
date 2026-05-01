@@ -106,9 +106,14 @@ struct UpdateMilestoneIntent: AppIntent {
         milestone: Milestone,
         milestoneService: MilestoneService
     ) -> Validation {
-        // Validate status
+        // Validate status. When the key is present it MUST be a string — a non-string value
+        // (e.g. integer, boolean, null) would otherwise be silently dropped by `as? String`,
+        // letting other update fields apply with the malformed status quietly ignored [T-830].
         var newStatus: MilestoneStatus?
-        if let statusString = json["status"] as? String {
+        if json["status"] != nil {
+            guard let statusString = json["status"] as? String else {
+                return .invalid(IntentError.invalidStatus(hint: "status must be a string").json)
+            }
             guard let parsed = MilestoneStatus(rawValue: statusString) else {
                 return .invalid(IntentError.invalidStatus(hint: "Unknown status: \(statusString)").json)
             }
