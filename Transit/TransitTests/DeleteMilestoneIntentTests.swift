@@ -204,4 +204,64 @@ struct DeleteMilestoneIntentTests {
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")
     }
+
+    // MARK: - Malformed milestoneId (T-789)
+
+    /// T-789: When milestoneId is present but not a valid UUID string, the intent must
+    /// return INVALID_INPUT identifying milestoneId as malformed, not the generic
+    /// "Provide displayId or milestoneId" fallback (which would suggest the key was
+    /// missing). The hint must mention "UUID" so the caller knows the value was rejected.
+    @Test func malformedMilestoneIdReturnsMilestoneIdSpecificInvalidInput() throws {
+        let svc = try makeServices()
+
+        let input = """
+        {"milestoneId":"not-a-uuid"}
+        """
+
+        let result = DeleteMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        let hint = parsed["hint"] as? String ?? ""
+        #expect(hint.contains("milestoneId"))
+        #expect(hint.contains("UUID"))
+    }
+
+    @Test func emptyStringMilestoneIdReturnsMilestoneIdSpecificInvalidInput() throws {
+        let svc = try makeServices()
+
+        let input = """
+        {"milestoneId":""}
+        """
+
+        let result = DeleteMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        let hint = parsed["hint"] as? String ?? ""
+        #expect(hint.contains("milestoneId"))
+        #expect(hint.contains("UUID"))
+    }
+
+    @Test func numericMilestoneIdReturnsMilestoneIdSpecificInvalidInput() throws {
+        let svc = try makeServices()
+
+        let input = """
+        {"milestoneId":123}
+        """
+
+        let result = DeleteMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        let hint = parsed["hint"] as? String ?? ""
+        #expect(hint.contains("milestoneId"))
+        #expect(hint.contains("UUID"))
+    }
 }
