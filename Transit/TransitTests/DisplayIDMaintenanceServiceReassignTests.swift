@@ -306,9 +306,11 @@ struct DisplayIDMaintenanceServiceReassignTests {
         let milestoneAdvance = try #require(result.counterAdvance?.milestone)
         #expect(milestoneAdvance.warning == nil)
 
-        // Task group should be skipped (no reassignment entries).
+        // Task group should be skipped with a counterAdvanceFailed failure
+        // so callers can distinguish "no duplicates" from "advance failed".
         let taskGroup = result.groups.first(where: { $0.type == .task })
         #expect(taskGroup?.reassignments.isEmpty == true)
+        #expect(taskGroup?.failure?.code == .counterAdvanceFailed)
         // Milestone group should have completed.
         let milestoneGroup = result.groups.first(where: { $0.type == .milestone })
         #expect(milestoneGroup?.reassignments.isEmpty == false)

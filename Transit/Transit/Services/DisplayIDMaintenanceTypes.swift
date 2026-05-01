@@ -146,6 +146,10 @@ struct GroupResult: Codable, Sendable {
     let reassignments: [ReassignmentEntry]
     let failure: GroupFailure?
 
+    /// Stable identifier for SwiftUI diffing across mixed task/milestone lists.
+    /// Plain `displayId` collides between e.g. T-5 and M-5.
+    var stableID: String { "\(type.rawValue)-\(displayId)" }
+
     init(
         type: RecordType,
         displayId: Int,

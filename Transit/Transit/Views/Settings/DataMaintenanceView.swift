@@ -160,7 +160,10 @@ extension DataMaintenanceView {
             Text("No groups required reassignment.")
                 .foregroundStyle(.secondary)
         } else {
-            ForEach(result.groups, id: \.displayId) { group in
+            // Composite key: tasks and milestones can share displayId values
+            // (e.g. T-5 and M-5 both duplicated), so keying by displayId alone
+            // produces SwiftUI diff collisions.
+            ForEach(result.groups, id: \.stableID) { group in
                 resultGroupRow(group)
             }
         }

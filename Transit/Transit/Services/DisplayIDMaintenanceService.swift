@@ -155,10 +155,14 @@ final class DisplayIDMaintenanceService {
 
         var groupResults: [GroupResult] = []
         for group in report.tasks {
-            groupResults.append(await processTaskGroup(group, advanceFailed: taskAdvance?.warning != nil))
+            groupResults.append(await processTaskGroup(
+                group, advanceWarning: taskAdvance?.warning
+            ))
         }
         for group in report.milestones {
-            groupResults.append(await processMilestoneGroup(group, advanceFailed: milestoneAdvance?.warning != nil))
+            groupResults.append(await processMilestoneGroup(
+                group, advanceWarning: milestoneAdvance?.warning
+            ))
         }
 
         return ReassignmentResult(
@@ -168,29 +172,31 @@ final class DisplayIDMaintenanceService {
         )
     }
 
-    private func processTaskGroup(_ group: DuplicateGroup, advanceFailed: Bool) async -> GroupResult {
+    private func processTaskGroup(_ group: DuplicateGroup, advanceWarning: String?) async -> GroupResult {
         // `count >= 2` is a `groupTasks`/`groupMilestones` invariant, so the
         // winner is always present.
         guard let winnerRef = group.records.first else { preconditionFailure("Empty duplicate group") }
         let winner = GroupResultWinner(id: winnerRef.id, name: winnerRef.name)
         let losers = Array(group.records.dropFirst())
-        if advanceFailed {
+        if let warning = advanceWarning {
             return GroupResult(
                 type: .task, displayId: group.displayId,
-                winner: winner, reassignments: [], failure: nil
+                winner: winner, reassignments: [],
+                failure: GroupFailure(code: .counterAdvanceFailed, message: warning)
             )
         }
         return await reassignTaskGroup(displayId: group.displayId, winner: winner, losers: losers)
     }
 
-    private func processMilestoneGroup(_ group: DuplicateGroup, advanceFailed: Bool) async -> GroupResult {
+    private func processMilestoneGroup(_ group: DuplicateGroup, advanceWarning: String?) async -> GroupResult {
         guard let winnerRef = group.records.first else { preconditionFailure("Empty duplicate group") }
         let winner = GroupResultWinner(id: winnerRef.id, name: winnerRef.name)
         let losers = Array(group.records.dropFirst())
-        if advanceFailed {
+        if let warning = advanceWarning {
             return GroupResult(
                 type: .milestone, displayId: group.displayId,
-                winner: winner, reassignments: [], failure: nil
+                winner: winner, reassignments: [],
+                failure: GroupFailure(code: .counterAdvanceFailed, message: warning)
             )
         }
         return await reassignMilestoneGroup(displayId: group.displayId, winner: winner, losers: losers)

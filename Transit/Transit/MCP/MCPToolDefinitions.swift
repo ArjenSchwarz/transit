@@ -12,8 +12,9 @@ nonisolated enum MCPToolDefinitions {
         scanDuplicateDisplayIds, reassignDuplicateDisplayIds
     ]
 
-    /// Backwards-compatible alias for callers that always want every tool.
-    /// New callers should prefer `tools(includingMaintenance:)`.
+    /// Backwards-compatible alias for legacy callers — returns core tools only.
+    /// Maintenance tools are gated; use `tools(includingMaintenance:)` to
+    /// include them based on the runtime toggle.
     static let all: [MCPToolDefinition] = coreTools
 
     static func tools(includingMaintenance: Bool) -> [MCPToolDefinition] {
