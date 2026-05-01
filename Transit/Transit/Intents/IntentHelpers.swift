@@ -103,6 +103,8 @@ nonisolated enum IntentHelpers {
     }
 
     /// Resolves a task from JSON containing displayId or taskId, mapping errors to `IntentError`.
+    /// A present-but-malformed identifier surfaces as a field-specific INVALID_INPUT
+    /// instead of being silently swallowed by a TASK_NOT_FOUND fallback. [T-808]
     @MainActor
     static func resolveTask(
         from json: [String: Any],
@@ -110,10 +112,24 @@ nonisolated enum IntentHelpers {
     ) -> Result<TransitTask, IntentError> {
         do {
             return .success(try taskService.resolveTask(from: json))
+        } catch TaskService.Error.invalidIdentifier(let field) {
+            return .failure(.invalidInput(hint: invalidIdentifierHint(for: field)))
         } catch {
             return .failure(.taskNotFound(
                 hint: "Provide either displayId (integer) or taskId (UUID)"
             ))
+        }
+    }
+
+    /// Field-specific hint for an `invalidIdentifier` rejection. [T-808]
+    static func invalidIdentifierHint(for field: String) -> String {
+        switch field {
+        case "displayId":
+            return "displayId must be an integer"
+        case "taskId":
+            return "taskId must be a valid UUID string"
+        default:
+            return "\(field) is not a valid identifier"
         }
     }
 

@@ -285,6 +285,10 @@ final class MCPToolHandler {
         let task: TransitTask
         do {
             task = try taskService.resolveTask(from: args)
+        } catch TaskService.Error.invalidIdentifier(let field) {
+            // Reject malformed identifiers with a field-specific message
+            // instead of returning the generic not-found error. [T-808]
+            return errorResult(IntentHelpers.invalidIdentifierHint(for: field))
         } catch {
             return errorResult("Provide either displayId (integer) or taskId (UUID string)")
         }
@@ -706,6 +710,10 @@ extension MCPToolHandler {
         let task: TransitTask
         do {
             task = try taskService.resolveTask(from: args)
+        } catch TaskService.Error.invalidIdentifier(let field) {
+            // Reject malformed identifiers with a field-specific message
+            // instead of returning the generic not-found error. [T-808]
+            return errorResult(IntentHelpers.invalidIdentifierHint(for: field))
         } catch {
             return errorResult("Provide either displayId (integer) or taskId (UUID string)")
         }
@@ -804,6 +812,10 @@ extension MCPToolHandler {
         let task: TransitTask
         do {
             task = try taskService.resolveTask(from: args)
+        } catch TaskService.Error.invalidIdentifier(let field) {
+            // Reject malformed identifiers with a field-specific message
+            // instead of returning the generic not-found error. [T-808]
+            return errorResult(IntentHelpers.invalidIdentifierHint(for: field))
         } catch {
             return errorResult("Provide either displayId (integer) or taskId (UUID string)")
         }

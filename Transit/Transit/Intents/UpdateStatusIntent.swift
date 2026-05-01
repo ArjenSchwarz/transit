@@ -52,6 +52,12 @@ struct UpdateStatusIntent: AppIntent {
         let task: TransitTask
         do {
             task = try taskService.resolveTask(from: json)
+        } catch TaskService.Error.invalidIdentifier(let field) {
+            // Reject malformed identifiers with a field-specific INVALID_INPUT
+            // instead of falling back to TASK_NOT_FOUND. [T-808]
+            return IntentError.invalidInput(
+                hint: IntentHelpers.invalidIdentifierHint(for: field)
+            ).json
         } catch {
             return IntentError.taskNotFound(
                 hint: "Provide either displayId (integer) or taskId (UUID)"
