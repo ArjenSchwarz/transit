@@ -39,7 +39,7 @@ Adds a `DisplayIDMaintenanceService` that scans for tasks/milestones sharing a `
 | `TaskService.findByDisplayID` / `MilestoneService.findByDisplayID` duplicate guards | No — maintenance service does its own fetch+group, bypassing those guards | Avoids disabling the guards |
 | `CommentService.addComment(to:content:authorName:isAgent:save:)` | Yes — reused for audit trail | Called with `save: { try $0.save() }` so the comment has its own save (AC 3.4) |
 | `ModelContext.safeRollback()` | Yes — reused on per-group save failure | No changes |
-| `ModelContext.refresh(_:mergeChanges:)` | Yes — used for stale-ID guard so CloudKit-merged peer changes are visible | Called once per loser before reading `permanentDisplayId` |
+| Stale-ID re-fetch via `FetchDescriptor` keyed on UUID | Yes — used for stale-ID guard. **Superseded by Decision 11**: original design called for `ModelContext.refresh(_:mergeChanges:)`, but the implementation uses a fresh fetch by UUID instead because `RecordRef` (not `@Model`) crosses the scan/reassign boundary | Re-reads committed local state per loser |
 | `AppDependencyManager.shared.add(dependency:)` in `TransitApp.init` | Yes — maintenance service registered for Intent `@Dependency` | Matches other services |
 | Shared `container.mainContext` rule (T-173) | Yes — service uses `container.mainContext` | |
 | `MCPSettings` `@Observable` + `didSet` | Yes — new field follows the same pattern | |
@@ -124,7 +124,7 @@ The re-read in the loop means a racing writer that already moved the counter pas
 4. For each record type with observed duplicates, call `store.advanceCounter(toAtLeast: sampledMax + 1)`. Capture per-type `counterAdvance` entry: either `advancedTo: <final counter value>` or `warning: <error description>`. A counter-advance failure aborts reassignment for that type only; the other type still runs.
 5. For each group (tasks first, then milestones, display ID ascending):
    1. For each loser, in group order:
-      1. `modelContext.refresh(loser, mergeChanges: true)`.
+      1. Re-fetch via `FetchDescriptor<Type>(predicate: #Predicate { $0.id == id })` to pick up committed local state. (Per Decision 11, supersedes the earlier `modelContext.refresh(_:mergeChanges:)` plan because `RecordRef`, not `@Model`, crosses the scan/reassign boundary.)
       2. If `loser.permanentDisplayId != scannedValue` → group outcome `stale-id`, break loser loop.
       3. `let newId = try await allocator.allocateNextID()`. On throw → `allocation-failed`, break loser loop.
       4. `loser.permanentDisplayId = newId; try save(context)`. On throw → `safeRollback()`, `save-failed`, break loser loop.

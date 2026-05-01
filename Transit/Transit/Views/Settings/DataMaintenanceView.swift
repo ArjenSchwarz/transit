@@ -97,20 +97,20 @@ struct DataMaintenanceView: View {
 
     private func runScan() {
         phase = .scanning
-        Task { @MainActor in
+        Task {
             do {
                 let report = try maintenanceService.scanDuplicates()
                 phase = .scanned(report)
             } catch {
                 phase = .idle
-                errorMessage = "Scan failed: \(error)"
+                errorMessage = "Scan failed: \(error.localizedDescription)"
             }
         }
     }
 
     private func runReassign() {
         phase = .reassigning
-        Task { @MainActor in
+        Task {
             let result = await maintenanceService.reassignDuplicates()
             phase = .done(result)
         }

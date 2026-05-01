@@ -4,6 +4,13 @@ import Foundation
 
 /// String-raw-valued failure codes shared between scan/reassign reports.
 /// Raw strings match the JSON `failure.code` and `warning` field values.
+///
+/// `commentFailed` is reserved by the documented JSON contract (requirement 2.7)
+/// but is not currently emitted by the service: comment-save failures populate
+/// the per-entry `commentWarning` string field per Decision 7, never escalating
+/// to a group-level failure. The case is kept for contract stability and as a
+/// reserved slot for any future structural change that does want to surface
+/// comment failures as group failures.
 enum FailureCode: String, Codable, Sendable {
     case allocationFailed = "allocation-failed"
     case saveFailed = "save-failed"
