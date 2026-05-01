@@ -1,3 +1,4 @@
+import CoreFoundation
 import Foundation
 
 // swiftlint:disable type_body_length
@@ -12,6 +13,23 @@ nonisolated enum IntentHelpers {
         guard let value else { return nil }
         if let intVal = value as? Int { return intVal }
         if let doubleVal = value as? Double { return Int(exactly: doubleVal) }
+        return nil
+    }
+
+    /// Extracts a strict boolean from a JSON value. Returns nil for any non-boolean
+    /// value, including numeric `1`/`0`, strings, and null. Distinguishes JSON
+    /// booleans from numeric NSNumbers — `JSONSerialization` delivers both as
+    /// `NSNumber`, so a plain `as? Bool` would silently accept `1`/`0`. [T-1060]
+    static func parseBoolValue(_ value: Any?) -> Bool? {
+        guard let value else { return nil }
+        // Native Swift Bool — already strictly typed.
+        if let nativeBool = value as? Bool, !(value is NSNumber) {
+            return nativeBool
+        }
+        // NSNumber: only accept if it actually wraps a CFBoolean (true/false literal).
+        if let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() {
+            return number.boolValue
+        }
         return nil
     }
 

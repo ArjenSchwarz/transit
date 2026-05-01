@@ -79,15 +79,22 @@ struct UpdateTaskIntent: AppIntent {
         task: TransitTask,
         milestoneService: MilestoneService
     ) -> String? {
-        if let clearMilestone = json["clearMilestone"] as? Bool, clearMilestone {
-            do {
-                try milestoneService.setMilestone(nil, on: task)
-            } catch let error as MilestoneService.Error {
-                return IntentHelpers.mapMilestoneError(error).json
-            } catch {
-                return IntentError.invalidInput(hint: "Failed to clear milestone").json
+        // T-1060: When the key is present, require a real boolean. Strings, numbers,
+        // and null must be rejected instead of silently treated as absent.
+        if json.keys.contains("clearMilestone") {
+            guard let clearMilestone = IntentHelpers.parseBoolValue(json["clearMilestone"]) else {
+                return IntentError.invalidInput(hint: "clearMilestone must be a boolean").json
             }
-            return nil
+            if clearMilestone {
+                do {
+                    try milestoneService.setMilestone(nil, on: task)
+                } catch let error as MilestoneService.Error {
+                    return IntentHelpers.mapMilestoneError(error).json
+                } catch {
+                    return IntentError.invalidInput(hint: "Failed to clear milestone").json
+                }
+                return nil
+            }
         }
         return IntentHelpers.assignMilestone(from: json, to: task, milestoneService: milestoneService)
     }

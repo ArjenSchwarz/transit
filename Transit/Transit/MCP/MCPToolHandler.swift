@@ -732,7 +732,17 @@ extension MCPToolHandler {
         if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
             return errorResult("milestoneDisplayId must be an integer")
         }
-        if args["clearMilestone"] as? Bool == true {
+        // Reject non-boolean clearMilestone when key is present [T-1060]
+        let clearMilestoneValue: Bool?
+        if args.keys.contains("clearMilestone") {
+            guard let parsed = IntentHelpers.parseBoolValue(args["clearMilestone"]) else {
+                return errorResult("clearMilestone must be a boolean")
+            }
+            clearMilestoneValue = parsed
+        } else {
+            clearMilestoneValue = nil
+        }
+        if clearMilestoneValue == true {
             do {
                 try milestoneService.setMilestone(nil, on: task, save: false)
             } catch {
