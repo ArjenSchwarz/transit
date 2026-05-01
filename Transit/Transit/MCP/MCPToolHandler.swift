@@ -872,17 +872,33 @@ extension MCPToolHandler {
     /// Validate that all values for a given key are valid raw values of the specified enum.
     /// Returns an error result if any value is invalid, or nil if all are valid (or the key is absent).
     /// Works with both array and single-string inputs for backward compatibility.
+    ///
+    /// If the key is present but the value is neither a String nor a [String] (e.g. a number,
+    /// boolean, dictionary, or array containing non-string elements), this returns a
+    /// field-specific error so malformed shapes cannot be silently treated as absent. [T-809]
     private func validateEnumFilter<E: RawRepresentable & CaseIterable>(
         _ args: [String: Any], key: String, type: E.Type
     ) -> MCPToolResult? where E.RawValue == String {
+        guard let raw = args[key] else { return nil }
+
         let values: [String]
-        if let array = args[key] as? [String] {
+        if let array = raw as? [String] {
             values = array
-        } else if let single = args[key] as? String {
+        } else if let single = raw as? String {
             values = [single]
+        } else if let anyArray = raw as? [Any] {
+            // Reject arrays that contain non-string elements (e.g. ["idea", 123]).
+            // `raw as? [String]` returns nil for mixed-type arrays, so we must inspect
+            // the elements explicitly to distinguish "valid string array" from "mixed".
+            let strings = anyArray.compactMap { $0 as? String }
+            guard strings.count == anyArray.count else {
+                return errorResult("Invalid \(key): expected a string or array of strings")
+            }
+            values = strings
         } else {
-            return nil
+            return errorResult("Invalid \(key): expected a string or array of strings")
         }
+
         let allRaw = E.allCases.map(\.rawValue)
         let validRaw = Set(allRaw)
         let invalid = values.filter { !validRaw.contains($0) }
