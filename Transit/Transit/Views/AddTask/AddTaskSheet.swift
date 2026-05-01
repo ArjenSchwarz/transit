@@ -30,7 +30,7 @@ struct AddTaskSheet: View {
     }
 
     private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedProject != nil
+        !name.trimmedForFormInput().isEmpty && selectedProject != nil
     }
 
     var body: some View {
@@ -217,10 +217,10 @@ struct AddTaskSheet: View {
 
     private func save() async {
         guard let project = selectedProject else { return }
-        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let trimmedName = name.trimmedForFormInput()
         guard !trimmedName.isEmpty else { return }
 
-        let description = taskDescription.trimmingCharacters(in: .whitespaces)
+        let description = taskDescription.trimmedForFormInput()
         let type = selectedType
         let projectID = project.id
 

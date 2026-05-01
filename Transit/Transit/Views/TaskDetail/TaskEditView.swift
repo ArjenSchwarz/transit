@@ -35,7 +35,7 @@ struct TaskEditView: View {
     }
 
     private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedProjectID != nil
+        !name.trimmedForFormInput().isEmpty && selectedProjectID != nil
     }
 
     var body: some View {
@@ -282,10 +282,10 @@ extension TaskEditView {
     }
 
     fileprivate func save() {
-        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let trimmedName = name.trimmedForFormInput()
         guard !trimmedName.isEmpty else { return }
 
-        let trimmedDesc = taskDescription.trimmingCharacters(in: .whitespaces)
+        let trimmedDesc = taskDescription.trimmedForFormInput()
 
         do {
             // All mutations use save: false to defer persistence.

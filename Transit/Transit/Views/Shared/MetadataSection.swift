@@ -63,7 +63,7 @@ private struct AddMetadataRow: View {
             TextField("Value", text: $newValue)
                 .textContentType(nil)
             Button {
-                let trimmedKey = newKey.trimmingCharacters(in: .whitespaces)
+                let trimmedKey = newKey.trimmedForFormInput()
                 guard !trimmedKey.isEmpty else { return }
                 metadata[trimmedKey] = newValue
                 newKey = ""
@@ -72,7 +72,7 @@ private struct AddMetadataRow: View {
                 Image(systemName: "plus.circle.fill")
                     .foregroundStyle(.green)
             }
-            .disabled(newKey.trimmingCharacters(in: .whitespaces).isEmpty)
+            .disabled(newKey.trimmedForFormInput().isEmpty)
         }
     }
 }
