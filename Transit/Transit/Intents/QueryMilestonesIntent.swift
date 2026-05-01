@@ -75,9 +75,10 @@ struct QueryMilestonesIntent: AppIntent {
             }
         }
 
-        // Validate projectId format before filtering
-        if let projectIdStr = json["projectId"] as? String, UUID(uuidString: projectIdStr) == nil {
-            return IntentError.invalidInput(hint: "Invalid projectId: expected a UUID string").json
+        // Validate projectId format before filtering. Reject non-string values too
+        // [T-665, T-788] by checking key presence separately from the cast.
+        if case .failure(let error) = IntentHelpers.validateUUIDField("projectId", in: json) {
+            return error.json
         }
 
         // Validate enum filters before filtering
@@ -113,10 +114,12 @@ struct QueryMilestonesIntent: AppIntent {
         let effectiveSearch = (searchText?.isEmpty == true) ? nil : searchText
 
         // Resolve project filter — callers must pre-validate projectId format.
-        // Guard here as defense-in-depth: return empty on invalid UUID rather than silently ignoring it.
+        // Guard here as defense-in-depth: return empty when the key is present but
+        // not a valid UUID string (covers non-string values too) [T-788].
         var resolvedProjectId: UUID?
-        if let projectIdStr = json["projectId"] as? String {
-            guard let pid = UUID(uuidString: projectIdStr) else { return [] }
+        if json["projectId"] != nil {
+            guard let projectIdStr = json["projectId"] as? String,
+                  let pid = UUID(uuidString: projectIdStr) else { return [] }
             resolvedProjectId = pid
         } else if let projectName = json["project"] as? String {
             if case .success(let project) = projectService.findProject(name: projectName) {

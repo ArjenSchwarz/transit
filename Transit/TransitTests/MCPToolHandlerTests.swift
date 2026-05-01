@@ -4,6 +4,7 @@ import SwiftData
 import Testing
 @testable import Transit
 
+// swiftlint:disable type_body_length
 @MainActor @Suite(.serialized)
 struct MCPToolHandlerTests {
 
@@ -150,6 +151,50 @@ struct MCPToolHandlerTests {
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "create_task",
             arguments: ["name": "Task", "type": "bug", "projectId": "not-a-uuid", "project": "Decoy"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
+    // T-788: Non-string projectId must be rejected, not treated as missing.
+    @Test func createTaskNumericProjectIdReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        MCPTestHelpers.makeProject(in: env.context, name: "Decoy")
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_task",
+            arguments: ["name": "Task", "type": "bug", "projectId": 123, "project": "Decoy"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
+    @Test func createTaskNumericProjectIdWithoutFallbackReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_task",
+            arguments: ["name": "Task", "type": "bug", "projectId": 123]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
+    // T-788: query_tasks must reject non-string projectId rather than silently dropping the filter.
+    @Test func queryTasksNumericProjectIdReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        _ = try await env.taskService.createTask(name: "Task", description: nil, type: .bug, project: alpha)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["projectId": 123, "project": "Alpha"]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
@@ -310,5 +355,6 @@ struct MCPToolHandlerTests {
     }
 
 }
+// swiftlint:enable type_body_length
 
 #endif

@@ -56,12 +56,13 @@ struct CreateMilestoneIntent: AppIntent {
             return IntentError.invalidInput(hint: "Missing required field: name").json
         }
 
-        // Resolve project
-        // Reject malformed projectId when the key is present [T-743]
-        if let projectIdStr = json["projectId"] as? String, UUID(uuidString: projectIdStr) == nil {
-            return IntentError.invalidInput(hint: "Invalid projectId: expected a UUID string").json
+        // Resolve project. Validate key presence separately from string/UUID parsing
+        // so non-string values (numbers, bools, etc.) are rejected too [T-743, T-788].
+        let projectId: UUID?
+        switch IntentHelpers.validateUUIDField("projectId", in: json) {
+        case .failure(let error): return error.json
+        case .success(let parsed): projectId = parsed
         }
-        let projectId: UUID? = (json["projectId"] as? String).flatMap(UUID.init)
         let projectName = json["project"] as? String
         let lookupResult = projectService.findProject(id: projectId, name: projectName)
 
