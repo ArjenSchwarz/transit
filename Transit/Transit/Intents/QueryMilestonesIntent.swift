@@ -81,9 +81,16 @@ struct QueryMilestonesIntent: AppIntent {
             return error.json
         }
 
-        // Validate enum filters before filtering
-        if let status = json["status"] as? String, MilestoneStatus(rawValue: status) == nil {
-            return IntentError.invalidStatus(hint: "Unknown status: \(status)").json
+        // Validate enum filters before filtering. When the key is present it MUST be a string —
+        // a non-string value (e.g. integer, boolean, array, null) would otherwise be silently
+        // dropped by `as? String` and the filter ignored entirely [T-830].
+        if json["status"] != nil {
+            guard let status = json["status"] as? String else {
+                return IntentError.invalidStatus(hint: "status must be a string").json
+            }
+            guard MilestoneStatus(rawValue: status) != nil else {
+                return IntentError.invalidStatus(hint: "Unknown status: \(status)").json
+            }
         }
 
         // Fetch all milestones and filter in-memory
