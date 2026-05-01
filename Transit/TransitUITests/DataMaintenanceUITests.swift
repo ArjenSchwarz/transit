@@ -6,7 +6,8 @@ import XCTest
 ///
 /// Element identification uses accessibility identifiers exclusively (per
 /// `rules/language-rules/swift.md`). Identifiers used here MUST stay in sync
-/// with `Views/Settings/DataMaintenanceView.swift`:
+/// with `Views/Settings/DataMaintenanceView.swift` and `SettingsView.swift`:
+///   - `dataMaintenance.row` (NavigationLink in iOS Settings)
 ///   - `dataMaintenance.scanButton`
 ///   - `dataMaintenance.reassignButton`
 ///   - `dataMaintenance.confirmButton`
@@ -33,10 +34,9 @@ final class DataMaintenanceUITests: XCTestCase {
         XCTAssertTrue(settingsButton.waitForExistence(timeout: 5))
         settingsButton.tap()
 
-        // Navigate to Data Maintenance via the iOS Settings list. The label
-        // text is the only stable reference for this row in iOS Settings; the
-        // detail screen itself is identified by its scan button below.
-        let dataMaintenanceRow = app.buttons["Data Maintenance"]
+        // Navigate to Data Maintenance via the iOS Settings list using the
+        // dataMaintenance.row accessibility identifier on the NavigationLink.
+        let dataMaintenanceRow = app.buttons["dataMaintenance.row"]
         XCTAssertTrue(dataMaintenanceRow.waitForExistence(timeout: 5))
         dataMaintenanceRow.tap()
 

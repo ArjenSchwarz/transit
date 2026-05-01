@@ -99,6 +99,7 @@ struct SettingsView: View {
             NavigationLink(value: NavigationDestination.dataMaintenance) {
                 Label("Data Maintenance", systemImage: "wrench.and.screwdriver")
             }
+            .accessibilityIdentifier("dataMaintenance.row")
         }
     }
 
