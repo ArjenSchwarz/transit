@@ -45,7 +45,9 @@ final class MCPServer {
                     return Self.jsonResponse(err)
                 }
 
-                // Notifications (id == nil) must not receive a JSON-RPC response body
+                // Notifications (id member omitted) must not receive a
+                // JSON-RPC response body. Explicit "id": null is NOT a
+                // notification and is handled by the tool dispatcher.
                 guard let rpcResponse = await handler.handle(rpcRequest) else {
                     return Response(status: .accepted)
                 }
