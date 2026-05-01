@@ -20,8 +20,10 @@ Known gaps filed by the code-issue automation:
 - T-809 (fixed): MCP `validateEnumFilter` now rejects non-string and mixed-type
   array values for `status`, `not_status`, and `type` with a field-specific error
   instead of silently treating them as absent.
-- T-810: MCP milestone resolution treats non-string `milestoneId` values as
-  missing for `update_milestone` and `delete_milestone`.
+- T-810 (fixed): MCP milestone resolution treated non-string `milestoneId`
+  values as missing for `update_milestone` and `delete_milestone`. Resolver
+  now gates on `args["milestoneId"] != nil` and rejects non-string or
+  malformed values with `milestoneId must be a valid UUID string`.
 - T-813: `make lint` can fail after 0 SwiftLint violations because SwiftLint
   writes its default cache plist outside the workspace and may hit filesystem
   permission errors. Use a workspace-local SwiftLint cache path when fixing this.
