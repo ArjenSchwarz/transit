@@ -11,6 +11,44 @@ nonisolated struct JSONRPCRequest: Decodable, Sendable {
     let id: JSONRPCId?
     let method: String
     let params: AnyCodable?
+    /// True when the source JSON omitted the `id` member entirely (a JSON-RPC
+    /// notification). An explicit `"id": null` is NOT a notification and must
+    /// receive a response per JSON-RPC 2.0 §4.1.
+    let isNotification: Bool
+
+    init(
+        jsonrpc: String,
+        id: JSONRPCId?,
+        method: String,
+        params: AnyCodable?,
+        isNotification: Bool = false
+    ) {
+        self.jsonrpc = jsonrpc
+        self.id = id
+        self.method = method
+        self.params = params
+        self.isNotification = isNotification
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case jsonrpc, id, method, params
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        jsonrpc = try container.decode(String.self, forKey: .jsonrpc)
+        method = try container.decode(String.self, forKey: .method)
+        params = try container.decodeIfPresent(AnyCodable.self, forKey: .params)
+        // Distinguish "id member absent" (notification) from "id present with
+        // value null" (still a request, requires response with id: null).
+        if container.contains(.id) {
+            isNotification = false
+            id = try container.decodeIfPresent(JSONRPCId.self, forKey: .id)
+        } else {
+            isNotification = true
+            id = nil
+        }
+    }
 }
 
 nonisolated struct JSONRPCResponse: Encodable, Sendable {
@@ -34,6 +72,25 @@ nonisolated struct JSONRPCResponse: Encodable, Sendable {
             result: nil,
             error: JSONRPCError(code: code, message: message, data: data.map { AnyCodable($0) })
         )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case jsonrpc, id, result, error
+    }
+
+    func encode(to encoder: Encoder) throws {
+        // Per JSON-RPC 2.0 §5, the `id` member MUST always be present in a
+        // response. Use a nil-to-null encoding rather than synthesized
+        // `encodeIfPresent`, which would omit the key entirely.
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(jsonrpc, forKey: .jsonrpc)
+        if let id {
+            try container.encode(id, forKey: .id)
+        } else {
+            try container.encodeNil(forKey: .id)
+        }
+        try container.encodeIfPresent(result, forKey: .result)
+        try container.encodeIfPresent(error, forKey: .error)
     }
 }
 

@@ -35,8 +35,11 @@ final class MCPToolHandler {
 
     /// Returns `nil` for JSON-RPC notifications (no response required).
     func handle(_ request: JSONRPCRequest) async -> JSONRPCResponse? {
-        // Notifications have no id — the server must not reply.
-        if request.id == nil {
+        // Notifications omit the `id` member entirely (per JSON-RPC 2.0 §4.1).
+        // An explicit `"id": null` is a regular request and must receive a
+        // response with `id: null`, so we rely on the parsed notification
+        // flag rather than `request.id == nil`.
+        if request.isNotification {
             return nil
         }
 
