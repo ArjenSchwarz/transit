@@ -8,11 +8,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `DisplayIDMaintenanceService.reassignDuplicates` now surfaces a fetch failure as a counter-advance warning on both record types instead of silently no-oping the run with empty arrays.
+- `DisplayIDMaintenanceService` group processing no longer fabricates winner identity (`UUID()` / `""`) for the unreachable empty-group case; the invariant is asserted via `preconditionFailure` and the existing `RecordRef` is propagated.
 - `IntentHelpers.resolveMilestone` now rejects malformed `milestoneId` and `projectId` with `INVALID_INPUT` instead of silently falling back to name-based lookup (T-753)
 - Sync toggle in Settings now updates `SyncManager` runtime state immediately instead of only taking effect on next launch (T-699)
 
+### Changed
+
+- `DisplayIDMaintenanceService` init no longer takes `taskCounterStore`/`milestoneCounterStore`; the stores are read from each `DisplayIDAllocator.counterStore` (single source of truth).
+- `IntentHelpers.encodeAsJSONString(_:)` is the shared JSON encoding helper used by `MCPToolHandler` and the maintenance App Intents, replacing three per-site copies of the same `JSONEncoder()` + UTF-8 guard.
+- `MCPToolHandler` now derives the gated maintenance tool name set from `MCPToolDefinitions.maintenanceToolNames` so the gate stays in sync with the definitions list.
+- Service-level error messages in `DisplayIDMaintenanceService` use `error.localizedDescription` rather than `"\(error)"` interpolation for more actionable output in the result envelope.
+- Decision 11 in the duplicate-displayid-cleanup decision log records the choice to use `FetchDescriptor` for the stale-ID guard (instead of `ModelContext.refresh(_:mergeChanges:)`) since the service hands `RecordRef` value types across the scan/reassign boundary rather than `@Model` references.
+
 ### Added
 
+- Test for AC 8.1: an allocation failure on one duplicate group does not abort subsequent groups; the loser loop breaks for the failing group only and the next group still reassigns.
+- `DisplayIDMaintenanceService` is now constructed cross-platform in `TransitApp`, registered via `AppDependencyManager` for App Intents, and exposed via `.environment` on the root `NavigationStack` and `withCoreEnvironments` so `DataMaintenanceView` resolves it on iOS, the macOS Settings window, and the macOS Task Detail window.
+- `ScanDuplicateDisplayIDsIntent` and `ReassignDuplicateDisplayIDsIntent` App Intents for running duplicate cleanup from Shortcuts. Both reuse the same `JSONEncoder` path as the MCP tools so payloads are byte-equal across surfaces; service errors land inside the JSON envelope rather than thrown.
+- `DataMaintenanceView` in Settings — scan → confirm (destructive alert) → reassign → result flow, available on iOS and macOS. macOS Settings adds a "Data Maintenance" sidebar category and an "Expose maintenance tools" Toggle in the MCP Server section.
+- `NavigationDestination.dataMaintenance` case wires the new view into both the iOS settings stack and the macOS settings window.
+- UI test for the Data Maintenance golden path with seeded duplicates via a new `UITestScenario.duplicateDisplayIds` case; matched accessibility identifiers `dataMaintenance.scanButton/.reassignButton/.confirmButton/.resultList`.
+- MCP server exposes `scan_duplicate_display_ids` and `reassign_duplicate_display_ids` tools, gated behind a new `MCPSettings.maintenanceToolsEnabled` toggle (UserDefaults `mcpMaintenanceToolsEnabled`, default off). When the toggle is off, both tools are excluded from `tools/list` and `tools/call` returns JSON-RPC `methodNotFound` with a distinct "Tool '<name>' is disabled. Enable maintenance tools in Transit Settings." message.
+- `MCPToolDefinitions.tools(includingMaintenance:)` helper splits core tools from maintenance tools so the maintenance tools no longer cost MCP context for every agent session.
+- `DisplayIDAllocator.counterStore` accessor exposes the underlying `CounterStore` so callers needing direct counter access (e.g. `DisplayIDMaintenanceService`'s counter-advance fence) can share the allocator's store.
+- `DisplayIDMaintenanceService` with `scanDuplicates` and `reassignDuplicates` for repairing tasks/milestones sharing a `permanentDisplayId`. Counter advance happens before loser allocation; reassigned tasks receive a "Transit Maintenance" audit comment recording the old and new display IDs and the date.
+- `DisplayIDMaintenanceTypes`: `DuplicateReport`, `ReassignmentResult`, `FailureCode`, and Codable encoders matching the JSON shape shared by MCP and App Intents.
+- `CounterStore.advanceCounter(toAtLeast:retryLimit:)` extension with default implementation that retries on conflict and short-circuits when a racing writer has already moved the counter past the target.
+- Spec for duplicate display ID cleanup: requirements, design, decision log, and 18-task implementation plan in `specs/duplicate-displayid-cleanup/`
 - Task detail view shows creation date in secondary style on both iOS and macOS (T-755)
 - macOS: Task detail opens in a dedicated window instead of a sheet, with share and edit buttons in the toolbar (T-35)
 - macOS: New Task opens in a dedicated window instead of a sheet (T-35)

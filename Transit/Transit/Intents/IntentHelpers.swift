@@ -1,5 +1,6 @@
 import Foundation
 
+// swiftlint:disable type_body_length
 /// Shared utilities for App Intent JSON parsing and response encoding.
 /// Nonisolated because these are pure functions that only use Foundation types.
 nonisolated enum IntentHelpers {
@@ -56,6 +57,19 @@ nonisolated enum IntentHelpers {
             return "[]"
         }
         return string
+    }
+
+    enum EncodingError: Swift.Error { case utf8 }
+
+    /// Encodes an `Encodable` value as a UTF-8 JSON string. Used by both the MCP
+    /// dispatch handler and the maintenance Intents so they share a byte-equal
+    /// encoding for the same input.
+    static func encodeAsJSONString(_ value: some Encodable) throws -> String {
+        let data = try JSONEncoder().encode(value)
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw EncodingError.utf8
+        }
+        return text
     }
 
     /// Translates ProjectLookupError to IntentError.
@@ -292,3 +306,4 @@ nonisolated enum IntentHelpers {
         return nil
     }
 }
+// swiftlint:enable type_body_length

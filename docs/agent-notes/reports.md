@@ -53,6 +53,11 @@ Native SwiftUI view at `Transit/Transit/Views/Reports/ReportView.swift`.
 - Navigation: `NavigationDestination.report` case, routed in `TransitApp.swift`
 - Dashboard toolbar button placed before the settings gear
 
+## Known Gaps
+
+- T-877: Reports include terminal milestones, but top-level and per-project summary counts still only count tasks. Milestone-only report groups can show `0 tasks` / `0 done` while displaying completed or abandoned milestones.
+- T-879: `ReportView.milestoneRow(_:)` always renders `tasks`, so a milestone with exactly one assigned task appears as `1 tasks`. `ReportMarkdownFormatter` already has the correct singular/plural logic.
+
 ## GenerateReportIntent
 
 App Intent that generates a markdown report via Shortcuts. Located at `Transit/Transit/Intents/GenerateReportIntent.swift`.

@@ -29,6 +29,7 @@
 | [Parse Comment Newlines](#parse-comment-newlines) | 2026-03-23 | Done | Fix literal \n in MCP comments by unescaping at input boundary |
 | [Home Screen Quick Actions](#home-screen-quick-actions) | 2026-03-24 | Done | iOS Home Screen quick action to create a new task |
 | [Sync Heartbeat](#sync-heartbeat) | 2026-03-28 | No Tasks | Periodic SwiftData write to force CloudKit sync on macOS |
+| [Duplicate Display ID Cleanup](#duplicate-display-id-cleanup) | 2026-04-25 | Done | Scan and reassign tasks/milestones sharing a permanentDisplayId |
 
 ---
 
@@ -272,3 +273,12 @@ Periodic SwiftData write to force CloudKit sync on macOS.
 
 - [implementation.md](sync-heartbeat/implementation.md)
 - [plan.md](sync-heartbeat/plan.md)
+
+## Duplicate Display ID Cleanup
+
+Scan and reassign tasks/milestones sharing a permanentDisplayId.
+
+- [decision_log.md](duplicate-displayid-cleanup/decision_log.md)
+- [design.md](duplicate-displayid-cleanup/design.md)
+- [requirements.md](duplicate-displayid-cleanup/requirements.md)
+- [tasks.md](duplicate-displayid-cleanup/tasks.md)

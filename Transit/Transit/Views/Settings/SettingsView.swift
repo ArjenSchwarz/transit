@@ -44,6 +44,7 @@ struct SettingsView: View {
         List {
             iOSAppearanceSection
             iOSProjectsSection
+            iOSDataMaintenanceSection
             iOSGeneralSection
         }
         .scrollContentBackground(.hidden)
@@ -90,6 +91,15 @@ struct SettingsView: View {
                     Image(systemName: "plus")
                 }
             }
+        }
+    }
+
+    private var iOSDataMaintenanceSection: some View {
+        Section("Data Maintenance") {
+            NavigationLink(value: NavigationDestination.dataMaintenance) {
+                Label("Data Maintenance", systemImage: "wrench.and.screwdriver")
+            }
+            .accessibilityIdentifier("dataMaintenance.row")
         }
     }
 
@@ -147,29 +157,6 @@ struct SettingsView: View {
 // MARK: - macOS Layout
 
 #if os(macOS)
-private enum SettingsCategory: String, CaseIterable, Identifiable {
-    case general, projects, mcpServer, acknowledgments
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .general: "General"
-        case .projects: "Projects"
-        case .mcpServer: "MCP Server"
-        case .acknowledgments: "Acknowledgments"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .general: "gearshape"
-        case .projects: "folder"
-        case .mcpServer: "network"
-        case .acknowledgments: "heart.text.square"
-        }
-    }
-}
-
 extension SettingsView {
     fileprivate static var labelWidth: CGFloat { 90 }
 
@@ -241,6 +228,8 @@ extension SettingsView {
                 settingsDetailWrapper { macOSProjectsSection }
             case .mcpServer:
                 settingsDetailWrapper { macOSMCPSection }
+            case .dataMaintenance:
+                DataMaintenanceView()
             case .acknowledgments:
                 AcknowledgmentsView()
             case nil:
@@ -339,6 +328,10 @@ extension SettingsView {
                             .textSelection(.enabled)
                             .foregroundStyle(.secondary)
                     }
+                }
+                FormRow("Maintenance", labelWidth: Self.labelWidth) {
+                    Toggle("Expose maintenance tools", isOn: $settings.maintenanceToolsEnabled)
+                        .toggleStyle(.switch)
                 }
             }
         }

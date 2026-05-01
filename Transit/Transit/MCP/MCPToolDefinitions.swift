@@ -3,10 +3,47 @@
 // MARK: - Tool Definitions
 
 nonisolated enum MCPToolDefinitions {
-    static let all: [MCPToolDefinition] = [
+    static let coreTools: [MCPToolDefinition] = [
         createTask, updateTaskStatus, queryTasks, addComment, getProjects,
         createMilestone, queryMilestones, updateMilestone, deleteMilestone, updateTask
     ]
+
+    static let maintenanceTools: [MCPToolDefinition] = [
+        scanDuplicateDisplayIds, reassignDuplicateDisplayIds
+    ]
+
+    /// Backwards-compatible alias for legacy callers — returns core tools only.
+    /// Maintenance tools are gated; use `tools(includingMaintenance:)` to
+    /// include them based on the runtime toggle.
+    static let all: [MCPToolDefinition] = coreTools
+
+    static func tools(includingMaintenance: Bool) -> [MCPToolDefinition] {
+        includingMaintenance ? coreTools + maintenanceTools : coreTools
+    }
+
+    /// Names of tools gated behind `MCPSettings.maintenanceToolsEnabled`,
+    /// derived from `maintenanceTools` so adding a tool there is a single edit.
+    static let maintenanceToolNames: Set<String> = Set(maintenanceTools.map(\.name))
+
+    // MARK: - Maintenance Tools
+
+    // swiftlint:disable:next line_length
+    private static let scanDuplicateDisplayIdsDescription = "Scan tasks and milestones for duplicate permanentDisplayId values. Returns groups of duplicates (winner + losers) without modifying any data. Read-only."
+
+    static let scanDuplicateDisplayIds = MCPToolDefinition(
+        name: "scan_duplicate_display_ids",
+        description: scanDuplicateDisplayIdsDescription,
+        inputSchema: .object(properties: [:], required: [])
+    )
+
+    // swiftlint:disable:next line_length
+    private static let reassignDuplicateDisplayIdsDescription = "Reassign fresh permanentDisplayId values to losers in each duplicate group. Advances the CloudKit counter past the highest observed ID before allocation. Best-effort per group; returns per-group outcomes."
+
+    static let reassignDuplicateDisplayIds = MCPToolDefinition(
+        name: "reassign_duplicate_display_ids",
+        description: reassignDuplicateDisplayIdsDescription,
+        inputSchema: .object(properties: [:], required: [])
+    )
 
     static let createTask = MCPToolDefinition(
         name: "create_task",

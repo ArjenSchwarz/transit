@@ -12,17 +12,23 @@ final class MCPToolHandler {
     private let projectService: ProjectService
     private let commentService: CommentService
     private let milestoneService: MilestoneService
+    private let maintenanceService: DisplayIDMaintenanceService
+    private let settings: MCPSettings
 
     init(
         taskService: TaskService,
         projectService: ProjectService,
         commentService: CommentService,
-        milestoneService: MilestoneService
+        milestoneService: MilestoneService,
+        maintenanceService: DisplayIDMaintenanceService,
+        settings: MCPSettings
     ) {
         self.taskService = taskService
         self.projectService = projectService
         self.commentService = commentService
         self.milestoneService = milestoneService
+        self.maintenanceService = maintenanceService
+        self.settings = settings
     }
 
     // MARK: - JSON-RPC Dispatch
@@ -67,7 +73,9 @@ final class MCPToolHandler {
     // MARK: - Tools List
 
     private func handleToolsList(id: JSONRPCId?) -> JSONRPCResponse {
-        let tools = MCPToolsListResult(tools: MCPToolDefinitions.all)
+        let tools = MCPToolsListResult(
+            tools: MCPToolDefinitions.tools(includingMaintenance: settings.maintenanceToolsEnabled)
+        )
         return JSONRPCResponse.success(id: id, result: tools)
     }
 
@@ -88,6 +96,16 @@ final class MCPToolHandler {
         }
 
         let arguments = dict["arguments"] as? [String: Any] ?? [:]
+
+        // Gate maintenance tools behind the settings toggle. Distinct message so
+        // callers can tell a disabled tool from an unknown one (AC 5.5).
+        if MCPToolDefinitions.maintenanceToolNames.contains(name), !settings.maintenanceToolsEnabled {
+            return JSONRPCResponse.error(
+                id: id,
+                code: JSONRPCErrorCode.methodNotFound,
+                message: "Tool '\(name)' is disabled. Enable maintenance tools in Transit Settings."
+            )
+        }
 
         let result: MCPToolResult
         switch name {
@@ -111,6 +129,10 @@ final class MCPToolHandler {
             result = handleDeleteMilestone(arguments)
         case "update_task":
             result = handleUpdateTask(arguments)
+        case "scan_duplicate_display_ids":
+            result = handleScanDuplicateDisplayIds()
+        case "reassign_duplicate_display_ids":
+            result = await handleReassignDuplicateDisplayIds()
         default:
             return JSONRPCResponse.error(
                 id: id,
@@ -120,6 +142,26 @@ final class MCPToolHandler {
         }
 
         return JSONRPCResponse.success(id: id, result: result)
+    }
+
+    // MARK: - Maintenance Dispatch
+
+    private func handleScanDuplicateDisplayIds() -> MCPToolResult {
+        do {
+            let report = try maintenanceService.scanDuplicates()
+            return textResult(try IntentHelpers.encodeAsJSONString(report))
+        } catch {
+            return errorResult("Failed to scan duplicates: \(error.localizedDescription)")
+        }
+    }
+
+    private func handleReassignDuplicateDisplayIds() async -> MCPToolResult {
+        let result = await maintenanceService.reassignDuplicates()
+        do {
+            return textResult(try IntentHelpers.encodeAsJSONString(result))
+        } catch {
+            return errorResult("Failed to encode reassignment result: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - create_task

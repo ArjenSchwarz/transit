@@ -9,4 +9,5 @@ enum NavigationDestination: Hashable {
     case report
     case acknowledgments
     case licenseText
+    case dataMaintenance
 }

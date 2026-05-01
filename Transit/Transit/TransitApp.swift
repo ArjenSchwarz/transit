@@ -20,6 +20,7 @@ struct TransitApp: App {
     private let projectService: ProjectService
     private let commentService: CommentService
     private let milestoneService: MilestoneService
+    private let maintenanceService: DisplayIDMaintenanceService
     private let displayIDAllocator: DisplayIDAllocator
     private let milestoneIDAllocator: DisplayIDAllocator
     private let syncManager: SyncManager
@@ -97,10 +98,19 @@ struct TransitApp: App {
         let commentService = CommentService(modelContext: context)
         self.commentService = commentService
 
+        let maintenanceService = DisplayIDMaintenanceService(
+            modelContext: context,
+            taskAllocator: allocator,
+            milestoneAllocator: milestoneAllocator,
+            commentService: commentService
+        )
+        self.maintenanceService = maintenanceService
+
         AppDependencyManager.shared.add(dependency: taskService)
         AppDependencyManager.shared.add(dependency: projectService)
         AppDependencyManager.shared.add(dependency: commentService)
         AppDependencyManager.shared.add(dependency: milestoneService)
+        AppDependencyManager.shared.add(dependency: maintenanceService)
 
         #if os(iOS)
         let quickActionService = QuickActionService()
@@ -113,7 +123,8 @@ struct TransitApp: App {
         self.mcpSettings = mcpSettings
         let mcpToolHandler = MCPToolHandler(
             taskService: taskService, projectService: projectService,
-            commentService: commentService, milestoneService: milestoneService
+            commentService: commentService, milestoneService: milestoneService,
+            maintenanceService: maintenanceService, settings: mcpSettings
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
         #endif
@@ -148,6 +159,8 @@ struct TransitApp: App {
                             AcknowledgmentsView()
                         case .licenseText:
                             LicenseTextView()
+                        case .dataMaintenance:
+                            DataMaintenanceView()
                         }
                     }
             }
@@ -162,6 +175,7 @@ struct TransitApp: App {
             .environment(projectService)
             .environment(commentService)
             .environment(milestoneService)
+            .environment(maintenanceService)
             .environment(syncManager)
             .environment(connectivityMonitor)
             #if os(iOS)
@@ -238,6 +252,7 @@ struct TransitApp: App {
             .environment(projectService)
             .environment(commentService)
             .environment(milestoneService)
+            .environment(maintenanceService)
     }
 
     // MARK: - MCP Server

@@ -41,6 +41,15 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 | `query_tasks` | List tasks with optional status/type/project filters; includes comments |
 | `add_comment` | Add a comment to a task (by displayId or taskId); always sets `isAgent: true` |
 
+### Maintenance tools (gated, default off)
+
+`scan_duplicate_display_ids` and `reassign_duplicate_display_ids` are exposed only when `MCPSettings.maintenanceToolsEnabled` is true. The toggle is persisted under UserDefaults key `mcpMaintenanceToolsEnabled`.
+
+- `MCPToolDefinitions` is split into `coreTools` and `maintenanceTools`; `tools(includingMaintenance:)` returns the right subset. The legacy `all` alias still resolves to `coreTools` only — anything in production should use the helper.
+- When the toggle is off, `tools/list` excludes both maintenance tools and `tools/call` for either name returns JSON-RPC `methodNotFound` (-32601) with the literal message `Tool '<name>' is disabled. Enable maintenance tools in Transit Settings.` — distinct from the "Unknown tool" message used for genuinely unknown names.
+- The toggle takes effect on the next `tools/list` without restart (settings is read live).
+- Dispatch handlers (`handleScanDuplicateDisplayIds`, `handleReassignDuplicateDisplayIds`) encode `DisplayIDMaintenanceTypes` (Codable structs) via a shared `encodedTextResult(_:)` helper that JSON-encodes any `Encodable` and wraps it in the `MCPToolResult.content[text]` envelope.
+
 ## JSON-RPC Methods Handled
 
 `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`
@@ -84,6 +93,7 @@ MCPToolHandler, App Intents, and IntentHelpers all delegate to these methods rat
 ## Gotchas
 
 - `nonisolated` on struct/enum declarations is essential in this project due to `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Without it, all types inherit MainActor isolation, breaking Codable conformance on NIO threads.
+- `JSONRPCRequest.id` currently cannot distinguish an omitted id from an explicit JSON `null` id because both decode to `nil`. `MCPToolHandler.handle(_:)` uses `id == nil` to detect notifications, so explicit-null requests are dropped without a response. T-847 tracks preserving id presence separately from id value.
 - `ByteBuffer(data:)` requires explicit `import NIOFoundationCompat` — not available from just `import Hummingbird`.
 - Don't reference `self` in `Task.detached` closures on `MCPServer` — causes "sending 'self' risks data races" error. Capture dependencies explicitly.
 - **Name-based filters must handle cross-project duplicates.** Milestone names (and potentially other name-resolved entities) can be duplicated across projects. When filtering by name without a project scope, use `Set<UUID>` to collect all matching IDs rather than taking just the first match (T-292).

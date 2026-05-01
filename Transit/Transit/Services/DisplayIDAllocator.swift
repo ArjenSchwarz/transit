@@ -24,7 +24,10 @@ final class DisplayIDAllocator: @unchecked Sendable {
         func saveCounter(nextDisplayID: Int, expectedChangeTag: String?) async throws
     }
 
-    private let store: CounterStore
+    /// Exposed so callers that need direct counter access (e.g. `DisplayIDMaintenanceService`'s
+    /// counter-advance fence) can use the same store the allocator uses. Tests inject an in-memory
+    /// store via `init(store:retryLimit:)`.
+    let counterStore: CounterStore
     private let retryLimit: Int
 
     /// Single-flight guard for `promoteProvisionalTasks`. Prevents concurrent
@@ -34,7 +37,7 @@ final class DisplayIDAllocator: @unchecked Sendable {
     private var isPromotingTasks = false
 
     init(store: CounterStore, retryLimit: Int = 5) {
-        self.store = store
+        self.counterStore = store
         self.retryLimit = max(1, retryLimit)
     }
 
@@ -66,11 +69,11 @@ final class DisplayIDAllocator: @unchecked Sendable {
         while attempt < retryLimit {
             attempt += 1
 
-            let snapshot = try await store.loadCounter()
+            let snapshot = try await counterStore.loadCounter()
             let allocatedID = snapshot.nextDisplayID
 
             do {
-                try await store.saveCounter(
+                try await counterStore.saveCounter(
                     nextDisplayID: allocatedID + 1,
                     expectedChangeTag: snapshot.changeTag
                 )
@@ -117,6 +120,31 @@ final class DisplayIDAllocator: @unchecked Sendable {
                 break
             }
         }
+    }
+}
+
+// MARK: - CounterStore advance
+
+extension DisplayIDAllocator.CounterStore {
+    /// Advances the counter so that `nextDisplayID` is at least `target`.
+    /// No-op when the counter is already at or past `target`. Uses
+    /// compare-and-swap via `saveCounter`, retrying on conflict so a racing
+    /// writer that already moved the counter past `target` short-circuits the
+    /// loop on the next `loadCounter` read.
+    func advanceCounter(toAtLeast target: Int, retryLimit: Int = 5) async throws {
+        var attempt = 0
+        while attempt < retryLimit {
+            attempt += 1
+            let snapshot = try await loadCounter()
+            if snapshot.nextDisplayID >= target { return }
+            do {
+                try await saveCounter(nextDisplayID: target, expectedChangeTag: snapshot.changeTag)
+                return
+            } catch let error as DisplayIDAllocator.Error where error == .conflict {
+                continue
+            }
+        }
+        throw DisplayIDAllocator.Error.retriesExhausted
     }
 }
 
