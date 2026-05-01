@@ -4,6 +4,7 @@ import SwiftData
 /// Coordinates task creation, status changes, and lookups. Uses StatusEngine
 /// for all status transitions and DisplayIDAllocator for display ID assignment.
 @MainActor @Observable
+// swiftlint:disable:next type_body_length
 final class TaskService {
 
     enum Error: Swift.Error, LocalizedError, Equatable {
@@ -12,6 +13,8 @@ final class TaskService {
         case projectNotFound
         case duplicateDisplayID
         case restoreRequiresAbandonedTask
+        /// Identifier key present but malformed; field name surfaces a field-specific INVALID_INPUT [T-808]
+        case invalidIdentifier(field: String)
 
         var errorDescription: String? {
             switch self {
@@ -25,6 +28,8 @@ final class TaskService {
                 "A duplicate task identifier was detected."
             case .restoreRequiresAbandonedTask:
                 "Only abandoned tasks can be restored."
+            case .invalidIdentifier(let field):
+                "The supplied \(field) is not a valid task identifier."
             }
         }
     }
@@ -214,10 +219,21 @@ final class TaskService {
     }
 
     /// Resolves a task from a dictionary with optional "displayId" or "taskId" keys.
+    /// Validates key presence separately from value parsing so a present-but-malformed
+    /// key surfaces an `invalidIdentifier(field:)` error instead of silently falling
+    /// back to the other key or to `taskNotFound`. [T-808]
     func resolveTask(from dict: [String: Any]) throws -> TransitTask {
-        if let displayId = IntentHelpers.parseIntValue(dict["displayId"]) {
+        if dict["displayId"] != nil {
+            guard let displayId = IntentHelpers.parseIntValue(dict["displayId"]) else {
+                throw Error.invalidIdentifier(field: "displayId")
+            }
             return try findByDisplayID(displayId)
-        } else if let taskIdStr = dict["taskId"] as? String, let uuid = UUID(uuidString: taskIdStr) {
+        }
+        if dict["taskId"] != nil {
+            guard let taskIdStr = dict["taskId"] as? String,
+                  let uuid = UUID(uuidString: taskIdStr) else {
+                throw Error.invalidIdentifier(field: "taskId")
+            }
             return try findByID(uuid)
         }
         throw Error.taskNotFound
