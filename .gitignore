@@ -45,3 +45,5 @@ playground.xcworkspace
 DerivedData/
 build/
 
+# Workspace-local automation/cache directories
+.codex-cache/
