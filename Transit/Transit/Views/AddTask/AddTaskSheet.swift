@@ -84,9 +84,19 @@ struct AddTaskSheet: View {
             Text(errorMessage ?? "")
         }
         .onAppear {
+            #if os(macOS)
+            // `Window("New Task", id: "add-task")` is a singleton scene whose
+            // view (and `@State`) is reused across opens, so after one save
+            // the next open would still show the previous values (T-825).
+            // Reset to defaults every time the view appears.
+            resetForm()
+            #else
+            // On iOS the view is freshly constructed by `.sheet(isPresented:)`
+            // on each presentation, so we only need to pick a default project.
             if selectedProjectID == nil {
                 selectedProjectID = projects.first?.id
             }
+            #endif
         }
     }
 
@@ -213,6 +223,27 @@ struct AddTaskSheet: View {
     }
     #endif
 
+    // MARK: - Reset
+
+    #if os(macOS)
+    /// Resets every form field to its default. Only used on macOS where the
+    /// `Window("New Task", …)` scene reuses the same view (and its `@State`)
+    /// across opens, so without an explicit reset the form would still show
+    /// the previously entered values (T-825).
+    private func resetForm() {
+        let defaults = AddTaskFormResetLogic.defaults
+        name = defaults.name
+        taskDescription = defaults.description
+        selectedType = defaults.type
+        selectedMilestone = defaults.milestone
+        selectedProjectID = AddTaskFormResetLogic.defaultProjectID(
+            from: projects, current: selectedProjectID
+        )
+        errorMessage = nil
+        isSaving = false
+    }
+    #endif
+
     // MARK: - Actions
 
     private func save() async {
@@ -283,5 +314,45 @@ struct AddTaskSheet: View {
             try? taskService.deleteTask(task)
             throw error
         }
+    }
+}
+
+// MARK: - Form Reset Logic
+
+/// Pure helpers for AddTaskSheet's form reset behaviour. Extracted so the
+/// default values and project-fallback rule are exercisable in unit tests
+/// without spinning up SwiftUI.
+///
+/// See T-825: on macOS the `Window("New Task", …)` scene reuses one view
+/// instance across opens, so the form must be explicitly reset on appear.
+enum AddTaskFormResetLogic {
+
+    struct Defaults {
+        let name: String
+        let description: String
+        let type: TaskType
+        let milestone: Milestone?
+    }
+
+    static let defaults = Defaults(
+        name: "",
+        description: "",
+        type: .feature,
+        milestone: nil
+    )
+
+    /// Returns the project ID to select when the form is reset.
+    ///
+    /// - Keeps the `current` selection when it still maps to a known project,
+    ///   so reopening the window after a save doesn't surprise the user by
+    ///   jumping back to the first project.
+    /// - Falls back to the first project otherwise (no current selection, or
+    ///   the previously selected project has been deleted).
+    /// - Returns `nil` when there are no projects at all.
+    static func defaultProjectID(from projects: [Project], current: UUID?) -> UUID? {
+        if let current, projects.contains(where: { $0.id == current }) {
+            return current
+        }
+        return projects.first?.id
     }
 }

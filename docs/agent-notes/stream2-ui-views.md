@@ -14,6 +14,7 @@
 - **Error handling (T-153)**: `save()` is async, awaits `createTask` before dismissing. On failure, shows "Save Failed" alert via `errorMessage` state (same pattern as TaskEditView/ProjectEditView). `isSaving` state disables the save button during the async operation to prevent double-taps. Sheet stays open on failure so user can retry.
 - Known gap: task creation and milestone assignment are not atomic. `createTask` saves before `setMilestone`; if milestone assignment fails, the task remains even though the sheet shows "Save Failed" (T-855).
 - **Platform-specific layout**: iOS uses standard `Form`; macOS uses `ScrollView` > `VStack` with `LiquidGlassSection` containers, `Grid` + `FormRow`
+- **macOS form reset on appear (T-825)**: On macOS the view is hosted in `Window("New Task", id: "add-task")` — a *singleton* scene whose `@State` survives close/reopen, so the form would otherwise show the previous task's values on the second open. `.onAppear` calls `resetForm()` (macOS-only) to clear name/description/type/milestone/error; the project selection is kept if still valid, falling back to the first project via `AddTaskFormResetLogic.defaultProjectID(from:current:)`. iOS uses `.sheet(isPresented:)` so it builds a fresh view each time and only needs the default-project selection.
 
 ## TaskDetailView
 `Views/TaskDetail/TaskDetailView.swift`
