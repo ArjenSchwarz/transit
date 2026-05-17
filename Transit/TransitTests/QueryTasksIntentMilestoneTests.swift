@@ -63,14 +63,15 @@ struct QueryTasksIntentMilestoneTests {
         makeTask(in: context, name: "In milestone", project: project, milestone: milestone, displayId: 10)
         makeTask(in: context, name: "No milestone", project: project, displayId: 11)
 
-        let taskService = TaskService(
-            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
-        )
+        let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let projectService = ProjectService(modelContext: context)
+        let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: allocator)
         let result = QueryTasksIntent.execute(
             input: "{\"milestoneDisplayId\":1}",
             projectService: projectService,
-            taskService: taskService
+            taskService: taskService,
+            milestoneService: milestoneService
         )
 
         let parsed = try parseJSONArray(result)
@@ -85,14 +86,15 @@ struct QueryTasksIntentMilestoneTests {
         makeTask(in: context, name: "In milestone", project: project, milestone: milestone, displayId: 10)
         makeTask(in: context, name: "No milestone", project: project, displayId: 11)
 
-        let taskService = TaskService(
-            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
-        )
+        let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let projectService = ProjectService(modelContext: context)
+        let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: allocator)
         let result = QueryTasksIntent.execute(
             input: "{\"milestone\":\"v1.0\"}",
             projectService: projectService,
-            taskService: taskService
+            taskService: taskService,
+            milestoneService: milestoneService
         )
 
         let parsed = try parseJSONArray(result)
@@ -106,12 +108,15 @@ struct QueryTasksIntentMilestoneTests {
         let milestone = makeMilestone(in: context, name: "v1.0", project: project, displayId: 1)
         makeTask(in: context, name: "Task", project: project, milestone: milestone, displayId: 10)
 
-        let taskService = TaskService(
-            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
-        )
+        let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let projectService = ProjectService(modelContext: context)
+        let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: allocator)
         let result = QueryTasksIntent.execute(
-            input: "", projectService: projectService, taskService: taskService
+            input: "",
+            projectService: projectService,
+            taskService: taskService,
+            milestoneService: milestoneService
         )
 
         let parsed = try parseJSONArray(result)
@@ -126,16 +131,78 @@ struct QueryTasksIntentMilestoneTests {
         let project = makeProject(in: context)
         makeTask(in: context, name: "Task", project: project, displayId: 10)
 
-        let taskService = TaskService(
-            modelContext: context, displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
-        )
+        let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let projectService = ProjectService(modelContext: context)
+        let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: allocator)
         let result = QueryTasksIntent.execute(
-            input: "", projectService: projectService, taskService: taskService
+            input: "",
+            projectService: projectService,
+            taskService: taskService,
+            milestoneService: milestoneService
         )
 
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 1)
         #expect(parsed.first?["milestone"] == nil)
+    }
+
+    // MARK: - Duplicate milestoneDisplayId regression (T-1146)
+
+    /// When two milestones share the same `permanentDisplayId` (possible via CloudKit sync
+    /// conflicts), `QueryTasksIntent` must reject the filter as ambiguous rather than
+    /// silently returning tasks from every matching milestone. Mirrors the
+    /// `MCPToolHandler.handleQueryTasks` behavior, which already routes through
+    /// `MilestoneService.findByDisplayID` and surfaces `INTERNAL_ERROR` on duplicates.
+    @Test func filterByMilestoneDisplayIdRejectsDuplicates() throws {
+        let context = try makeContext()
+        let project = makeProject(in: context)
+        let milestoneA = makeMilestone(in: context, name: "v1.0", project: project, displayId: 7)
+        let milestoneB = makeMilestone(in: context, name: "v1.0-alt", project: project, displayId: 7)
+        makeTask(in: context, name: "In milestone A", project: project, milestone: milestoneA, displayId: 20)
+        makeTask(in: context, name: "In milestone B", project: project, milestone: milestoneB, displayId: 21)
+
+        let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
+        let projectService = ProjectService(modelContext: context)
+        let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: allocator)
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"milestoneDisplayId\":7}",
+            projectService: projectService,
+            taskService: taskService,
+            milestoneService: milestoneService
+        )
+
+        let data = try #require(result.data(using: .utf8))
+        let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(json["error"] as? String == "INTERNAL_ERROR")
+        let hint = json["hint"] as? String ?? ""
+        #expect(hint.contains("7"))
+    }
+
+    /// When the requested `milestoneDisplayId` does not match any milestone, the intent
+    /// must return an empty array (consistent with other lookup paths that treat unknown
+    /// display IDs as "no results").
+    @Test func filterByMilestoneDisplayIdReturnsEmptyWhenUnknown() throws {
+        let context = try makeContext()
+        let project = makeProject(in: context)
+        let milestone = makeMilestone(in: context, name: "v1.0", project: project, displayId: 1)
+        makeTask(in: context, name: "In milestone", project: project, milestone: milestone, displayId: 10)
+
+        let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
+        let projectService = ProjectService(modelContext: context)
+        let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: allocator)
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"milestoneDisplayId\":999}",
+            projectService: projectService,
+            taskService: taskService,
+            milestoneService: milestoneService
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.isEmpty)
     }
 }

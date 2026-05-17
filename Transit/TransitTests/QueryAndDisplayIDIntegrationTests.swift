@@ -12,6 +12,7 @@ struct QueryAndDisplayIDIntegrationTests {
     private struct Services {
         let task: TaskService
         let project: ProjectService
+        let milestone: MilestoneService
         let context: ModelContext
     }
 
@@ -22,6 +23,7 @@ struct QueryAndDisplayIDIntegrationTests {
         return Services(
             task: TaskService(modelContext: context, displayIDAllocator: allocator),
             project: ProjectService(modelContext: context),
+            milestone: MilestoneService(modelContext: context, displayIDAllocator: allocator),
             context: context
         )
     }
@@ -74,7 +76,8 @@ struct QueryAndDisplayIDIntegrationTests {
         let queryResult = QueryTasksIntent.execute(
             input: "{\"status\":\"idea\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.count == 1)
@@ -95,7 +98,8 @@ struct QueryAndDisplayIDIntegrationTests {
         )
 
         let queryResult = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, taskService: svc.task
+            input: "", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.count == 2)
@@ -118,7 +122,8 @@ struct QueryAndDisplayIDIntegrationTests {
         let queryResult = QueryTasksIntent.execute(
             input: "{\"projectId\":\"\(projectA.id.uuidString)\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.count == 1)
@@ -167,7 +172,8 @@ struct QueryAndDisplayIDIntegrationTests {
         )
 
         let queryResult = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, taskService: svc.task
+            input: "", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.count == 1)

@@ -88,23 +88,40 @@ struct QueryTasksIntent: AppIntent {
     @Dependency
     private var taskService: TaskService
 
+    @Dependency
+    private var milestoneService: MilestoneService
+
     @MainActor
     func perform() async throws -> some ReturnsValue<String> {
         let result = QueryTasksIntent.execute(
             input: input,
             projectService: projectService,
-            taskService: taskService
+            taskService: taskService,
+            milestoneService: milestoneService
         )
         return .result(value: result)
     }
 
     // MARK: - Logic (testable without @Dependency)
 
+    /// Outcome of resolving an optional `milestoneDisplayId` filter:
+    /// - `.unfiltered` when no milestone display ID was supplied;
+    /// - `.resolved(id)` when exactly one milestone matches;
+    /// - `.notFound` when no milestone matches (caller should return an empty result);
+    /// - `.error` when the lookup fails (e.g. duplicate display IDs from CloudKit sync).
+    private enum MilestoneDisplayIdResolution {
+        case unfiltered
+        case resolved(UUID)
+        case notFound
+        case error(IntentError)
+    }
+
     @MainActor
     static func execute(
         input: String,
         projectService: ProjectService,
-        taskService: TaskService
+        taskService: TaskService,
+        milestoneService: MilestoneService
     ) -> String {
         let filters = parseInput(input)
         guard let filters else {
@@ -126,10 +143,25 @@ struct QueryTasksIntent: AppIntent {
             return error.json
         }
 
+        // Resolve milestoneDisplayId via MilestoneService so duplicate display IDs (from
+        // CloudKit sync conflicts) surface as INTERNAL_ERROR instead of silently mixing
+        // tasks from multiple milestones. [T-1146]
+        let resolvedMilestoneId: UUID?
+        switch resolveMilestoneDisplayIdFilter(filters, milestoneService: milestoneService) {
+        case .unfiltered:
+            resolvedMilestoneId = nil
+        case .resolved(let id):
+            resolvedMilestoneId = id
+        case .notFound:
+            return IntentHelpers.encodeJSONArray([])
+        case .error(let intentError):
+            return intentError.json
+        }
+
         // Single-task lookup by displayId
         if let displayId = filters.displayId {
             if let task = try? taskService.findByDisplayID(displayId) {
-                let filtered = applyFilters(filters, to: [task])
+                let filtered = applyFilters(filters, to: [task], resolvedMilestoneId: resolvedMilestoneId)
                 let formatter = ISO8601DateFormatter()
                 return IntentHelpers.encodeJSONArray(filtered.map {
                     IntentHelpers.taskToDict($0, formatter: formatter, detailed: true)
@@ -139,7 +171,7 @@ struct QueryTasksIntent: AppIntent {
         }
 
         let allTasks = (try? taskService.fetchAllTasks()) ?? []
-        let filtered = applyFilters(filters, to: allTasks)
+        let filtered = applyFilters(filters, to: allTasks, resolvedMilestoneId: resolvedMilestoneId)
         let formatter = ISO8601DateFormatter()
         return IntentHelpers.encodeJSONArray(filtered.map {
             IntentHelpers.taskToDict($0, formatter: formatter)
@@ -196,7 +228,8 @@ struct QueryTasksIntent: AppIntent {
 
     @MainActor private static func applyFilters(
         _ filters: QueryFilters,
-        to tasks: [TransitTask]
+        to tasks: [TransitTask],
+        resolvedMilestoneId: UUID?
     ) -> [TransitTask] {
         let completionRange = filters.completionDate.flatMap(dateRange)
         let lastStatusChangeRange = filters.lastStatusChangeDate.flatMap(dateRange)
@@ -225,7 +258,9 @@ struct QueryTasksIntent: AppIntent {
             }
             if !matchesDateFilter(task.completionDate, range: completionRange) { continue }
             if !matchesDateFilter(task.lastStatusChangeDate, range: lastStatusChangeRange) { continue }
-            if !matchesMilestoneFilter(task, filters: filters) { continue }
+            if !matchesMilestoneFilter(task, filters: filters, resolvedMilestoneId: resolvedMilestoneId) {
+                continue
+            }
             result.append(task)
         }
         return result
@@ -238,16 +273,40 @@ struct QueryTasksIntent: AppIntent {
     }
 
     @MainActor private static func matchesMilestoneFilter(
-        _ task: TransitTask, filters: QueryFilters
+        _ task: TransitTask, filters: QueryFilters, resolvedMilestoneId: UUID?
     ) -> Bool {
-        if let milestoneDisplayId = filters.milestoneDisplayId {
-            return task.milestone?.permanentDisplayId == milestoneDisplayId
+        // When a milestoneDisplayId was supplied, match on the resolved UUID so duplicate
+        // display IDs (CloudKit sync conflicts) do not leak through. The execute() entry
+        // point rejects ambiguity before we get here, so the resolved ID is authoritative.
+        if filters.milestoneDisplayId != nil {
+            guard let resolvedMilestoneId else { return false }
+            return task.milestone?.id == resolvedMilestoneId
         }
         if let milestoneName = filters.milestone {
             guard let taskMilestone = task.milestone else { return false }
             return taskMilestone.name.localizedCaseInsensitiveCompare(milestoneName) == .orderedSame
         }
         return true
+    }
+
+    /// Resolves the optional `milestoneDisplayId` filter through `MilestoneService`
+    /// so duplicate display IDs (possible via CloudKit sync conflicts) are rejected
+    /// as ambiguous rather than silently matching tasks from every duplicate. [T-1146]
+    @MainActor private static func resolveMilestoneDisplayIdFilter(
+        _ filters: QueryFilters,
+        milestoneService: MilestoneService
+    ) -> MilestoneDisplayIdResolution {
+        guard let milestoneDisplayId = filters.milestoneDisplayId else { return .unfiltered }
+        do {
+            let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)
+            return .resolved(milestone.id)
+        } catch MilestoneService.Error.duplicateDisplayID {
+            return .error(.internalError(
+                hint: "Duplicate milestone identifier detected for displayId \(milestoneDisplayId)"
+            ))
+        } catch {
+            return .notFound
+        }
     }
 
     @MainActor private static func dateRange(from filter: DateRangeFilter) -> DateFilterHelpers.DateRange? {
