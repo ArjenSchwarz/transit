@@ -36,10 +36,8 @@ nonisolated struct JSONRPCRequest: Decodable, Sendable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        // Decode `jsonrpc` leniently: a missing field surfaces as an empty
-        // string so the handler can return an Invalid Request error (-32600)
-        // per JSON-RPC 2.0 §4.2 rather than a Parse Error (-32700). See T-1106.
-        jsonrpc = try container.decodeIfPresent(String.self, forKey: .jsonrpc) ?? ""
+        // Lenient decode: missing/non-string `jsonrpc` becomes "" so the handler yields -32600, not -32700 (T-1106).
+        jsonrpc = (try? container.decodeIfPresent(String.self, forKey: .jsonrpc)) ?? ""
         method = try container.decode(String.self, forKey: .method)
         params = try container.decodeIfPresent(AnyCodable.self, forKey: .params)
         // Distinguish "id member absent" (notification) from "id present with

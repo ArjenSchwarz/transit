@@ -42,16 +42,9 @@ struct MCPProtocolVersionTests {
         let json = Data(#"{"jsonrpc":"1.0","id":1,"method":"ping"}"#.utf8)
         let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
 
-        let response = try #require(
-            await env.handler.handle(request),
-            "Request with jsonrpc=1.0 must produce a JSON-RPC error response"
-        )
-
+        let response = try #require(await env.handler.handle(request))
         let fields = try Self.errorFields(response)
-        #expect(
-            fields.code == JSONRPCErrorCode.invalidRequest,
-            "Invalid jsonrpc version must return -32600 (Invalid Request)"
-        )
+        #expect(fields.code == JSONRPCErrorCode.invalidRequest)
     }
 
     @Test func handlerRejectsArbitraryJsonRpcVersion() async throws {
@@ -76,6 +69,20 @@ struct MCPProtocolVersionTests {
         #expect(fields.code == JSONRPCErrorCode.invalidRequest)
     }
 
+    @Test func handlerRejectsNumericJsonRpcVersion() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        // Some broken clients send a JSON number rather than the required string.
+        // `decodeIfPresent(String.self, ...)` returns nil for a non-string, so it
+        // surfaces as "" and must be rejected with -32600 like any other bad version.
+        let json = Data(#"{"jsonrpc":2,"id":1,"method":"ping"}"#.utf8)
+        let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
+
+        let response = try #require(await env.handler.handle(request))
+        let fields = try Self.errorFields(response)
+        #expect(fields.code == JSONRPCErrorCode.invalidRequest)
+    }
+
     // MARK: - Missing jsonrpc value
 
     @Test func handlerRejectsMissingJsonRpcField() async throws {
@@ -86,10 +93,7 @@ struct MCPProtocolVersionTests {
         let json = Data(#"{"id":1,"method":"ping"}"#.utf8)
         let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
 
-        let response = try #require(
-            await env.handler.handle(request),
-            "Request missing jsonrpc must produce an error response"
-        )
+        let response = try #require(await env.handler.handle(request))
         let fields = try Self.errorFields(response)
         #expect(fields.code == JSONRPCErrorCode.invalidRequest)
     }
@@ -107,7 +111,7 @@ struct MCPProtocolVersionTests {
         let object = try #require(
             try JSONSerialization.jsonObject(with: data) as? [String: Any]
         )
-        #expect(object["id"] as? Int == 42, "Error response must echo the original request id")
+        #expect(object["id"] as? Int == 42)
     }
 
     @Test func errorResponseForMissingIdUsesNull() async throws {
@@ -117,13 +121,10 @@ struct MCPProtocolVersionTests {
         let json = Data(#"{"jsonrpc":"1.0","method":"ping"}"#.utf8)
         let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
 
-        let response = try #require(
-            await env.handler.handle(request),
-            "Invalid-request errors must respond even when the original was a notification shape"
-        )
+        let response = try #require(await env.handler.handle(request))
         let fields = try Self.errorFields(response)
-        #expect(fields.idKeyPresent, "Error response must include id field")
-        #expect(fields.idIsNull, "Error response id must be null when the original id was absent")
+        #expect(fields.idKeyPresent)
+        #expect(fields.idIsNull)
     }
 
     // MARK: - Valid jsonrpc value still dispatches normally
@@ -139,7 +140,7 @@ struct MCPProtocolVersionTests {
         let object = try #require(
             try JSONSerialization.jsonObject(with: data) as? [String: Any]
         )
-        #expect(object["result"] != nil, "Valid ping must produce a result, not an error")
+        #expect(object["result"] != nil)
         #expect(object["error"] == nil)
     }
 }

@@ -35,11 +35,7 @@ final class MCPToolHandler {
 
     /// Returns `nil` for JSON-RPC notifications (no response required).
     func handle(_ request: JSONRPCRequest) async -> JSONRPCResponse? {
-        // Reject requests whose `jsonrpc` member is missing or not "2.0".
-        // JSON-RPC 2.0 §4.2 classifies these as Invalid Request (-32600), and
-        // §5 requires the server to respond even if the original object looked
-        // like a notification — we cannot trust the notification shape on an
-        // invalid envelope. See T-1106.
+        // JSON-RPC 2.0 §4.2/§5: reject non-"2.0" with -32600, even on notification-shaped envelopes (T-1106).
         guard request.jsonrpc == "2.0" else {
             return JSONRPCResponse.error(
                 id: request.id,
