@@ -342,7 +342,7 @@ Once the counter is past the existing max, every `allocateNextID` — from this 
 ## Decision 11: Stale-ID Guard via FetchDescriptor, Not refresh(_:mergeChanges:)
 
 **Date**: 2026-04-25
-**Status**: accepted (supersedes the implementation guidance under Decision 6 / design.md component table)
+**Status**: superseded by Decision 12
 
 ### Context
 
@@ -368,3 +368,57 @@ Both mechanisms surface the same committed local state, which is what the guard 
 
 **Negative:**
 - The design document and Decision 6 reference a mechanism (`refresh(_:mergeChanges:)`) that the code does not call. This entry resolves that contradiction.
+
+---
+
+## Decision 12: Stale-ID Guard Reads Through a Transient ModelContext
+
+**Date**: 2026-05-17
+**Status**: accepted (supersedes Decision 11)
+
+### Context
+
+Decision 11 replaced the spec's original `modelContext.refresh(loser, mergeChanges: true)` with a `FetchDescriptor`-by-UUID lookup against the main `ModelContext`, on the premise that "both mechanisms surface the same committed local state." T-1061 demonstrated that the premise is incorrect for the CloudKit-merge scenario the guard exists to catch:
+
+1. Devices A and B both observe a duplicate `permanentDisplayId = 5`.
+2. Device A reassigns the loser to 777. CloudKit merges that change into Device B's local SQLite store.
+3. Device B's main `ModelContext` registered the loser at scan time with `permanentDisplayId = 5` and has not yet refaulted it.
+4. Device B's `FetchDescriptor`-by-UUID returns the registered instance with its cached `permanentDisplayId = 5`. The guard compares the cached value to itself and waves the write through, overwriting 777 with a freshly allocated ID.
+
+Separately, the spec's literal `modelContext.refresh(_:mergeChanges:)` is not implementable: SwiftData's `ModelContext` public API does not expose `refresh(_:mergeChanges:)`. That API exists only on Core Data's `NSManagedObjectContext`.
+
+### Decision
+
+Just before the stale-ID comparison in each loser path, read the loser's committed `permanentDisplayId` via a transient `ModelContext` constructed on the same container as the maintenance service's main context. The transient context has no registered objects, so its `FetchDescriptor`-by-UUID reads property values directly from the local store — including any peer change merged via CloudKit since the scan. If the stored value differs from the scanned value, the group is skipped with outcome `stale-id` and no write occurs.
+
+### Rationale
+
+- A transient `ModelContext(container)` is the smallest SwiftData-native way to bypass the main context's registered-object cache. There is no public per-object refresh API in SwiftData.
+- The transient context is used for a single scalar property read and discarded. No save, no insert/delete, no relationship traversal.
+- The maintenance service still operates on the main context for the actual reassignment write, preserving the audit-comment relationship to the registered task instance.
+
+### Alternatives Considered
+
+- **`modelContext.rollback()` before the guard**: Discards every pending change in the main context — including any unrelated in-flight work — and reloads from store. Rejected as too heavy-handed.
+- **`modelContext.registeredModel(for:)` followed by property re-read**: Still returns the cached snapshot; there is no per-object refresh API in SwiftData.
+- **Switch the maintenance service to its own `ModelContext`**: Larger change; would also detach the audit-comment write from the existing `CommentService` wiring.
+- **Defer the cleanup until `CKSyncEngine` reports stable**: Out of scope; not actionable from the service layer.
+
+### Consequences
+
+**Positive:**
+- The stale-ID guard now observes peer-merged changes the moment they land in the local store, even before the main context's registered snapshot is refaulted.
+- The fix is local to `DisplayIDMaintenanceService` and adds two short helper methods.
+- The test suite can simulate the cached-stale state via an in-memory mutation pattern, so the regression is testable without a real CloudKit deployment.
+
+**Negative:**
+- One additional `ModelContext` allocation per loser. The transient context is cheap (no registered objects, no save) but is not free.
+- The spec text in Decision 6 still mentions `refresh(_:mergeChanges:)` literally; this entry plus the Decision 11 supersession note are the authoritative record of the actual mechanism.
+
+### Impact
+
+- `Transit/Transit/Services/DisplayIDMaintenanceService.swift` — new `storedTaskDisplayId(id:)` / `storedMilestoneDisplayId(id:)` helpers; both reassign paths now call them before the guard comparison.
+- `Transit/TransitTests/DisplayIDMaintenanceServiceReassignTests.swift` — regression test `peerUpdatedLoserIsSkippedWithStaleId()`.
+- `Transit/TransitTests/TestModelContainer.swift` — added `newContainer()` to enable multi-context test setups.
+
+---

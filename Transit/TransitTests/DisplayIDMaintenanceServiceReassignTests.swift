@@ -3,7 +3,7 @@ import SwiftData
 import Testing
 @testable import Transit
 
-// swiftlint:disable type_body_length
+// swiftlint:disable type_body_length file_length
 
 @MainActor
 @Suite(.serialized)
@@ -236,6 +236,47 @@ struct DisplayIDMaintenanceServiceReassignTests {
         let after = try env.context.fetch(FetchDescriptor<TransitTask>())
         let updated = try #require(after.first(where: { $0.id == loserId }))
         #expect(updated.permanentDisplayId == 999, "Loser's manually-set ID preserved")
+    }
+
+    /// Regression for T-1061: stored loser ID differs from the scan value
+    /// (CloudKit peer merge); the guard must skip the group with `.staleId`.
+    @Test func peerUpdatedLoserIsSkippedWithStaleId() async throws {
+        let env = try makeEnv(taskCounterStart: 1)
+        let loserId = UUID()
+        makeTask(in: env, name: "Winner", displayId: 5,
+                 creationDate: Date(timeIntervalSince1970: 1000))
+        let loser = makeTask(in: env, name: "Loser", displayId: 5,
+                             creationDate: Date(timeIntervalSince1970: 2000), id: loserId)
+        try env.context.save()
+
+        // Prime the registered-object cache with the scanned value (5).
+        let report = try env.service.scanDuplicates()
+        #expect(report.tasks.count == 1, "Pre-reassign scan finds the duplicate")
+
+        // Commit peer-merged value (777) to the store.
+        loser.permanentDisplayId = 777
+        try env.context.save()
+
+        // Fake the un-refreshed registered snapshot: store has 777, cache has 5.
+        loser.permanentDisplayId = 5
+
+        let result = await env.service.reassignDuplicates()
+
+        #expect(result.status == .ok)
+        let taskGroups = result.groups.filter { $0.type == .task }
+        let group = try #require(taskGroups.first, "Expected exactly one task group")
+        #expect(group.failure?.code == .staleId,
+                "Peer-updated loser must be reported as stale-id, not reassigned")
+        #expect(group.reassignments.isEmpty,
+                "No reassignment should be written when the guard fires")
+
+        // Read via a transient context so the faked-in-memory 5 doesn't mask the stored 777.
+        let probe = ModelContext(env.context.container)
+        let stored = try #require(try probe
+            .fetch(FetchDescriptor<TransitTask>(predicate: #Predicate { $0.id == loserId }))
+            .first)
+        #expect(stored.permanentDisplayId == 777,
+                "Peer-assigned ID must be preserved; cleanup must not overwrite it")
     }
 
     // MARK: - Per-Group Failure Isolation (AC 8.1 / 2.6)
