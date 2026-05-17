@@ -328,6 +328,23 @@ struct QueryMilestonesIntentTests {
         #expect(parsed.isEmpty)
     }
 
+    // T-963: displayId + matching projectId UUID should return the milestone.
+    @Test func displayIdWithMatchingProjectIdReturnsMilestone() throws {
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        makeMilestone(in: svc.context, name: "v1.0", project: alpha, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"projectId\":\"\(alpha.id.uuidString)\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.count == 1)
+        #expect(parsed.first?["projectName"] as? String == "Alpha")
+    }
+
     // T-963: displayId + non-matching search should return empty array.
     @Test func displayIdWithNonMatchingSearchReturnsEmpty() throws {
         let svc = try makeServices()

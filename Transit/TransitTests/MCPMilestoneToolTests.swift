@@ -347,6 +347,21 @@ struct MCPMilestoneToolTests {
         #expect(results.count == 1)
     }
 
+    // T-963: displayId + non-matching status array filter should return empty array.
+    @Test func queryMilestonesDisplayIdWithNonMatchingStatusArrayReturnsEmpty() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1, "status": ["done", "abandoned"]]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.isEmpty)
+    }
+
     // T-963: displayId + non-matching project name should return empty array.
     @Test func queryMilestonesDisplayIdWithNonMatchingProjectReturnsEmpty() async throws {
         let env = try MCPTestHelpers.makeEnv()
