@@ -128,6 +128,34 @@ struct MCPMilestoneRenameValidationTests {
         let refreshed = try env.milestoneService.findByID(milestone.id)
         #expect(refreshed.statusRawValue == "open")
     }
+
+    @Test func updateMilestoneNullDescriptionReturnsError() async throws {
+        // description: null — explicitly present but null. Treat as malformed
+        // rather than silently dropping it or clearing the description, and do
+        // not allow a concurrent status change to slip through [T-1230].
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let milestone = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: project
+        )
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "update_milestone",
+            arguments: [
+                "milestoneId": milestone.id.uuidString,
+                "description": NSNull(),
+                "status": "done"
+            ]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("description"))
+
+        // Status must not have been changed.
+        let refreshed = try env.milestoneService.findByID(milestone.id)
+        #expect(refreshed.statusRawValue == "open")
+    }
 }
 
 #endif

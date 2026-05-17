@@ -202,4 +202,26 @@ struct MilestoneRenameTypeValidationTests {
         let milestone = try svc.milestone.findByDisplayID(1)
         #expect(milestone.statusRawValue == "open", "Status should not have been changed")
     }
+
+    @Test func updateNullDescriptionReturnsInvalidInput() throws {
+        // description: null — explicitly present but null. Treat as malformed
+        // rather than silently dropping it or clearing the description, and do
+        // not allow a concurrent status change to slip through [T-1230].
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let input = """
+        {"displayId":1,"description":null,"status":"done"}
+        """
+
+        let result = UpdateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        let milestone = try svc.milestone.findByDisplayID(1)
+        #expect(milestone.statusRawValue == "open", "Status should not have been changed")
+    }
 }
