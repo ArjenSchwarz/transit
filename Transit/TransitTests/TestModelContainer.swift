@@ -12,10 +12,7 @@ enum TestModelContainer {
         return ModelContext(container)
     }
 
-    /// Returns a fresh in-memory ModelContainer. Useful when a test needs to
-    /// create more than one `ModelContext` on the same underlying store —
-    /// e.g. to simulate a peer-merged change that another context has not yet
-    /// observed in its registered-object snapshot.
+    /// Returns a fresh in-memory ModelContainer for tests needing multiple contexts on one store.
     static func newContainer() throws -> ModelContainer {
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
         let config = ModelConfiguration(

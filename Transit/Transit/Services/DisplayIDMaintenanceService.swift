@@ -250,14 +250,8 @@ final class DisplayIDMaintenanceService {
         guard let loserTask = fetchTask(id: loser.id) else {
             return .failed(GroupFailure(code: .staleId, message: "Task not found"))
         }
-        // Stale-ID guard (T-1061): a peer-applied cleanup may have merged
-        // into the local store after the scan but before this write. The
-        // main context's registered loser can still carry the scan-time
-        // cached `permanentDisplayId` even though the local SQLite row has
-        // been updated. SwiftData has no `refresh(_:mergeChanges:)`, so read
-        // the committed value directly from the store via a transient
-        // context. If the stored value no longer matches what we scanned,
-        // skip the group with `stale-id` instead of overwriting it.
+        // SwiftData has no per-object refresh; a transient context reads the committed
+        // store value directly, bypassing the registered-object snapshot (T-1061).
         guard let storedId = storedTaskDisplayId(id: loser.id) else {
             return .failed(GroupFailure(code: .staleId, message: "Display ID changed since scan"))
         }
@@ -312,10 +306,7 @@ final class DisplayIDMaintenanceService {
                 failure = GroupFailure(code: .staleId, message: "Milestone not found")
                 break
             }
-            // Stale-ID guard (T-1061): see `reassignTaskLoser`. Read the
-            // committed value from the store via a transient context so the
-            // main context's registered snapshot can't pass the guard with
-            // a stale `permanentDisplayId` after a peer's cleanup merged.
+            // See `reassignTaskLoser` (T-1061).
             guard let storedId = storedMilestoneDisplayId(id: loser.id) else {
                 failure = GroupFailure(code: .staleId, message: "Display ID changed since scan")
                 break
@@ -366,20 +357,14 @@ final class DisplayIDMaintenanceService {
         return try? modelContext.fetch(descriptor).first
     }
 
-    /// Reads the loser task's committed `permanentDisplayId` directly from
-    /// the persistent store via a transient `ModelContext`. The transient
-    /// context has no registered objects, so its fetch reads fresh values
-    /// from the local SQLite row — including any peer change merged via
-    /// CloudKit since the scan registered the main-context snapshot. This
-    /// is the SwiftData-native equivalent of Core Data's
-    /// `refresh(_:mergeChanges:)` that the spec asks for. (T-1061)
+    // Reads loser's committed permanentDisplayId via a transient context (T-1061).
     private func storedTaskDisplayId(id: UUID) -> Int? {
         let descriptor = FetchDescriptor<TransitTask>(predicate: #Predicate { $0.id == id })
         let probe = ModelContext(modelContext.container)
         return (try? probe.fetch(descriptor).first)?.permanentDisplayId
     }
 
-    /// Companion to `storedTaskDisplayId` for milestones. (T-1061)
+    // Milestone companion to `storedTaskDisplayId` (T-1061).
     private func storedMilestoneDisplayId(id: UUID) -> Int? {
         let descriptor = FetchDescriptor<Milestone>(predicate: #Predicate { $0.id == id })
         let probe = ModelContext(modelContext.container)
