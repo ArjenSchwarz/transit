@@ -160,7 +160,7 @@ struct QueryTasksIntent: AppIntent {
 
         // Single-task lookup by displayId. Surface CloudKit duplicate-id corruption
         // as an INTERNAL_ERROR instead of letting `try?` collapse it into an empty
-        // "not found" result. [T-1097]
+        // "not found" result.
         if let displayId = filters.displayId {
             do {
                 let task = try taskService.findByDisplayID(displayId)

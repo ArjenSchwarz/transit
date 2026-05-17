@@ -238,11 +238,7 @@ struct QueryTasksIntentTests {
         #expect(parsed.isEmpty)
     }
 
-    /// T-1097 regression: When two tasks share the same `permanentDisplayId`
-    /// (possible under CloudKit which cannot enforce unique constraints),
-    /// QueryTasksIntent must surface the corruption as an INTERNAL_ERROR JSON
-    /// rather than silently returning an empty array (which would look like
-    /// "not found" and hide the need for maintenance).
+    /// Duplicate `permanentDisplayId` (possible under CloudKit) must surface as INTERNAL_ERROR.
     @Test func displayIdLookupSurfacesDuplicateDisplayIdAsError() throws {
         let svc = try makeServices()
         let project = makeProject(in: svc.context)
