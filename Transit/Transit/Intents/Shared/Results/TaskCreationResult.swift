@@ -21,9 +21,6 @@ struct TaskCreationResult: AppEntity {
     }
 
     var displayRepresentation: DisplayRepresentation {
-        // Title is the task name so Shortcuts/result UIs identify the task
-        // that was just created. Project, display ID (when known) and status
-        // are supporting context in the subtitle.
         let identifier = displayId.map { "T-\($0)" }
         let subtitleParts = [projectName, identifier, status.capitalized]
             .compactMap { $0 }

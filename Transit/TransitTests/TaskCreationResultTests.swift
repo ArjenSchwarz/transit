@@ -75,7 +75,7 @@ struct TaskCreationResultTests {
         // Supporting context (project / display ID / status) should still be
         // present in the subtitle so the user can verify what was created.
         let subtitle = representation.subtitle.map { String(localized: $0) } ?? ""
-        #expect(subtitle.contains("Project"))
+        #expect(subtitle.contains(task.project?.name ?? ""))
         #expect(subtitle.contains("T-42"))
         #expect(subtitle.localizedCaseInsensitiveContains("idea"))
     }
