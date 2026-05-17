@@ -1,3 +1,4 @@
 excluded:
+  - .codex-cache
   - DerivedData
   - specs
