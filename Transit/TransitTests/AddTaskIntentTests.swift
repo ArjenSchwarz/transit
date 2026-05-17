@@ -73,23 +73,47 @@ struct AddTaskIntentTests {
         #expect(allTasks[0].name == "Trim me")
     }
 
-    @Test func executeParsesMetadataKeyValuePairs() async throws {
+    // Regression for T-1178: the visual AddTaskIntent must not declare a
+    // metadata @Parameter (see Decision 17 in
+    // shortcuts-friendly-intents/decision_log.md). Reflect on a fresh intent
+    // instance and assert no `metadata` property exists. This fails against
+    // the buggy implementation that exposed `var metadata: String?` and
+    // passes once the parameter is removed.
+    @Test func addTaskIntentDoesNotDeclareMetadataParameter() {
+        let intent = AddTaskIntent()
+        let mirror = Mirror(reflecting: intent)
+        let propertyNames = mirror.children.compactMap { $0.label }
+        // App Intents synthesises backing storage with a leading underscore
+        // for @Parameter properties, so inspect both forms.
+        let normalised = propertyNames.map { name -> String in
+            name.hasPrefix("_") ? String(name.dropFirst()) : name
+        }
+        #expect(normalised.contains("metadata") == false,
+                "AddTaskIntent must not declare a metadata @Parameter (see Decision 17)")
+    }
+
+    // Regression for T-1178: the visual AddTaskIntent must not expose a metadata
+    // parameter (see Decision 17 in shortcuts-friendly-intents/decision_log.md).
+    // A task created via the visual intent has empty metadata.
+    @Test func executeDoesNotAcceptMetadataAndCreatesEmptyMetadataTask() async throws {
         let svc = try makeServices()
         let project = makeProject(in: svc.context)
 
-        _ = try await AddTaskIntent.execute(
-            name: "Metadata Task",
-            taskDescription: nil,
+        // Note: deliberately no `metadata:` argument. Reintroducing the parameter
+        // would require this call site to change, and the test below would no
+        // longer guarantee the resulting task has empty metadata.
+        let result = try await AddTaskIntent.execute(
+            name: "Plain Task",
+            taskDescription: "Description, with a comma and key=value-like text",
             type: .feature,
             project: makeEntity(from: project),
-            metadata: "priority=high, source=shortcut",
             services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
         )
 
         let allTasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
         #expect(allTasks.count == 1)
-        #expect(allTasks[0].metadata["priority"] == "high")
-        #expect(allTasks[0].metadata["source"] == "shortcut")
+        #expect(allTasks[0].id == result.taskId)
+        #expect(allTasks[0].metadata.isEmpty)
     }
 
     @Test func executeThrowsInvalidInputForEmptyName() async throws {
@@ -131,22 +155,6 @@ struct AddTaskIntentTests {
             default:
                 Issue.record("Expected noProjects error, got \(error.code)")
             }
-        }
-    }
-
-    @Test func executeThrowsInvalidInputForMalformedMetadata() async throws {
-        let svc = try makeServices()
-        let project = makeProject(in: svc.context)
-
-        await #expect(throws: VisualIntentError.self) {
-            _ = try await AddTaskIntent.execute(
-                name: "Task",
-                taskDescription: nil,
-                type: .feature,
-                project: makeEntity(from: project),
-                metadata: "priority=high,bad-entry",
-                services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
-            )
         }
     }
 
