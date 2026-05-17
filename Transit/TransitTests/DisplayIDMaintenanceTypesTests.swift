@@ -207,6 +207,61 @@ struct DisplayIDMaintenanceTypesTests {
         #expect(task["advancedTo"] is NSNull)
     }
 
+    // MARK: - GroupResult.stableID (T-1062 regression)
+
+    /// Regression for T-1062: SwiftUI ForEach in `DataMaintenanceView` keyed on
+    /// `GroupResult.displayId` alone collides when a task and milestone share
+    /// the same numeric display ID (e.g. T-5 and M-5). The composite `stableID`
+    /// must include the record type so the two rows have distinct identities.
+    @Test func stableIDDistinguishesTaskAndMilestoneAtSameDisplayId() {
+        let taskGroup = GroupResult(
+            type: .task, displayId: 5,
+            winner: GroupResultWinner(id: UUID(), name: "Task Winner"),
+            reassignments: [], failure: nil
+        )
+        let milestoneGroup = GroupResult(
+            type: .milestone, displayId: 5,
+            winner: GroupResultWinner(id: UUID(), name: "Milestone Winner"),
+            reassignments: [], failure: nil
+        )
+
+        #expect(taskGroup.stableID == "task-5")
+        #expect(milestoneGroup.stableID == "milestone-5")
+        #expect(taskGroup.stableID != milestoneGroup.stableID)
+    }
+
+    /// Regression for T-1062: when the reassignment result combines task and
+    /// milestone groups that share display IDs, every group must have a unique
+    /// stableID. A non-unique set would collapse rows in SwiftUI's ForEach diff.
+    @Test func stableIDIsUniqueAcrossMixedTaskAndMilestoneGroups() {
+        let groups: [GroupResult] = [
+            GroupResult(
+                type: .task, displayId: 5,
+                winner: GroupResultWinner(id: UUID(), name: "Task 5"),
+                reassignments: [], failure: nil
+            ),
+            GroupResult(
+                type: .milestone, displayId: 5,
+                winner: GroupResultWinner(id: UUID(), name: "Milestone 5"),
+                reassignments: [], failure: nil
+            ),
+            GroupResult(
+                type: .task, displayId: 7,
+                winner: GroupResultWinner(id: UUID(), name: "Task 7"),
+                reassignments: [], failure: nil
+            ),
+            GroupResult(
+                type: .milestone, displayId: 7,
+                winner: GroupResultWinner(id: UUID(), name: "Milestone 7"),
+                reassignments: [], failure: nil
+            )
+        ]
+
+        let ids = groups.map(\.stableID)
+        #expect(Set(ids).count == ids.count, "stableID values must be unique across mixed groups")
+        #expect(ids == ["task-5", "milestone-5", "task-7", "milestone-7"])
+    }
+
     // MARK: - Helpers
 
     private func encodeToJSONObject<T: Encodable>(_ value: T) throws -> [String: Any] {

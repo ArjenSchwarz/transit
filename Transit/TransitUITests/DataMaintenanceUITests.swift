@@ -68,5 +68,24 @@ final class DataMaintenanceUITests: XCTestCase {
             resultList.waitForExistence(timeout: 10),
             "Result list should appear after reassignment completes"
         )
+
+        // T-1062 regression: the seeded scenario contains both a task duplicate
+        // group AND a milestone duplicate group sharing display ID 5. When the
+        // result ForEach is keyed only by displayId, SwiftUI collapses the two
+        // rows and one of them disappears. Both header rows must be present.
+        let taskGroupHeader = resultList.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH 'T-5'")
+        ).firstMatch
+        let milestoneGroupHeader = resultList.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH 'M-5'")
+        ).firstMatch
+        XCTAssertTrue(
+            taskGroupHeader.waitForExistence(timeout: 5),
+            "Task duplicate group T-5 should render in the result list"
+        )
+        XCTAssertTrue(
+            milestoneGroupHeader.waitForExistence(timeout: 5),
+            "Milestone duplicate group M-5 must render alongside T-5 — regression for T-1062"
+        )
     }
 }
