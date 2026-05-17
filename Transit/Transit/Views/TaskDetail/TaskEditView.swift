@@ -300,10 +300,13 @@ extension TaskEditView {
 
             // Apply field mutations through TaskService for validation.
             // Uses save: false to defer persistence until the atomic save below.
+            // clearDescription disambiguates "user emptied the field" from
+            // "no change requested" so an existing description can be removed (T-854).
             try taskService.updateTask(
                 task,
                 name: trimmedName,
                 description: trimmedDesc.isEmpty ? nil : trimmedDesc,
+                clearDescription: trimmedDesc.isEmpty,
                 type: selectedType,
                 metadata: metadata,
                 save: false

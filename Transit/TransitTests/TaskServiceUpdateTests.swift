@@ -85,4 +85,36 @@ struct TaskServiceUpdateTests {
         // The in-memory mutation is applied but we verify the save: false path
         // doesn't throw by reaching this point without error.
     }
+
+    // Regression: T-854 — clearing the description in TaskEditView used to leave
+    // the stored taskDescription untouched because nil meant "no change".
+    // The clearDescription flag disambiguates "no update" from "explicit clear".
+    @Test func updateTaskClearsDescriptionWithFlag() async throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+        let task = try await service.createTask(
+            name: "Original", description: "Original description", type: .feature, project: project
+        )
+
+        // Passing nil description without clearDescription preserves the description.
+        try service.updateTask(task, description: nil)
+        #expect(task.taskDescription == "Original description")
+
+        // Passing clearDescription: true clears the description.
+        try service.updateTask(task, description: nil, clearDescription: true)
+        #expect(task.taskDescription == nil)
+    }
+
+    // Regression: T-854 — when both description and clearDescription are provided,
+    // an explicit non-nil description wins (matches MilestoneService semantics).
+    @Test func updateTaskExplicitDescriptionTakesPrecedenceOverClearFlag() async throws {
+        let (service, context) = try makeService()
+        let project = makeProject(in: context)
+        let task = try await service.createTask(
+            name: "Original", description: "Original", type: .feature, project: project
+        )
+
+        try service.updateTask(task, description: "Replacement", clearDescription: true)
+        #expect(task.taskDescription == "Replacement")
+    }
 }
