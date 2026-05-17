@@ -314,6 +314,14 @@ nonisolated enum IntentHelpers {
         if json["milestoneDisplayId"] != nil, parseIntValue(json["milestoneDisplayId"]) == nil {
             return IntentError.invalidInput(hint: "milestoneDisplayId must be an integer").json
         }
+        // Reject non-string milestone when key is present [T-1114]. Without
+        // this guard a numeric/boolean milestone value would silently fall
+        // through and leave the task untouched.
+        if json["milestoneDisplayId"] == nil,
+           json["milestone"] != nil,
+           !(json["milestone"] is String) {
+            return IntentError.invalidInput(hint: "milestone must be a string").json
+        }
         if let milestoneDisplayId = parseIntValue(json["milestoneDisplayId"]) {
             do {
                 let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)

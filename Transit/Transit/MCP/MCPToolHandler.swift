@@ -227,7 +227,14 @@ final class MCPToolHandler {
                   milestoneProject.id == project.id else {
                 return errorResult("Milestone and task must belong to the same project")
             }
-        } else if let milestoneName = args["milestone"] as? String {
+        } else if args["milestone"] != nil {
+            // Reject non-string milestone values [T-1114]. Without this guard
+            // a numeric or boolean milestone arg would fall through to the
+            // "absent" branch and the task would be created without the
+            // requested assignment.
+            guard let milestoneName = args["milestone"] as? String else {
+                return errorResult("milestone must be a string")
+            }
             guard let milestone = milestoneService.findByName(milestoneName, in: project) else {
                 return errorResult("No milestone named '\(milestoneName)' in project '\(project.name)'")
             }
@@ -806,7 +813,12 @@ extension MCPToolHandler {
             } catch {
                 return errorResult("Failed to set milestone: \(error)")
             }
-        } else if let milestoneName = args["milestone"] as? String {
+        } else if args["milestone"] != nil {
+            // Reject non-string milestone values [T-1114]. See handleCreateTask
+            // for the same guard.
+            guard let milestoneName = args["milestone"] as? String else {
+                return errorResult("milestone must be a string")
+            }
             guard let project = task.project else {
                 return errorResult("Task must belong to a project before assigning a milestone")
             }

@@ -166,11 +166,23 @@ struct CreateTaskIntent: AppIntent {
     ) -> (milestone: Milestone?, error: String?) {
         let milestoneDisplayId = json["milestoneDisplayId"] as? Int
             ?? (json["milestoneDisplayId"] as? Double).flatMap { Int(exactly: $0) }
-        let milestoneName = json["milestone"] as? String
 
         // Reject non-integer milestoneDisplayId when key is present [T-613]
         if json["milestoneDisplayId"] != nil, milestoneDisplayId == nil {
             return (nil, IntentError.invalidInput(hint: "milestoneDisplayId must be an integer").json)
+        }
+
+        // Reject non-string milestone when key is present [T-1114]. Falling
+        // through to "absent" would silently create the task without the
+        // requested milestone assignment.
+        let milestoneName: String?
+        if json["milestone"] != nil {
+            guard let name = json["milestone"] as? String else {
+                return (nil, IntentError.invalidInput(hint: "milestone must be a string").json)
+            }
+            milestoneName = name
+        } else {
+            milestoneName = nil
         }
 
         if let milestoneDisplayId {
