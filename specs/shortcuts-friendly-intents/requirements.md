@@ -50,7 +50,7 @@ These changes enable both power users (via CLI/JSON) and casual users (via Short
 6. <a name="2.6"></a>The intent SHALL throw an error with code `NO_PROJECTS` IF no projects exist in the database
 7. <a name="2.7"></a>The error message SHALL instruct users to create a project in the app first
 8. <a name="2.8"></a>The intent SHALL create all tasks with initial status "idea" (matching existing CLI behavior)
-9. <a name="2.9"></a>The intent SHALL accept optional metadata as a string parameter in key=value format (comma-separated)
+9. <a name="2.9"></a>~~The intent SHALL accept optional metadata as a string parameter in key=value format (comma-separated)~~ **Superseded by [Decision 17](decision_log.md#decision-17-exclude-metadata-from-visual-addtaskintent):** the visual intent SHALL NOT accept a metadata parameter. Metadata remains available via the JSON-based `CreateTaskIntent`.
 10. <a name="2.10"></a>The intent SHALL return a structured TaskCreationResult containing: taskId (UUID), displayId (integer, if allocated), status (TaskStatus raw value), projectId (UUID), projectName (String)
 11. <a name="2.11"></a>The intent SHALL declare `supportedModes` including `.foreground` to open the Transit app after execution (allowing users to view the created task)
 12. <a name="2.12"></a>The intent SHALL validate that the task name is non-empty

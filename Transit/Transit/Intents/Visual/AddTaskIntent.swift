@@ -29,11 +29,10 @@ struct AddTaskIntent: AppIntent {
     @Parameter(title: "Project")
     var project: ProjectEntity
 
-    @Parameter(
-        title: "Metadata",
-        description: "Optional key=value pairs, comma-separated (example: priority=high,source=shortcut)"
-    )
-    var metadata: String?
+    // Metadata is intentionally not exposed here. See Decision 17 in
+    // specs/shortcuts-friendly-intents/decision_log.md: comma-separated
+    // key=value parsing is fragile for Shortcuts UI input. Metadata remains
+    // available via the JSON-based CreateTaskIntent for power-user/CLI use.
 
     @Dependency
     private var taskService: TaskService
@@ -48,7 +47,6 @@ struct AddTaskIntent: AppIntent {
             taskDescription: taskDescription,
             type: type,
             project: project,
-            metadata: metadata,
             services: Services(taskService: taskService, projectService: projectService)
         )
         return .result(value: result)
@@ -62,15 +60,12 @@ struct AddTaskIntent: AppIntent {
         taskDescription: String?,
         type: TaskType,
         project: ProjectEntity,
-        metadata: String? = nil,
         services: Services
     ) async throws -> TaskCreationResult {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
             throw VisualIntentError.invalidInput("Name is required.")
         }
-
-        let parsedMetadata = try parseMetadata(metadata)
 
         guard services.projectService.hasAnyProjects() else {
             throw VisualIntentError.noProjects
@@ -92,8 +87,7 @@ struct AddTaskIntent: AppIntent {
                 name: trimmedName,
                 description: taskDescription,
                 type: type,
-                project: resolvedProject,
-                metadata: parsedMetadata
+                project: resolvedProject
             )
         } catch TaskService.Error.invalidName {
             throw VisualIntentError.invalidInput("Name is required.")
@@ -102,44 +96,5 @@ struct AddTaskIntent: AppIntent {
         }
 
         return try TaskCreationResult.from(task)
-    }
-
-    private static func parseMetadata(_ rawMetadata: String?) throws -> [String: String]? {
-        guard let rawMetadata else {
-            return nil
-        }
-
-        let trimmed = rawMetadata.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return nil
-        }
-
-        var metadata: [String: String] = [:]
-        let pairs = trimmed.split(separator: ",", omittingEmptySubsequences: false)
-        for pair in pairs {
-            let component = pair.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !component.isEmpty else {
-                throw VisualIntentError.invalidInput("Metadata contains an empty entry.")
-            }
-
-            let parts = component.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
-            guard parts.count == 2 else {
-                throw VisualIntentError.invalidInput(
-                    "Metadata must use key=value format separated by commas."
-                )
-            }
-
-            let key = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
-            let value = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !key.isEmpty, !value.isEmpty else {
-                throw VisualIntentError.invalidInput(
-                    "Metadata keys and values must be non-empty."
-                )
-            }
-
-            metadata[key] = value
-        }
-
-        return metadata.isEmpty ? nil : metadata
     }
 }

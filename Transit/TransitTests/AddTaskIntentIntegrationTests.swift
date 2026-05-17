@@ -69,22 +69,23 @@ struct AddTaskIntentIntegrationTests {
         #expect(entities[0].status == "idea")
     }
 
-    @Test func addTaskIntentPersistsMetadataFromInputString() async throws {
+    // Regression for T-1178: the visual AddTaskIntent must not accept metadata.
+    // A task created with text that looks like metadata is persisted with
+    // empty metadata.
+    @Test func addTaskIntentPersistsEmptyMetadataForVisualIntent() async throws {
         let svc = try makeServices()
         let project = makeProject(in: svc.context)
 
         _ = try await AddTaskIntent.execute(
-            name: "Metadata Integration Task",
-            taskDescription: nil,
+            name: "Plain Integration Task",
+            taskDescription: "priority=high,source=shortcut (description, not metadata)",
             type: .feature,
             project: ProjectEntity.from(project),
-            metadata: "priority=high,source=shortcut",
             services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
         )
 
         let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
         #expect(tasks.count == 1)
-        #expect(tasks[0].metadata["priority"] == "high")
-        #expect(tasks[0].metadata["source"] == "shortcut")
+        #expect(tasks[0].metadata.isEmpty)
     }
 }
