@@ -253,9 +253,9 @@ struct AddTaskSheet: View {
         let milestone: Milestone?
     }
 
-    /// Persists a new task and optionally assigns a milestone. Mirrors the
-    /// production `save()` flow so the persistence behaviour can be exercised
-    /// from tests; the SwiftUI view layer cannot be invoked directly.
+    /// Persists a new task and optionally assigns a milestone. Extracted as a
+    /// static helper because the SwiftUI view layer cannot be invoked directly
+    /// from tests.
     ///
     /// When milestone assignment fails after `createTask` has already saved
     /// the task, the newly-created task is deleted before rethrowing so the
