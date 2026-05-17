@@ -34,15 +34,12 @@ final class MCPServer {
                 let body = try await request.body.collect(upTo: 1_048_576)
                 let data = Data(buffer: body)
 
-                guard let rpcRequest = try? JSONDecoder().decode(
-                    JSONRPCRequest.self, from: data
-                ) else {
-                    let err = JSONRPCResponse.error(
-                        id: nil,
-                        code: JSONRPCErrorCode.parseError,
-                        message: "Invalid JSON"
-                    )
-                    return Self.jsonResponse(err)
+                let rpcRequest: JSONRPCRequest
+                switch Self.decodeIncomingRequest(data) {
+                case .success(let req):
+                    rpcRequest = req
+                case .failure(let errorResponse):
+                    return Self.jsonResponse(errorResponse)
                 }
 
                 // Notifications (id member omitted) must not receive a
@@ -77,6 +74,58 @@ final class MCPServer {
     }
 
     // MARK: - Helpers
+
+    /// Result of attempting to decode an incoming request body as JSON-RPC.
+    nonisolated enum DecodeOutcome: Sendable {
+        case success(JSONRPCRequest)
+        case failure(JSONRPCResponse)
+    }
+
+    /// Decode an incoming request body as a JSON-RPC request, distinguishing
+    /// transport-level parse failures from protocol-level shape failures.
+    ///
+    /// Per JSON-RPC 2.0 §5.1:
+    /// - Returns `.failure` with code `-32700 "Parse error"` when the body is
+    ///   not well-formed JSON.
+    /// - Returns `.failure` with code `-32600 "Invalid Request"` when the body
+    ///   is valid JSON but is not a well-formed Request object (e.g. missing
+    ///   `method`, non-string `jsonrpc`, unsupported `id` type, or a non-object
+    ///   root).
+    /// - Returns `.success` with the decoded request otherwise.
+    ///
+    /// The error response always uses `id: null` because the id member of a
+    /// malformed request cannot be reliably extracted.
+    nonisolated static func decodeIncomingRequest(
+        _ data: Data
+    ) -> DecodeOutcome {
+        // Stage 1: confirm the bytes are well-formed JSON. `.fragmentsAllowed`
+        // lets scalar roots through so they reach the shape check (and become
+        // Invalid Request rather than Parse error).
+        do {
+            _ = try JSONSerialization.jsonObject(
+                with: data, options: [.fragmentsAllowed]
+            )
+        } catch {
+            return .failure(JSONRPCResponse.error(
+                id: nil,
+                code: JSONRPCErrorCode.parseError,
+                message: "Parse error"
+            ))
+        }
+
+        // Stage 2: structural decode into JSONRPCRequest. Any failure here is
+        // valid JSON with the wrong shape — Invalid Request.
+        do {
+            let rpcRequest = try JSONDecoder().decode(JSONRPCRequest.self, from: data)
+            return .success(rpcRequest)
+        } catch {
+            return .failure(JSONRPCResponse.error(
+                id: nil,
+                code: JSONRPCErrorCode.invalidRequest,
+                message: "Invalid Request"
+            ))
+        }
+    }
 
     nonisolated private static func jsonResponse(
         _ response: JSONRPCResponse
