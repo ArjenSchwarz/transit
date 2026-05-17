@@ -110,6 +110,16 @@ enum MCPTestHelpers {
         let content = try #require(result["content"] as? [[String: Any]])
         return try #require(content.first?["text"] as? String)
     }
+
+    /// Decodes the JSON-RPC `error` object from a response. Use this for cases
+    /// where the handler rejects the request at the JSON-RPC envelope level
+    /// (e.g. `invalidParams`) rather than returning a tool error result.
+    static func jsonRPCError(_ response: JSONRPCResponse?) throws -> [String: Any] {
+        let unwrapped = try #require(response, "Expected a JSON-RPC response but got nil")
+        let data = try JSONEncoder().encode(unwrapped)
+        let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        return try #require(json["error"] as? [String: Any])
+    }
 }
 
 #endif

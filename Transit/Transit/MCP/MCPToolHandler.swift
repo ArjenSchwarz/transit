@@ -93,7 +93,7 @@ final class MCPToolHandler {
 
     // MARK: - Tools Call
 
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func handleToolCall(
         id: JSONRPCId?,
         params: AnyCodable?
@@ -107,7 +107,13 @@ final class MCPToolHandler {
             )
         }
 
-        let arguments = dict["arguments"] as? [String: Any] ?? [:]
+        let arguments: [String: Any]
+        switch parseArgumentsEnvelope(dict) {
+        case .success(let parsed):
+            arguments = parsed
+        case .failure(.message(let message)):
+            return JSONRPCResponse.error(id: id, code: JSONRPCErrorCode.invalidParams, message: message)
+        }
 
         // Gate maintenance tools behind the settings toggle. Distinct message so
         // callers can tell a disabled tool from an unknown one (AC 5.5).
@@ -956,6 +962,21 @@ extension MCPToolHandler {
     private func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }
     private func errorResult(_ message: String) -> MCPToolResult {
         MCPToolResult(content: [.text(message)], isError: true)
+    }
+
+    /// Validates the `arguments` envelope of a `tools/call` request. Omitting the
+    /// key is allowed and yields `[:]` for tools whose inputs are all optional.
+    /// A present-but-non-object value (string, array, number, boolean, null)
+    /// must be rejected with `invalidParams` rather than silently coerced to
+    /// `[:]` — otherwise read tools like `query_tasks` would execute with no
+    /// filters and expose all data, while mutation tools would degrade to
+    /// misleading "missing required field" errors [T-1247].
+    private func parseArgumentsEnvelope(_ params: [String: Any]) -> Result<[String: Any], ResolveError> {
+        guard params["arguments"] != nil else { return .success([:]) }
+        guard let dict = params["arguments"] as? [String: Any] else {
+            return .failure(.message("Invalid arguments: must be a JSON object"))
+        }
+        return .success(dict)
     }
 
     /// Validates a UUID-shaped argument by key. Returns `.success(nil)` when the

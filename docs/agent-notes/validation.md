@@ -34,3 +34,7 @@ Known gaps filed by the code-issue automation:
   `project` / `projectId` / `status` / `search` filters conjunctively. Mismatched
   filters yield an empty array; malformed filter values yield the usual
   `INVALID_INPUT` / `INVALID_STATUS` errors, matching the task query paths.
+- T-1247 (fixed): MCP `tools/call` accepted non-object `arguments` shapes by
+  silently coercing to `{}` via `as? [String: Any] ?? [:]`. `handleToolCall`
+  now distinguishes "key absent" (allowed, treated as `{}`) from
+  "key present but not an object" (rejected with `invalidParams`).
