@@ -84,7 +84,7 @@ final class DataMaintenanceUITests: XCTestCase {
             "Task duplicate group T-5 should render in the result list"
         )
         XCTAssertTrue(
-            milestoneGroupHeader.exists,
+            milestoneGroupHeader.waitForExistence(timeout: 5),
             "Milestone duplicate group M-5 must render alongside T-5 — regression for T-1062"
         )
     }

@@ -60,13 +60,15 @@ struct DataMaintenanceResultCollisionTests {
         env.context.insert(taskLoser)
 
         let milestoneWinner = Milestone(
-            name: "M Winner", project: env.project, displayID: .permanent(5)
+            name: "M Winner", description: nil,
+            project: env.project, displayID: .permanent(5)
         )
         milestoneWinner.creationDate = Date(timeIntervalSince1970: 1500)
         env.context.insert(milestoneWinner)
 
         let milestoneLoser = Milestone(
-            name: "M Loser", project: env.project, displayID: .permanent(5)
+            name: "M Loser", description: nil,
+            project: env.project, displayID: .permanent(5)
         )
         milestoneLoser.creationDate = Date(timeIntervalSince1970: 2500)
         env.context.insert(milestoneLoser)
