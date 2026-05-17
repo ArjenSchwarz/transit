@@ -162,7 +162,9 @@ struct UpdateMilestoneIntent: AppIntent {
     // Mirrors MilestoneService.updateStatus for status side effects — keep in sync.
     @MainActor
     private static func applyUpdate(_ update: ValidatedUpdate, to milestone: Milestone) {
-        if let newStatus = update.status {
+        // T-923: Skip timestamp writes when the requested status matches the
+        // current status so same-status retries don't rewrite completion dates.
+        if let newStatus = update.status, milestone.statusRawValue != newStatus.rawValue {
             milestone.statusRawValue = newStatus.rawValue
             milestone.lastStatusChangeDate = Date.now
             milestone.completionDate = newStatus.isTerminal ? Date.now : nil

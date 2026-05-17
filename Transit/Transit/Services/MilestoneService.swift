@@ -124,6 +124,11 @@ final class MilestoneService {
     }
 
     func updateStatus(_ milestone: Milestone, to newStatus: MilestoneStatus) throws {
+        // T-923: Same-status updates are no-ops for status side effects so retries and
+        // idempotent automations don't spuriously rewrite completion timestamps and
+        // pull old terminal milestones back into the current report window.
+        guard milestone.statusRawValue != newStatus.rawValue else { return }
+
         milestone.statusRawValue = newStatus.rawValue
         milestone.lastStatusChangeDate = Date.now
 
