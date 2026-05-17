@@ -238,6 +238,79 @@ struct DisplayIDMaintenanceServiceReassignTests {
         #expect(updated.permanentDisplayId == 999, "Loser's manually-set ID preserved")
     }
 
+    /// Regression for T-1061: a peer device (modelled here as the same
+    /// `ModelContext` whose registered loser carries a stale cached
+    /// `permanentDisplayId`) has already moved the loser to a fresh ID. The
+    /// service must refresh the loser from the local store before its
+    /// stale-ID comparison, observe the new value, and skip the group with
+    /// `staleId` instead of overwriting the peer's cleanup with a freshly
+    /// allocated ID.
+    ///
+    /// Setup pattern:
+    ///   1. Insert winner + loser with the same `permanentDisplayId = 5` and
+    ///      save.
+    ///   2. Service runs `scanDuplicates()`, registering the loser in its
+    ///      context with the cached scanned value (5).
+    ///   3. Simulate a peer-merged change by writing a fresh ID (777) to the
+    ///      loser through the same context and saving. The save commits 777
+    ///      to the in-memory store. We then explicitly mutate the registered
+    ///      loser's `permanentDisplayId` back to 5 in memory (no save), which
+    ///      reproduces the CloudKit-merge-without-cache-refresh state:
+    ///      store = 777, cached in-memory value = 5. Without a
+    ///      `refresh(_:mergeChanges:)` call, the maintenance service's
+    ///      stale-ID guard reads the cached 5 and overwrites the peer's 777.
+    @Test func peerUpdatedLoserIsSkippedWithStaleId() async throws {
+        let env = try makeEnv(taskCounterStart: 1)
+        let loserId = UUID()
+        makeTask(in: env, name: "Winner", displayId: 5,
+                 creationDate: Date(timeIntervalSince1970: 1000))
+        let loser = makeTask(in: env, name: "Loser", displayId: 5,
+                             creationDate: Date(timeIntervalSince1970: 2000), id: loserId)
+        try env.context.save()
+
+        // Prime the registered-object cache with the scanned value (5).
+        let report = try env.service.scanDuplicates()
+        #expect(report.tasks.count == 1, "Pre-reassign scan finds the duplicate")
+
+        // Simulate a peer device having moved the loser to a fresh ID and
+        // CloudKit having merged that change into the local store: commit
+        // 777 to the store.
+        loser.permanentDisplayId = 777
+        try env.context.save()
+
+        // CloudKit merges to the local store but does NOT refresh the
+        // ModelContext's registered objects. Reproduce that state by
+        // setting the registered loser's cached value back to 5 without
+        // saving. The persistent store still holds 777; the in-memory
+        // snapshot reads 5.
+        loser.permanentDisplayId = 5
+
+        let result = await env.service.reassignDuplicates()
+
+        // The stale-ID guard must observe the store value (777) and skip
+        // the group instead of overwriting it.
+        #expect(result.status == .ok)
+        let taskGroups = result.groups.filter { $0.type == .task }
+        if let group = taskGroups.first {
+            #expect(group.failure?.code == .staleId,
+                    "Peer-updated loser must be reported as stale-id, not reassigned")
+            #expect(group.reassignments.isEmpty,
+                    "No reassignment should be written when the guard fires")
+        }
+
+        // Invariant: the peer's 777 must survive the cleanup run. A buggy
+        // implementation allocates and saves a fresh ID, overwriting 777 in
+        // the store. Read via a transient `ModelContext` so the
+        // service-context's pending in-memory `5` (used to fake the stale
+        // cache) does not mask the assertion.
+        let probe = ModelContext(env.context.container)
+        let stored = try #require(try probe
+            .fetch(FetchDescriptor<TransitTask>(predicate: #Predicate { $0.id == loserId }))
+            .first)
+        #expect(stored.permanentDisplayId == 777,
+                "Peer-assigned ID must be preserved; cleanup must not overwrite it")
+    }
+
     // MARK: - Per-Group Failure Isolation (AC 8.1 / 2.6)
 
     @Test func allocationFailureOnOneGroupDoesNotAbortNextGroup() async throws {

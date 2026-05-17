@@ -8,6 +8,15 @@ enum TestModelContainer {
     /// Returns a fresh ModelContext backed by its own in-memory container to
     /// avoid cross-test state leakage between suites.
     static func newContext() throws -> ModelContext {
+        let container = try newContainer()
+        return ModelContext(container)
+    }
+
+    /// Returns a fresh in-memory ModelContainer. Useful when a test needs to
+    /// create more than one `ModelContext` on the same underlying store —
+    /// e.g. to simulate a peer-merged change that another context has not yet
+    /// observed in its registered-object snapshot.
+    static func newContainer() throws -> ModelContainer {
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
         let config = ModelConfiguration(
             "TransitTests-\(UUID().uuidString)",
@@ -15,8 +24,7 @@ enum TestModelContainer {
             isStoredInMemoryOnly: true,
             cloudKitDatabase: .none
         )
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
+        return try ModelContainer(for: schema, configurations: [config])
     }
 
     /// Performs a rollback and forces re-faulting of all @Model objects.
