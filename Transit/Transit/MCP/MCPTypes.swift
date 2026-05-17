@@ -36,7 +36,8 @@ nonisolated struct JSONRPCRequest: Decodable, Sendable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        jsonrpc = try container.decode(String.self, forKey: .jsonrpc)
+        // Lenient decode: missing/non-string `jsonrpc` becomes "" so the handler yields -32600, not -32700 (T-1106).
+        jsonrpc = (try? container.decodeIfPresent(String.self, forKey: .jsonrpc)) ?? ""
         method = try container.decode(String.self, forKey: .method)
         params = try container.decodeIfPresent(AnyCodable.self, forKey: .params)
         // Distinguish "id member absent" (notification) from "id present with
