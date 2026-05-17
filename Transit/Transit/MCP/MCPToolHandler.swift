@@ -317,6 +317,14 @@ final class MCPToolHandler {
             return errorResult("Provide either displayId (integer) or taskId (UUID string)")
         }
 
+        // Reject non-string comment/authorName: as? String silently drops
+        // present-but-wrong-type values, dropping the audit-trail entry. [T-1205]
+        if args["comment"] != nil, !(args["comment"] is String) {
+            return errorResult("comment must be a string")
+        }
+        if args["authorName"] != nil, !(args["authorName"] is String) {
+            return errorResult("authorName must be a string")
+        }
         let commentText = args["comment"] as? String
         let commentAuthor = args["authorName"] as? String
         let (commentError, hasComment) = validateCommentArgs(comment: commentText, author: commentAuthor)
