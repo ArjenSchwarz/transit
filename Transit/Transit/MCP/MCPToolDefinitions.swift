@@ -45,9 +45,14 @@ nonisolated enum MCPToolDefinitions {
         inputSchema: .object(properties: [:], required: [])
     )
 
+    private static let createTaskDescription = """
+        Create a new task in Transit. The task starts in Idea status. \
+        At least one of 'project' or 'projectId' is required to identify the task's project.
+        """
+
     static let createTask = MCPToolDefinition(
         name: "create_task",
-        description: "Create a new task in Transit. The task starts in Idea status.",
+        description: createTaskDescription,
         inputSchema: .object(
             properties: [
                 "name": .string("Task name (required)"),
@@ -55,8 +60,12 @@ nonisolated enum MCPToolDefinitions {
                     "Task type (required)",
                     values: TaskType.allCases.map(\.rawValue)
                 ),
-                "projectId": .string("Project UUID (optional, precedence over name)"),
-                "project": .string("Project name (optional, case-insensitive)"),
+                "projectId": .string(
+                    "Project UUID. At least one of projectId or project is required; projectId takes precedence."
+                ),
+                "project": .string(
+                    "Project name (case-insensitive). At least one of projectId or project is required."
+                ),
                 "description": .string("Task description (optional)"),
                 "metadata": .object("Key-value metadata (optional, string values)"),
                 "milestone": .string("Milestone name (within the task's project)"),
