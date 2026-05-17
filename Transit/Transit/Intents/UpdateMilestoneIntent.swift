@@ -120,16 +120,17 @@ struct UpdateMilestoneIntent: AppIntent {
             newStatus = parsed
         }
 
-        // Validate name
+        // Validate name. Only use "name" as a rename when identified by displayId or
+        // milestoneId; otherwise the rename field is "newName". When the relevant key is
+        // present it MUST be a string — a non-string value (integer, boolean, null,
+        // array) would otherwise be silently dropped by `as? String`, letting other
+        // update fields apply with the malformed rename quietly ignored [T-1230].
         var trimmedName: String?
-        // Only use "name" as a rename when identified by displayId or milestoneId
-        let effectiveName: String?
-        if json["displayId"] != nil || json["milestoneId"] != nil {
-            effectiveName = json["name"] as? String
-        } else {
-            effectiveName = json["newName"] as? String
-        }
-        if let name = effectiveName {
+        let renameKey = (json["displayId"] != nil || json["milestoneId"] != nil) ? "name" : "newName"
+        if let rawName = json[renameKey] {
+            guard let name = rawName as? String else {
+                return .invalid(IntentError.invalidInput(hint: "\(renameKey) must be a string").json)
+            }
             let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else {
                 return .invalid(IntentHelpers.mapMilestoneError(.invalidName).json)
@@ -141,8 +142,18 @@ struct UpdateMilestoneIntent: AppIntent {
             trimmedName = trimmed
         }
 
+        // Validate description. Same reasoning as name: a present-but-non-string value
+        // must be rejected rather than silently dropped [T-1230].
+        var newDescription: String?
+        if let rawDescription = json["description"] {
+            guard let descriptionString = rawDescription as? String else {
+                return .invalid(IntentError.invalidInput(hint: "description must be a string").json)
+            }
+            newDescription = descriptionString
+        }
+
         return .valid(ValidatedUpdate(
-            status: newStatus, name: trimmedName, description: json["description"] as? String
+            status: newStatus, name: trimmedName, description: newDescription
         ))
     }
 

@@ -656,8 +656,15 @@ extension MCPToolHandler {
             newStatus = parsed
         }
 
+        // Validate name. When the key is present it MUST be a string — a non-string
+        // value (integer, boolean, null, array) would otherwise be silently dropped
+        // by `as? String`, letting other update fields apply with the malformed
+        // rename quietly ignored [T-1230].
         var trimmedName: String?
-        if let newName = args["name"] as? String {
+        if let rawName = args["name"] {
+            guard let newName = rawName as? String else {
+                return .invalid(errorResult("name must be a string"))
+            }
             let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else {
                 return .invalid(errorResult("Milestone name cannot be empty"))
@@ -669,8 +676,18 @@ extension MCPToolHandler {
             trimmedName = trimmed
         }
 
+        // Validate description. Same reasoning as name: a present-but-non-string
+        // value must be rejected rather than silently dropped [T-1230].
+        var newDescription: String?
+        if let rawDescription = args["description"] {
+            guard let descriptionString = rawDescription as? String else {
+                return .invalid(errorResult("description must be a string"))
+            }
+            newDescription = descriptionString
+        }
+
         return .valid(ValidatedMilestoneUpdate(
-            status: newStatus, name: trimmedName, description: args["description"] as? String
+            status: newStatus, name: trimmedName, description: newDescription
         ))
     }
 
