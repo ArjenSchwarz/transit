@@ -5,14 +5,6 @@ import Testing
 @testable import Transit
 
 // T-1205: Reject non-string comment / authorName on update_task_status.
-//
-// MCPToolHandler.handleUpdateStatus reads optional comment with `as? String`.
-// When the key is present but the value is not a string (e.g. integer, boolean),
-// the cast yields nil and validateCommentArgs treats it as "no comment". The
-// status mutation proceeds and the requested comment is silently dropped.
-//
-// The MCP schema declares comment/authorName as strings; present non-string
-// values must be rejected before mutating status so the audit trail stays intact.
 @MainActor @Suite(.serialized)
 struct MCPCommentTypeValidationTests {
 
@@ -128,6 +120,10 @@ struct MCPCommentTypeValidationTests {
 
         let refreshed = try env.taskService.findByDisplayID(displayId)
         #expect(refreshed.statusRawValue == originalStatus)
+
+        // No comment must have been created
+        let comments = try env.commentService.fetchComments(for: task.id)
+        #expect(comments.isEmpty)
     }
 
     // Sanity: NSNull (decoded JSON null) is also a non-string present value.
