@@ -61,24 +61,51 @@ lint-fix:
 # Building
 DERIVED_DATA = ./DerivedData
 
+# Workspace-local cache locations. Xcode and its subprocesses (SwiftPM, Clang)
+# otherwise scatter caches across ~/Library/Caches and ~/.cache, which fail in
+# sandboxed/dev environments. Keep everything under DerivedData so a single
+# `make clean` is enough. See T-1241.
+SPM_CACHE        = $(DERIVED_DATA)/SourcePackages/cache
+SPM_CLONED       = $(DERIVED_DATA)/SourcePackages/checkouts
+WORKSPACE_CACHE  = $(DERIVED_DATA)/Caches
+WORKSPACE_TMP    = $(DERIVED_DATA)/tmp
+CLANG_MODULE_CACHE = $(DERIVED_DATA)/ModuleCache.noindex
+
+XCODEBUILD_CACHE_FLAGS = \
+	-derivedDataPath $(DERIVED_DATA) \
+	-clonedSourcePackagesDirPath $(SPM_CLONED) \
+	-packageCachePath $(SPM_CACHE)
+
+# Exported before every xcodebuild call so SwiftPM resolution, Clang module
+# cache fallbacks ($XDG_CACHE_HOME/clang/ModuleCache), and compiler temp
+# diagnostics (.dia) all stay inside the workspace.
+XCODEBUILD_ENV = \
+	XDG_CACHE_HOME=$(abspath $(WORKSPACE_CACHE)) \
+	TMPDIR=$(abspath $(WORKSPACE_TMP)) \
+	CLANG_MODULE_CACHE_PATH=$(abspath $(CLANG_MODULE_CACHE))
+
+.PHONY: prepare-cache-dirs
+prepare-cache-dirs:
+	@mkdir -p $(SPM_CACHE) $(SPM_CLONED) $(WORKSPACE_CACHE) $(WORKSPACE_TMP) $(CLANG_MODULE_CACHE)
+
 .PHONY: build-ios
-build-ios:
-	xcodebuild build \
+build-ios: prepare-cache-dirs
+	$(XCODEBUILD_ENV) xcodebuild build \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=iOS Simulator,name=iPhone 17' \
 		-configuration $(CONFIG) \
-		-derivedDataPath $(DERIVED_DATA) \
+		$(XCODEBUILD_CACHE_FLAGS) \
 		$(PIPE_PRETTY)
 
 .PHONY: build-macos
-build-macos: clean
-	xcodebuild build \
+build-macos: clean prepare-cache-dirs
+	$(XCODEBUILD_ENV) xcodebuild build \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=macOS' \
 		-configuration $(CONFIG) \
-		-derivedDataPath $(DERIVED_DATA) \
+		$(XCODEBUILD_CACHE_FLAGS) \
 		$(PIPE_PRETTY)
 
 .PHONY: build
@@ -86,36 +113,36 @@ build: build-ios build-macos
 
 # Testing
 .PHONY: test-quick
-test-quick:
-	xcodebuild test \
+test-quick: prepare-cache-dirs
+	$(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=macOS' \
 		-configuration Debug \
-		-derivedDataPath $(DERIVED_DATA) \
+		$(XCODEBUILD_CACHE_FLAGS) \
 		-only-testing:TransitTests \
 		$(PIPE_PRETTY)
 
 .PHONY: test
-test:
-	xcodebuild test \
+test: prepare-cache-dirs
+	$(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=iOS Simulator,name=iPhone 17' \
 		-configuration Debug \
-		-derivedDataPath $(DERIVED_DATA) \
+		$(XCODEBUILD_CACHE_FLAGS) \
 		-parallel-testing-worker-count 1 \
 		-maximum-concurrent-test-simulator-destinations 1 \
 		$(PIPE_PRETTY)
 
 .PHONY: test-ui
-test-ui:
-	xcodebuild test \
+test-ui: prepare-cache-dirs
+	$(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=iOS Simulator,name=iPhone 17' \
 		-configuration Debug \
-		-derivedDataPath $(DERIVED_DATA) \
+		$(XCODEBUILD_CACHE_FLAGS) \
 		-only-testing:TransitUITests \
 		-parallel-testing-worker-count 1 \
 		-maximum-concurrent-test-simulator-destinations 1 \
@@ -129,18 +156,18 @@ DEVICE_ID = $(shell tmp=$$(mktemp); \
 	rm -f "$$tmp")
 
 .PHONY: install
-install:
+install: prepare-cache-dirs
 	@if [ -z "$(DEVICE_ID)" ]; then \
 		echo "Error: No $(DEVICE_MODEL) device found"; \
 		exit 1; \
 	fi
 	@echo "Building $(CONFIG) for device $(DEVICE_ID)..."
-	xcodebuild build \
+	$(XCODEBUILD_ENV) xcodebuild build \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'id=$(DEVICE_ID)' \
 		-configuration $(CONFIG) \
-		-derivedDataPath $(DERIVED_DATA) \
+		$(XCODEBUILD_CACHE_FLAGS) \
 		$(PIPE_PRETTY)
 	@echo "Installing on device..."
 	xcrun devicectl device install app \
@@ -175,13 +202,14 @@ ARCHIVE_PATH = ./build/Transit.xcarchive
 EXPORT_PATH = ./build/export
 
 .PHONY: archive
-archive:
-	xcodebuild archive \
+archive: prepare-cache-dirs
+	$(XCODEBUILD_ENV) xcodebuild archive \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'generic/platform=iOS' \
 		-configuration Release \
 		-archivePath $(ARCHIVE_PATH) \
+		$(XCODEBUILD_CACHE_FLAGS) \
 		-allowProvisioningUpdates \
 		$(PIPE_PRETTY)
 	@echo "Archive created at $(ARCHIVE_PATH)"
@@ -191,7 +219,7 @@ archive:
 #     -exportOptionsPlist ExportOptions.plist -exportPath ./build/export -allowProvisioningUpdates
 .PHONY: upload
 upload: archive
-	xcodebuild -exportArchive \
+	$(XCODEBUILD_ENV) xcodebuild -exportArchive \
 		-archivePath $(ARCHIVE_PATH) \
 		-exportOptionsPlist ExportOptions.plist \
 		-exportPath $(EXPORT_PATH) \
@@ -200,8 +228,9 @@ upload: archive
 
 # Cleaning
 .PHONY: clean
-clean:
-	xcodebuild clean \
+clean: prepare-cache-dirs
+	$(XCODEBUILD_ENV) xcodebuild clean \
 		-project $(PROJECT) \
-		-scheme $(SCHEME)
+		-scheme $(SCHEME) \
+		$(XCODEBUILD_CACHE_FLAGS)
 	rm -rf $(DERIVED_DATA) build
