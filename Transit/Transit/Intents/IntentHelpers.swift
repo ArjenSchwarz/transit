@@ -9,8 +9,15 @@ nonisolated enum IntentHelpers {
     /// Extracts an integer from a value that may be `Int`, `Double`, or `NSNumber`.
     /// JSONSerialization and MCP argument passing may deliver JSON integers as `Double`.
     /// Returns `nil` for non-numeric or non-integral values (e.g. 42.5).
+    ///
+    /// JSON booleans are rejected explicitly. `JSONSerialization` delivers `true`/`false`
+    /// as `NSNumber` wrapping a `CFBoolean`, which would otherwise satisfy `as? Int`
+    /// (returning `1`/`0`) and silently target T-1/M-1 instead of being rejected. [T-1211]
     static func parseIntValue(_ value: Any?) -> Int? {
         guard let value else { return nil }
+        if let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() {
+            return nil
+        }
         if let intVal = value as? Int { return intVal }
         if let doubleVal = value as? Double { return Int(exactly: doubleVal) }
         return nil
