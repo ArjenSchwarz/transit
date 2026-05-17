@@ -238,6 +238,34 @@ struct QueryTasksIntentTests {
         #expect(parsed.isEmpty)
     }
 
+    /// Duplicate `permanentDisplayId` (possible under CloudKit) must surface as INTERNAL_ERROR.
+    @Test func displayIdLookupSurfacesDuplicateDisplayIdAsError() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        // Manually insert two tasks with the same permanentDisplayId to simulate
+        // a CloudKit sync edge case where uniqueness cannot be enforced.
+        let first = TransitTask(
+            name: "Alpha", type: .bug, project: project, displayID: .permanent(42)
+        )
+        StatusEngine.initializeNewTask(first)
+        let second = TransitTask(
+            name: "Beta", type: .bug, project: project, displayID: .permanent(42)
+        )
+        StatusEngine.initializeNewTask(second)
+        svc.context.insert(first)
+        svc.context.insert(second)
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"displayId\":42}", projectService: svc.project, taskService: svc.task
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INTERNAL_ERROR")
+        let hint = try #require(parsed["hint"] as? String)
+        #expect(hint.contains("42"))
+    }
+
     // MARK: - Response Format
 
     @Test func responseContainsAllRequiredFields() throws {
