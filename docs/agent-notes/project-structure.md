@@ -69,6 +69,29 @@ Transit/Transit/
 - `make lint` for SwiftLint (strict mode)
 - `.swiftlint.yml` excludes DerivedData (auto-generated files)
 
+### Workspace-local caches (T-1241)
+
+Every `xcodebuild` invocation in the Makefile redirects its caches into
+`./DerivedData/` so sandboxed/agent runs don't fail on writes to
+`~/.cache/clang/ModuleCache` or `~/Library/Caches/org.swift.swiftpm`.
+
+Two reusable Make vars carry the redirection:
+
+- `XCODEBUILD_CACHE_FLAGS` — `-derivedDataPath`, `-clonedSourcePackagesDirPath`,
+  `-packageCachePath` (passed as xcodebuild arguments).
+- `XCODEBUILD_ENV` — `XDG_CACHE_HOME`, `TMPDIR`, `CLANG_MODULE_CACHE_PATH`
+  (exported before the xcodebuild command).
+
+A `prepare-cache-dirs` prerequisite target creates the redirected directories
+before every build/clean/test. `-derivedDataPath` alone is not sufficient
+because SwiftPM uses a separate package cache and Clang falls back to
+`$XDG_CACHE_HOME/clang/ModuleCache` when invoked without
+`-fmodules-cache-path` (which SwiftPM resolution does).
+
+When adding a new xcodebuild target, include `prepare-cache-dirs` as a
+prerequisite and prefix the command with `$(XCODEBUILD_ENV)` and
+`$(XCODEBUILD_CACHE_FLAGS)`.
+
 ## Test Infrastructure
 
 - **TestModelContainer** (`TransitTests/TestModelContainer.swift`) — Shared in-memory ModelContainer for SwiftData tests. Uses `Schema` + `cloudKitDatabase: .none` to avoid conflicts with the app's CloudKit entitlements. Tests get fresh `ModelContext` instances via `newContext()`.
