@@ -165,6 +165,33 @@ struct NonStringMilestoneArgTests {
         #expect(tasks.isEmpty, "Task must not be created when milestone validation fails")
     }
 
+    /// T-1114: When `milestoneDisplayId` is present and valid, a non-string `milestone`
+    /// value is ignored — the displayId takes priority. This documents the agreed
+    /// behaviour across `CreateTaskIntent`, `IntentHelpers.assignMilestone`, and the
+    /// MCP `create_task` handler.
+    @Test func createTaskIntentIgnoresNonStringMilestoneWhenDisplayIdPresent() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let input = """
+        {"name":"Task","type":"feature","project":"\(project.name)","milestoneDisplayId":1,"milestone":42}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            projectService: svc.project, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] == nil, "Expected success when milestoneDisplayId is present")
+        #expect(parsed["taskId"] != nil)
+
+        let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.count == 1)
+        #expect(tasks.first?.milestone?.id == milestone.id, "Task must be assigned the milestone from displayId")
+    }
+
     // MARK: - UpdateTaskIntent (via IntentHelpers.assignMilestone)
 
     /// T-1114: A numeric `milestone` value on update must be rejected with INVALID_INPUT
@@ -203,6 +230,54 @@ struct NonStringMilestoneArgTests {
 
         let input = """
         {"displayId":10,"milestone":true}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("milestone must be a string") == true)
+        #expect(task.milestone?.id == milestone.id, "Existing milestone must remain assigned")
+    }
+
+    /// T-1114: An array `milestone` value on update must be rejected.
+    @Test func updateTaskIntentRejectsArrayMilestone() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        let task = makeTask(
+            in: svc.context, name: "Task", project: project, milestone: milestone, displayId: 10
+        )
+
+        let input = """
+        {"displayId":10,"milestone":["v1.0"]}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("milestone must be a string") == true)
+        #expect(task.milestone?.id == milestone.id, "Existing milestone must remain assigned")
+    }
+
+    /// T-1114: A null `milestone` value on update must be rejected.
+    @Test func updateTaskIntentRejectsNullMilestone() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        let task = makeTask(
+            in: svc.context, name: "Task", project: project, milestone: milestone, displayId: 10
+        )
+
+        let input = """
+        {"displayId":10,"milestone":null}
         """
 
         let result = UpdateTaskIntent.execute(

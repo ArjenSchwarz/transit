@@ -172,11 +172,11 @@ struct CreateTaskIntent: AppIntent {
             return (nil, IntentError.invalidInput(hint: "milestoneDisplayId must be an integer").json)
         }
 
-        // Reject non-string milestone when key is present [T-1114]. Falling
-        // through to "absent" would silently create the task without the
-        // requested milestone assignment.
+        // Reject non-string milestone only when milestoneDisplayId is absent. When both keys
+        // are present, milestoneDisplayId takes priority and the `milestone` field is ignored,
+        // matching the MCP handler and IntentHelpers.assignMilestone [T-1114].
         let milestoneName: String?
-        if json["milestone"] != nil {
+        if milestoneDisplayId == nil, json["milestone"] != nil {
             guard let name = json["milestone"] as? String else {
                 return (nil, IntentError.invalidInput(hint: "milestone must be a string").json)
             }
