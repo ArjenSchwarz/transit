@@ -225,7 +225,8 @@ struct AddTaskSheet: View {
 
     // MARK: - Reset
 
-    /// Resets every form field to its default. Used on macOS where the
+    #if os(macOS)
+    /// Resets every form field to its default. Only used on macOS where the
     /// `Window("New Task", …)` scene reuses the same view (and its `@State`)
     /// across opens, so without an explicit reset the form would still show
     /// the previously entered values (T-825).
@@ -239,7 +240,9 @@ struct AddTaskSheet: View {
             from: projects, current: selectedProjectID
         )
         errorMessage = nil
+        isSaving = false
     }
+    #endif
 
     // MARK: - Actions
 

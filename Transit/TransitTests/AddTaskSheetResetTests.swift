@@ -37,7 +37,6 @@ struct AddTaskSheetResetTests {
 
         let result = AddTaskFormResetLogic.defaultProjectID(from: projects, current: nil)
         #expect(result == alpha.id)
-        _ = beta // silence unused warning
     }
 
     @Test("Default project keeps current selection when it still exists")
