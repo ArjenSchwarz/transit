@@ -166,11 +166,23 @@ struct CreateTaskIntent: AppIntent {
     ) -> (milestone: Milestone?, error: String?) {
         let milestoneDisplayId = json["milestoneDisplayId"] as? Int
             ?? (json["milestoneDisplayId"] as? Double).flatMap { Int(exactly: $0) }
-        let milestoneName = json["milestone"] as? String
 
         // Reject non-integer milestoneDisplayId when key is present [T-613]
         if json["milestoneDisplayId"] != nil, milestoneDisplayId == nil {
             return (nil, IntentError.invalidInput(hint: "milestoneDisplayId must be an integer").json)
+        }
+
+        // Reject non-string milestone only when milestoneDisplayId is absent. When both keys
+        // are present, milestoneDisplayId takes priority and the `milestone` field is ignored,
+        // matching the MCP handler and IntentHelpers.assignMilestone [T-1114].
+        let milestoneName: String?
+        if milestoneDisplayId == nil, json["milestone"] != nil {
+            guard let name = json["milestone"] as? String else {
+                return (nil, IntentError.invalidInput(hint: "milestone must be a string").json)
+            }
+            milestoneName = name
+        } else {
+            milestoneName = nil
         }
 
         if let milestoneDisplayId {
