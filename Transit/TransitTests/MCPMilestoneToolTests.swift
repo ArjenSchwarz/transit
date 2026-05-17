@@ -4,6 +4,7 @@ import SwiftData
 import Testing
 @testable import Transit
 
+// swiftlint:disable file_length
 // swiftlint:disable type_body_length
 @MainActor @Suite(.serialized)
 struct MCPMilestoneToolTests {
@@ -288,6 +289,168 @@ struct MCPMilestoneToolTests {
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_milestones",
             arguments: ["projectId": 123]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
+    // MARK: - T-963: query_milestones displayId must apply remaining filters
+
+    // T-963: displayId + non-matching status should return empty array.
+    @Test func queryMilestonesDisplayIdWithNonMatchingStatusReturnsEmpty() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1, "status": "done"]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.isEmpty)
+    }
+
+    // T-963: displayId + matching status should still return the milestone with detailed output.
+    @Test func queryMilestonesDisplayIdWithMatchingStatusReturnsMilestone() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let milestone = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+        try env.milestoneService.updateStatus(milestone, to: .done)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1, "status": "done"]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.count == 1)
+        #expect(results.first?["name"] as? String == "v1.0")
+        // Detailed lookup still includes tasks array
+        #expect(results.first?["tasks"] is [[String: Any]])
+    }
+
+    // T-963: displayId + matching status array filter should return the milestone.
+    @Test func queryMilestonesDisplayIdWithMatchingStatusArrayReturnsMilestone() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1, "status": ["open", "done"]]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.count == 1)
+    }
+
+    // T-963: displayId + non-matching project name should return empty array.
+    @Test func queryMilestonesDisplayIdWithNonMatchingProjectReturnsEmpty() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        MCPTestHelpers.makeProject(in: env.context, name: "Beta")
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: alpha)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1, "project": "Beta"]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.isEmpty)
+    }
+
+    // T-963: displayId + non-matching projectId UUID should return empty array.
+    @Test func queryMilestonesDisplayIdWithNonMatchingProjectIdReturnsEmpty() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        let beta = MCPTestHelpers.makeProject(in: env.context, name: "Beta")
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: alpha)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1, "projectId": beta.id.uuidString]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.isEmpty)
+    }
+
+    // T-963: displayId + non-matching search should return empty array.
+    @Test func queryMilestonesDisplayIdWithNonMatchingSearchReturnsEmpty() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1, "search": "nonexistent"]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.isEmpty)
+    }
+
+    // T-963: displayId + invalid status string must return error, not bypass validation.
+    @Test func queryMilestonesDisplayIdWithInvalidStatusReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1, "status": "invalid"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("status"))
+    }
+
+    // T-963: displayId + non-string status must return error, not bypass validation.
+    @Test func queryMilestonesDisplayIdWithNonStringStatusReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1, "status": 123]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("status"))
+    }
+
+    // T-963: displayId + malformed projectId must return error, not bypass validation.
+    @Test func queryMilestonesDisplayIdWithMalformedProjectIdReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1, "projectId": "not-a-uuid"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
+    // T-963: displayId + non-string projectId must return error, not bypass validation.
+    @Test func queryMilestonesDisplayIdWithNumericProjectIdReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1, "projectId": 123]
         ))
 
         #expect(try MCPTestHelpers.isError(response))

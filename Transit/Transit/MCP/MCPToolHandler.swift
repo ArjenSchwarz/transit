@@ -486,13 +486,26 @@ extension MCPToolHandler {
 extension MCPToolHandler {
 
     private func handleQueryMilestones(_ args: [String: Any]) -> MCPToolResult {
-        // Single-milestone lookup by displayId
-        // Reject non-integer displayId when key is present [T-634]
+        // Validate filter inputs first so a displayId lookup can't bypass validation [T-963].
+        // Resolve the project filter once and reuse it for both the displayId match and the
+        // full-table filter pass.
+        let projectFilter: UUID?
+        switch resolveProjectFilter(args) {
+        case .resolved(let pid): projectFilter = pid
+        case .none: projectFilter = nil
+        case .error(let message): return errorResult(message)
+        }
+
+        // Status filter — validate enum values before filtering [T-732]
+        if let error = validateEnumFilter(args, key: "status", type: MilestoneStatus.self) { return error }
+
+        // Single-milestone lookup by displayId. Remaining filters still apply conjunctively —
+        // a milestone that does not satisfy them is filtered out, mirroring handleQueryTasks [T-963].
         if args["displayId"] != nil {
             guard let displayId = IntentHelpers.parseIntValue(args["displayId"]) else {
                 return errorResult("displayId must be an integer")
             }
-            return lookupMilestoneByDisplayId(displayId)
+            return lookupMilestoneByDisplayId(displayId, args: args, projectFilter: projectFilter)
         }
 
         // Full query with filters
@@ -503,44 +516,42 @@ extension MCPToolHandler {
             return errorResult("Failed to fetch milestones: \(error)")
         }
 
-        // Apply filters
-        var filtered = allMilestones
-
-        // Project filter
-        switch resolveProjectFilter(args) {
-        case .resolved(let pid):
-            filtered = filtered.filter { $0.project?.id == pid }
-        case .none:
-            break
-        case .error(let message):
-            return errorResult(message)
-        }
-
-        // Status filter — validate enum values before filtering [T-732]
-        if let error = validateEnumFilter(args, key: "status", type: MilestoneStatus.self) { return error }
-        if let statusArray = args["status"] as? [String] {
-            filtered = filtered.filter { statusArray.contains($0.statusRawValue) }
-        } else if let statusSingle = args["status"] as? String {
-            filtered = filtered.filter { $0.statusRawValue == statusSingle }
-        }
-
-        // Search filter
-        if let search = args["search"] as? String,
-           !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            filtered = filtered.filter {
-                $0.name.localizedCaseInsensitiveContains(search)
-                    || ($0.milestoneDescription?.localizedCaseInsensitiveContains(search) ?? false)
-            }
-        }
-
+        let filtered = allMilestones.filter { milestoneMatches($0, args: args, projectFilter: projectFilter) }
         let formatter = ISO8601DateFormatter()
         let results = filtered.map { milestoneToDict($0, formatter: formatter) }
         return textResult(IntentHelpers.encodeJSONArray(results))
     }
 
-    private func lookupMilestoneByDisplayId(_ displayId: Int) -> MCPToolResult {
+    /// Returns true when `milestone` satisfies the project/status/search filters in `args`.
+    /// Callers must pre-validate filter inputs.
+    private func milestoneMatches(
+        _ milestone: Milestone, args: [String: Any], projectFilter: UUID?
+    ) -> Bool {
+        if let projectFilter, milestone.project?.id != projectFilter {
+            return false
+        }
+        if let statusArray = args["status"] as? [String] {
+            if !statusArray.contains(milestone.statusRawValue) { return false }
+        } else if let statusSingle = args["status"] as? String {
+            if milestone.statusRawValue != statusSingle { return false }
+        }
+        if let search = args["search"] as? String,
+           !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let nameMatch = milestone.name.localizedCaseInsensitiveContains(search)
+            let descMatch = milestone.milestoneDescription?.localizedCaseInsensitiveContains(search) ?? false
+            if !nameMatch && !descMatch { return false }
+        }
+        return true
+    }
+
+    private func lookupMilestoneByDisplayId(
+        _ displayId: Int, args: [String: Any], projectFilter: UUID?
+    ) -> MCPToolResult {
         do {
             let milestone = try milestoneService.findByDisplayID(displayId)
+            guard milestoneMatches(milestone, args: args, projectFilter: projectFilter) else {
+                return textResult(IntentHelpers.encodeJSONArray([]))
+            }
             let formatter = ISO8601DateFormatter()
             let dict = milestoneToDict(milestone, formatter: formatter, detailed: true)
             return textResult(IntentHelpers.encodeJSONArray([dict]))
