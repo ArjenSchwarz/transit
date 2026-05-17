@@ -2,8 +2,8 @@
 
 ## Status Timestamps And Reports
 
-- Milestone status changes are not currently idempotent across all paths.
-- `MilestoneService.updateStatus` always rewrites `lastStatusChangeDate` and, for terminal statuses, `completionDate`, even when the new status matches the current one.
-- The App Intent path in `Transit/Transit/Intents/UpdateMilestoneIntent.swift` and the MCP path in `Transit/Transit/MCP/MCPToolHandler.swift` duplicate that same logic instead of guarding on an actual status transition.
-- `Transit/Transit/Reports/ReportLogic.swift` uses `completionDate ?? lastStatusChangeDate` as the milestone's effective completion date, so a same-status retry can make an old done or abandoned milestone appear newly completed in reports.
-- Filed as T-923 so future work on milestone updates or report correctness should check for a no-op status guard first.
+- Milestone status changes are idempotent across all three update paths (T-923).
+- `MilestoneService.updateStatus` returns early when `newStatus.rawValue == milestone.statusRawValue` so `lastStatusChangeDate` and `completionDate` are only rewritten on a real transition.
+- The App Intent path in `Transit/Transit/Intents/UpdateMilestoneIntent.swift` (`applyUpdate`) and the MCP path in `Transit/Transit/MCP/MCPToolHandler.swift` (`applyMilestoneUpdate`) apply the same guard inline because they bypass `MilestoneService.updateStatus` to apply multi-field updates atomically. Keep these three sites in sync.
+- `Transit/Transit/Reports/ReportLogic.swift` uses `completionDate ?? lastStatusChangeDate` as the milestone's effective completion date, so the no-op guard is what prevents an old done or abandoned milestone from re-entering the current report window on retries.
+- Mirrors the task-side pattern: `TaskService.updateStatus` already short-circuits when `task.status == newStatus`. No equivalent `MilestoneStatusEngine` exists yet — extract one if the milestone status logic grows beyond the single guard.

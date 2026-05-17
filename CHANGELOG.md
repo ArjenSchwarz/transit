@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Milestone status updates are now idempotent: re-sending the current status no longer rewrites `lastStatusChangeDate` and `completionDate`, so old terminal milestones no longer re-enter the current report window via `ReportLogic`'s `completionDate ?? lastStatusChangeDate` fallback. Applied across `MilestoneService.updateStatus`, `UpdateMilestoneIntent.applyUpdate`, and `MCPToolHandler.applyMilestoneUpdate` (T-923).
 - `DisplayIDMaintenanceService.reassignDuplicates` now surfaces a fetch failure as a counter-advance warning on both record types instead of silently no-oping the run with empty arrays.
 - `DisplayIDMaintenanceService` group processing no longer fabricates winner identity (`UUID()` / `""`) for the unreachable empty-group case; the invariant is asserted via `preconditionFailure` and the existing `RecordRef` is propagated.
 - `IntentHelpers.resolveMilestone` now rejects malformed `milestoneId` and `projectId` with `INVALID_INPUT` instead of silently falling back to name-based lookup (T-753)
