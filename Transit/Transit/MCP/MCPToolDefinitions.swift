@@ -45,8 +45,10 @@ nonisolated enum MCPToolDefinitions {
         inputSchema: .object(properties: [:], required: [])
     )
 
-    // swiftlint:disable:next line_length
-    private static let createTaskDescription = "Create a new task in Transit. The task starts in Idea status. At least one of 'project' or 'projectId' is required to identify the task's project."
+    private static let createTaskDescription = """
+        Create a new task in Transit. The task starts in Idea status. \
+        At least one of 'project' or 'projectId' is required to identify the task's project.
+        """
 
     static let createTask = MCPToolDefinition(
         name: "create_task",

@@ -2,15 +2,8 @@ import Foundation
 import Testing
 @testable import Transit
 
-/// Regression tests for T-1170 — Create task APIs mark required project as optional.
-///
-/// Bug: `CreateTaskIntent` documents `projectId` / `project` as optional, and MCP
-/// `create_task` only lists `name` and `type` as required. The implementation then
-/// rejects calls that omit both with `Either projectId or project name is required`.
-/// This makes valid-looking App Intent / MCP calls fail at runtime and gives tool
-/// clients the wrong schema. The fix aligns the advertised schema/description with
-/// the runtime requirement (at least one of projectId / project must be supplied),
-/// mirroring how `create_milestone` already documents this.
+/// Invariant: the create_task schema and App Intent description must advertise
+/// that at least one of `projectId` / `project` is required, matching runtime behaviour.
 @MainActor @Suite(.serialized)
 struct CreateTaskProjectRequiredSchemaTests {
 
@@ -33,6 +26,52 @@ struct CreateTaskProjectRequiredSchemaTests {
             description.lowercased().contains("at least one"),
             "CreateTaskIntent description should state that at least one project identifier is required"
         )
+    }
+
+    /// Guards against drift between `inputParameterDescription` (which the tests
+    /// inspect) and the `@Parameter(description:)` literal that App Intents
+    /// actually uses. The macro requires a string literal, so both copies must
+    /// be updated together — this test reads the source file and asserts the
+    /// `@Parameter(description:)` block contains the same constraint phrase.
+    @Test func intentParameterDescriptionMatchesStaticLiteral() throws {
+        let sourcePath = Self.createTaskIntentSourcePath()
+        let source = try String(contentsOf: sourcePath, encoding: .utf8)
+
+        // Locate the @Parameter(...) block following the `title: "Input JSON"` marker
+        // to scope the assertion to the input parameter (not unrelated text).
+        guard let parameterRange = source.range(of: "title: \"Input JSON\"") else {
+            Issue.record("Could not locate @Parameter(title: \"Input JSON\") in source")
+            return
+        }
+        let parameterTail = source[parameterRange.upperBound...]
+        guard let closing = parameterTail.range(of: "var input: String") else {
+            Issue.record("Could not locate end of @Parameter block in source")
+            return
+        }
+        let parameterBlock = String(parameterTail[..<closing.lowerBound])
+
+        #expect(
+            parameterBlock.lowercased().contains("at least one"),
+            "@Parameter(description:) literal must state that at least one project identifier is required"
+        )
+        #expect(
+            !parameterBlock.contains("Optional: \"projectId\""),
+            "@Parameter(description:) literal still marks projectId as optional"
+        )
+    }
+
+    private static func createTaskIntentSourcePath() -> URL {
+        // #filePath points at this test file:
+        //   .../Transit/TransitTests/CreateTaskProjectRequiredSchemaTests.swift
+        // The intent lives at:
+        //   .../Transit/Transit/Intents/CreateTaskIntent.swift
+        let testFile = URL(fileURLWithPath: #filePath)
+        return testFile
+            .deletingLastPathComponent()        // TransitTests/
+            .deletingLastPathComponent()        // Transit/ (project root)
+            .appendingPathComponent("Transit")
+            .appendingPathComponent("Intents")
+            .appendingPathComponent("CreateTaskIntent.swift")
     }
 
     // MARK: - MCP create_task Tool Schema
