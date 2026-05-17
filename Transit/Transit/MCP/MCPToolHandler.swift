@@ -317,6 +317,16 @@ final class MCPToolHandler {
             return errorResult("Provide either displayId (integer) or taskId (UUID string)")
         }
 
+        // When the key is present it MUST be a string — a non-string value
+        // (integer, boolean, array, null) would otherwise be silently dropped
+        // by `as? String`, letting the status mutation proceed while the
+        // requested audit-trail comment is discarded. [T-1205]
+        if args["comment"] != nil, !(args["comment"] is String) {
+            return errorResult("comment must be a string")
+        }
+        if args["authorName"] != nil, !(args["authorName"] is String) {
+            return errorResult("authorName must be a string")
+        }
         let commentText = args["comment"] as? String
         let commentAuthor = args["authorName"] as? String
         let (commentError, hasComment) = validateCommentArgs(comment: commentText, author: commentAuthor)
