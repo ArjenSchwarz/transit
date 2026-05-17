@@ -94,4 +94,24 @@ struct UpdateMilestoneIntentSameStatusTests {
         #expect(refetched.completionDate == originalCompletionDate)
         #expect(refetched.lastStatusChangeDate == originalLastStatusChangeDate)
     }
+
+    /// Re-submitting the same non-terminal status must not rewrite `lastStatusChangeDate`.
+    @Test func sameOpenStatusPreservesLastStatusChangeDate() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1, status: .open)
+        let originalLastStatusChangeDate = milestone.lastStatusChangeDate
+
+        let input = """
+        {"displayId":1,"status":"open"}
+        """
+
+        _ = UpdateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let refetched = try svc.milestone.findByDisplayID(1)
+        #expect(refetched.lastStatusChangeDate == originalLastStatusChangeDate)
+        #expect(refetched.completionDate == nil)
+    }
 }

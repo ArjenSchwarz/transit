@@ -51,6 +51,25 @@ struct MCPMilestoneSameStatusTests {
         #expect(refetched.completionDate == originalCompletionDate)
         #expect(refetched.lastStatusChangeDate == originalLastStatusChangeDate)
     }
+
+    /// Re-submitting the same non-terminal status must not rewrite `lastStatusChangeDate`.
+    @Test func updateMilestoneSameOpenStatusPreservesLastStatusChangeDate() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let milestone = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
+        let originalLastStatusChangeDate = milestone.lastStatusChangeDate
+        let displayId = try #require(milestone.permanentDisplayId)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "update_milestone",
+            arguments: ["displayId": displayId, "status": "open"]
+        ))
+
+        _ = try MCPTestHelpers.decodeResult(response)
+        let refetched = try env.milestoneService.findByDisplayID(displayId)
+        #expect(refetched.lastStatusChangeDate == originalLastStatusChangeDate)
+        #expect(refetched.completionDate == nil)
+    }
 }
 
 #endif
