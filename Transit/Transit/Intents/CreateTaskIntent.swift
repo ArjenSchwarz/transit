@@ -15,11 +15,24 @@ struct CreateTaskIntent: AppIntent {
 
     nonisolated(unsafe) static var openAppWhenRun: Bool = true
 
+    /// Documentation text describing the JSON shape accepted by `input`. Kept in sync
+    /// with the `@Parameter(description:)` literal below so tests can inspect it without
+    /// needing to introspect the App Intents macro (T-1170).
+    static let inputParameterDescription = """
+        JSON object with task details. Required fields: "name" (string), "type" (bug | feature | chore | \
+        research | documentation), and at least one of "projectId" (UUID) or "project" (name) to identify \
+        the project. Optional: "description" (string), \
+        "metadata" (object with string values; non-string values are ignored), "milestone" (name), \
+        "milestoneDisplayId" (integer). \
+        Example: {"name": "Fix login", "type": "bug", "project": "Alpha", "milestoneDisplayId": 1}
+        """
+
     @Parameter(
         title: "Input JSON",
         description: """
         JSON object with task details. Required fields: "name" (string), "type" (bug | feature | chore | \
-        research | documentation). Optional: "projectId" (UUID), "project" (name), "description" (string), \
+        research | documentation), and at least one of "projectId" (UUID) or "project" (name) to identify \
+        the project. Optional: "description" (string), \
         "metadata" (object with string values; non-string values are ignored), "milestone" (name), \
         "milestoneDisplayId" (integer). \
         Example: {"name": "Fix login", "type": "bug", "project": "Alpha", "milestoneDisplayId": 1}
