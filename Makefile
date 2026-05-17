@@ -50,13 +50,20 @@ help:
 	@echo "Override with: make install DEVICE_MODEL='iPhone 16'"
 
 # Linting
+#
+# SwiftLint defaults to ~/Library/Caches/SwiftLint, which is outside the
+# workspace and may not be writable in sandboxed agent environments. Pin the
+# cache to a workspace-local, gitignored directory so `make lint` is
+# reproducible across interactive, CI, and sandboxed runs.
+SWIFTLINT_CACHE = .swiftlint-cache
+
 .PHONY: lint
 lint:
-	swiftlint lint --strict
+	swiftlint lint --strict --cache-path $(SWIFTLINT_CACHE)
 
 .PHONY: lint-fix
 lint-fix:
-	swiftlint lint --fix --strict
+	swiftlint lint --fix --strict --cache-path $(SWIFTLINT_CACHE)
 
 # Building
 DERIVED_DATA = ./DerivedData

@@ -47,3 +47,6 @@ build/
 
 # Workspace-local automation/cache directories
 .codex-cache/
+
+# Workspace-local cache for SwiftLint via `make lint` (see Makefile).
+.swiftlint-cache/
