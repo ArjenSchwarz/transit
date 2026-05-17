@@ -7,6 +7,7 @@ struct TaskCreationResult: AppEntity {
     var id: String
     var taskId: UUID
     var displayId: Int?
+    var name: String
     var status: String
     var projectId: UUID
     var projectName: String
@@ -20,9 +21,16 @@ struct TaskCreationResult: AppEntity {
     }
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(
-            title: "\(projectName)",
-            subtitle: "Task \(status)"
+        // Title is the task name so Shortcuts/result UIs identify the task
+        // that was just created. Project, display ID (when known) and status
+        // are supporting context in the subtitle.
+        let identifier = displayId.map { "T-\($0)" }
+        let subtitleParts = [projectName, identifier, status.capitalized]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+        return DisplayRepresentation(
+            title: "\(name)",
+            subtitle: "\(subtitleParts.joined(separator: " • "))"
         )
     }
 
@@ -37,6 +45,7 @@ struct TaskCreationResult: AppEntity {
             id: task.id.uuidString,
             taskId: task.id,
             displayId: task.permanentDisplayId,
+            name: task.name,
             status: task.statusRawValue,
             projectId: project.id,
             projectName: project.name
