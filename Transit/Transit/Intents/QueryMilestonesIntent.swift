@@ -74,6 +74,13 @@ struct QueryMilestonesIntent: AppIntent {
             }
         }
 
+        // Validate `project` name filter type [T-1116]. A present-but-non-string value
+        // (e.g. number, boolean, array) must surface INVALID_INPUT instead of being silently
+        // dropped by `as? String`, which would return every milestone.
+        if json["project"] != nil, !(json["project"] is String) {
+            return IntentError.invalidInput(hint: "project must be a string").json
+        }
+
         // Single-milestone lookup by displayId. Remaining filters still apply conjunctively —
         // a milestone that does not satisfy them is filtered out, mirroring QueryTasksIntent [T-963].
         if let displayIdValue = json["displayId"] {

@@ -358,6 +358,10 @@ final class MCPToolHandler {
         case .failure(.message(let message)): return errorResult(message)
         case .success(let parsed): parsedProjectId = parsed
         }
+        // Reject non-string `project` filter [T-1116].
+        if args["project"] != nil, !(args["project"] is String) {
+            return errorResult("project must be a string")
+        }
         var projectFilter: UUID?
         if let pid = parsedProjectId {
             projectFilter = pid
@@ -605,6 +609,10 @@ extension MCPToolHandler {
         case .failure(.message(let message)): return .error(message)
         case .success(let pid?): return .resolved(pid)
         case .success(nil):
+            // Reject non-string `project` filter [T-1116].
+            if args["project"] != nil, !(args["project"] is String) {
+                return .error("project must be a string")
+            }
             if let name = args["project"] as? String,
                !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 switch projectService.findProject(id: nil, name: name) {
