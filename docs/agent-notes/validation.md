@@ -28,7 +28,9 @@ Known gaps filed by the code-issue automation:
   permission errors. Use a workspace-local SwiftLint cache path when fixing this.
 - T-830: milestone status fields in App Intent and MCP milestone paths can ignore
   non-string `status` values instead of rejecting malformed input.
-- T-898: `QueryMilestonesIntent` and MCP `query_milestones` short-circuit on
-  `displayId` lookup and skip the remaining filters plus their validation.
-  `displayId` queries should still apply `project` / `projectId` / `status` /
-  `search` conjunctively, matching the task query paths.
+- T-898 / T-963 (fixed): `QueryMilestonesIntent` and MCP `query_milestones` no
+  longer short-circuit on `displayId`. Both paths validate `projectId` and
+  `status` first, then look up by `displayId`, then apply
+  `project` / `projectId` / `status` / `search` filters conjunctively. Mismatched
+  filters yield an empty array; malformed filter values yield the usual
+  `INVALID_INPUT` / `INVALID_STATUS` errors, matching the task query paths.

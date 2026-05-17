@@ -54,7 +54,28 @@ struct QueryMilestonesIntent: AppIntent {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json
         }
 
-        // Single-milestone lookup by displayId
+        // Validate projectId format before any lookup. Reject non-string values too
+        // [T-665, T-788] by checking key presence separately from the cast. Validation runs
+        // even when displayId is present so malformed filters can't bypass it [T-963].
+        if case .failure(let error) = IntentHelpers.validateUUIDField("projectId", in: json) {
+            return error.json
+        }
+
+        // Validate enum filters before any lookup. When the key is present it MUST be a string —
+        // a non-string value (e.g. integer, boolean, array, null) would otherwise be silently
+        // dropped by `as? String` and the filter ignored entirely [T-830]. Validation runs
+        // even when displayId is present so malformed filters can't bypass it [T-963].
+        if json["status"] != nil {
+            guard let status = json["status"] as? String else {
+                return IntentError.invalidStatus(hint: "status must be a string").json
+            }
+            guard MilestoneStatus(rawValue: status) != nil else {
+                return IntentError.invalidStatus(hint: "Unknown status: \(status)").json
+            }
+        }
+
+        // Single-milestone lookup by displayId. Remaining filters still apply conjunctively —
+        // a milestone that does not satisfy them is filtered out, mirroring QueryTasksIntent [T-963].
         if let displayIdValue = json["displayId"] {
             let displayId: Int
             if let intVal = displayIdValue as? Int {
@@ -65,32 +86,16 @@ struct QueryMilestonesIntent: AppIntent {
                 return IntentError.invalidInput(hint: "displayId must be an integer").json
             }
 
+            let milestone: Milestone
             do {
-                let milestone = try milestoneService.findByDisplayID(displayId)
-                return IntentHelpers.encodeJSONArray([milestoneToDict(milestone, detailed: true)])
+                milestone = try milestoneService.findByDisplayID(displayId)
             } catch MilestoneService.Error.duplicateDisplayID {
                 return IntentHelpers.mapMilestoneError(.duplicateDisplayID).json
             } catch {
                 return IntentHelpers.encodeJSONArray([])
             }
-        }
-
-        // Validate projectId format before filtering. Reject non-string values too
-        // [T-665, T-788] by checking key presence separately from the cast.
-        if case .failure(let error) = IntentHelpers.validateUUIDField("projectId", in: json) {
-            return error.json
-        }
-
-        // Validate enum filters before filtering. When the key is present it MUST be a string —
-        // a non-string value (e.g. integer, boolean, array, null) would otherwise be silently
-        // dropped by `as? String` and the filter ignored entirely [T-830].
-        if json["status"] != nil {
-            guard let status = json["status"] as? String else {
-                return IntentError.invalidStatus(hint: "status must be a string").json
-            }
-            guard MilestoneStatus(rawValue: status) != nil else {
-                return IntentError.invalidStatus(hint: "Unknown status: \(status)").json
-            }
+            let filtered = applyFilters(json, to: [milestone], projectService: projectService)
+            return IntentHelpers.encodeJSONArray(filtered.map { milestoneToDict($0, detailed: true) })
         }
 
         // Fetch all milestones and filter in-memory

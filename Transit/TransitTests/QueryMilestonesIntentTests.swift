@@ -3,6 +3,8 @@ import SwiftData
 import Testing
 @testable import Transit
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
 @MainActor @Suite(.serialized)
 struct QueryMilestonesIntentTests {
 
@@ -237,4 +239,208 @@ struct QueryMilestonesIntentTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
         #expect((parsed["hint"] as? String)?.contains("projectId") == true)
     }
+
+    // MARK: - T-963: displayId lookup must apply remaining filters conjunctively
+
+    // T-963: displayId + non-matching status should return empty array, not the milestone.
+    @Test func displayIdWithNonMatchingStatusReturnsEmpty() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1, status: .open)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"status\":\"done\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.isEmpty)
+    }
+
+    // T-963: displayId + matching status should still return the milestone with detailed output.
+    @Test func displayIdWithMatchingStatusReturnsMilestone() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1, status: .done)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"status\":\"done\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.count == 1)
+        #expect(parsed.first?["name"] as? String == "v1.0")
+        // Detailed lookup still includes tasks array
+        #expect(parsed.first?["tasks"] is [[String: Any]])
+    }
+
+    // T-963: displayId + non-matching project name should return empty array.
+    @Test func displayIdWithNonMatchingProjectReturnsEmpty() throws {
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        makeProject(in: svc.context, name: "Beta")
+        makeMilestone(in: svc.context, name: "v1.0", project: alpha, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"project\":\"Beta\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.isEmpty)
+    }
+
+    // T-963: displayId + matching project name should return the milestone.
+    @Test func displayIdWithMatchingProjectReturnsMilestone() throws {
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        makeMilestone(in: svc.context, name: "v1.0", project: alpha, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"project\":\"Alpha\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.count == 1)
+        #expect(parsed.first?["projectName"] as? String == "Alpha")
+    }
+
+    // T-963: displayId + non-matching projectId UUID should return empty array.
+    @Test func displayIdWithNonMatchingProjectIdReturnsEmpty() throws {
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        let beta = makeProject(in: svc.context, name: "Beta")
+        makeMilestone(in: svc.context, name: "v1.0", project: alpha, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"projectId\":\"\(beta.id.uuidString)\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.isEmpty)
+    }
+
+    // T-963: displayId + matching projectId UUID should return the milestone.
+    @Test func displayIdWithMatchingProjectIdReturnsMilestone() throws {
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        makeMilestone(in: svc.context, name: "v1.0", project: alpha, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"projectId\":\"\(alpha.id.uuidString)\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.count == 1)
+        #expect(parsed.first?["projectName"] as? String == "Alpha")
+    }
+
+    // T-963: displayId + non-matching search should return empty array.
+    @Test func displayIdWithNonMatchingSearchReturnsEmpty() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"search\":\"nonexistent\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.isEmpty)
+    }
+
+    // T-963: displayId + matching search should return the milestone.
+    @Test func displayIdWithMatchingSearchReturnsMilestone() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"search\":\"v1\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.count == 1)
+    }
+
+    // T-963: displayId + invalid status string must return INVALID_STATUS, not bypass validation.
+    @Test func displayIdWithInvalidStatusReturnsError() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"status\":\"invalid\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_STATUS")
+    }
+
+    // T-963: displayId + non-string status must return INVALID_STATUS, not bypass validation.
+    @Test func displayIdWithNonStringStatusReturnsError() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"status\":123}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_STATUS")
+    }
+
+    // T-963: displayId + malformed projectId must return INVALID_INPUT, not bypass validation.
+    @Test func displayIdWithMalformedProjectIdReturnsError() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"projectId\":\"not-a-uuid\"}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
+
+    // T-963: displayId + non-string projectId must return INVALID_INPUT, not bypass validation.
+    @Test func displayIdWithNumericProjectIdReturnsError() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"projectId\":123}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("projectId") == true)
+    }
 }
+// swiftlint:enable type_body_length
