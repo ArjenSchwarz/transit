@@ -74,8 +74,11 @@ enum UITestScenario: String {
         betaReview.milestone = betaV1
     }
 
-    /// Seeds two tasks sharing the same `permanentDisplayId` so the Data
-    /// Maintenance scan reports at least one duplicate group.
+    /// Seeds duplicate-displayId data exercised by `DataMaintenanceUITests`.
+    /// Includes both a duplicate task pair and a duplicate milestone pair at
+    /// the SAME display ID number (T-5 and M-5) — this matches T-1062's
+    /// scenario where the result view combines task and milestone groups
+    /// and must keep them distinct in SwiftUI's diff.
     private func seedDuplicateDisplayIds(into ctx: ModelContext) {
         let now = Date()
 
@@ -101,5 +104,23 @@ enum UITestScenario: String {
         loser.lastStatusChangeDate = now.addingTimeInterval(-300)
         loser.statusRawValue = TaskStatus.idea.rawValue
         ctx.insert(loser)
+
+        // Milestone duplicates at the same display ID (5) as the task pair
+        // above. Both milestone rows must remain visible in the reassignment
+        // result list alongside the T-5 group. Without composite-key ForEach
+        // identity (T-1062), one of them would be dropped by SwiftUI.
+        let winnerMilestone = Milestone(
+            name: "Winner Milestone", description: nil,
+            project: project, displayID: .permanent(5)
+        )
+        winnerMilestone.creationDate = now.addingTimeInterval(-600)
+        ctx.insert(winnerMilestone)
+
+        let loserMilestone = Milestone(
+            name: "Loser Milestone", description: nil,
+            project: project, displayID: .permanent(5)
+        )
+        loserMilestone.creationDate = now.addingTimeInterval(-300)
+        ctx.insert(loserMilestone)
     }
 }
