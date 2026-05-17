@@ -10,10 +10,22 @@ import Testing
 /// Since AddTaskSheet is a SwiftUI view, these tests verify the service-layer contract
 /// the fix depends on: that `createTask` errors propagate (are not silently swallowed)
 /// and that the task is not persisted when creation fails.
+///
+/// Regression tests for T-855: AddTaskSheet must not leave an orphaned task when
+/// the milestone assignment that follows `createTask` fails. The fix mirrors the
+/// established cleanup pattern from `CreateTaskIntent` / MCP `create_task`
+/// (T-558): on `setMilestone` failure after `createTask` succeeded, delete the
+/// newly-created task before surfacing the error.
 @MainActor @Suite(.serialized)
 struct AddTaskSheetSaveErrorTests {
 
     // MARK: - Helpers
+
+    private struct Services {
+        let task: TaskService
+        let milestone: MilestoneService
+        let context: ModelContext
+    }
 
     private func makeService() throws -> (TaskService, ModelContext) {
         let context = try TestModelContainer.newContext()
@@ -23,15 +35,43 @@ struct AddTaskSheetSaveErrorTests {
         return (service, context)
     }
 
-    private func makeProject(in context: ModelContext) -> Project {
+    private func makeServices() throws -> Services {
+        let context = try TestModelContainer.newContext()
+        let taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
+        let milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
+        return Services(
+            task: TaskService(modelContext: context, displayIDAllocator: taskAllocator),
+            milestone: MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator),
+            context: context
+        )
+    }
+
+    private func makeProject(in context: ModelContext, name: String = "Test Project") -> Project {
         let project = Project(
-            name: "Test Project",
+            name: name,
             description: "A test project",
             gitRepo: nil,
             colorHex: "#FF0000"
         )
         context.insert(project)
         return project
+    }
+
+    @discardableResult
+    private func makeMilestone(
+        in context: ModelContext,
+        name: String,
+        project: Project,
+        displayId: Int
+    ) -> Milestone {
+        let milestone = Milestone(
+            name: name,
+            description: nil,
+            project: project,
+            displayID: .permanent(displayId)
+        )
+        context.insert(milestone)
+        return milestone
     }
 
     // MARK: - Error propagation from createTask
@@ -111,5 +151,90 @@ struct AddTaskSheetSaveErrorTests {
         let tasks = try context.fetch(descriptor)
         #expect(tasks.count == 1)
         #expect(tasks.first?.name == "Valid Task")
+    }
+
+    // MARK: - T-855: Milestone assignment failure must not leave an orphan
+
+    /// Reproduces the orphan scenario in `AddTaskSheet.persist`: the user
+    /// selects a milestone, the task is created and saved, then `setMilestone`
+    /// rejects the assignment (here via a project-mismatch — an unlikely but
+    /// possible state if the milestone picker shows stale data). Before the
+    /// T-855 fix the catch path only surfaced an error to the UI and left the
+    /// newly-created task in the database.
+    @Test func persistRollsBackTaskWhenMilestoneFailsProjectMismatch() async throws {
+        let svc = try makeServices()
+        let projectA = makeProject(in: svc.context, name: "Project A")
+        let projectB = makeProject(in: svc.context, name: "Project B")
+        let milestoneInB = makeMilestone(in: svc.context, name: "v1.0", project: projectB, displayId: 1)
+
+        // Simulate the user picking projectA but a milestone bound to projectB.
+        let draft = AddTaskSheet.TaskDraft(
+            name: "Orphan Candidate",
+            description: nil,
+            type: .bug,
+            projectID: projectA.id,
+            milestone: milestoneInB
+        )
+        await #expect(throws: MilestoneService.Error.projectMismatch) {
+            try await AddTaskSheet.persist(
+                draft: draft,
+                taskService: svc.task,
+                milestoneService: svc.milestone
+            )
+        }
+
+        let descriptor = FetchDescriptor<TransitTask>()
+        let tasks = try svc.context.fetch(descriptor)
+        #expect(tasks.isEmpty, "Task must not remain in the database when milestone assignment fails [T-855]")
+    }
+
+    /// Verifies the happy-path: when a valid milestone in the same project is
+    /// supplied, `persist` saves the task and assigns the milestone in one go.
+    @Test func persistSucceedsWithValidMilestone() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let draft = AddTaskSheet.TaskDraft(
+            name: "Happy Task",
+            description: nil,
+            type: .feature,
+            projectID: project.id,
+            milestone: milestone
+        )
+        try await AddTaskSheet.persist(
+            draft: draft,
+            taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.count == 1)
+        #expect(tasks.first?.milestone?.id == milestone.id)
+    }
+
+    /// Verifies that when no milestone is selected the helper still saves the
+    /// task without attempting an assignment. This guards against an overly
+    /// aggressive cleanup that might delete tasks unconditionally on any error.
+    @Test func persistSucceedsWithoutMilestone() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        let draft = AddTaskSheet.TaskDraft(
+            name: "No Milestone Task",
+            description: nil,
+            type: .feature,
+            projectID: project.id,
+            milestone: nil
+        )
+        try await AddTaskSheet.persist(
+            draft: draft,
+            taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.count == 1)
+        #expect(tasks.first?.milestone == nil)
     }
 }

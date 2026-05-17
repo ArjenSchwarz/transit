@@ -113,6 +113,8 @@ Applied to: AddTaskSheet (macOS description), TaskEditView (macOS description), 
 ### AddTaskSheet Milestone Picker
 - Same pattern as TaskEditView: picker after project, reset on project change
 - After `createTask`, sets milestone via `milestoneService.setMilestone` if selected
+- Persistence flow lives in `AddTaskSheet.persist(draft:taskService:milestoneService:)` (a static helper) so the view's save logic is exercisable from unit tests. The view's `save()` builds a `TaskDraft` and delegates to `persist`.
+- Orphan cleanup: if `setMilestone` throws after `createTask` succeeded, `persist` deletes the newly-created task via `taskService.deleteTask(task)` before rethrowing. Mirrors the cleanup pattern in `CreateTaskIntent` / MCP `create_task` (T-558, T-855). Keep all three entry points in sync when changing this contract.
 
 ### FilterPopoverView Milestones Section
 - New `selectedMilestones: Set<UUID>` binding (state owned by DashboardView)
