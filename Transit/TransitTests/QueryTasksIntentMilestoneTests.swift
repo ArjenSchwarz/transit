@@ -178,7 +178,7 @@ struct QueryTasksIntentMilestoneTests {
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(json["error"] as? String == "INTERNAL_ERROR")
         let hint = json["hint"] as? String ?? ""
-        #expect(hint.contains("7"))
+        #expect(hint.contains("displayId 7"))
     }
 
     /// When the requested `milestoneDisplayId` does not match any milestone, the intent
