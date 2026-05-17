@@ -26,6 +26,7 @@ pass() {
 
 # Use make's dry-run mode so we get the resolved command lines without executing.
 build_cmds="$(make -n build-macos 2>/dev/null)"
+build_ios_cmds="$(make -n build-ios 2>/dev/null)"
 clean_cmds="$(make -n clean 2>/dev/null)"
 test_cmds="$(make -n test-quick 2>/dev/null)"
 
@@ -57,7 +58,7 @@ pass "build-macos exports TMPDIR"
 #    is the well-known global caches (~/.cache, ~/Library/Caches) that triggered
 #    the original sandbox failure.
 workspace_root="$(pwd)"
-for var in XDG_CACHE_HOME TMPDIR; do
+for var in XDG_CACHE_HOME TMPDIR CLANG_MODULE_CACHE_PATH; do
     value_line="$(echo "$build_cmds" | grep -oE "${var}=[^ ]+" | head -1 || true)"
     [ -n "$value_line" ] || fail "could not extract $var from build-macos commands"
     value="${value_line#${var}=}"
@@ -98,6 +99,21 @@ echo "$test_cmds" | grep -q -- '-clonedSourcePackagesDirPath' \
 echo "$test_cmds" | grep -q 'XDG_CACHE_HOME=' \
     || fail "test-quick does not export XDG_CACHE_HOME"
 pass "test-quick redirects caches"
+
+# 8. build-ios must use the same redirection as build-macos. iOS Simulator
+#    builds invoke the same SwiftPM/Clang subprocesses as macOS, so the same
+#    sandbox-unsafe cache paths apply.
+echo "$build_ios_cmds" | grep -q -- '-clonedSourcePackagesDirPath' \
+    || fail "build-ios does not pass -clonedSourcePackagesDirPath"
+echo "$build_ios_cmds" | grep -q -- '-packageCachePath' \
+    || fail "build-ios does not pass -packageCachePath"
+echo "$build_ios_cmds" | grep -q 'XDG_CACHE_HOME=' \
+    || fail "build-ios does not export XDG_CACHE_HOME"
+echo "$build_ios_cmds" | grep -q 'TMPDIR=' \
+    || fail "build-ios does not export TMPDIR"
+echo "$build_ios_cmds" | grep -q 'CLANG_MODULE_CACHE_PATH=' \
+    || fail "build-ios does not export CLANG_MODULE_CACHE_PATH"
+pass "build-ios redirects caches"
 
 echo
 echo "All workspace-local cache redirection checks passed."
