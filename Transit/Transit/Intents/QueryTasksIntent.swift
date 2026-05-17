@@ -158,16 +158,24 @@ struct QueryTasksIntent: AppIntent {
             return intentError.json
         }
 
-        // Single-task lookup by displayId
+        // Single-task lookup by displayId. Surface CloudKit duplicate-id corruption
+        // as an INTERNAL_ERROR instead of letting `try?` collapse it into an empty
+        // "not found" result. [T-1097]
         if let displayId = filters.displayId {
-            if let task = try? taskService.findByDisplayID(displayId) {
+            do {
+                let task = try taskService.findByDisplayID(displayId)
                 let filtered = applyFilters(filters, to: [task], resolvedMilestoneId: resolvedMilestoneId)
                 let formatter = ISO8601DateFormatter()
                 return IntentHelpers.encodeJSONArray(filtered.map {
                     IntentHelpers.taskToDict($0, formatter: formatter, detailed: true)
                 })
+            } catch TaskService.Error.duplicateDisplayID {
+                return IntentError.internalError(
+                    hint: "Duplicate task identifier for displayId \(displayId)"
+                ).json
+            } catch {
+                return IntentHelpers.encodeJSONArray([])
             }
-            return IntentHelpers.encodeJSONArray([])
         }
 
         let allTasks = (try? taskService.fetchAllTasks()) ?? []
