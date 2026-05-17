@@ -13,6 +13,7 @@ struct QueryIntentEnumValidationTests {
     private struct TaskServices {
         let task: TaskService
         let project: ProjectService
+        let milestone: MilestoneService
         let context: ModelContext
     }
 
@@ -29,6 +30,7 @@ struct QueryIntentEnumValidationTests {
         return TaskServices(
             task: TaskService(modelContext: context, displayIDAllocator: allocator),
             project: ProjectService(modelContext: context),
+            milestone: MilestoneService(modelContext: context, displayIDAllocator: allocator),
             context: context
         )
     }
@@ -58,7 +60,8 @@ struct QueryIntentEnumValidationTests {
         let result = QueryTasksIntent.execute(
             input: "{\"status\":\"not-a-status\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -72,7 +75,8 @@ struct QueryIntentEnumValidationTests {
         let result = QueryTasksIntent.execute(
             input: "{\"type\":\"not-a-type\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -86,7 +90,8 @@ struct QueryIntentEnumValidationTests {
         let result = QueryTasksIntent.execute(
             input: "{\"status\":\"IDEA\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -105,7 +110,8 @@ struct QueryIntentEnumValidationTests {
         let result = QueryTasksIntent.execute(
             input: "{\"status\":\"idea\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         // Should return an array, not an error
@@ -126,7 +132,8 @@ struct QueryIntentEnumValidationTests {
         let result = QueryTasksIntent.execute(
             input: "{\"type\":\"bug\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let data = try #require(result.data(using: .utf8))

@@ -9,6 +9,7 @@ struct IntentCompatibilityTests {
     private struct Services {
         let taskService: TaskService
         let projectService: ProjectService
+        let milestoneService: MilestoneService
         let context: ModelContext
     }
 
@@ -19,6 +20,7 @@ struct IntentCompatibilityTests {
         return Services(
             taskService: TaskService(modelContext: context, displayIDAllocator: allocator),
             projectService: ProjectService(modelContext: context),
+            milestoneService: MilestoneService(modelContext: context, displayIDAllocator: allocator),
             context: context
         )
     }
@@ -135,7 +137,8 @@ struct IntentCompatibilityTests {
         let result = QueryTasksIntent.execute(
             input: "{\"status\":\"in-progress\"}",
             projectService: svc.projectService,
-            taskService: svc.taskService
+            taskService: svc.taskService,
+            milestoneService: svc.milestoneService
         )
 
         let parsed = try parseJSONArray(result)

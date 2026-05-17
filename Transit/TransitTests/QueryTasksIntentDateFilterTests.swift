@@ -9,6 +9,7 @@ struct QueryTasksIntentDateFilterTests {
     private struct Services {
         let task: TaskService
         let project: ProjectService
+        let milestone: MilestoneService
         let context: ModelContext
     }
 
@@ -19,6 +20,7 @@ struct QueryTasksIntentDateFilterTests {
         return Services(
             task: TaskService(modelContext: context, displayIDAllocator: allocator),
             project: ProjectService(modelContext: context),
+            milestone: MilestoneService(modelContext: context, displayIDAllocator: allocator),
             context: context
         )
     }
@@ -99,7 +101,8 @@ struct QueryTasksIntentDateFilterTests {
         let result = QueryTasksIntent.execute(
             input: "{\"completionDate\":{\"relative\":\"today\"}}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)
@@ -130,7 +133,8 @@ struct QueryTasksIntentDateFilterTests {
         let result = QueryTasksIntent.execute(
             input: "{\"lastStatusChangeDate\":{\"from\":\"\(fromDateString)\",\"to\":\"\(toDateString)\"}}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)
@@ -177,7 +181,12 @@ struct QueryTasksIntentDateFilterTests {
         let input = """
         {"completionDate":{"relative":"today","from":"\(fromDateString)","to":"\(toDateString)"}}
         """
-        let result = QueryTasksIntent.execute(input: input, projectService: svc.project, taskService: svc.task)
+        let result = QueryTasksIntent.execute(
+            input: input,
+            projectService: svc.project,
+            taskService: svc.task,
+            milestoneService: svc.milestone
+        )
 
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 1)
@@ -190,7 +199,8 @@ struct QueryTasksIntentDateFilterTests {
         let result = QueryTasksIntent.execute(
             input: "{\"completionDate\":{\"from\":\"2026-99-99\"}}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -206,7 +216,8 @@ struct QueryTasksIntentDateFilterTests {
         let result = QueryTasksIntent.execute(
             input: "{\"status\":\"idea\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)

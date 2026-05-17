@@ -14,6 +14,7 @@ struct BackwardCompatibilityTests {
     private struct Services {
         let task: TaskService
         let project: ProjectService
+        let milestone: MilestoneService
         let context: ModelContext
     }
 
@@ -24,6 +25,7 @@ struct BackwardCompatibilityTests {
         return Services(
             task: TaskService(modelContext: context, displayIDAllocator: allocator),
             project: ProjectService(modelContext: context),
+            milestone: MilestoneService(modelContext: context, displayIDAllocator: allocator),
             context: context
         )
     }
@@ -72,7 +74,8 @@ struct BackwardCompatibilityTests {
         makeTask(in: svc.context, project: project, name: "B", displayId: 2)
 
         let result = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, taskService: svc.task
+            input: "", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let parsed = try parseJSONArray(result)
         #expect(parsed.count >= 2)
@@ -86,7 +89,8 @@ struct BackwardCompatibilityTests {
         makeTask(in: svc.context, project: project, name: "BCTask", displayId: 1)
 
         let result = QueryTasksIntent.execute(
-            input: "{}", projectService: svc.project, taskService: svc.task
+            input: "{}", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let parsed = try parseJSONArray(result)
         #expect(parsed.contains { $0["name"] as? String == "BCTask" })
@@ -100,7 +104,8 @@ struct BackwardCompatibilityTests {
 
         let result = QueryTasksIntent.execute(
             input: "{\"status\":\"planning\",\"projectId\":\"\(project.id.uuidString)\"}",
-            projectService: svc.project, taskService: svc.task
+            projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 1)
@@ -116,7 +121,8 @@ struct BackwardCompatibilityTests {
 
         let result = QueryTasksIntent.execute(
             input: "{\"type\":\"bug\",\"projectId\":\"\(project.id.uuidString)\"}",
-            projectService: svc.project, taskService: svc.task
+            projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 1)
@@ -132,7 +138,8 @@ struct BackwardCompatibilityTests {
 
         let result = QueryTasksIntent.execute(
             input: "{\"projectId\":\"\(projectA.id.uuidString)\"}",
-            projectService: svc.project, taskService: svc.task
+            projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let parsed = try parseJSONArray(result)
         #expect(parsed.count == 1)

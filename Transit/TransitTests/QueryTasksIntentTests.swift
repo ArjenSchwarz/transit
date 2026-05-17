@@ -11,6 +11,7 @@ struct QueryTasksIntentTests {
     private struct Services {
         let task: TaskService
         let project: ProjectService
+        let milestone: MilestoneService
         let context: ModelContext
     }
 
@@ -21,6 +22,7 @@ struct QueryTasksIntentTests {
         return Services(
             task: TaskService(modelContext: context, displayIDAllocator: allocator),
             project: ProjectService(modelContext: context),
+            milestone: MilestoneService(modelContext: context, displayIDAllocator: allocator),
             context: context
         )
     }
@@ -78,7 +80,8 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, name: "Task C", displayId: 3)
 
         let result = QueryTasksIntent.execute(
-            input: "{}", projectService: svc.project, taskService: svc.task
+            input: "{}", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)
@@ -91,7 +94,8 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, name: "Task A", displayId: 1)
 
         let result = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, taskService: svc.task
+            input: "", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)
@@ -108,7 +112,8 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, name: "Another Idea", displayId: 3, status: .idea)
 
         let result = QueryTasksIntent.execute(
-            input: "{\"status\":\"idea\"}", projectService: svc.project, taskService: svc.task
+            input: "{\"status\":\"idea\"}", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)
@@ -130,7 +135,8 @@ struct QueryTasksIntentTests {
         let result = QueryTasksIntent.execute(
             input: "{\"projectId\":\"\(projectA.id.uuidString)\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)
@@ -145,7 +151,8 @@ struct QueryTasksIntentTests {
         let result = QueryTasksIntent.execute(
             input: "{\"projectId\":\"\(fakeId)\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -161,7 +168,8 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, name: "Feature Task", type: .feature, displayId: 2)
 
         let result = QueryTasksIntent.execute(
-            input: "{\"type\":\"bug\"}", projectService: svc.project, taskService: svc.task
+            input: "{\"type\":\"bug\"}", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)
@@ -186,7 +194,8 @@ struct QueryTasksIntentTests {
         svc.context.insert(task)
 
         let result = QueryTasksIntent.execute(
-            input: "{\"displayId\":42}", projectService: svc.project, taskService: svc.task
+            input: "{\"displayId\":42}", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)
@@ -205,7 +214,8 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, displayId: 1)
 
         let result = QueryTasksIntent.execute(
-            input: "{\"displayId\":999}", projectService: svc.project, taskService: svc.task
+            input: "{\"displayId\":999}", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)
@@ -220,7 +230,8 @@ struct QueryTasksIntentTests {
         let result = QueryTasksIntent.execute(
             input: "{\"displayId\":10,\"status\":\"done\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)
@@ -235,7 +246,8 @@ struct QueryTasksIntentTests {
         makeTask(in: svc.context, project: project, displayId: 5)
 
         let result = QueryTasksIntent.execute(
-            input: "{}", projectService: svc.project, taskService: svc.task
+            input: "{}", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSONArray(result)

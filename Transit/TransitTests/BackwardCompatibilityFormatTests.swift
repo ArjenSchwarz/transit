@@ -14,6 +14,7 @@ struct BackwardCompatibilityFormatTests {
     private struct Services {
         let task: TaskService
         let project: ProjectService
+        let milestone: MilestoneService
         let context: ModelContext
     }
 
@@ -24,6 +25,7 @@ struct BackwardCompatibilityFormatTests {
         return Services(
             task: TaskService(modelContext: context, displayIDAllocator: allocator),
             project: ProjectService(modelContext: context),
+            milestone: MilestoneService(modelContext: context, displayIDAllocator: allocator),
             context: context
         )
     }
@@ -103,7 +105,8 @@ struct BackwardCompatibilityFormatTests {
 
         let result = QueryTasksIntent.execute(
             input: "{\"projectId\":\"\(project.id.uuidString)\"}",
-            projectService: svc.project, taskService: svc.task
+            projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let parsed = try parseJSONArray(result)
         let item = try #require(parsed.first)
@@ -160,7 +163,8 @@ struct BackwardCompatibilityFormatTests {
         let result = QueryTasksIntent.execute(
             input: "bad json",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let parsed = try parseJSON(result)
 
@@ -180,24 +184,28 @@ struct BackwardCompatibilityFormatTests {
 
         let statusFilter = QueryTasksIntent.execute(
             input: "{\"status\":\"idea\",\"projectId\":\"\(project.id.uuidString)\"}",
-            projectService: svc.project, taskService: svc.task
+            projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         #expect(try parseJSONArray(statusFilter).count == 1)
 
         let typeFilter = QueryTasksIntent.execute(
             input: "{\"type\":\"bug\",\"projectId\":\"\(project.id.uuidString)\"}",
-            projectService: svc.project, taskService: svc.task
+            projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         #expect(try parseJSONArray(typeFilter).count == 1)
 
         let projectFilter = QueryTasksIntent.execute(
             input: "{\"projectId\":\"\(project.id.uuidString)\"}",
-            projectService: svc.project, taskService: svc.task
+            projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         #expect(try parseJSONArray(projectFilter).count == 1)
 
         let emptyFilter = QueryTasksIntent.execute(
-            input: "{}", projectService: svc.project, taskService: svc.task
+            input: "{}", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         #expect(
             try parseJSONArray(emptyFilter)
@@ -205,7 +213,8 @@ struct BackwardCompatibilityFormatTests {
         )
 
         let emptyString = QueryTasksIntent.execute(
-            input: "", projectService: svc.project, taskService: svc.task
+            input: "", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
         )
         #expect(
             try parseJSONArray(emptyString)

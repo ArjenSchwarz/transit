@@ -14,6 +14,7 @@ struct IntentEndToEndTests {
     private struct Services {
         let task: TaskService
         let project: ProjectService
+        let milestone: MilestoneService
         let context: ModelContext
     }
 
@@ -24,6 +25,7 @@ struct IntentEndToEndTests {
         return Services(
             task: TaskService(modelContext: context, displayIDAllocator: allocator),
             project: ProjectService(modelContext: context),
+            milestone: MilestoneService(modelContext: context, displayIDAllocator: allocator),
             context: context
         )
     }
@@ -92,7 +94,8 @@ struct IntentEndToEndTests {
         let queryResult = QueryTasksIntent.execute(
             input: "{\"type\":\"bug\",\"projectId\":\"\(project.id.uuidString)\"}",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let queryParsed = try parseJSONArray(queryResult)
         #expect(queryParsed.contains { $0["name"] as? String == "E2E Test Task" })
@@ -216,7 +219,8 @@ struct IntentEndToEndTests {
         let result = QueryTasksIntent.execute(
             input: "not valid json",
             projectService: svc.project,
-            taskService: svc.task
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")
