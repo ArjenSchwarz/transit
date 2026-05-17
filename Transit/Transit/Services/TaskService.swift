@@ -242,10 +242,18 @@ final class TaskService {
     // MARK: - Field Updates
 
     /// Update task fields. Only non-nil parameters are applied.
+    ///
+    /// `description` is special-cased: passing `nil` means "no change" so the
+    /// stored description survives, while passing `clearDescription: true`
+    /// without a `description` value explicitly nils out `taskDescription`.
+    /// An explicit non-nil `description` always wins, even when
+    /// `clearDescription` is also `true`. Mirrors
+    /// `MilestoneService.updateMilestone` (T-854).
     func updateTask(
         _ task: TransitTask,
         name: String? = nil,
         description: String? = nil,
+        clearDescription: Bool = false,
         type: TaskType? = nil,
         metadata: [String: String]? = nil,
         save: Bool = true
@@ -257,7 +265,11 @@ final class TaskService {
             }
             task.name = trimmed
         }
-        if let description { task.taskDescription = description }
+        if let description {
+            task.taskDescription = description
+        } else if clearDescription {
+            task.taskDescription = nil
+        }
         if let type { task.type = type }
         if let metadata { task.metadata = metadata }
 
