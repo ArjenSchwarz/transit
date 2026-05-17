@@ -31,7 +31,7 @@ struct MCPNonObjectArgumentsTests {
         )
         let response = try #require(await env.handler.handle(request))
 
-        let error = try jsonRPCError(response)
+        let error = try MCPTestHelpers.jsonRPCError(response)
         #expect(error["code"] as? Int == -32602)
         let message = try #require(error["message"] as? String)
         #expect(message.localizedCaseInsensitiveContains("arguments"))
@@ -46,8 +46,10 @@ struct MCPNonObjectArgumentsTests {
         )
         let response = try #require(await env.handler.handle(request))
 
-        let error = try jsonRPCError(response)
+        let error = try MCPTestHelpers.jsonRPCError(response)
         #expect(error["code"] as? Int == -32602)
+        let message = try #require(error["message"] as? String)
+        #expect(message.localizedCaseInsensitiveContains("arguments"))
     }
 
     @Test func toolCallWithNumericArgumentsReturnsInvalidParams() async throws {
@@ -59,8 +61,10 @@ struct MCPNonObjectArgumentsTests {
         )
         let response = try #require(await env.handler.handle(request))
 
-        let error = try jsonRPCError(response)
+        let error = try MCPTestHelpers.jsonRPCError(response)
         #expect(error["code"] as? Int == -32602)
+        let message = try #require(error["message"] as? String)
+        #expect(message.localizedCaseInsensitiveContains("arguments"))
     }
 
     @Test func toolCallWithBooleanArgumentsReturnsInvalidParams() async throws {
@@ -72,8 +76,10 @@ struct MCPNonObjectArgumentsTests {
         )
         let response = try #require(await env.handler.handle(request))
 
-        let error = try jsonRPCError(response)
+        let error = try MCPTestHelpers.jsonRPCError(response)
         #expect(error["code"] as? Int == -32602)
+        let message = try #require(error["message"] as? String)
+        #expect(message.localizedCaseInsensitiveContains("arguments"))
     }
 
     @Test func toolCallWithNullArgumentsReturnsInvalidParams() async throws {
@@ -85,8 +91,10 @@ struct MCPNonObjectArgumentsTests {
         )
         let response = try #require(await env.handler.handle(request))
 
-        let error = try jsonRPCError(response)
+        let error = try MCPTestHelpers.jsonRPCError(response)
         #expect(error["code"] as? Int == -32602)
+        let message = try #require(error["message"] as? String)
+        #expect(message.localizedCaseInsensitiveContains("arguments"))
     }
 
     // MARK: - Mutation tools (should also be rejected at the JSON-RPC level)
@@ -100,8 +108,10 @@ struct MCPNonObjectArgumentsTests {
         )
         let response = try #require(await env.handler.handle(request))
 
-        let error = try jsonRPCError(response)
+        let error = try MCPTestHelpers.jsonRPCError(response)
         #expect(error["code"] as? Int == -32602)
+        let message = try #require(error["message"] as? String)
+        #expect(message.localizedCaseInsensitiveContains("arguments"))
     }
 
     // MARK: - Data exposure regression
@@ -162,13 +172,6 @@ struct MCPNonObjectArgumentsTests {
         #expect(json["result"] != nil)
     }
 
-    // MARK: - Helpers
-
-    private func jsonRPCError(_ response: JSONRPCResponse) throws -> [String: Any] {
-        let data = try JSONEncoder().encode(response)
-        let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
-        return try #require(json["error"] as? [String: Any])
-    }
 }
 
 #endif

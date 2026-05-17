@@ -972,7 +972,7 @@ extension MCPToolHandler {
     /// filters and expose all data, while mutation tools would degrade to
     /// misleading "missing required field" errors [T-1247].
     private func parseArgumentsEnvelope(_ params: [String: Any]) -> Result<[String: Any], ResolveError> {
-        guard params.keys.contains("arguments") else { return .success([:]) }
+        guard params["arguments"] != nil else { return .success([:]) }
         guard let dict = params["arguments"] as? [String: Any] else {
             return .failure(.message("Invalid arguments: must be a JSON object"))
         }
