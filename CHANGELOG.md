@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Spec for extending `update_task` MCP tool and `UpdateTaskIntent` to update name, description, type, and metadata atomically alongside the existing milestone fields (T-650). Includes requirements, design (shared `TaskUpdateValidator` with `FieldChange<T>`-based update model, new `IntentHelpers.taskUpdateResponseDict`, `TaskService.rollback` for apply-failure rollback), decision log, and a 12-task implementation plan across 7 phases.
 - Test for AC 8.1: an allocation failure on one duplicate group does not abort subsequent groups; the loser loop breaks for the failing group only and the next group still reassigns.
 - `DisplayIDMaintenanceService` is now constructed cross-platform in `TransitApp`, registered via `AppDependencyManager` for App Intents, and exposed via `.environment` on the root `NavigationStack` and `withCoreEnvironments` so `DataMaintenanceView` resolves it on iOS, the macOS Settings window, and the macOS Task Detail window.
 - `ScanDuplicateDisplayIDsIntent` and `ReassignDuplicateDisplayIDsIntent` App Intents for running duplicate cleanup from Shortcuts. Both reuse the same `JSONEncoder` path as the MCP tools so payloads are byte-equal across surfaces; service errors land inside the JSON envelope rather than thrown.
