@@ -783,8 +783,17 @@ extension MCPToolHandler {
 
 extension MCPToolHandler {
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    /// Updates one or more mutable fields on a task in a single atomic call.
+    ///
+    /// Field validation, milestone resolution, and applier logic are delegated
+    /// to `TaskUpdateValidator` so that the MCP tool and `UpdateTaskIntent`
+    /// share identical semantics. The identifier-resolution preamble preserves
+    /// the existing T-634/T-808 behavior — present-but-malformed identifiers
+    /// surface as field-specific INVALID_INPUT messages, not as a generic
+    /// not-found. The response shape is built by
+    /// `IntentHelpers.taskUpdateResponseDict` (AC 9.1).
     private func handleUpdateTask(_ args: [String: Any]) -> MCPToolResult {
+        // Identifier resolution (preserve existing T-634 / T-808 behavior)
         // Reject non-integer displayId when key is present [T-634]
         if args["displayId"] != nil, IntentHelpers.parseIntValue(args["displayId"]) == nil {
             return errorResult("displayId must be an integer")
@@ -801,69 +810,43 @@ extension MCPToolHandler {
             return errorResult("Provide either displayId (integer) or taskId (UUID string)")
         }
 
-        // Handle milestone assignment (save: false — deferred to single atomic save below)
-        // Reject non-integer milestoneDisplayId when key is present [T-613]
-        if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
-            return errorResult("milestoneDisplayId must be an integer")
-        }
-        // Reject non-boolean clearMilestone when key is present [T-1060]
-        let clearMilestoneValue: Bool?
-        if args.keys.contains("clearMilestone") {
-            guard let parsed = IntentHelpers.parseBoolValue(args["clearMilestone"]) else {
-                return errorResult("clearMilestone must be a boolean")
-            }
-            clearMilestoneValue = parsed
-        } else {
-            clearMilestoneValue = nil
-        }
-        if clearMilestoneValue == true {
-            do {
-                try milestoneService.setMilestone(nil, on: task, save: false)
-            } catch {
-                return errorResult("Failed to clear milestone: \(error)")
-            }
-        } else if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
-            do {
-                let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)
-                try milestoneService.setMilestone(milestone, on: task, save: false)
-            } catch MilestoneService.Error.milestoneNotFound {
-                return errorResult("No milestone with displayId \(milestoneDisplayId)")
-            } catch MilestoneService.Error.duplicateDisplayID {
-                return errorResult("Duplicate milestone identifier detected for displayId \(milestoneDisplayId)")
-            } catch MilestoneService.Error.projectMismatch {
-                return errorResult("Milestone and task must belong to the same project")
-            } catch MilestoneService.Error.projectRequired {
-                return errorResult("Task must belong to a project before assigning a milestone")
-            } catch {
-                return errorResult("Failed to set milestone: \(error)")
-            }
-        } else if args["milestone"] != nil {
-            // Reject non-string milestone values [T-1114]. See handleCreateTask
-            // for the same guard.
-            guard let milestoneName = args["milestone"] as? String else {
-                return errorResult("milestone must be a string")
-            }
-            guard let project = task.project else {
-                return errorResult("Task must belong to a project before assigning a milestone")
-            }
-            guard let milestone = milestoneService.findByName(milestoneName, in: project) else {
-                return errorResult("No milestone named '\(milestoneName)' in project '\(project.name)'")
-            }
-            do {
-                try milestoneService.setMilestone(milestone, on: task, save: false)
-            } catch {
-                return errorResult("Failed to set milestone: \(error)")
-            }
+        // Validate every field before applying any change. The validator is
+        // pure — no mutations occur on success or failure, so an early return
+        // here leaves the task untouched.
+        let update: ValidatedTaskUpdate
+        switch TaskUpdateValidator.validate(args, task: task, milestoneService: milestoneService) {
+        case .success(let validated):
+            update = validated
+        case .failure(let error):
+            return errorResult(error.mcpMessage)
         }
 
+        // No-op echo: when the request includes only an identifier (and no
+        // mutating field), skip the save and return the current task JSON.
+        guard update.hasChanges else {
+            return textResult(IntentHelpers.encodeJSON(IntentHelpers.taskUpdateResponseDict(task)))
+        }
+
+        // Apply in memory. If a service call throws between the two underlying
+        // service calls (`updateTask` then `setMilestone`), explicitly roll
+        // back so any partial mutation does not leak into the saved state.
+        do {
+            try TaskUpdateValidator.apply(
+                update, to: task, taskService: taskService, milestoneService: milestoneService
+            )
+        } catch {
+            taskService.rollback()
+            return errorResult("Update failed: \(error)")
+        }
+
+        // Save. `TaskService.save()` already calls `safeRollback()` on failure.
         do {
             try taskService.save()
         } catch {
-            return errorResult("Failed to save: \(error)")
+            return errorResult("Update failed: \(error)")
         }
 
-        let formatter = ISO8601DateFormatter()
-        return textResult(IntentHelpers.encodeJSON(taskToDict(task, formatter: formatter)))
+        return textResult(IntentHelpers.encodeJSON(IntentHelpers.taskUpdateResponseDict(task)))
     }
 }
 

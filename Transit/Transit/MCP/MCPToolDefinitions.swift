@@ -226,7 +226,7 @@ nonisolated enum MCPToolDefinitions {
     )
 
     // swiftlint:disable:next line_length
-    private static let updateTaskDescription = "Update a task's properties. Currently supports milestone assignment. Identify task by displayId or taskId."
+    private static let updateTaskDescription = "Update a task's mutable fields (name, description, type, metadata, milestone) in a single atomic call. Identify task by displayId or taskId."
 
     static let updateTask = MCPToolDefinition(
         name: "update_task",
@@ -235,6 +235,17 @@ nonisolated enum MCPToolDefinitions {
             properties: [
                 "displayId": .integer("Task display ID (e.g. 42 for T-42)"),
                 "taskId": .string("Task UUID"),
+                "name": .string("New task name (trimmed; must be non-empty after trim)"),
+                "description": .string(
+                    "New task description. Pass \"\" or whitespace-only to clear."
+                ),
+                "type": .stringEnum(
+                    "New task type (exact lowercase match required)",
+                    values: TaskType.allCases.map(\.rawValue)
+                ),
+                "metadata": .object(
+                    "Replaces the entire metadata dictionary. Pass {} to clear all metadata. Values must be strings."
+                ),
                 "milestone": .string("Milestone name (within task's project). Use clearMilestone to unassign."),
                 "milestoneDisplayId": .integer("Milestone display ID (e.g. 3 for M-3, takes precedence over name)"),
                 "clearMilestone": .boolean("Set to true to remove milestone assignment")

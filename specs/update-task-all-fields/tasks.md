@@ -69,7 +69,7 @@ references:
 
 ## MCP surface
 
-- [ ] 7. Extend MCPUpdateTaskTests.swift with new field-update tests <!-- id:2r6h8qq -->
+- [x] 7. Extend MCPUpdateTaskTests.swift with new field-update tests <!-- id:2r6h8qq -->
   - Add tests per design matrix: updateName_setsTrimmedName, updateName_rejectsEmptyAndWhitespace, updateName_rejectsNonString, updateDescription_setsTrimmed, updateDescription_emptyAndWhitespaceClears, updateDescription_rejectsNonString, updateType_setsValidType, updateType_rejectsInvalidValue, updateType_rejectsNonString, updateMetadata_replacesEntireDict, updateMetadata_emptyDictClears, updateMetadata_rejectsNonObject, updateMetadata_rejectsNonStringValues
   - Omission preservation: omittingNamePreservesIt, omittingDescriptionPreservesIt, omittingTypePreservesIt, omittingMetadataPreservesIt
   - Atomicity: updateMultipleFields_allAppliedAtomically, updateMixed_invalidFieldRollsBackAll, applyThrows_taskUntouched
@@ -81,7 +81,7 @@ references:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [7.1](requirements.md#7.1), [7.2](requirements.md#7.2), [8.2](requirements.md#8.2), [9.1](requirements.md#9.1)
   - References: Transit/TransitTests/MCPUpdateTaskTests.swift, specs/update-task-all-fields/design.md
 
-- [ ] 8. Rewrite MCPToolHandler.handleUpdateTask and extend MCPToolDefinitions.updateTask schema <!-- id:2r6h8qr -->
+- [x] 8. Rewrite MCPToolHandler.handleUpdateTask and extend MCPToolDefinitions.updateTask schema <!-- id:2r6h8qr -->
   - Rewrite handleUpdateTask (currently at line 787) following design's code sketch — preserve identifier-resolution preamble (T-634/T-808), then call TaskUpdateValidator.validate, handle no-op echo, two-stage do/catch (apply with explicit taskService.rollback(), then save with implicit safeRollback)
   - Use IntentHelpers.taskUpdateResponseDict for the response
   - Extend MCPToolDefinitions.updateTask.inputSchema with name/description/type/metadata properties — prose for description must contain 'clear' (e.g., 'Pass "" or whitespace-only to clear.'), prose for metadata must contain 'clear' (e.g., 'Pass {} to clear all. Values must be strings.')
