@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `QueryTasksIntentTests` no longer fails to compile after T-1146 added a required `milestoneService:` argument to `QueryTasksIntent.execute`; the missing argument is now supplied at the one stale call site so the test target builds.
 - Milestone status updates are now idempotent: re-sending the current status no longer rewrites `lastStatusChangeDate` and `completionDate`, so old terminal milestones no longer re-enter the current report window via `ReportLogic`'s `completionDate ?? lastStatusChangeDate` fallback. Applied across `MilestoneService.updateStatus`, `UpdateMilestoneIntent.applyUpdate`, and `MCPToolHandler.applyMilestoneUpdate` (T-923).
 - `DisplayIDMaintenanceService.reassignDuplicates` now surfaces a fetch failure as a counter-advance warning on both record types instead of silently no-oping the run with empty arrays.
 - `DisplayIDMaintenanceService` group processing no longer fabricates winner identity (`UUID()` / `""`) for the unreachable empty-group case; the invariant is asserted via `preconditionFailure` and the existing `RecordRef` is propagated.
@@ -24,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `TaskUpdateValidator.validate` / `apply` / `strictStringMetadata` implementations (T-650 phase 2). `validate` parses raw MCP/Intent argument dicts into a `ValidatedTaskUpdate` covering name (trim + non-empty), description (trim, empty/whitespace clears), type (lowercase enum), metadata (strict-string, `{}` clears), and milestone (precedence `clearMilestone` → `milestoneId` → `milestoneDisplayId` → `milestone`). Milestone error literals are byte-identical to the existing MCP handler so Phase 3 wiring is drop-in. `apply` walks fields in deterministic order with `save: false`, throwing service-layer errors only — callers handle rollback via `TaskService.rollback()`. `TaskUpdateValidatorTests` covers 33 scenarios across all acceptance criteria 1–7.
 - `TaskUpdateValidator` scaffolding (T-650 phase 1): new `Transit/Transit/Intents/TaskUpdateValidator.swift` declares the `FieldChange<T>`, `MilestoneAction`, `ValidatedTaskUpdate`, and `TaskUpdateValidationError` value types plus stub `validate`/`apply`/`strictStringMetadata` signatures so subsequent phases can write tests against the contract. `TaskService.rollback()` wraps `modelContext.safeRollback()` for handler-level undo after a mid-update throw.
 - Spec for extending `update_task` MCP tool and `UpdateTaskIntent` to update name, description, type, and metadata atomically alongside the existing milestone fields (T-650). Includes requirements, design (shared `TaskUpdateValidator` with `FieldChange<T>`-based update model, new `IntentHelpers.taskUpdateResponseDict`, `TaskService.rollback` for apply-failure rollback), decision log, and a 12-task implementation plan across 7 phases.
 - Test for AC 8.1: an allocation failure on one duplicate group does not abort subsequent groups; the loser loop breaks for the failing group only and the next group still reassigns.
