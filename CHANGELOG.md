@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `TaskUpdateValidator` scaffolding (T-650 phase 1): new `Transit/Transit/Intents/TaskUpdateValidator.swift` declares the `FieldChange<T>`, `MilestoneAction`, `ValidatedTaskUpdate`, and `TaskUpdateValidationError` value types plus stub `validate`/`apply`/`strictStringMetadata` signatures so subsequent phases can write tests against the contract. `TaskService.rollback()` wraps `modelContext.safeRollback()` for handler-level undo after a mid-update throw.
 - Spec for extending `update_task` MCP tool and `UpdateTaskIntent` to update name, description, type, and metadata atomically alongside the existing milestone fields (T-650). Includes requirements, design (shared `TaskUpdateValidator` with `FieldChange<T>`-based update model, new `IntentHelpers.taskUpdateResponseDict`, `TaskService.rollback` for apply-failure rollback), decision log, and a 12-task implementation plan across 7 phases.
 - Test for AC 8.1: an allocation failure on one duplicate group does not abort subsequent groups; the loser loop breaks for the failing group only and the next group still reassigns.
 - `DisplayIDMaintenanceService` is now constructed cross-platform in `TransitApp`, registered via `AppDependencyManager` for App Intents, and exposed via `.environment` on the root `NavigationStack` and `withCoreEnvironments` so `DataMaintenanceView` resolves it on iOS, the macOS Settings window, and the macOS Task Detail window.
