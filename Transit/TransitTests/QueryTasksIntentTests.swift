@@ -257,7 +257,10 @@ struct QueryTasksIntentTests {
         svc.context.insert(second)
 
         let result = QueryTasksIntent.execute(
-            input: "{\"displayId\":42}", projectService: svc.project, taskService: svc.task
+            input: "{\"displayId\":42}",
+            projectService: svc.project,
+            taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)

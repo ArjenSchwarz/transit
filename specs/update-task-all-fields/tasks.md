@@ -24,7 +24,7 @@ references:
 
 ## Shared validator and applier
 
-- [ ] 3. Write tests for TaskUpdateValidator (validate, apply, strictStringMetadata) <!-- id:2r6h8ql -->
+- [x] 3. Write tests for TaskUpdateValidator (validate, apply, strictStringMetadata) <!-- id:2r6h8ql -->
   - New test file: Transit/TransitTests/TaskUpdateValidatorTests.swift (Swift Testing, @MainActor @Suite(.serialized))
   - validate: cover all field combinations — name (trim/empty/non-string), description (trim+set/empty-clears/whitespace-clears/non-string), type (valid lowercase/invalid/non-string), metadata (replace/{}/non-object/non-string values via NSNumber from JSONSerialization)
   - validate: milestone path delegates to existing patterns (milestone displayId/name/clearMilestone) and surfaces .milestoneNotFound, .duplicateMilestoneDisplayID, .milestoneProjectMismatch correctly
@@ -36,7 +36,7 @@ references:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [7.1](requirements.md#7.1), [7.2](requirements.md#7.2)
   - References: specs/update-task-all-fields/design.md, Transit/TransitTests/MCPTestHelpers.swift
 
-- [ ] 4. Implement TaskUpdateValidator.validate, apply, and strictStringMetadata <!-- id:2r6h8qm -->
+- [x] 4. Implement TaskUpdateValidator.validate, apply, and strictStringMetadata <!-- id:2r6h8qm -->
   - Walk fields in order: name → description → type → metadata → milestone (deterministic order, not part of public contract per AC 5.2)
   - validate is pure: never mutates the task; milestone resolution uses milestoneService read-only lookups
   - apply translates FieldChange<String> for description into TaskService.updateTask (description: String?, clearDescription: Bool) parameter pair; for metadata translates FieldChange<[String:String]> into the service metadata: parameter (.clear becomes [:], .set(d) becomes d, .noChange omits)
