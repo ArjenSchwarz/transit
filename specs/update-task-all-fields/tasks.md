@@ -48,7 +48,7 @@ references:
 
 ## Response builder
 
-- [ ] 5. Write tests for IntentHelpers.taskUpdateResponseDict <!-- id:2r6h8qn -->
+- [x] 5. Write tests for IntentHelpers.taskUpdateResponseDict <!-- id:2r6h8qn -->
   - Append to or create a new test in Transit/TransitTests for the helper
   - Verify always-present keys: taskId, name, type, status
   - Verify present-when-non-nil: displayId, projectId, projectName, description, milestone
@@ -58,7 +58,7 @@ references:
   - Requirements: [9.1](requirements.md#9.1)
   - References: specs/update-task-all-fields/design.md, Transit/Transit/Intents/IntentHelpers.swift
 
-- [ ] 6. Implement IntentHelpers.taskUpdateResponseDict <!-- id:2r6h8qo -->
+- [x] 6. Implement IntentHelpers.taskUpdateResponseDict <!-- id:2r6h8qo -->
   - Add `@MainActor static func taskUpdateResponseDict(_ task: TransitTask) -> [String: Any]`
   - Build the dict per AC 9.1 — omit nil description (do NOT use `task.taskDescription as Any`), omit empty metadata
   - Use existing milestoneInfoDict for milestone summary

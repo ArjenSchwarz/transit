@@ -291,6 +291,47 @@ nonisolated enum IntentHelpers {
         return dict
     }
 
+    /// Builds the response dictionary for `update_task` post-update.
+    ///
+    /// Implements AC 9.1 of the T-650 spec: the shape is computed purely from
+    /// the task's current model state, never from the request payload. Always
+    /// includes `taskId`, `name`, `type`, and `status`. Includes `displayId`,
+    /// `projectId`, `projectName`, `description`, `metadata`, and `milestone`
+    /// only when their post-update value is present and non-empty. Excludes
+    /// `comments`, `creationDate`, `lastStatusChangeDate`, and `completionDate`.
+    ///
+    /// `task.taskDescription` is read through an `if let` + non-empty guard so
+    /// that a nil or empty stored value is omitted from the dictionary — using
+    /// `task.taskDescription as Any` would encode nil as `NSNull`, which would
+    /// violate the AC's omission rule. [T-650]
+    @MainActor
+    static func taskUpdateResponseDict(_ task: TransitTask) -> [String: Any] {
+        var dict: [String: Any] = [
+            "taskId": task.id.uuidString,
+            "name": task.name,
+            "type": task.typeRawValue,
+            "status": task.statusRawValue
+        ]
+        if let displayId = task.permanentDisplayId {
+            dict["displayId"] = displayId
+        }
+        if let project = task.project {
+            dict["projectId"] = project.id.uuidString
+            dict["projectName"] = project.name
+        }
+        if let description = task.taskDescription, !description.isEmpty {
+            dict["description"] = description
+        }
+        let metadata = task.metadata
+        if !metadata.isEmpty {
+            dict["metadata"] = metadata
+        }
+        if let milestone = task.milestone {
+            dict["milestone"] = milestoneInfoDict(milestone)
+        }
+        return dict
+    }
+
     /// Builds a milestone info dictionary for inclusion in task responses.
     @MainActor
     static func milestoneInfoDict(_ milestone: Milestone) -> [String: Any] {
