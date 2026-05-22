@@ -8,12 +8,12 @@ references:
 
 ## Foundation
 
-- [ ] 1. Add rollback() method to TaskService <!-- id:2r6h8qp -->
+- [x] 1. Add rollback() method to TaskService <!-- id:2r6h8qp -->
   - Single public method `func rollback() { modelContext.safeRollback() }` so handlers can revert in-memory mutations when apply() throws mid-way. Wiring-only task; no test required (the underlying safeRollback already has service-layer tests).
   - Requirements: [5.2](requirements.md#5.2), [5.3](requirements.md#5.3)
   - References: Transit/Transit/Services/TaskService.swift, Transit/Transit/Extensions/ModelContext+SafeRollback.swift
 
-- [ ] 2. Create TaskUpdateValidator.swift with value types and function stubs <!-- id:2r6h8qk -->
+- [x] 2. Create TaskUpdateValidator.swift with value types and function stubs <!-- id:2r6h8qk -->
   - New file: Transit/Transit/Intents/TaskUpdateValidator.swift
   - Declare value types: FieldChange<T> (case noChange/set(T)/clear with isChange computed property), MilestoneAction (case assign(Milestone)/clear), ValidatedTaskUpdate struct (name: String?, description: FieldChange<String>, type: TaskType?, metadata: FieldChange<[String:String]>, milestoneAction: MilestoneAction?, hasChanges: Bool), TaskUpdateValidationError enum with cases .invalidInput(String), .milestoneNotFound(message:), .duplicateMilestoneDisplayID(message:), .milestoneProjectMismatch, .projectRequiredForMilestone
   - Add computed properties mcpMessage: String and intentError: IntentError on TaskUpdateValidationError (duplicateMilestoneDisplayID maps to .internalError, milestoneProjectMismatch to .milestoneProjectMismatch, etc.)

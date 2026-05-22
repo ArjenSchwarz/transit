@@ -354,4 +354,12 @@ final class TaskService {
             throw error
         }
     }
+
+    /// Reverts in-memory mutations on the model context. Used by handlers to
+    /// undo partial changes when a multi-step update (e.g. updateTask followed
+    /// by setMilestone) throws between steps and the caller wants to abandon
+    /// the transaction before save. [T-650]
+    func rollback() {
+        modelContext.safeRollback()
+    }
 }
