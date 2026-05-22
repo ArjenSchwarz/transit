@@ -93,14 +93,14 @@ references:
 
 ## App Intent surface
 
-- [ ] 9. Extend UpdateTaskIntentTests.swift with parallel field-update tests <!-- id:2r6h8qs -->
+- [x] 9. Extend UpdateTaskIntentTests.swift with parallel field-update tests <!-- id:2r6h8qs -->
   - Parallel coverage to task 7 — call UpdateTaskIntent.execute directly, parse the returned JSON string
   - Test that UpdateTaskIntent.Input parameter description contains 'clear' wording for description and metadata (AC 8.2 parity)
   - Existing milestone tests in this file MUST continue to pass — do not delete or modify them
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [7.1](requirements.md#7.1), [7.2](requirements.md#7.2), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2), [9.1](requirements.md#9.1)
   - References: Transit/TransitTests/UpdateTaskIntentTests.swift, specs/update-task-all-fields/design.md
 
-- [ ] 10. Rewrite UpdateTaskIntent.execute, delete buildResponse and applyMilestoneChange, extend Input parameter description <!-- id:2r6h8qt -->
+- [x] 10. Rewrite UpdateTaskIntent.execute, delete buildResponse and applyMilestoneChange, extend Input parameter description <!-- id:2r6h8qt -->
   - Rewrite execute() to mirror the MCP handler: parse JSON, resolve task, validate, no-op echo, apply with explicit rollback on throw, save (TaskService.save wraps rollback), encode response via IntentHelpers.taskUpdateResponseDict
   - Map TaskUpdateValidationError to its intentError projection then to .json
   - Map apply/save failures to IntentError.internalError(hint:), not raw error interpolation
