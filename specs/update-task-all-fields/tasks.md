@@ -124,7 +124,7 @@ references:
 
 ## Documentation
 
-- [ ] 12. Update docs/agent-notes/mcp-server.md for extended update_task <!-- id:2r6h8qv -->
+- [x] 12. Update docs/agent-notes/mcp-server.md for extended update_task <!-- id:2r6h8qv -->
   - Update the Tools Exposed table entry for update_task to reflect that it now supports name/description/type/metadata in addition to milestone fields
   - Optionally add a one-line gotcha about the empty-string-clears semantic
   - Blocked-by: 2r6h8qr (Rewrite MCPToolHandler.handleUpdateTask and extend MCPToolDefinitions.updateTask schema), 2r6h8qt (Rewrite UpdateTaskIntent.execute, delete buildResponse and applyMilestoneChange, extend Input parameter description)
