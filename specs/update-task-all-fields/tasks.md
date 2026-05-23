@@ -113,7 +113,7 @@ references:
 
 ## Cross-surface parity
 
-- [ ] 11. Write UpdateTaskAllFieldsParityTests.swift <!-- id:2r6h8qu -->
+- [x] 11. Write UpdateTaskAllFieldsParityTests.swift <!-- id:2r6h8qu -->
   - New file: Transit/TransitTests/UpdateTaskAllFieldsParityTests.swift
   - For a fixed set of valid update args (covering each new field individually and a combined multi-field case), call BOTH the MCP handler and UpdateTaskIntent.execute, parse the JSON responses, assert dict equality on the full key set
   - Success cases only — error message divergence is allowed per AC 5.2
