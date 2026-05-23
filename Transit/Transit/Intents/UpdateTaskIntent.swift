@@ -91,10 +91,10 @@ struct UpdateTaskIntent: AppIntent {
         // different from "identifier provided but no match" — the former is
         // INVALID_INPUT, the latter is TASK_NOT_FOUND. Without this guard,
         // `taskService.resolveTask` would throw `.taskNotFound` for both. [T-650]
-        let hasIdentifier = json["taskId"] != nil || json["displayId"] != nil || json["name"] != nil
+        let hasIdentifier = json["taskId"] != nil || json["displayId"] != nil
         guard hasIdentifier else {
             return IntentError.invalidInput(
-                hint: "Provide one of: taskId, displayId, or name"
+                hint: "Provide either displayId (integer) or taskId (UUID string)"
             ).json
         }
 

@@ -230,6 +230,25 @@ struct UpdateTaskIntentTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
     }
 
+    /// T-650 regression: `name` is an *update field*, not a task identifier
+    /// (AC 6.1). A payload that only contains `name` (no `taskId` / `displayId`)
+    /// must surface as INVALID_INPUT, not TASK_NOT_FOUND.
+    @Test func nameOnlyWithoutIdentifierReturnsInvalidInput() throws {
+        let svc = try makeServices()
+
+        let input = """
+        {"name":"renamed"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+    }
+
     @Test func malformedJSONReturnsInvalidInput() throws {
         let svc = try makeServices()
 
