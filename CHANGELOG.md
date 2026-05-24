@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **`update_task` response shape changed (T-650)**. The new `IntentHelpers.taskUpdateResponseDict` builder (used by both the MCP tool and `UpdateTaskIntent`) no longer emits `comments`, `lastStatusChangeDate`, or `completionDate`, and now emits `description` and `metadata` only when non-empty (previously `description` was present as `null` and `metadata` was absent). The new shape is fixed by AC 9.1; clients parsing those removed keys from `update_task` responses must instead call `query_tasks` to fetch them. Identifier-resolution and error envelopes are unchanged.
 - `DisplayIDMaintenanceService` init no longer takes `taskCounterStore`/`milestoneCounterStore`; the stores are read from each `DisplayIDAllocator.counterStore` (single source of truth).
 - `IntentHelpers.encodeAsJSONString(_:)` is the shared JSON encoding helper used by `MCPToolHandler` and the maintenance App Intents, replacing three per-site copies of the same `JSONEncoder()` + UTF-8 guard.
 - `MCPToolHandler` now derives the gated maintenance tool name set from `MCPToolDefinitions.maintenanceToolNames` so the gate stays in sync with the definitions list.
