@@ -3,6 +3,9 @@ import SwiftData
 import Testing
 @testable import Transit
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
+
 @MainActor @Suite(.serialized)
 struct UpdateTaskIntentTests {
 
@@ -83,7 +86,7 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -106,7 +109,7 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -127,7 +130,7 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -147,7 +150,7 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -166,7 +169,7 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -184,7 +187,7 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -204,7 +207,7 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -220,7 +223,26 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+    }
+
+    /// T-650 regression: `name` is an *update field*, not a task identifier
+    /// (AC 6.1). A payload that only contains `name` (no `taskId` / `displayId`)
+    /// must surface as INVALID_INPUT, not TASK_NOT_FOUND.
+    @Test func nameOnlyWithoutIdentifierReturnsInvalidInput() throws {
+        let svc = try makeServices()
+
+        let input = """
+        {"name":"renamed"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -232,7 +254,7 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: "not json", taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -256,7 +278,7 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -277,7 +299,7 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -298,7 +320,7 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -321,11 +343,697 @@ struct UpdateTaskIntentTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
         #expect(parsed["error"] == nil, "clearMilestone:false should not error")
         #expect(task.milestone?.id == milestone.id, "Milestone should remain assigned when clearMilestone is false")
     }
+
+    // MARK: - T-650 Phase 5: Field Updates
+
+    /// Round-trips a JSON string through JSONSerialization so non-string values
+    /// (numbers, booleans) materialize as NSNumber, matching what
+    /// `IntentHelpers.parseJSON` delivers to the intent's `execute`.
+    private static func jsonRoundTrip(_ json: String) throws -> [String: Any] {
+        let data = try #require(json.data(using: .utf8))
+        return try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
+    // MARK: - Name (AC 1.x)
+
+    @Test func updateName_setsTrimmedName() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Original", project: project, displayId: 10)
+
+        let input = """
+        {"displayId":10,"name":"  hello  "}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["name"] as? String == "hello")
+        #expect(task.name == "hello")
+    }
+
+    @Test func updateName_rejectsEmpty() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Original", project: project, displayId: 10)
+
+        let input = """
+        {"displayId":10,"name":""}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(task.name == "Original")
+    }
+
+    @Test func updateName_rejectsWhitespaceOnly() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Original", project: project, displayId: 10)
+
+        let input = """
+        {"displayId":10,"name":"   "}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(task.name == "Original")
+    }
+
+    @Test func updateName_rejectsNonString() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Original", project: project, displayId: 10)
+
+        let input = """
+        {"displayId":10,"name":42}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        let hint = parsed["hint"] as? String ?? ""
+        #expect(hint.contains("name"), "Expected name-specific hint, got: \(hint)")
+        #expect(task.name == "Original")
+    }
+
+    // MARK: - Description (AC 2.x)
+
+    @Test func updateDescription_setsTrimmed() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+
+        let input = """
+        {"displayId":10,"description":"  text  "}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["description"] as? String == "text")
+        #expect(task.taskDescription == "text")
+    }
+
+    @Test func updateDescription_emptyClears() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.taskDescription = "current"
+
+        let input = """
+        {"displayId":10,"description":""}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["description"] == nil, "Response should omit description when cleared")
+        #expect(task.taskDescription == nil)
+    }
+
+    @Test func updateDescription_whitespaceClears() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.taskDescription = "current"
+
+        let input = """
+        {"displayId":10,"description":"   "}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["description"] == nil, "Response should omit description when cleared")
+        #expect(task.taskDescription == nil)
+    }
+
+    @Test func updateDescription_rejectsNonString() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.taskDescription = "current"
+
+        let input = """
+        {"displayId":10,"description":42}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(task.taskDescription == "current")
+    }
+
+    // MARK: - Type (AC 3.x)
+
+    @Test func updateType_setsValidType() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.type = .bug
+
+        let input = """
+        {"displayId":10,"type":"feature"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["type"] as? String == "feature")
+        #expect(task.type == .feature)
+    }
+
+    @Test func updateType_rejectsInvalidValue() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.type = .bug
+
+        let input = """
+        {"displayId":10,"type":"epic"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(task.type == .bug)
+    }
+
+    @Test func updateType_rejectsNonString() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.type = .bug
+
+        let input = """
+        {"displayId":10,"type":1}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(task.type == .bug)
+    }
+
+    // MARK: - Metadata (AC 4.x)
+
+    @Test func updateMetadata_replacesEntireDict() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.metadata = ["a": "1", "b": "2"]
+
+        let input = """
+        {"displayId":10,"metadata":{"c":"3"}}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        let metadata = try #require(parsed["metadata"] as? [String: String])
+        #expect(metadata == ["c": "3"])
+        #expect(task.metadata == ["c": "3"])
+    }
+
+    @Test func updateMetadata_emptyDictClears() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.metadata = ["a": "1"]
+
+        let input = """
+        {"displayId":10,"metadata":{}}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["metadata"] == nil, "Response should omit metadata when cleared")
+        #expect(task.metadata.isEmpty)
+    }
+
+    @Test func updateMetadata_rejectsNonObject() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.metadata = ["a": "1"]
+
+        let input = """
+        {"displayId":10,"metadata":"string"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(task.metadata == ["a": "1"])
+    }
+
+    @Test func updateMetadata_rejectsNonStringValues() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.metadata = ["a": "1"]
+
+        let input = """
+        {"displayId":10,"metadata":{"a":1}}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        let hint = parsed["hint"] as? String ?? ""
+        #expect(hint == "metadata values must be strings", "Got: \(hint)")
+        #expect(task.metadata == ["a": "1"])
+    }
+
+    // MARK: - Omission Preservation (AC 1.4, 2.4, 3.4, 4.5)
+
+    @Test func omittingNamePreservesIt() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "X", project: project, displayId: 10)
+
+        let input = """
+        {"displayId":10,"description":"ignored"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["name"] as? String == "X")
+        #expect(task.name == "X")
+    }
+
+    @Test func omittingDescriptionPreservesIt() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.taskDescription = "current"
+
+        let input = """
+        {"displayId":10,"name":"Renamed"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["description"] as? String == "current")
+        #expect(task.taskDescription == "current")
+    }
+
+    @Test func omittingTypePreservesIt() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.type = .bug
+
+        let input = """
+        {"displayId":10,"name":"Renamed"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["type"] as? String == "bug")
+        #expect(task.type == .bug)
+    }
+
+    @Test func omittingMetadataPreservesIt() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.metadata = ["a": "1"]
+
+        let input = """
+        {"displayId":10,"name":"Renamed"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        let metadata = try #require(parsed["metadata"] as? [String: String])
+        #expect(metadata == ["a": "1"])
+        #expect(task.metadata == ["a": "1"])
+    }
+
+    // MARK: - Atomicity (AC 5.x)
+
+    @Test func updateMultipleFields_allAppliedAtomically() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "Sprint 1", project: project, displayId: 1)
+        let task = makeTask(in: svc.context, name: "Original", project: project, displayId: 10)
+        task.taskDescription = "old"
+        task.type = .bug
+        task.metadata = ["a": "1"]
+
+        let input = """
+        {"displayId":10,"name":"Renamed","description":"new desc",
+        "type":"chore","metadata":{"new":"val"},"milestoneDisplayId":1}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["name"] as? String == "Renamed")
+        #expect(parsed["description"] as? String == "new desc")
+        #expect(parsed["type"] as? String == "chore")
+
+        #expect(task.name == "Renamed")
+        #expect(task.taskDescription == "new desc")
+        #expect(task.type == .chore)
+        #expect(task.metadata == ["new": "val"])
+        #expect(task.milestone?.id == milestone.id)
+    }
+
+    @Test func updateMixed_invalidFieldRollsBackAll() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Original", project: project, displayId: 10)
+        task.taskDescription = "old"
+        task.type = .bug
+        task.metadata = ["a": "1"]
+
+        // Valid name + invalid type → whole call rejected
+        let input = """
+        {"displayId":10,"name":"NewName","type":"epic"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        // Nothing should have changed
+        #expect(task.name == "Original")
+        #expect(task.taskDescription == "old")
+        #expect(task.type == .bug)
+        #expect(task.metadata == ["a": "1"])
+    }
+
+    @Test func milestoneProjectMismatch_taskUntouched() throws {
+        // Cross-project milestone mismatch combined with field updates. The
+        // mismatch is caught by `TaskUpdateValidator.validateMilestone` before
+        // `apply()` runs, so the validator-phase rejection — not the apply-phase
+        // rollback — is what keeps the task untouched here. Handler-level
+        // coverage of the actual apply-phase `taskService.rollback()` path is
+        // out of reach: validation catches every input the handler can
+        // construct. The rollback path itself is exercised by
+        // `TaskUpdateValidatorTests.apply_milestoneThrows_propagates_callerCanRollback`,
+        // which mutates the milestone's project between validate and apply.
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        let beta = makeProject(in: svc.context, name: "Beta")
+        let milestone = makeMilestone(in: svc.context, name: "Sprint 1", project: beta, displayId: 1)
+        let task = makeTask(in: svc.context, name: "Original", project: alpha, displayId: 10)
+        task.taskDescription = "old"
+        task.type = .bug
+        task.metadata = ["a": "1"]
+        _ = milestone
+        // Persist setup so post-update `hasChanges` reflects only the update call,
+        // not the test scaffolding's insert/mutation traffic.
+        try svc.context.save()
+
+        let input = """
+        {"displayId":10,"name":"NewName","description":"new desc",
+        "type":"chore","metadata":{"new":"val"},"milestoneDisplayId":1}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] != nil, "Expected error, got: \(parsed)")
+        // All field mutations must be rolled back
+        #expect(task.name == "Original")
+        #expect(task.taskDescription == "old")
+        #expect(task.type == .bug)
+        #expect(task.metadata == ["a": "1"])
+        #expect(task.milestone == nil)
+        #expect(!svc.context.hasChanges, "Context should be clean after rollback")
+    }
+
+    // MARK: - No-op + Unknown Fields (AC 6.x)
+
+    @Test func identifierOnly_doesNotSave_returnsCurrent() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.taskDescription = "desc"
+        task.metadata = ["a": "1"]
+        try svc.context.save()
+        let originalLastStatusChange = task.lastStatusChangeDate
+
+        let input = """
+        {"displayId":10}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["name"] as? String == "Task")
+        #expect(parsed["description"] as? String == "desc")
+        // No mutation → no timestamp tick from any side-effect
+        #expect(task.lastStatusChangeDate == originalLastStatusChange)
+        // Context should not have any pending changes either
+        #expect(!svc.context.hasChanges)
+    }
+
+    @Test func metadataEmpty_isMutation_triggersSave() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.metadata = ["a": "1"]
+
+        let input = """
+        {"displayId":10,"metadata":{}}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] == nil)
+        #expect(task.metadata.isEmpty)
+    }
+
+    @Test func unknownFieldsIgnored_doNotBlockNoOp() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.taskDescription = "desc"
+
+        let input = """
+        {"displayId":10,"frob":"bar"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["name"] as? String == "Task")
+        #expect(parsed["description"] as? String == "desc")
+        #expect(task.name == "Task")
+    }
+
+    // MARK: - Milestone Parity (AC 7.x)
+
+    @Test func updateMilestoneAndName_singleSave() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "Sprint 1", project: project, displayId: 1)
+        let task = makeTask(in: svc.context, name: "Original", project: project, displayId: 10)
+
+        let input = """
+        {"displayId":10,"name":"Renamed","milestoneDisplayId":1}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] == nil)
+        #expect(task.name == "Renamed")
+        #expect(task.milestone?.id == milestone.id)
+    }
+
+    /// Documents that clearMilestone on an already-unassigned task is treated
+    /// as a (redundant) save — acceptable per the design.
+    @Test func clearMilestone_onAlreadyUnassigned_savesAnyway() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        #expect(task.milestone == nil)
+
+        let input = """
+        {"displayId":10,"clearMilestone":true}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["milestone"] == nil, "Response should omit milestone when nil")
+        #expect(task.milestone == nil)
+    }
+
+    // MARK: - Response Shape (AC 9.1)
+
+    @Test func responseOmitsClearedDescriptionAndMetadata() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.taskDescription = "old"
+        task.metadata = ["a": "1"]
+
+        let input = """
+        {"displayId":10,"description":"","metadata":{}}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["description"] == nil)
+        #expect(parsed["metadata"] == nil)
+    }
+
+    @Test func responseExcludesCommentsAndDateFields() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task", project: project, displayId: 10)
+        task.taskDescription = "desc"
+
+        let input = """
+        {"displayId":10,"name":"Renamed"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["comments"] == nil)
+        #expect(parsed["creationDate"] == nil)
+        #expect(parsed["lastStatusChangeDate"] == nil)
+        #expect(parsed["completionDate"] == nil)
+    }
+
+    // MARK: - Parameter Description (AC 8.2)
+
+    @Test func inputParameterDescriptionContainsClearWording() {
+        // The Input @Parameter description must document the empty-string-clears
+        // semantic for description and the {} clears semantic for metadata so
+        // that Shortcuts users see the same field guidance the MCP tool schema
+        // provides. Asserted via the static test seam mirrored into the
+        // @Parameter declaration.
+        let description = UpdateTaskIntent.inputParameterDescription
+        #expect(description.contains("description"), "Parameter description should mention 'description'")
+        #expect(description.contains("metadata"), "Parameter description should mention 'metadata'")
+        // Substring "clear" must appear at least twice (description and metadata)
+        let occurrences = description.components(separatedBy: "clear").count - 1
+        #expect(
+            occurrences >= 2,
+            "Parameter description should mention 'clear' at least twice; got \(occurrences) occurrence(s)"
+        )
+    }
 }
+
+// swiftlint:enable type_body_length
+// swiftlint:enable file_length
