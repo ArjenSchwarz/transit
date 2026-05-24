@@ -276,6 +276,26 @@ struct TaskUpdateValidatorTests {
         #expect(isInvalidInput(error, contains: "type"), "Expected type-specific invalidInput, got \(error)")
     }
 
+    /// AC 3.1 requires exact lowercase match with no canonicalization. Guard
+    /// against a future well-intentioned case-insensitive change by asserting
+    /// that capitalised type strings (`Feature`, `BUG`, etc.) are rejected.
+    @Test func validate_typeCapitalized_rejects() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, project: project)
+
+        for value in ["Feature", "BUG", "Chore"] {
+            let result = TaskUpdateValidator.validate(
+                ["type": value], task: task, milestoneService: svc.milestone
+            )
+            let error = try unwrapFailure(result)
+            #expect(
+                isInvalidInput(error, contains: value),
+                "Expected capitalized type '\(value)' to be rejected with invalidInput, got \(error)"
+            )
+        }
+    }
+
     // MARK: - Metadata (AC 4.1–4.4)
 
     @Test func validate_metadataDict_replaces() throws {

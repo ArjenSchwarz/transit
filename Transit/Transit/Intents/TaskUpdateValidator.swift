@@ -96,6 +96,10 @@ enum TaskUpdateValidator {
         case .clear: [:]
         }
 
+        // Mirrors `ValidatedTaskUpdate.hasChanges` minus the milestone term
+        // (milestone is dispatched separately below). If a new non-milestone
+        // field is added to `ValidatedTaskUpdate`, extend this check too —
+        // otherwise the field will validate successfully but never be applied.
         let hasFieldChange = update.name != nil
             || update.description.isChange
             || update.type != nil

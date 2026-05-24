@@ -100,8 +100,7 @@ struct UpdateTaskAllFieldsParityTests {
         UpdateTaskIntent.execute(
             input: inputJSON,
             taskService: env.taskService,
-            milestoneService: env.milestoneService,
-            projectService: env.projectService
+            milestoneService: env.milestoneService
         )
     }
 

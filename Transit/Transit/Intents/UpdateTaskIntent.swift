@@ -60,16 +60,12 @@ struct UpdateTaskIntent: AppIntent {
     @Dependency
     private var milestoneService: MilestoneService
 
-    @Dependency
-    private var projectService: ProjectService
-
     @MainActor
     func perform() async throws -> some ReturnsValue<String> {
         let result = UpdateTaskIntent.execute(
             input: input,
             taskService: taskService,
-            milestoneService: milestoneService,
-            projectService: projectService
+            milestoneService: milestoneService
         )
         return .result(value: result)
     }
@@ -80,8 +76,7 @@ struct UpdateTaskIntent: AppIntent {
     static func execute(
         input: String,
         taskService: TaskService,
-        milestoneService: MilestoneService,
-        projectService: ProjectService
+        milestoneService: MilestoneService
     ) -> String {
         guard let json = IntentHelpers.parseJSON(input) else {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json

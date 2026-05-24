@@ -631,10 +631,16 @@ struct MCPUpdateTaskTests {
         #expect(task.metadata == ["a": "1"])
     }
 
-    @Test func applyThrows_taskUntouched() async throws {
-        // Drive an apply-time error via cross-project milestone mismatch
-        // while also requesting field updates. The handler must roll back
-        // any in-memory field mutations so the task fields are not modified.
+    @Test func milestoneProjectMismatch_taskUntouched() async throws {
+        // Cross-project milestone mismatch combined with field updates. The
+        // mismatch is caught by `TaskUpdateValidator.validateMilestone` before
+        // `apply()` runs, so the validator-phase rejection — not the apply-phase
+        // rollback — is what keeps the task untouched here. Handler-level
+        // coverage of the actual apply-phase `taskService.rollback()` path is
+        // out of reach: validation catches every input the handler can
+        // construct. The rollback path itself is exercised by
+        // `TaskUpdateValidatorTests.apply_milestoneThrows_propagates_callerCanRollback`,
+        // which mutates the milestone's project between validate and apply.
         let env = try MCPTestHelpers.makeEnv()
         let projectA = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
         let projectB = MCPTestHelpers.makeProject(in: env.context, name: "Beta")
