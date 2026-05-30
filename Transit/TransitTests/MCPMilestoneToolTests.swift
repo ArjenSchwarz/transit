@@ -237,6 +237,33 @@ struct MCPMilestoneToolTests {
         #expect(tasks.first?["name"] as? String == "Task A")
     }
 
+    // T-1392: The detailed milestone task list omitted the task's stable UUID
+    // (`taskId`). Without it, callers cannot reliably identify a task from the
+    // milestone detail — especially when the task has no permanent display ID.
+    // Each inline task dict must include `taskId` matching the task's UUID.
+    @Test func queryMilestoneByDisplayIdIncludesTaskIds() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let milestone = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: project
+        )
+        let task = try await env.taskService.createTask(
+            name: "Task A", description: nil, type: .feature, project: project
+        )
+        try env.milestoneService.setMilestone(milestone, on: task)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let first = try #require(results.first)
+        let tasks = try #require(first["tasks"] as? [[String: Any]])
+        let taskDict = try #require(tasks.first)
+        #expect(taskDict["taskId"] as? String == task.id.uuidString)
+    }
+
     @Test func queryMilestoneByDisplayIdNotFoundReturnsEmpty() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
