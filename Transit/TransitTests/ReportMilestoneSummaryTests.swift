@@ -3,7 +3,7 @@ import SwiftData
 import Testing
 @testable import Transit
 
-// MARK: - Milestone Summary Count Tests (regression for T-877)
+// MARK: - Milestone Summary Count Tests
 //
 // Bug: report summaries only counted tasks, so a report containing only terminal
 // milestones (no matching terminal tasks) rendered misleading summaries like
@@ -113,7 +113,7 @@ struct ReportMilestoneSummaryTests {
 
         let output = ReportMarkdownFormatter.format(data)
         // Must not render the misleading "0 tasks (0 done)" with no milestone mention.
-        #expect(output.contains("milestone"))
+        #expect(output.contains("**0 tasks** (0 done, 1 milestone done)"))
         #expect(!output.contains("**0 tasks** (0 done)\n"))
     }
 
@@ -145,5 +145,47 @@ struct ReportMilestoneSummaryTests {
         let output = ReportMarkdownFormatter.format(data)
         #expect(output.contains("**1 task** (1 done)"))
         #expect(!output.contains("milestone"))
+    }
+
+    @Test("Mixed tasks + milestones summary combines both counts")
+    func mixedTasksAndMilestonesSummary() {
+        let data = ReportData(
+            dateRangeLabel: "This Week",
+            projectGroups: [
+                ProjectGroup(
+                    id: UUID(),
+                    projectName: "Mixed",
+                    tasks: [
+                        ReportTask(
+                            id: UUID(), displayID: "T-1", name: "TaskA",
+                            taskType: .feature, isAbandoned: false,
+                            completionDate: .now, permanentDisplayId: 1,
+                            milestoneName: nil
+                        ),
+                        ReportTask(
+                            id: UUID(), displayID: "T-2", name: "TaskB",
+                            taskType: .bug, isAbandoned: false,
+                            completionDate: .now, permanentDisplayId: 2,
+                            milestoneName: nil
+                        )
+                    ],
+                    milestones: [
+                        ReportMilestone(
+                            id: UUID(), displayID: "M-1", name: "v1.0",
+                            isAbandoned: false, taskCount: 2
+                        )
+                    ]
+                )
+            ],
+            totalDone: 2,
+            totalAbandoned: 0,
+            totalMilestonesDone: 1,
+            totalMilestonesAbandoned: 0
+        )
+
+        let output = ReportMarkdownFormatter.format(data)
+        // Top-level header and per-project summary both combine task and milestone counts.
+        #expect(output.contains("**2 tasks** (2 done, 1 milestone done)"))
+        #expect(output.contains("2 done, 1 milestone done"))
     }
 }
