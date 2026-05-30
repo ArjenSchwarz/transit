@@ -2,6 +2,10 @@ import SwiftData
 import SwiftUI
 
 struct AddTaskSheet: View {
+    // Several members below are `internal` (not `private`) so the
+    // `AddTaskSheet+Save.swift` extension can reach them. The split exists to
+    // keep this type under SwiftLint's type-body-length limit; the access
+    // widening is incidental, so do not re-tighten these to `private`.
     @Environment(TaskService.self) var taskService
     @Environment(ProjectService.self) private var projectService
     @Environment(MilestoneService.self) var milestoneService
