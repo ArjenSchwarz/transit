@@ -128,18 +128,8 @@ struct QueryTasksIntent: AppIntent {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json
         }
 
-        // Validate projectId filter if present
-        if let error = validateProjectFilter(filters, projectService: projectService) {
-            return error.json
-        }
-
-        // Validate enum filters if present
-        if let error = validateEnumFilters(filters) {
-            return error.json
-        }
-
-        // Validate date filters if present
-        if let error = validateDateFilters(filters) {
+        // Validate projectId, enum, and date filters if present
+        if let error = validateFilters(filters, projectService: projectService) {
             return error.json
         }
 
@@ -196,6 +186,16 @@ struct QueryTasksIntent: AppIntent {
             return nil
         }
         return try? JSONDecoder().decode(QueryFilters.self, from: data)
+    }
+
+    /// Runs all pre-lookup filter validations, returning the first error encountered.
+    @MainActor private static func validateFilters(
+        _ filters: QueryFilters,
+        projectService: ProjectService
+    ) -> IntentError? {
+        validateProjectFilter(filters, projectService: projectService)
+            ?? validateEnumFilters(filters)
+            ?? validateDateFilters(filters)
     }
 
     @MainActor private static func validateProjectFilter(

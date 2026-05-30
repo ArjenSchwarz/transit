@@ -61,36 +61,21 @@ struct QueryMilestonesIntent: AppIntent {
             return error.json
         }
 
-        // Validate enum filters before any lookup. When the key is present it MUST be a string —
-        // a non-string value (e.g. integer, boolean, array, null) would otherwise be silently
-        // dropped by `as? String` and the filter ignored entirely [T-830]. Validation runs
-        // even when displayId is present so malformed filters can't bypass it [T-963].
-        if json["status"] != nil {
-            guard let status = json["status"] as? String else {
-                return IntentError.invalidStatus(hint: "status must be a string").json
-            }
-            guard MilestoneStatus(rawValue: status) != nil else {
-                return IntentError.invalidStatus(hint: "Unknown status: \(status)").json
-            }
-        }
-
-        // Validate `project` name filter type [T-1116]. A present-but-non-string value
-        // (e.g. number, boolean, array) must surface INVALID_INPUT instead of being silently
-        // dropped by `as? String`, which would return every milestone.
-        if json["project"] != nil, !(json["project"] is String) {
-            return IntentError.invalidInput(hint: "project must be a string").json
+        // Validate enum and `project` name filters before any lookup. Validation runs even
+        // when displayId is present so malformed filters can't bypass it [T-963].
+        if let validationError = validateFilters(json) {
+            return validationError.json
         }
 
         // Single-milestone lookup by displayId. Remaining filters still apply conjunctively —
         // a milestone that does not satisfy them is filtered out, mirroring QueryTasksIntent [T-963].
         if let displayIdValue = json["displayId"] {
             let displayId: Int
-            if let intVal = displayIdValue as? Int {
-                displayId = intVal
-            } else if let doubleVal = displayIdValue as? Double, let intVal = Int(exactly: doubleVal) {
-                displayId = intVal
-            } else {
-                return IntentError.invalidInput(hint: "displayId must be an integer").json
+            switch coerceDisplayId(displayIdValue) {
+            case .success(let value):
+                displayId = value
+            case .failure(let error):
+                return error.json
             }
 
             let milestone: Milestone
@@ -119,6 +104,35 @@ struct QueryMilestonesIntent: AppIntent {
             return [:]
         }
         return IntentHelpers.parseJSON(trimmed)
+    }
+
+    /// Validates the `status` and `project` filters when present. When a key is present it MUST
+    /// be a string — a non-string value (e.g. integer, boolean, array, null) would otherwise be
+    /// silently dropped by `as? String` and the filter ignored entirely [T-830, T-1116].
+    private static func validateFilters(_ json: [String: Any]) -> IntentError? {
+        if json["status"] != nil {
+            guard let status = json["status"] as? String else {
+                return .invalidStatus(hint: "status must be a string")
+            }
+            guard MilestoneStatus(rawValue: status) != nil else {
+                return .invalidStatus(hint: "Unknown status: \(status)")
+            }
+        }
+        if json["project"] != nil, !(json["project"] is String) {
+            return .invalidInput(hint: "project must be a string")
+        }
+        return nil
+    }
+
+    /// Coerces a raw JSON `displayId` value into an `Int`, accepting integer-valued doubles.
+    private static func coerceDisplayId(_ value: Any) -> Result<Int, IntentError> {
+        if let intVal = value as? Int {
+            return .success(intVal)
+        }
+        if let doubleVal = value as? Double, let intVal = Int(exactly: doubleVal) {
+            return .success(intVal)
+        }
+        return .failure(.invalidInput(hint: "displayId must be an integer"))
     }
 
     @MainActor
