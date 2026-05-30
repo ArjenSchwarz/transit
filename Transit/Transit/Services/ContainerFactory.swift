@@ -18,9 +18,20 @@ enum ContainerFactory {
 
     /// Attempts to create a `ModelContainer` with the given configuration.
     /// If that fails, creates an in-memory fallback so the app can still launch.
-    static func makeContainer(schema: Schema, configuration: ModelConfiguration) -> ContainerOutcome {
+    ///
+    /// `makePrimary` is injectable so tests can exercise the fallback path
+    /// deterministically: SwiftData opens its store lazily, so a bogus store URL
+    /// no longer fails at init, making filesystem-based failure injection
+    /// unreliable. Production uses the default, which creates the real container.
+    static func makeContainer(
+        schema: Schema,
+        configuration: ModelConfiguration,
+        makePrimary: (Schema, ModelConfiguration) throws -> ModelContainer = {
+            try ModelContainer(for: $0, configurations: [$1])
+        }
+    ) -> ContainerOutcome {
         do {
-            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let container = try makePrimary(schema, configuration)
             return ContainerOutcome(container: container, error: nil)
         } catch {
             logger.error("ModelContainer init failed: \(error.localizedDescription). Falling back to in-memory store.")

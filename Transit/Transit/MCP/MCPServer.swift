@@ -101,8 +101,9 @@ final class MCPServer {
         // Stage 1: confirm the bytes are well-formed JSON. `.fragmentsAllowed`
         // lets scalar roots through so they reach the shape check (and become
         // Invalid Request rather than Parse error).
+        let parsed: Any
         do {
-            _ = try JSONSerialization.jsonObject(
+            parsed = try JSONSerialization.jsonObject(
                 with: data, options: [.fragmentsAllowed]
             )
         } catch {
@@ -110,6 +111,21 @@ final class MCPServer {
                 id: nil,
                 code: JSONRPCErrorCode.parseError,
                 message: "Parse error"
+            ))
+        }
+
+        // A present-but-non-string `jsonrpc` member is a structurally invalid
+        // request (-32600), not a parse error. `JSONRPCRequest`'s decoder is
+        // intentionally lenient — it coerces a non-string `jsonrpc` to "" so the
+        // handler's version check can reject it (T-1106) — so the shape failure
+        // is detected here to honor this method's documented contract (T-1128).
+        if let object = parsed as? [String: Any],
+           object["jsonrpc"] != nil,
+           !(object["jsonrpc"] is String) {
+            return .failure(JSONRPCResponse.error(
+                id: nil,
+                code: JSONRPCErrorCode.invalidRequest,
+                message: "Invalid Request"
             ))
         }
 
