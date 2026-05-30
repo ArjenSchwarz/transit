@@ -2,11 +2,7 @@ import Foundation
 import Testing
 @testable import Transit
 
-// MARK: - ReportMilestone taskCountLabel Tests
-//
-// Regression tests for T-879: ReportView pluralized one-task milestones as
-// "1 tasks". The pluralization now lives in `ReportMilestone.taskCountLabel`,
-// shared by both the SwiftUI ReportView and the markdown formatter.
+// Regression tests for T-879: taskCountLabel pluralization
 
 @MainActor
 @Suite("ReportMilestone taskCountLabel")
