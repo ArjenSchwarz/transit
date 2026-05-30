@@ -210,7 +210,7 @@ struct NonStringMilestoneArgTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -234,7 +234,7 @@ struct NonStringMilestoneArgTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -258,7 +258,7 @@ struct NonStringMilestoneArgTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -282,7 +282,7 @@ struct NonStringMilestoneArgTests {
 
         let result = UpdateTaskIntent.execute(
             input: input, taskService: svc.task,
-            milestoneService: svc.milestone, projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)

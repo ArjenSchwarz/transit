@@ -4,7 +4,6 @@ import SwiftUI
 struct ProjectEditView: View {
     let project: Project?
     @Environment(ProjectService.self) private var projectService
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.resolvedTheme) private var resolvedTheme
 
@@ -154,22 +153,24 @@ struct ProjectEditView: View {
         let trimmedRepo = gitRepo.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let project {
-            // When renaming, check for conflicts with other projects.
-            if projectService.projectNameExists(trimmedName, excluding: project.id) {
-                errorMessage = "A project named \"\(trimmedName)\" already exists."
-                return
-            }
-            project.name = trimmedName
-            project.projectDescription = trimmedDesc
-            project.gitRepo = trimmedRepo.isEmpty ? nil : trimmedRepo
-            project.colorHex = color.hexString
             do {
-                try modelContext.save()
+                try projectService.updateProject(
+                    project,
+                    name: trimmedName,
+                    description: trimmedDesc,
+                    gitRepo: trimmedRepo.isEmpty ? nil : trimmedRepo,
+                    colorHex: color.hexString
+                )
+            } catch ProjectMutationError.invalidName {
+                errorMessage = "Project name cannot be empty."
+                return
+            } catch ProjectMutationError.duplicateName(let conflictingName) {
+                errorMessage = "A project named \"\(conflictingName)\" already exists."
+                return
             } catch {
-                // Rollback reverts the model to its last-persisted values. The @State
-                // variables (name, projectDescription, etc.) are unaffected, so the form
-                // keeps the user's in-progress edits for retry.
-                modelContext.safeRollback()
+                // updateProject rolls back on save failure, reverting the model to its
+                // last-persisted values. The @State variables (name, projectDescription,
+                // etc.) are unaffected, so the form keeps the user's in-progress edits.
                 errorMessage = "Could not save project. Please try again."
                 return
             }

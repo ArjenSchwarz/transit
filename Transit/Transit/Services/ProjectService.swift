@@ -53,6 +53,45 @@ final class ProjectService {
         return project
     }
 
+    // MARK: - Update
+
+    /// Updates an existing project's editable fields, enforcing the same
+    /// name invariants as creation.
+    ///
+    /// Throws `ProjectMutationError.invalidName` if the trimmed name is empty,
+    /// or `ProjectMutationError.duplicateName` if a *different* project already
+    /// uses the same name (case-insensitive). The project's own current name is
+    /// ignored, so renaming to the same name (or a case variant) is allowed.
+    ///
+    /// The name is stored trimmed. On save failure the context is rolled back
+    /// (re-faulting all models) so the project's in-memory properties revert to
+    /// their last-persisted values, and the error is rethrown.
+    func updateProject(
+        _ project: Project,
+        name: String,
+        description: String,
+        gitRepo: String?,
+        colorHex: String
+    ) throws {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            throw ProjectMutationError.invalidName
+        }
+        if projectNameExists(trimmedName, excluding: project.id) {
+            throw ProjectMutationError.duplicateName(trimmedName)
+        }
+        project.name = trimmedName
+        project.projectDescription = description
+        project.gitRepo = gitRepo
+        project.colorHex = colorHex
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.safeRollback()
+            throw error
+        }
+    }
+
     // MARK: - Lookup
 
     /// Finds a project by UUID or by name (case-insensitive, trimmed).
