@@ -183,6 +183,26 @@ struct BoolAsIntIdRejectionTests {
         // Task must NOT have been assigned to M-1.
         #expect(task.milestone == nil)
     }
+
+    // MARK: - CreateTaskIntent.execute via milestoneDisplayId
+    /// T-1283: `CreateTaskIntent.execute` must reject a boolean `milestoneDisplayId` with
+    /// INVALID_INPUT instead of silently assigning M-1 (`true` bridges to `Int(1)`).
+    @Test func createTaskIntentRejectsBooleanMilestoneDisplayId() async throws {
+        let svc = try makeIntentServices()
+        let project = makeProject(in: svc.context)
+        let milestone = Milestone(name: "Sprint 1", project: project, displayID: .permanent(1))
+        svc.context.insert(milestone)
+        let input = """
+        {"name": "Task", "type": "bug", "project": "Test", "milestoneDisplayId": true}
+        """
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task,
+            projectService: svc.project, milestoneService: svc.milestone
+        )
+        #expect(result.contains("milestoneDisplayId must be an integer"))
+        #expect(result.contains("INVALID_INPUT"))
+        #expect(milestone.tasks?.isEmpty ?? true)
+    }
 }
 
 // MARK: - MCP-Level Regression Tests
