@@ -1,4 +1,7 @@
 excluded:
+  - .build
+  - .claude
   - .codex-cache
+  - build
   - DerivedData
   - specs
