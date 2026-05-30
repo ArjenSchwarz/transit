@@ -38,6 +38,11 @@ struct ReportMilestone: Identifiable {
     let name: String
     let isAbandoned: Bool
     let taskCount: Int
+
+    /// Human-facing task count with correct pluralization (e.g. "1 task", "3 tasks").
+    var taskCountLabel: String {
+        taskCount == 1 ? "1 task" : "\(taskCount) tasks"
+    }
 }
 
 struct ReportTask: Identifiable {

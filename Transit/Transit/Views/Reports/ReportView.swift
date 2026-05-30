@@ -149,7 +149,7 @@ struct ReportView: View {
                     .fontWeight(.medium)
             }
 
-            Text("\(milestone.taskCount) tasks")
+            Text(milestone.taskCountLabel)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
