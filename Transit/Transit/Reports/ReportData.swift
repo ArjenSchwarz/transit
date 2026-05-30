@@ -82,6 +82,10 @@ struct ReportMilestone: Identifiable {
     let name: String
     let isAbandoned: Bool
     let taskCount: Int
+
+    var taskCountLabel: String {
+        taskCount == 1 ? "1 task" : "\(taskCount) tasks"
+    }
 }
 
 struct ReportTask: Identifiable {

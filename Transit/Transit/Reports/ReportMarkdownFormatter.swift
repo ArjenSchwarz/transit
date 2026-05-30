@@ -56,7 +56,7 @@ enum ReportMarkdownFormatter {
 
     private static func formatMilestone(_ milestone: ReportMilestone) -> String {
         let name = sanitize(milestone.name)
-        let taskLabel = milestone.taskCount == 1 ? "1 task" : "\(milestone.taskCount) tasks"
+        let taskLabel = milestone.taskCountLabel
         if milestone.isAbandoned {
             return "- ~~\(milestone.displayID): \(name)~~ (Abandoned, \(taskLabel))"
         }
