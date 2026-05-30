@@ -442,5 +442,42 @@ struct QueryMilestonesIntentTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
         #expect((parsed["hint"] as? String)?.contains("projectId") == true)
     }
+
+    // T-1280: A JSON boolean displayId must be rejected with INVALID_INPUT, not coerced
+    // to 1/0 and silently targeting M-1/M-0. `JSONSerialization` delivers `true`/`false`
+    // as `NSNumber(CFBoolean)`, which satisfies `as? Int`; the fix routes parsing through
+    // `IntentHelpers.parseIntValue`, which rejects CFBoolean.
+    @Test func booleanDisplayIdTrueReturnsError() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":true}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("displayId must be an integer") == true)
+    }
+
+    // T-1280: `false` must be rejected too (it would otherwise coerce to displayId 0).
+    @Test func booleanDisplayIdFalseReturnsError() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":false}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("displayId must be an integer") == true)
+    }
 }
 // swiftlint:enable type_body_length
