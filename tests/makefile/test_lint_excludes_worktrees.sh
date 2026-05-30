@@ -36,6 +36,13 @@ pass() {
     echo "PASS: $*"
 }
 
+# This test relies on `.claude/` being a tracked directory in the checkout so
+# that plant() registers only the throwaway `.claude/worktrees` subtree for
+# cleanup, never the tracked prefix. Assert the assumption explicitly so a
+# fresh checkout that lacks `.claude/` fails loudly instead of silently
+# rm -rf'ing a directory the test created at the tracked prefix.
+[ -d .claude ] || fail "expected tracked '.claude/' directory in checkout root"
+
 # Bad.swift triggers opening_brace and other style rules deterministically.
 BAD_SWIFT_CONTENT=$'class  Bad{\nvar x=1\nfunc y( ){return}\n}\n'
 
@@ -85,9 +92,9 @@ plant "build/Bad.swift"
 
 # Run SwiftLint exactly as `make lint` does (same flags), capturing output.
 # Use a private cache so we don't pollute the workspace cache.
-lint_out="$(swiftlint lint --strict --cache-path "$CACHE" 2>&1 || true)"
+lint_out="$(swiftlint lint --strict --config "$ROOT/.swiftlint.yml" --cache-path "$CACHE" 2>&1 || true)"
 
-for excluded in ".claude/worktrees" ".build/" "build/"; do
+for excluded in "\.claude/worktrees/" "/\.build/" "/build/Bad\.swift"; do
     if echo "$lint_out" | grep -q "$excluded"; then
         echo "$lint_out" | grep "$excluded" | head -3 >&2
         fail "SwiftLint reported violations under an excluded path: $excluded"
