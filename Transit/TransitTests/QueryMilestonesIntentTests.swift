@@ -497,5 +497,73 @@ struct QueryMilestonesIntentTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
         #expect((parsed["hint"] as? String)?.contains("displayId must be an integer") == true)
     }
+
+    // MARK: - T-1156: non-string search filter must be rejected, not silently dropped
+
+    @Test func numericSearchReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        makeMilestone(in: svc.context, name: "v1.0", project: alpha, displayId: 1)
+
+        // Numeric `search` must not fall through to "no filter applied".
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"search\":123}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("search") == true)
+    }
+
+    @Test func booleanSearchReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        makeMilestone(in: svc.context, name: "v1.0", project: alpha, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"search\":true}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("search") == true)
+    }
+
+    @Test func arraySearchReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        makeMilestone(in: svc.context, name: "v1.0", project: alpha, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"search\":[\"v1\"]}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("search") == true)
+    }
+
+    // T-1156: displayId + non-string search must be rejected, not bypass validation.
+    @Test func displayIdWithNumericSearchReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":1,\"search\":123}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("search") == true)
+    }
 }
 // swiftlint:enable type_body_length

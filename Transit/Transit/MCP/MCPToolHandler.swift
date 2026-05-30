@@ -434,6 +434,12 @@ final class MCPToolHandler {
             return errorResult("unfinished must be a boolean")
         }
 
+        // Reject non-string `search` filter [T-1156]. A present non-string value must not be
+        // silently dropped by `as? String`, which would broaden results instead of erroring.
+        if args["search"] != nil, !(args["search"] is String) {
+            return errorResult("search must be a string")
+        }
+
         let search = (args["search"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let filters = MCPQueryFilters.from(
             args: args, type: args["type"] as? String, projectId: projectFilter,
@@ -555,6 +561,12 @@ extension MCPToolHandler {
 
         // Status filter — validate enum values before filtering [T-732]
         if let error = validateEnumFilter(args, key: "status", type: MilestoneStatus.self) { return error }
+
+        // Reject non-string `search` filter [T-1156]. Validated before the displayId branch so a
+        // malformed value can't bypass validation by silently dropping through `as? String`.
+        if args["search"] != nil, !(args["search"] is String) {
+            return errorResult("search must be a string")
+        }
 
         // Single-milestone lookup by displayId. Remaining filters still apply conjunctively —
         // a milestone that does not satisfy them is filtered out, mirroring handleQueryTasks [T-963].

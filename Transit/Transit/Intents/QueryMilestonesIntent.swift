@@ -105,9 +105,9 @@ struct QueryMilestonesIntent: AppIntent {
         return IntentHelpers.parseJSON(trimmed)
     }
 
-    /// Validates the `status` and `project` filters when present. When a key is present it MUST
-    /// be a string — a non-string value (e.g. integer, boolean, array, null) would otherwise be
-    /// silently dropped by `as? String` and the filter ignored entirely [T-830, T-1116].
+    /// Validates the `status`, `project`, and `search` filters when present. When a key is present
+    /// it MUST be a string — a non-string value (e.g. integer, boolean, array, null) would otherwise
+    /// be silently dropped by `as? String` and the filter ignored entirely [T-830, T-1116, T-1156].
     private static func validateFilters(_ json: [String: Any]) -> IntentError? {
         if json["status"] != nil {
             guard let status = json["status"] as? String else {
@@ -119,6 +119,11 @@ struct QueryMilestonesIntent: AppIntent {
         }
         if json["project"] != nil, !(json["project"] is String) {
             return .invalidInput(hint: "project must be a string")
+        }
+        // A present non-string `search` would be silently dropped by `as? String` in
+        // applyFilters, ignoring the filter entirely. Reject it instead [T-1156].
+        if json["search"] != nil, !(json["search"] is String) {
+            return .invalidInput(hint: "search must be a string")
         }
         return nil
     }
