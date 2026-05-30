@@ -88,7 +88,10 @@ final class TaskService {
 
         let displayID: DisplayID
         do {
-            let id = try await displayIDAllocator.allocateNextID()
+            // Pass the set of display IDs already committed locally so the
+            // allocator never hands back one that is in use, even if a stale
+            // counter read points at an occupied value (T-1395).
+            let id = try await displayIDAllocator.allocateNextID(excluding: usedDisplayIDs())
             displayID = .permanent(id)
         } catch {
             displayID = .provisional
@@ -294,6 +297,17 @@ final class TaskService {
             throw Error.taskNotFound
         }
         return task
+    }
+
+    /// Returns the set of permanent display IDs already committed to the local
+    /// store. Used to keep newly allocated IDs collision-free (T-1395). Failures
+    /// degrade to an empty set so allocation still proceeds.
+    private func usedDisplayIDs() -> Set<Int> {
+        let descriptor = FetchDescriptor<TransitTask>(
+            predicate: #Predicate { $0.permanentDisplayId != nil }
+        )
+        guard let tasks = try? modelContext.fetch(descriptor) else { return [] }
+        return Set(tasks.compactMap(\.permanentDisplayId))
     }
 
     /// Finds a task by its permanent display ID. Throws on not-found or duplicates.

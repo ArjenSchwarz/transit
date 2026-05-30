@@ -36,6 +36,18 @@ final class DisplayIDAllocator: @unchecked Sendable {
     /// class is @unchecked Sendable.
     private var isPromotingTasks = false
 
+    /// Serialises `allocateNextID` so two concurrent callers cannot interleave
+    /// their load→compare-and-swap cycles (T-1395). Without this, re-entrant
+    /// `async` allocations (e.g. overlapping MCP/intent task creates suspending
+    /// at the CloudKit `await`) all read the same counter snapshot, then fight
+    /// over the same CAS — burning the retry budget and, against an eventually
+    /// consistent counter read, risking duplicate IDs. The gate makes allocation
+    /// strictly sequential within the process; cross-process safety still relies
+    /// on the CounterStore's compare-and-swap.
+    ///
+    /// Must only be accessed from @MainActor callers (see note above).
+    private var allocationGate: AllocationGate = .init()
+
     init(store: CounterStore, retryLimit: Int = 5) {
         self.counterStore = store
         self.retryLimit = max(1, retryLimit)
@@ -64,20 +76,55 @@ final class DisplayIDAllocator: @unchecked Sendable {
 
     /// Allocates the next sequential display ID. Retries on conflict up to
     /// `retryLimit` times.
-    func allocateNextID() async throws -> Int {
+    ///
+    /// `excluding` is a set of display IDs already known to be in use locally
+    /// (e.g. committed tasks/milestones). When the counter hands back an ID that
+    /// collides with this set — which can happen if a peer device or a
+    /// concurrent process already consumed it and our counter read was stale —
+    /// the counter is advanced past the collision and allocation is retried so a
+    /// duplicate ID is never returned (T-1395).
+    ///
+    /// Allocation is serialised in-process via `allocationGate` so concurrent
+    /// callers run their load→CAS cycles one at a time.
+    func allocateNextID(excluding usedIDs: Set<Int> = []) async throws -> Int {
+        try await allocationGate.run {
+            try await self.allocateLocked(excluding: usedIDs)
+        }
+    }
+
+    /// The actual allocation loop. Only ever runs while the caller holds the
+    /// allocation gate, so reads and CAS writes do not interleave with another
+    /// in-process allocation.
+    private func allocateLocked(excluding usedIDs: Set<Int>) async throws -> Int {
         var attempt = 0
         while attempt < retryLimit {
             attempt += 1
 
             let snapshot = try await counterStore.loadCounter()
-            let allocatedID = snapshot.nextDisplayID
+            let candidate = snapshot.nextDisplayID
+
+            // If the counter points at an ID that is already committed locally,
+            // skip past the whole occupied range in one CAS instead of handing
+            // back a duplicate.
+            if usedIDs.contains(candidate) {
+                let advancedTo = (usedIDs.max() ?? candidate) + 1
+                do {
+                    try await counterStore.saveCounter(
+                        nextDisplayID: advancedTo,
+                        expectedChangeTag: snapshot.changeTag
+                    )
+                } catch let error as Error where error == .conflict {
+                    // Another writer moved the counter; re-read and try again.
+                }
+                continue
+            }
 
             do {
                 try await counterStore.saveCounter(
-                    nextDisplayID: allocatedID + 1,
+                    nextDisplayID: candidate + 1,
                     expectedChangeTag: snapshot.changeTag
                 )
-                return allocatedID
+                return candidate
             } catch let error as Error where error == .conflict {
                 continue
             }
@@ -109,7 +156,10 @@ final class DisplayIDAllocator: @unchecked Sendable {
 
         for task in tasks {
             do {
-                let newID = try await allocateNextID()
+                // Exclude IDs already committed locally (recomputed each pass so
+                // just-promoted IDs are included) so promotion never assigns a
+                // duplicate (T-1395).
+                let newID = try await allocateNextID(excluding: Self.usedTaskDisplayIDs(in: context))
                 task.permanentDisplayId = newID
                 try save(context)
             } catch {
@@ -119,6 +169,58 @@ final class DisplayIDAllocator: @unchecked Sendable {
                 // Stop on first failure -- remaining tasks will be retried next pass.
                 break
             }
+        }
+    }
+
+    /// Permanent task display IDs already committed to `context`. Used to keep
+    /// promotion allocations collision-free (T-1395). Failures degrade to an
+    /// empty set so promotion still proceeds.
+    private static func usedTaskDisplayIDs(in context: ModelContext) -> Set<Int> {
+        let descriptor = FetchDescriptor<TransitTask>(
+            predicate: #Predicate { $0.permanentDisplayId != nil }
+        )
+        guard let tasks = try? context.fetch(descriptor) else { return [] }
+        return Set(tasks.compactMap(\.permanentDisplayId))
+    }
+}
+
+// MARK: - Allocation serialisation
+
+/// A FIFO async mutex used to serialise display-ID allocation within a process.
+///
+/// `allocateNextID` is `async` and suspends at the CloudKit `await`, so without
+/// a gate two overlapping callers would both read the same counter snapshot
+/// before either writes it back. This actor admits one `run` body at a time and
+/// hands the lock to waiters in arrival order, so allocations execute strictly
+/// sequentially even when many callers race.
+private actor AllocationGate {
+    private var isLocked = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    /// Runs `body` while holding the lock. Other callers queue until it returns.
+    func run<T: Sendable>(_ body: @Sendable () async throws -> T) async rethrows -> T {
+        await acquire()
+        defer { release() }
+        return try await body()
+    }
+
+    private func acquire() async {
+        if !isLocked {
+            isLocked = true
+            return
+        }
+        await withCheckedContinuation { continuation in
+            waiters.append(continuation)
+        }
+    }
+
+    private func release() {
+        if waiters.isEmpty {
+            isLocked = false
+        } else {
+            // Hand the lock directly to the next waiter (stays locked).
+            let next = waiters.removeFirst()
+            next.resume()
         }
     }
 }
