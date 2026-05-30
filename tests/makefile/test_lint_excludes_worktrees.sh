@@ -48,11 +48,24 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Create a guaranteed-bad Swift file at $1 (registering its top dir $2 for cleanup).
+# Create a guaranteed-bad Swift file at $1, registering the highest directory we
+# actually create for cleanup. We walk up from the file's directory to the first
+# ancestor that does NOT already exist in the repo, so a tracked prefix (e.g.
+# `.claude/`) is left untouched while the throwaway subtree is removed on exit.
 plant() {
-    local file="$1" top="$2"
-    [ -e "$top" ] || created_paths+=("$top")
-    mkdir -p "$(dirname "$file")"
+    local file="$1"
+    local dir
+    dir="$(dirname "$file")"
+
+    # Find the topmost not-yet-existing ancestor of the target directory.
+    local newest="$dir"
+    local parent
+    while parent="$(dirname "$newest")"; [ "$parent" != "$newest" ] && [ ! -e "$parent" ]; do
+        newest="$parent"
+    done
+    [ -e "$newest" ] || created_paths+=("$newest")
+
+    mkdir -p "$dir"
     printf '%s' "$BAD_SWIFT_CONTENT" > "$file"
 }
 
@@ -60,20 +73,21 @@ CACHE="$(mktemp -d)"
 created_paths+=("$CACHE")
 
 # 1. Claude worktree with nested DerivedData/SwiftPM checkout — the exact shape
-#    described in T-1347.
-plant ".claude/worktrees/regression-wt/DerivedData/SourcePackages/checkouts/Dep/Bad.swift" ".claude"
+#    described in T-1347. `.claude` itself is tracked, so plant() only registers
+#    the throwaway `.claude/worktrees` subtree for cleanup.
+plant ".claude/worktrees/regression-wt/DerivedData/SourcePackages/checkouts/Dep/Bad.swift"
 
 # 2. SwiftPM build output in the current checkout.
-plant ".build/checkouts/Dep/Bad.swift" ".build"
+plant ".build/checkouts/Dep/Bad.swift"
 
 # 3. Xcode build output in the current checkout.
-plant "build/Bad.swift" "build"
+plant "build/Bad.swift"
 
 # Run SwiftLint exactly as `make lint` does (same flags), capturing output.
 # Use a private cache so we don't pollute the workspace cache.
 lint_out="$(swiftlint lint --strict --cache-path "$CACHE" 2>&1 || true)"
 
-for excluded in ".claude/worktrees" ".build/" "build/Bad.swift"; do
+for excluded in ".claude/worktrees" ".build/" "build/"; do
     if echo "$lint_out" | grep -q "$excluded"; then
         echo "$lint_out" | grep "$excluded" | head -3 >&2
         fail "SwiftLint reported violations under an excluded path: $excluded"
