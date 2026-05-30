@@ -123,10 +123,26 @@ struct QueryTasksIntent: AppIntent {
         taskService: TaskService,
         milestoneService: MilestoneService
     ) -> String {
-        let filters = parseInput(input)
-        guard let filters else {
-            return IntentError.invalidInput(hint: "Expected valid JSON object").json
+        switch parseInput(input) {
+        case .failure(let error):
+            return error.json
+        case .success(let filters):
+            return execute(
+                filters: filters,
+                projectService: projectService,
+                taskService: taskService,
+                milestoneService: milestoneService
+            )
         }
+    }
+
+    @MainActor
+    private static func execute(
+        filters: QueryFilters,
+        projectService: ProjectService,
+        taskService: TaskService,
+        milestoneService: MilestoneService
+    ) -> String {
 
         // Validate projectId, enum, and date filters if present
         if let error = validateFilters(filters, projectService: projectService) {
@@ -178,14 +194,26 @@ struct QueryTasksIntent: AppIntent {
 
     // MARK: - Private Helpers
 
-    @MainActor private static func parseInput(_ input: String) -> QueryFilters? {
+    /// Parses the input JSON into `QueryFilters`, rejecting any filter key whose value is
+    /// an explicit JSON `null`. `JSONDecoder`'s synthesized `decodeIfPresent` cannot tell a
+    /// present-but-null value from an omitted key, so we inspect the raw object separately
+    /// for `NSNull` values before decoding. This matches the presence-vs-validity validation
+    /// used by the MCP/JSONSerialization paths. [T-1406]
+    @MainActor private static func parseInput(_ input: String) -> Result<QueryFilters, IntentError> {
         if input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return QueryFilters()
+            return .success(QueryFilters())
         }
-        guard let data = input.data(using: .utf8) else {
-            return nil
+        guard let data = input.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return .failure(.invalidInput(hint: "Expected valid JSON object"))
         }
-        return try? JSONDecoder().decode(QueryFilters.self, from: data)
+        if let nullKey = object.first(where: { $0.value is NSNull })?.key {
+            return .failure(.invalidInput(hint: "Filter \"\(nullKey)\" must not be null"))
+        }
+        guard let filters = try? JSONDecoder().decode(QueryFilters.self, from: data) else {
+            return .failure(.invalidInput(hint: "Expected valid JSON object"))
+        }
+        return .success(filters)
     }
 
     /// Runs all pre-lookup filter validations, returning the first error encountered.
