@@ -247,6 +247,14 @@ final class MCPToolHandler {
             resolvedMilestone = milestone
         }
 
+        // When the optional description key is present it MUST be a string. A
+        // non-string value (number, boolean, array, null) would otherwise be
+        // silently dropped by `as? String`, making a malformed request look
+        // successful [T-1192].
+        if args["description"] != nil, args["description"] as? String == nil {
+            return errorResult("description must be a string")
+        }
+
         let task: TransitTask
         do {
             task = try await taskService.createTask(
@@ -504,6 +512,14 @@ extension MCPToolHandler {
             project = found
         case .failure(let error):
             return errorResult(IntentHelpers.mapProjectLookupError(error).hint)
+        }
+
+        // When the optional description key is present it MUST be a string. A
+        // non-string value (number, boolean, array, null) would otherwise be
+        // silently dropped by `as? String`, making a malformed request look
+        // successful [T-1192].
+        if args["description"] != nil, args["description"] as? String == nil {
+            return errorResult("description must be a string")
         }
 
         let milestone: Milestone
