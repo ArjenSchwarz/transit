@@ -49,6 +49,16 @@ struct UpdateStatusIntent: AppIntent {
             return IntentError.invalidStatus(hint: "Unknown status: \(statusString)").json
         }
 
+        // No identifier at all is a malformed request (INVALID_INPUT), distinct
+        // from a well-formed identifier that matches no task (TASK_NOT_FOUND).
+        // `resolveTask` throws `taskNotFound` for missing keys by design, so the
+        // distinction is made here rather than in the shared resolver.
+        guard json["displayId"] != nil || json["taskId"] != nil else {
+            return IntentError.invalidInput(
+                hint: "Provide either displayId (integer) or taskId (UUID)"
+            ).json
+        }
+
         let task: TransitTask
         do {
             task = try taskService.resolveTask(from: json)
