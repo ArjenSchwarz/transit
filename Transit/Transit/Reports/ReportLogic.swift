@@ -52,15 +52,19 @@ enum ReportLogic {
         }
         .sorted { $0.projectName.localizedCaseInsensitiveCompare($1.projectName) == .orderedAscending }
 
-        // 6. Compute summary counts from group-level counts
+        // 6. Compute summary counts from group-level counts (tasks and milestones)
         let totalDone = projectGroups.reduce(0) { $0 + $1.doneCount }
         let totalAbandoned = projectGroups.reduce(0) { $0 + $1.abandonedCount }
+        let totalMilestonesDone = projectGroups.reduce(0) { $0 + $1.doneMilestoneCount }
+        let totalMilestonesAbandoned = projectGroups.reduce(0) { $0 + $1.abandonedMilestoneCount }
 
         return ReportData(
             dateRangeLabel: dateRange.labelWithDates(now: now),
             projectGroups: projectGroups,
             totalDone: totalDone,
-            totalAbandoned: totalAbandoned
+            totalAbandoned: totalAbandoned,
+            totalMilestonesDone: totalMilestonesDone,
+            totalMilestonesAbandoned: totalMilestonesAbandoned
         )
     }
 

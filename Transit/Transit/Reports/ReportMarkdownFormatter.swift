@@ -13,7 +13,12 @@ enum ReportMarkdownFormatter {
         }
 
         lines.append("")
-        let summary = ReportData.summaryText(done: data.totalDone, abandoned: data.totalAbandoned)
+        let summary = ReportData.summaryText(
+            done: data.totalDone,
+            abandoned: data.totalAbandoned,
+            milestonesDone: data.totalMilestonesDone,
+            milestonesAbandoned: data.totalMilestonesAbandoned
+        )
         let taskWord = data.totalTasks == 1 ? "task" : "tasks"
         lines.append("**\(data.totalTasks) \(taskWord)** (\(summary))")
 
@@ -21,7 +26,12 @@ enum ReportMarkdownFormatter {
             lines.append("")
             lines.append("## \(sanitize(group.projectName))")
             lines.append("")
-            lines.append(ReportData.summaryText(done: group.doneCount, abandoned: group.abandonedCount))
+            lines.append(ReportData.summaryText(
+                done: group.doneCount,
+                abandoned: group.abandonedCount,
+                milestonesDone: group.doneMilestoneCount,
+                milestonesAbandoned: group.abandonedMilestoneCount
+            ))
 
             if !group.milestones.isEmpty {
                 lines.append("")

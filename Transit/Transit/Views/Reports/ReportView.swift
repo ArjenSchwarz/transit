@@ -99,7 +99,12 @@ struct ReportView: View {
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text(ReportData.summaryText(done: report.totalDone, abandoned: report.totalAbandoned))
+            Text(ReportData.summaryText(
+                done: report.totalDone,
+                abandoned: report.totalAbandoned,
+                milestonesDone: report.totalMilestonesDone,
+                milestonesAbandoned: report.totalMilestonesAbandoned
+            ))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -108,7 +113,12 @@ struct ReportView: View {
     private func projectSection(_ group: ProjectGroup) -> some View {
         LiquidGlassSection(title: group.projectName) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(ReportData.summaryText(done: group.doneCount, abandoned: group.abandonedCount))
+                Text(ReportData.summaryText(
+                    done: group.doneCount,
+                    abandoned: group.abandonedCount,
+                    milestonesDone: group.doneMilestoneCount,
+                    milestonesAbandoned: group.abandonedMilestoneCount
+                ))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
