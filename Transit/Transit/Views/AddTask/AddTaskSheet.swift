@@ -2,24 +2,24 @@ import SwiftData
 import SwiftUI
 
 struct AddTaskSheet: View {
-    @Environment(TaskService.self) private var taskService
+    @Environment(TaskService.self) var taskService
     @Environment(ProjectService.self) private var projectService
-    @Environment(MilestoneService.self) private var milestoneService
+    @Environment(MilestoneService.self) var milestoneService
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) var dismiss
     @Environment(\.resolvedTheme) private var resolvedTheme
     @Query(sort: \Project.name) private var projects: [Project]
 
-    @State private var name = ""
-    @State private var taskDescription = ""
-    @State private var selectedType: TaskType = .feature
+    @State var name = ""
+    @State var taskDescription = ""
+    @State var selectedType: TaskType = .feature
     @State private var selectedProjectID: UUID?
-    @State private var selectedMilestone: Milestone?
+    @State var selectedMilestone: Milestone?
     @State private var selectedDetent: PresentationDetent = .large
-    @State private var isSaving = false
-    @State private var errorMessage: String?
+    @State var isSaving = false
+    @State var errorMessage: String?
 
-    private var selectedProject: Project? {
+    var selectedProject: Project? {
         guard let id = selectedProjectID else { return nil }
         return projects.first { $0.id == id }
     }
@@ -244,77 +244,6 @@ struct AddTaskSheet: View {
     }
     #endif
 
-    // MARK: - Actions
-
-    private func save() async {
-        guard let project = selectedProject else { return }
-        let trimmedName = name.trimmedForFormInput()
-        guard !trimmedName.isEmpty else { return }
-
-        let description = taskDescription.trimmedForFormInput()
-        let draft = TaskDraft(
-            name: trimmedName,
-            description: description.isEmpty ? nil : description,
-            type: selectedType,
-            projectID: project.id,
-            milestone: selectedMilestone
-        )
-
-        isSaving = true
-        defer { isSaving = false }
-
-        do {
-            try await Self.persist(
-                draft: draft,
-                taskService: taskService,
-                milestoneService: milestoneService
-            )
-            dismiss()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    /// Fields collected by the New Task form, ready to be persisted.
-    struct TaskDraft {
-        let name: String
-        let description: String?
-        let type: TaskType
-        let projectID: UUID
-        let milestone: Milestone?
-    }
-
-    /// Persists a new task and optionally assigns a milestone. Extracted as a
-    /// static helper because the SwiftUI view layer cannot be invoked directly
-    /// from tests.
-    ///
-    /// When milestone assignment fails after `createTask` has already saved
-    /// the task, the newly-created task is deleted before rethrowing so the
-    /// operation is atomic from the user's perspective. Matches the cleanup
-    /// pattern used by `CreateTaskIntent` and MCP `create_task` [T-558,
-    /// T-855].
-    static func persist(
-        draft: TaskDraft,
-        taskService: TaskService,
-        milestoneService: MilestoneService
-    ) async throws {
-        let task = try await taskService.createTask(
-            name: draft.name,
-            description: draft.description,
-            type: draft.type,
-            projectID: draft.projectID
-        )
-        guard let milestone = draft.milestone else { return }
-        do {
-            try milestoneService.setMilestone(milestone, on: task)
-        } catch {
-            // Avoid leaving an orphaned task in the store when the milestone
-            // cannot be attached. `deleteTask` is best-effort: if it also
-            // fails we still surface the original assignment error.
-            try? taskService.deleteTask(task)
-            throw error
-        }
-    }
 }
 
 // MARK: - Form Reset Logic
