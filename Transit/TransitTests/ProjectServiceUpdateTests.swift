@@ -77,6 +77,21 @@ struct ProjectServiceUpdateTests {
         #expect(orbit.name == "Orbit")
     }
 
+    @Test func updateProjectWithCaseFoldedDuplicateNameThrows() throws {
+        let (service, _) = try makeService()
+        try service.createProject(name: "Transit", description: "First", gitRepo: nil, colorHex: "#000000")
+        let orbit = try service.createProject(name: "Orbit", description: "Second", gitRepo: nil, colorHex: "#111111")
+
+        // A different project's name must conflict case-insensitively.
+        #expect {
+            try service.updateProject(orbit, name: "transit", description: "Second", gitRepo: nil, colorHex: "#111111")
+        } throws: { error in
+            if case .duplicateName = error as? ProjectMutationError { return true }
+            return false
+        }
+        #expect(orbit.name == "Orbit")
+    }
+
     @Test func updateProjectAllowsRenamingToSameNameCaseVariant() throws {
         let (service, _) = try makeService()
         let project = try service.createProject(name: "Transit", description: "Desc", gitRepo: nil, colorHex: "#000000")

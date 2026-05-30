@@ -164,8 +164,7 @@ struct TaskIdentifierValidationTests {
         let result = UpdateTaskIntent.execute(
             input: input,
             taskService: svc.task,
-            milestoneService: svc.milestone,
-            projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -189,8 +188,7 @@ struct TaskIdentifierValidationTests {
         let result = UpdateTaskIntent.execute(
             input: input,
             taskService: svc.task,
-            milestoneService: svc.milestone,
-            projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
@@ -210,8 +208,7 @@ struct TaskIdentifierValidationTests {
         let result = UpdateTaskIntent.execute(
             input: input,
             taskService: svc.task,
-            milestoneService: svc.milestone,
-            projectService: svc.project
+            milestoneService: svc.milestone
         )
 
         let parsed = try parseJSON(result)
