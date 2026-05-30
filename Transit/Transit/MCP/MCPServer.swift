@@ -120,7 +120,7 @@ final class MCPServer {
         // handler's version check can reject it (T-1106) — so the shape failure
         // is detected here to honor this method's documented contract (T-1128).
         if let object = parsed as? [String: Any],
-           object.keys.contains("jsonrpc"),
+           object["jsonrpc"] != nil,
            !(object["jsonrpc"] is String) {
             return .failure(JSONRPCResponse.error(
                 id: nil,
