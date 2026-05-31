@@ -72,12 +72,18 @@ struct ConcurrentDisplayIDCreationTests {
         let context: ModelContext
     }
 
-    private func makeServices(store: DisplayIDAllocator.CounterStore) throws -> Services {
+    /// Builds services with **separate** task and milestone allocators, mirroring
+    /// production (CLAUDE.md: tasks and milestones use distinct allocator instances
+    /// backed by different counter records). `makeStore` is invoked once per
+    /// allocator so the two never share `issuedID` state. Each test exercises only
+    /// one entity type, so the allocators are independent in practice.
+    private func makeServices(makeStore: () -> DisplayIDAllocator.CounterStore) throws -> Services {
         let context = try TestModelContainer.newContext()
-        let allocator = DisplayIDAllocator(store: store)
+        let taskAllocator = DisplayIDAllocator(store: makeStore())
+        let milestoneAllocator = DisplayIDAllocator(store: makeStore())
         return Services(
-            task: TaskService(modelContext: context, displayIDAllocator: allocator),
-            milestone: MilestoneService(modelContext: context, displayIDAllocator: allocator),
+            task: TaskService(modelContext: context, displayIDAllocator: taskAllocator),
+            milestone: MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator),
             context: context
         )
     }
@@ -103,7 +109,7 @@ struct ConcurrentDisplayIDCreationTests {
     /// with the same permanentDisplayId. The second create must detect the local
     /// collision and allocate a fresh, unused ID instead.
     @Test func twoCreatesAgainstStuckCounterDoNotDuplicateTaskDisplayID() async throws {
-        let svc = try makeServices(store: StuckCounterStore(stuckValue: 1392))
+        let svc = try makeServices { StuckCounterStore(stuckValue: 1392) }
         let project = makeProject(in: svc.context)
 
         let first = try await svc.task.createTask(
@@ -127,7 +133,7 @@ struct ConcurrentDisplayIDCreationTests {
     /// a provisional ID — that is the designed offline behaviour. The invariant
     /// under test is *no duplicate permanent IDs*, not that both get one.
     @Test func concurrentCreatesAgainstStuckCounterDoNotDuplicateTaskDisplayID() async throws {
-        let svc = try makeServices(store: StuckCounterStore(stuckValue: 1392))
+        let svc = try makeServices { StuckCounterStore(stuckValue: 1392) }
         let project = makeProject(in: svc.context)
 
         // Launch both creates as overlapping MainActor tasks. They cannot run
@@ -158,7 +164,7 @@ struct ConcurrentDisplayIDCreationTests {
     /// and hand out fresh, distinct IDs — never re-issuing the taken one.
     @Test func createSkipsCounterValueAlreadyCommittedLocally() async throws {
         // Counter would hand out 5 next, but 5 is already taken by an existing task.
-        let svc = try makeServices(store: AdvancingCounterStore(initialNextDisplayID: 5))
+        let svc = try makeServices { AdvancingCounterStore(initialNextDisplayID: 5) }
         let project = makeProject(in: svc.context)
 
         let existing = TransitTask(
@@ -184,7 +190,7 @@ struct ConcurrentDisplayIDCreationTests {
     /// The same guard must protect milestone creation, which shares the allocator
     /// pattern (separate counter record).
     @Test func twoCreatesAgainstStuckCounterDoNotDuplicateMilestoneDisplayID() async throws {
-        let svc = try makeServices(store: StuckCounterStore(stuckValue: 7))
+        let svc = try makeServices { StuckCounterStore(stuckValue: 7) }
         let project = makeProject(in: svc.context)
 
         let first = try await svc.milestone.createMilestone(

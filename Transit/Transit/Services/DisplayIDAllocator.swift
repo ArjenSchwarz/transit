@@ -214,23 +214,57 @@ final class DisplayIDAllocator: @unchecked Sendable {
 /// sequentially even when many callers race.
 private actor AllocationGate {
     private var isLocked = false
-    private var waiters: [CheckedContinuation<Void, Never>] = []
+    /// FIFO queue of suspended callers, keyed by a monotonically increasing id so
+    /// a cancelled caller can locate and remove its own continuation without
+    /// disturbing arrival order. `Bool` is the acquisition outcome handed to the
+    /// resumed waiter: `true` means it now holds the lock, `false` means it was
+    /// cancelled out of the queue and does NOT hold the lock.
+    private var waiters: [(id: UInt64, continuation: CheckedContinuation<Bool, Never>)] = []
+    private var nextWaiterID: UInt64 = 0
 
     /// Runs `body` while holding the lock. Other callers queue until it returns.
-    func run<T: Sendable>(_ body: @Sendable () async throws -> T) async rethrows -> T {
-        await acquire()
+    ///
+    /// Acquisition is cancellation-aware: if the calling Task is cancelled while
+    /// suspended in the waiter queue, its continuation is removed and resumed
+    /// rather than left pending (which would otherwise trip the runtime's
+    /// "continuation leaked" check on teardown). A waiter that is cancelled out of
+    /// the queue never held the lock, so `run` throws `CancellationError` without
+    /// calling `release` — the lock is never lost. If cancellation races and loses
+    /// (the lock was already handed to this waiter via `release`), the waiter keeps
+    /// the lock, runs `body`, and releases normally.
+    func run<T: Sendable>(_ body: @Sendable () async throws -> T) async throws -> T {
+        let acquired = await acquire()
+        guard acquired else { throw CancellationError() }
         defer { release() }
         return try await body()
     }
 
-    private func acquire() async {
+    /// Returns `true` once this caller holds the lock, or `false` if it was
+    /// cancelled while queued (in which case it does not hold the lock).
+    private func acquire() async -> Bool {
         if !isLocked {
             isLocked = true
-            return
+            return true
         }
-        await withCheckedContinuation { continuation in
-            waiters.append(continuation)
+        let id = nextWaiterID
+        nextWaiterID += 1
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                waiters.append((id: id, continuation: continuation))
+            }
+        } onCancel: {
+            Task { await self.cancelWaiter(id: id) }
         }
+    }
+
+    /// Removes a still-queued waiter on cancellation and resumes it with `false`
+    /// so it learns it does not hold the lock. If the waiter has already been
+    /// handed the lock by `release()` it is no longer in the queue and this is a
+    /// no-op — the waiter keeps the lock and releasing it stays correct.
+    private func cancelWaiter(id: UInt64) {
+        guard let index = waiters.firstIndex(where: { $0.id == id }) else { return }
+        let waiter = waiters.remove(at: index)
+        waiter.continuation.resume(returning: false)
     }
 
     private func release() {
@@ -239,7 +273,7 @@ private actor AllocationGate {
         } else {
             // Hand the lock directly to the next waiter (stays locked).
             let next = waiters.removeFirst()
-            next.resume()
+            next.continuation.resume(returning: true)
         }
     }
 }
