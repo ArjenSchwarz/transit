@@ -479,5 +479,23 @@ struct QueryMilestonesIntentTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
         #expect((parsed["hint"] as? String)?.contains("displayId must be an integer") == true)
     }
+
+    // T-1280: A JSON null displayId is delivered as NSNull (not nil), so the guard fires
+    // and parseIntValue returns nil, producing INVALID_INPUT rather than a silent match.
+    @Test func nullDisplayIdReturnsError() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"displayId\":null}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("displayId must be an integer") == true)
+    }
 }
 // swiftlint:enable type_body_length
