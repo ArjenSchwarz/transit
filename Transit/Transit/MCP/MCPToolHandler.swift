@@ -446,12 +446,6 @@ final class MCPToolHandler {
             return errorResult("search must be a string")
         }
 
-        // Reject non-string `search` filter [T-1266]. A present-but-non-string value
-        // would otherwise be silently dropped by `as? String`, broadening the query
-        // to every task instead of erroring.
-        if args["search"] != nil, !(args["search"] is String) {
-            return errorResult("search must be a string")
-        }
         let search = (args["search"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let filters = MCPQueryFilters.from(
             args: args, type: args["type"] as? String, projectId: projectFilter,

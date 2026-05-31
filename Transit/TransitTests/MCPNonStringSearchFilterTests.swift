@@ -106,6 +106,21 @@ struct MCPNonStringSearchFilterTests {
         #expect(errorMessage.contains("milestone") && errorMessage.contains("string"))
     }
 
+    @Test func queryTasksArrayMilestoneReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.taskService.createTask(name: "A", description: nil, type: .bug, project: project)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["milestone": ["v1.0"]]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("milestone") && errorMessage.contains("string"))
+    }
+
     // MARK: - query_milestones: search
 
     @Test func queryMilestonesNumericSearchReturnsError() async throws {

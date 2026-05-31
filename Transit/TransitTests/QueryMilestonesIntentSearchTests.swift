@@ -77,6 +77,8 @@ struct QueryMilestonesIntentSearchTests {
 
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")
+        let hint = parsed["hint"] as? String ?? ""
+        #expect(hint.contains("search") && hint.contains("string"))
     }
 
     @Test func arraySearchReturnsInvalidInput() throws {
@@ -90,6 +92,8 @@ struct QueryMilestonesIntentSearchTests {
 
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")
+        let hint = parsed["hint"] as? String ?? ""
+        #expect(hint.contains("search") && hint.contains("string"))
     }
 
     @Test func validStringSearchStillFilters() throws {
