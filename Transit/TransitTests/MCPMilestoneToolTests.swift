@@ -237,10 +237,6 @@ struct MCPMilestoneToolTests {
         #expect(tasks.first?["name"] as? String == "Task A")
     }
 
-    // T-1392: The detailed milestone task list omitted the task's stable UUID
-    // (`taskId`). Without it, callers cannot reliably identify a task from the
-    // milestone detail — especially when the task has no permanent display ID.
-    // Each inline task dict must include `taskId` matching the task's UUID.
     @Test func queryMilestoneByDisplayIdIncludesTaskIds() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
