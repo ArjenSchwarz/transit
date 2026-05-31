@@ -66,6 +66,24 @@ struct MCPNonStringSearchTests {
         #expect(errorMessage.contains("search") && errorMessage.contains("string"))
     }
 
+    @Test func queryTasksObjectSearchReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.taskService.createTask(
+            name: "Task", description: nil, type: .bug, project: project
+        )
+
+        // An object `search` (JSON `{}`) must be rejected, not silently dropped.
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["search": ["key": "value"]]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("search") && errorMessage.contains("string"))
+    }
+
     // MARK: - query_milestones
 
     @Test func queryMilestonesNumericSearchReturnsError() async throws {
@@ -112,6 +130,24 @@ struct MCPNonStringSearchTests {
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_milestones",
             arguments: ["search": ["v1"]]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("search") && errorMessage.contains("string"))
+    }
+
+    @Test func queryMilestonesObjectSearchReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        _ = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: alpha
+        )
+
+        // An object `search` (JSON `{}`) must be rejected, not silently dropped.
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["search": ["key": "value"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))

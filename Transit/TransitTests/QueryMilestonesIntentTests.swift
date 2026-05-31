@@ -549,6 +549,23 @@ struct QueryMilestonesIntentTests {
         #expect((parsed["hint"] as? String)?.contains("search") == true)
     }
 
+    @Test func objectSearchReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let alpha = makeProject(in: svc.context, name: "Alpha")
+        makeMilestone(in: svc.context, name: "v1.0", project: alpha, displayId: 1)
+
+        // An object `search` (JSON `{}`) must be rejected, not silently dropped.
+        let result = QueryMilestonesIntent.execute(
+            input: "{\"search\":{\"key\":\"value\"}}",
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("search") == true)
+    }
+
     // T-1156: displayId + non-string search must be rejected, not bypass validation.
     @Test func displayIdWithNumericSearchReturnsInvalidInput() throws {
         let svc = try makeServices()
