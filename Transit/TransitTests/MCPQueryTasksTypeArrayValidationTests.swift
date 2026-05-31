@@ -24,6 +24,7 @@ struct MCPQueryTasksTypeArrayValidationTests {
         #expect(try MCPTestHelpers.isError(response))
         let text = try MCPTestHelpers.errorText(response)
         #expect(text.contains("type"))
+        #expect(text.contains("expected a string"))
     }
 
     @Test func queryTasksTypeArrayMultipleValuesReturnsError() async throws {
@@ -37,6 +38,7 @@ struct MCPQueryTasksTypeArrayValidationTests {
         #expect(try MCPTestHelpers.isError(response))
         let text = try MCPTestHelpers.errorText(response)
         #expect(text.contains("type"))
+        #expect(text.contains("expected a string"))
     }
 
     // Critical regression check — without the fix, an array type filter is dropped to nil
