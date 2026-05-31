@@ -222,6 +222,11 @@ struct CreateTaskIntent: AppIntent {
         guard TaskType(rawValue: typeString) != nil else {
             return .invalidType(hint: "Unknown type: \(typeString)")
         }
+        // Reject non-string description: as? String silently drops
+        // present-but-wrong-type values, making a malformed request look successful. [T-1192]
+        if let rawDescription = json["description"], rawDescription as? String == nil {
+            return .invalidInput(hint: "description must be a string")
+        }
         return nil
     }
 }

@@ -74,6 +74,12 @@ struct CreateMilestoneIntent: AppIntent {
             return IntentHelpers.mapProjectLookupError(error).json
         }
 
+        // Reject non-string description: as? String silently drops
+        // present-but-wrong-type values, making a malformed request look successful. [T-1192]
+        if let rawDescription = json["description"], rawDescription as? String == nil {
+            return IntentError.invalidInput(hint: "description must be a string").json
+        }
+
         let milestone: Milestone
         do {
             milestone = try await milestoneService.createMilestone(

@@ -247,6 +247,12 @@ final class MCPToolHandler {
             resolvedMilestone = milestone
         }
 
+        // Reject non-string description: as? String silently drops
+        // present-but-wrong-type values, making a malformed request look successful. [T-1192]
+        if args["description"] != nil, args["description"] as? String == nil {
+            return errorResult("description must be a string")
+        }
+
         let task: TransitTask
         do {
             task = try await taskService.createTask(
@@ -504,6 +510,12 @@ extension MCPToolHandler {
             project = found
         case .failure(let error):
             return errorResult(IntentHelpers.mapProjectLookupError(error).hint)
+        }
+
+        // Reject non-string description: as? String silently drops
+        // present-but-wrong-type values, making a malformed request look successful. [T-1192]
+        if args["description"] != nil, args["description"] as? String == nil {
+            return errorResult("description must be a string")
         }
 
         let milestone: Milestone
