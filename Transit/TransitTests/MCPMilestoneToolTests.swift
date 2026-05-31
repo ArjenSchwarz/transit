@@ -237,6 +237,29 @@ struct MCPMilestoneToolTests {
         #expect(tasks.first?["name"] as? String == "Task A")
     }
 
+    @Test func queryMilestoneByDisplayIdIncludesTaskIds() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let milestone = try await env.milestoneService.createMilestone(
+            name: "v1.0", description: nil, project: project
+        )
+        let task = try await env.taskService.createTask(
+            name: "Task A", description: nil, type: .feature, project: project
+        )
+        try env.milestoneService.setMilestone(milestone, on: task)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_milestones",
+            arguments: ["displayId": 1]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let first = try #require(results.first)
+        let tasks = try #require(first["tasks"] as? [[String: Any]])
+        let taskDict = try #require(tasks.first)
+        #expect(taskDict["taskId"] as? String == task.id.uuidString)
+    }
+
     @Test func queryMilestoneByDisplayIdNotFoundReturnsEmpty() async throws {
         let env = try MCPTestHelpers.makeEnv()
 

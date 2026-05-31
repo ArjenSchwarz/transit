@@ -1103,6 +1103,7 @@ extension MCPToolHandler {
         if detailed {
             dict["tasks"] = tasks.map { task in
                 var taskDict: [String: Any] = [
+                    "taskId": task.id.uuidString,
                     "name": task.name,
                     "status": task.statusRawValue,
                     "type": task.typeRawValue
