@@ -311,22 +311,31 @@ extension SettingsView {
                         TextField("", value: $settings.port, format: .number)
                             .frame(width: 80)
                             .onSubmit {
-                                guard mcpServer.isRunning else { return }
                                 mcpServer.stop()
                                 mcpServer.start(port: mcpSettings.port)
                             }
                     }
                     FormRow("Status", labelWidth: Self.labelWidth) {
-                        Text(mcpServer.isRunning ? "Running" : "Stopped")
-                            .foregroundStyle(mcpServer.isRunning ? .green : .secondary)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(mcpServer.isRunning ? "Running" : "Stopped")
+                                .foregroundStyle(mcpServer.isRunning ? .green : .secondary)
+                            if let startError = mcpServer.startError {
+                                Text(startError)
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
                     }
-                    FormRow("Setup", labelWidth: Self.labelWidth) {
-                        let command =
-                            "claude mcp add transit --transport http http://localhost:\(mcpSettings.port)/mcp"
-                        Text(command)
-                            .font(.caption.monospaced())
-                            .textSelection(.enabled)
-                            .foregroundStyle(.secondary)
+                    if MCPSettings.isValidPort(mcpSettings.port) {
+                        FormRow("Setup", labelWidth: Self.labelWidth) {
+                            let command =
+                                "claude mcp add transit --transport http http://localhost:\(mcpSettings.port)/mcp"
+                            Text(command)
+                                .font(.caption.monospaced())
+                                .textSelection(.enabled)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 FormRow("Maintenance", labelWidth: Self.labelWidth) {

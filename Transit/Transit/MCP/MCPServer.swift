@@ -13,64 +13,102 @@ final class MCPServer {
 
     private(set) var isRunning = false
 
+    /// A human-readable reason the server is not running, or `nil` when the
+    /// server is running or was stopped intentionally. Set when the configured
+    /// port is invalid or when binding the listening socket fails (e.g. the
+    /// port is already in use), so Settings can surface an actionable message
+    /// instead of a bare "Stopped".
+    private(set) var startError: String?
+
     init(toolHandler: MCPToolHandler) {
         self.toolHandler = toolHandler
     }
 
     func start(port: Int) {
         guard !isRunning else { return }
+
+        // Reject out-of-range ports before attempting to bind. The OS treats
+        // these as errors asynchronously (or, for 0, silently picks a random
+        // port), neither of which is useful for a fixed local endpoint.
+        guard MCPSettings.isValidPort(port) else {
+            isRunning = false
+            startError = "Port \(port) is invalid. Use a value between "
+                + "\(MCPSettings.validPortRange.lowerBound) and "
+                + "\(MCPSettings.validPortRange.upperBound)."
+            return
+        }
+
         generation += 1
         let currentGeneration = generation
         isRunning = true
+        startError = nil
 
         let handler = toolHandler
-        let setNotRunning = { @MainActor [weak self] in
+        let setNotRunning = { @MainActor [weak self] (failure: String?) in
             guard let self, self.generation == currentGeneration else { return }
             self.isRunning = false
+            if let failure {
+                self.startError = failure
+            }
         }
         serverTask = Task.detached {
-            let router = Router()
-            router.post("mcp") { request, _ -> Response in
-                let body = try await request.body.collect(upTo: 1_048_576)
-                let data = Data(buffer: body)
-
-                let rpcRequest: JSONRPCRequest
-                switch Self.decodeIncomingRequest(data) {
-                case .success(let req):
-                    rpcRequest = req
-                case .failure(let errorResponse):
-                    return Self.jsonResponse(errorResponse)
-                }
-
-                // Notifications (id member omitted) must not receive a
-                // JSON-RPC response body. Explicit "id": null is NOT a
-                // notification and is handled by the tool dispatcher.
-                guard let rpcResponse = await handler.handle(rpcRequest) else {
-                    return Response(status: .accepted)
-                }
-                return Self.jsonResponse(rpcResponse)
-            }
-
             let app = Application(
-                router: router,
+                router: Self.makeRouter(handler: handler),
                 configuration: .init(
                     address: .hostname("127.0.0.1", port: port)
                 )
             )
 
+            // A bind failure surfaces here (e.g. the port is already in use).
+            // `CancellationError` is the expected path when `stop()` cancels the
+            // task and must not be reported as a failure.
+            var failure: String?
             do {
                 try await app.runService()
+            } catch is CancellationError {
+                failure = nil
             } catch {
-                // Server stopped or failed to bind
+                failure = "Could not start server on port \(port): "
+                    + error.localizedDescription
             }
-            await setNotRunning()
+            await setNotRunning(failure)
         }
+    }
+
+    /// Builds the Hummingbird router for the single `POST /mcp` endpoint.
+    /// `nonisolated` because under `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`
+    /// `MCPServer` is `@MainActor` by default, but this is called from the
+    /// detached (non-main-actor) task in `start(port:)`.
+    nonisolated private static func makeRouter(handler: MCPToolHandler) -> Router<BasicRequestContext> {
+        let router = Router()
+        router.post("mcp") { request, _ -> Response in
+            let body = try await request.body.collect(upTo: 1_048_576)
+            let data = Data(buffer: body)
+
+            let rpcRequest: JSONRPCRequest
+            switch decodeIncomingRequest(data) {
+            case .success(let req):
+                rpcRequest = req
+            case .failure(let errorResponse):
+                return jsonResponse(errorResponse)
+            }
+
+            // Notifications (id member omitted) must not receive a
+            // JSON-RPC response body. Explicit "id": null is NOT a
+            // notification and is handled by the tool dispatcher.
+            guard let rpcResponse = await handler.handle(rpcRequest) else {
+                return Response(status: .accepted)
+            }
+            return jsonResponse(rpcResponse)
+        }
+        return router
     }
 
     func stop() {
         serverTask?.cancel()
         serverTask = nil
         isRunning = false
+        startError = nil
     }
 
     // MARK: - Helpers
