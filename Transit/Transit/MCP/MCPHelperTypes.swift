@@ -42,7 +42,11 @@ struct MCPQueryFilters {
         } else {
             notStatusesArg = nil
         }
-        let unfinished = args["unfinished"] as? Bool ?? false
+        // Use the strict parser so numeric/string/null values never coerce to a
+        // boolean. `handleQueryTasks` rejects malformed values before reaching
+        // here; this defaults to false for an absent (or, defensively, malformed)
+        // flag. [T-1095]
+        let unfinished = IntentHelpers.parseBoolValue(args["unfinished"]) ?? false
         let resolvedNotStatuses: [String]?
         if unfinished {
             let terminal = [TaskStatus.done.rawValue, TaskStatus.abandoned.rawValue]
