@@ -78,10 +78,13 @@ WORKSPACE_CACHE  = $(DERIVED_DATA)/Caches
 WORKSPACE_TMP    = $(DERIVED_DATA)/tmp
 CLANG_MODULE_CACHE = $(DERIVED_DATA)/ModuleCache.noindex
 
+# -clonedSourcePackagesDirPath and -packageCachePath are intentionally omitted:
+# they expect the SourcePackages parent dir (not its checkouts/cache subdirs),
+# and supplying both silently disables xcodebuild's package resolve step. With
+# only -derivedDataPath set, xcodebuild places SPM artifacts at
+# $(DERIVED_DATA)/SourcePackages, which already keeps everything workspace-local.
 XCODEBUILD_CACHE_FLAGS = \
-	-derivedDataPath $(DERIVED_DATA) \
-	-clonedSourcePackagesDirPath $(SPM_CLONED) \
-	-packageCachePath $(SPM_CACHE)
+	-derivedDataPath $(DERIVED_DATA)
 
 # Exported before every xcodebuild call so SwiftPM resolution, Clang module
 # cache fallbacks ($XDG_CACHE_HOME/clang/ModuleCache), and compiler temp
@@ -106,7 +109,7 @@ build-ios: prepare-cache-dirs
 		$(PIPE_PRETTY)
 
 .PHONY: build-macos
-build-macos: clean prepare-cache-dirs
+build-macos: prepare-cache-dirs
 	$(XCODEBUILD_ENV) xcodebuild build \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
