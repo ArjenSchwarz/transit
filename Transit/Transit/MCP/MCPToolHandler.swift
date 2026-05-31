@@ -415,7 +415,11 @@ final class MCPToolHandler {
         // Validate enum filters before building MCPQueryFilters [T-732]
         if let error = validateEnumFilter(args, key: "status", type: TaskStatus.self) { return error }
         if let error = validateEnumFilter(args, key: "not_status", type: TaskStatus.self) { return error }
-        if let error = validateEnumFilter(args, key: "type", type: TaskType.self) { return error }
+        // type is a single-value filter (schema declares a string enum; read back as
+        // args["type"] as? String). Reject arrays so they aren't silently dropped. [T-1404]
+        if let error = validateEnumFilter(args, key: "type", type: TaskType.self, allowArray: false) {
+            return error
+        }
 
         let search = (args["search"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let filters = MCPQueryFilters.from(
@@ -994,32 +998,40 @@ extension MCPToolHandler {
 
     /// Validate that all values for a given key are valid raw values of the specified enum.
     /// Returns an error result if any value is invalid, or nil if all are valid (or the key is absent).
-    /// Works with both array and single-string inputs for backward compatibility.
+    ///
+    /// When `allowArray` is true (the default), both array and single-string inputs are accepted —
+    /// used for multi-value filters like `status`/`not_status`. When false, only a single string is
+    /// accepted and an array is rejected — used for single-value filters like `type`, whose schema
+    /// declares a single string enum and whose caller reads it back with `args["type"] as? String`.
+    /// Accepting an array there would pass validation and then be silently dropped to `nil`,
+    /// returning unfiltered results. [T-1404]
     ///
     /// If the key is present but the value is neither a String nor a [String] (e.g. a number,
     /// boolean, dictionary, or array containing non-string elements), this returns a
     /// field-specific error so malformed shapes cannot be silently treated as absent. [T-809, T-830]
     private func validateEnumFilter<E: RawRepresentable & CaseIterable>(
-        _ args: [String: Any], key: String, type: E.Type
+        _ args: [String: Any], key: String, type: E.Type, allowArray: Bool = true
     ) -> MCPToolResult? where E.RawValue == String {
         guard let raw = args[key] else { return nil }
 
+        let expectation = allowArray ? "a string or array of strings" : "a string"
+
         let values: [String]
-        if let array = raw as? [String] {
-            values = array
-        } else if let single = raw as? String {
+        if let single = raw as? String {
             values = [single]
-        } else if let anyArray = raw as? [Any] {
+        } else if allowArray, let array = raw as? [String] {
+            values = array
+        } else if allowArray, let anyArray = raw as? [Any] {
             // Reject arrays that contain non-string elements (e.g. ["idea", 123]).
             // `raw as? [String]` returns nil for mixed-type arrays, so we must inspect
             // the elements explicitly to distinguish "valid string array" from "mixed".
             let strings = anyArray.compactMap { $0 as? String }
             guard strings.count == anyArray.count else {
-                return errorResult("Invalid \(key): expected a string or array of strings")
+                return errorResult("Invalid \(key): expected \(expectation)")
             }
             values = strings
         } else {
-            return errorResult("Invalid \(key): expected a string or array of strings")
+            return errorResult("Invalid \(key): expected \(expectation)")
         }
 
         let allRaw = E.allCases.map(\.rawValue)
