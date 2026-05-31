@@ -3,13 +3,7 @@ import SwiftData
 import Testing
 @testable import Transit
 
-/// Regression tests for T-1406: QueryTasksIntent must reject filters whose value is
-/// an explicit JSON `null`, instead of silently treating them like an omitted key.
-///
-/// The bug: `QueryFilters` was decoded with `JSONDecoder`, whose synthesized
-/// `decodeIfPresent` maps both missing keys and explicit `null` to `nil`. The most
-/// serious symptom is `{"displayId":null}` skipping the single-task lookup and falling
-/// through to `fetchAllTasks()`, returning a broad result instead of `INVALID_INPUT`.
+/// QueryTasksIntent must reject filters whose value is an explicit JSON `null`, not treat them like an omitted key.
 @MainActor @Suite(.serialized)
 struct QueryTasksIntentNullFilterTests {
 
@@ -59,7 +53,7 @@ struct QueryTasksIntentNullFilterTests {
         return try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 
-    private func runQuery(_ input: String) throws -> Services {
+    private func makeSeededServices() throws -> Services {
         let svc = try makeServices()
         let project = makeProject(in: svc.context)
         // Seed a few tasks so a "silently ignored null" bug would return a non-empty array.
@@ -69,7 +63,7 @@ struct QueryTasksIntentNullFilterTests {
     }
 
     private func expectInvalidInput(_ input: String) throws {
-        let svc = try runQuery(input)
+        let svc = try makeSeededServices()
         let result = QueryTasksIntent.execute(
             input: input, projectService: svc.project, taskService: svc.task,
             milestoneService: svc.milestone
@@ -121,7 +115,7 @@ struct QueryTasksIntentNullFilterTests {
 
     /// An omitted key (no explicit null) must keep working as "return all tasks".
     @Test func omittedKeysStillReturnAllTasks() throws {
-        let svc = try runQuery("{}")
+        let svc = try makeSeededServices()
         let result = QueryTasksIntent.execute(
             input: "{}", projectService: svc.project, taskService: svc.task,
             milestoneService: svc.milestone
@@ -133,7 +127,7 @@ struct QueryTasksIntentNullFilterTests {
 
     /// A present, valid displayId must still perform the single-task lookup.
     @Test func validDisplayIdStillLooksUpSingleTask() throws {
-        let svc = try runQuery("")
+        let svc = try makeSeededServices()
         let result = QueryTasksIntent.execute(
             input: "{\"displayId\":1}", projectService: svc.project, taskService: svc.task,
             milestoneService: svc.milestone

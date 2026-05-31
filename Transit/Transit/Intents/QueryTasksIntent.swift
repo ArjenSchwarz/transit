@@ -198,7 +198,7 @@ struct QueryTasksIntent: AppIntent {
     /// an explicit JSON `null`. `JSONDecoder`'s synthesized `decodeIfPresent` cannot tell a
     /// present-but-null value from an omitted key, so we inspect the raw object separately
     /// for `NSNull` values before decoding. This matches the presence-vs-validity validation
-    /// used by the MCP/JSONSerialization paths. [T-1406]
+    /// used by the MCP/JSONSerialization paths.
     @MainActor private static func parseInput(_ input: String) -> Result<QueryFilters, IntentError> {
         if input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return .success(QueryFilters())
