@@ -76,7 +76,9 @@ final class MCPServer {
     }
 
     /// Builds the Hummingbird router for the single `POST /mcp` endpoint.
-    /// `nonisolated` so it can run on the NIO event loop from `Task.detached`.
+    /// `nonisolated` because under `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`
+    /// `MCPServer` is `@MainActor` by default, but this is called from the
+    /// detached (non-main-actor) task in `start(port:)`.
     nonisolated private static func makeRouter(handler: MCPToolHandler) -> Router<BasicRequestContext> {
         let router = Router()
         router.post("mcp") { request, _ -> Response in
