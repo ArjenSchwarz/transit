@@ -118,6 +118,41 @@ struct ConcurrentDisplayIDCreationTests {
         #expect(first.permanentDisplayId != second.permanentDisplayId)
     }
 
+    /// Two *concurrent* creates against a permanently-stuck counter must never
+    /// commit duplicate permanent IDs. Unlike the sequential case, the second
+    /// caller's committed-ID snapshot is taken before the first caller has saved,
+    /// so the guard relies on the allocator's in-process issued-ID tracking
+    /// rather than on the committed set alone (T-1395). Against a counter that
+    /// never advances, the second caller can exhaust its retries and fall back to
+    /// a provisional ID — that is the designed offline behaviour. The invariant
+    /// under test is *no duplicate permanent IDs*, not that both get one.
+    @Test func concurrentCreatesAgainstStuckCounterDoNotDuplicateTaskDisplayID() async throws {
+        let svc = try makeServices(store: StuckCounterStore(stuckValue: 1392))
+        let project = makeProject(in: svc.context)
+
+        // Launch both creates as overlapping MainActor tasks. They cannot run
+        // truly in parallel (both are @MainActor) but they interleave at the
+        // allocator's `await`, which is exactly the hazard window the gate plus
+        // issued-ID tracking must cover.
+        // Return Void from each task — TransitTask is not Sendable and must not
+        // cross back to the awaiting context (project memory note).
+        let first = Task { @MainActor in
+            _ = try await svc.task.createTask(
+                name: "First", description: nil, type: .feature, project: project
+            )
+        }
+        let second = Task { @MainActor in
+            _ = try await svc.task.createTask(
+                name: "Second", description: nil, type: .feature, project: project
+            )
+        }
+        try await first.value
+        try await second.value
+
+        let ids = try allTasks(in: svc.context).compactMap(\.permanentDisplayId)
+        #expect(Set(ids).count == ids.count, "Concurrent committed tasks must never share a permanent display ID")
+    }
+
     /// When the (well-behaved, advancing) counter starts pointed at an ID that
     /// is already committed locally, the allocator must skip past the collision
     /// and hand out fresh, distinct IDs — never re-issuing the taken one.

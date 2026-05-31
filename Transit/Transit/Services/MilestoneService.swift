@@ -65,9 +65,11 @@ final class MilestoneService {
 
         let displayID: DisplayID
         do {
-            // Exclude display IDs already committed locally so a stale counter
-            // read cannot produce a duplicate milestone ID (T-1395).
-            let id = try await displayIDAllocator.allocateNextID(excluding: usedDisplayIDs())
+            // Snapshot display IDs already committed locally inside the
+            // allocation gate (via closure) so a stale counter read cannot
+            // produce a duplicate milestone ID, even with a concurrent create
+            // that committed just before us (T-1395).
+            let id = try await displayIDAllocator.allocateNextID(excluding: { self.usedDisplayIDs() })
             displayID = .permanent(id)
         } catch {
             displayID = .provisional
@@ -210,10 +212,10 @@ final class MilestoneService {
 
         for milestone in milestones {
             do {
-                // Recompute used IDs each pass so a promoted ID never collides
-                // with one already committed (including ones just assigned in
-                // this loop) (T-1395).
-                let newID = try await displayIDAllocator.allocateNextID(excluding: usedDisplayIDs())
+                // Recompute used IDs inside the gate so a promoted ID never
+                // collides with one already committed (including ones just
+                // assigned in this loop) (T-1395).
+                let newID = try await displayIDAllocator.allocateNextID(excluding: { self.usedDisplayIDs() })
                 milestone.permanentDisplayId = newID
                 try save(modelContext)
             } catch {

@@ -48,6 +48,15 @@ final class DisplayIDAllocator: @unchecked Sendable {
     /// Must only be accessed from @MainActor callers (see note above).
     private var allocationGate: AllocationGate = .init()
 
+    /// IDs this process has already handed out but whose owners may not yet have
+    /// committed them to the local store. The caller's `usedIDs` closure only
+    /// reflects *committed* records, but the commit happens after `allocateNextID`
+    /// returns and the gate is released — so against a stuck/stale counter a later
+    /// caller could otherwise re-read and re-issue an ID that an earlier caller
+    /// allocated but has not yet saved. Tracking issued IDs in-process closes that
+    /// window (T-1395). Only mutated while holding the gate, on @MainActor.
+    private var issuedIDs: Set<Int> = []
+
     init(store: CounterStore, retryLimit: Int = 5) {
         self.counterStore = store
         self.retryLimit = max(1, retryLimit)
@@ -77,16 +86,19 @@ final class DisplayIDAllocator: @unchecked Sendable {
     /// Allocates the next sequential display ID. Retries on conflict up to
     /// `retryLimit` times.
     ///
-    /// `excluding` is a set of display IDs already known to be in use locally
-    /// (e.g. committed tasks/milestones). When the counter hands back an ID that
-    /// collides with this set — which can happen if a peer device or a
-    /// concurrent process already consumed it and our counter read was stale —
-    /// the counter is advanced past the collision and allocation is retried so a
-    /// duplicate ID is never returned (T-1395).
+    /// `usedIDs` is a closure returning the set of display IDs already known to
+    /// be in use locally (e.g. committed tasks/milestones). It is evaluated
+    /// **inside** the allocation gate, so each caller sees a snapshot taken
+    /// after the previous holder has committed its allocation — not a stale one
+    /// captured before queueing. When the counter hands back an ID that collides
+    /// with this set — which can happen if a peer device or a concurrent process
+    /// already consumed it and our counter read was stale — the counter is
+    /// advanced past the collision and allocation is retried so a duplicate ID is
+    /// never returned (T-1395).
     ///
     /// Allocation is serialised in-process via `allocationGate` so concurrent
     /// callers run their load→CAS cycles one at a time.
-    func allocateNextID(excluding usedIDs: Set<Int> = []) async throws -> Int {
+    func allocateNextID(excluding usedIDs: @MainActor @Sendable () -> Set<Int> = { [] }) async throws -> Int {
         try await allocationGate.run {
             try await self.allocateLocked(excluding: usedIDs)
         }
@@ -94,20 +106,26 @@ final class DisplayIDAllocator: @unchecked Sendable {
 
     /// The actual allocation loop. Only ever runs while the caller holds the
     /// allocation gate, so reads and CAS writes do not interleave with another
-    /// in-process allocation.
-    private func allocateLocked(excluding usedIDs: Set<Int>) async throws -> Int {
+    /// in-process allocation. The `usedIDs` snapshot is recomputed on every
+    /// attempt inside the gate so it always reflects the latest committed state.
+    private func allocateLocked(excluding usedIDs: @MainActor @Sendable () -> Set<Int>) async throws -> Int {
         var attempt = 0
         while attempt < retryLimit {
             attempt += 1
 
             let snapshot = try await counterStore.loadCounter()
             let candidate = snapshot.nextDisplayID
+            // Combine committed IDs (from the caller) with IDs this process has
+            // already issued but not yet observed committed, so neither a stale
+            // counter read nor the allocate→commit gap can yield a duplicate.
+            let used = await usedIDs().union(issuedIDs)
 
-            // If the counter points at an ID that is already committed locally,
-            // skip past the whole occupied range in one CAS instead of handing
-            // back a duplicate.
-            if usedIDs.contains(candidate) {
-                let advancedTo = (usedIDs.max() ?? candidate) + 1
+            // If the counter points at an ID that is already in use, skip past
+            // the whole occupied range in one CAS instead of handing back a
+            // duplicate.
+            if used.contains(candidate) {
+                var advancedTo = candidate + 1
+                while used.contains(advancedTo) { advancedTo += 1 }
                 do {
                     try await counterStore.saveCounter(
                         nextDisplayID: advancedTo,
@@ -124,6 +142,7 @@ final class DisplayIDAllocator: @unchecked Sendable {
                     nextDisplayID: candidate + 1,
                     expectedChangeTag: snapshot.changeTag
                 )
+                issuedIDs.insert(candidate)
                 return candidate
             } catch let error as Error where error == .conflict {
                 continue
@@ -156,10 +175,10 @@ final class DisplayIDAllocator: @unchecked Sendable {
 
         for task in tasks {
             do {
-                // Exclude IDs already committed locally (recomputed each pass so
-                // just-promoted IDs are included) so promotion never assigns a
-                // duplicate (T-1395).
-                let newID = try await allocateNextID(excluding: Self.usedTaskDisplayIDs(in: context))
+                // Exclude IDs already committed locally (recomputed inside the
+                // gate so just-promoted IDs are included) so promotion never
+                // assigns a duplicate (T-1395).
+                let newID = try await allocateNextID(excluding: { Self.usedTaskDisplayIDs(in: context) })
                 task.permanentDisplayId = newID
                 try save(context)
             } catch {

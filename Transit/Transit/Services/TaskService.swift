@@ -88,10 +88,12 @@ final class TaskService {
 
         let displayID: DisplayID
         do {
-            // Pass the set of display IDs already committed locally so the
-            // allocator never hands back one that is in use, even if a stale
-            // counter read points at an occupied value (T-1395).
-            let id = try await displayIDAllocator.allocateNextID(excluding: usedDisplayIDs())
+            // Pass a closure so the set of display IDs already committed locally
+            // is snapshotted inside the allocation gate — fresh relative to any
+            // concurrent create that committed just before us — so the allocator
+            // never hands back an in-use ID even against a stale counter read
+            // (T-1395).
+            let id = try await displayIDAllocator.allocateNextID(excluding: { self.usedDisplayIDs() })
             displayID = .permanent(id)
         } catch {
             displayID = .provisional
