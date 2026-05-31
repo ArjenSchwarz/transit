@@ -424,7 +424,7 @@ final class MCPToolHandler {
         // Reject a present-but-non-boolean `unfinished` flag [T-1095]. A plain
         // `as? Bool` would silently coerce "true"/1/null to false, returning
         // done/abandoned tasks even though the caller requested unfinished-only.
-        if args["unfinished"] != nil, IntentHelpers.parseBoolValue(args["unfinished"]) == nil {
+        if let unfinishedArg = args["unfinished"], IntentHelpers.parseBoolValue(unfinishedArg) == nil {
             return errorResult("unfinished must be a boolean")
         }
 
