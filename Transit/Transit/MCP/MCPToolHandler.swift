@@ -384,6 +384,12 @@ final class MCPToolHandler {
         if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
             return errorResult("milestoneDisplayId must be an integer")
         }
+        // Reject non-string `milestone` name filter [T-1266]. Without this guard a
+        // numeric/boolean/array milestone falls through the `as? String` cast below
+        // to the "no milestone filter" branch, returning every task unfiltered.
+        if args["milestone"] != nil, !(args["milestone"] is String) {
+            return errorResult("milestone must be a string")
+        }
         var milestoneFilter: Set<UUID>?
         if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
