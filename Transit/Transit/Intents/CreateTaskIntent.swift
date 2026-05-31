@@ -164,8 +164,10 @@ struct CreateTaskIntent: AppIntent {
         in project: Project,
         using milestoneService: MilestoneService
     ) -> (milestone: Milestone?, error: String?) {
-        let milestoneDisplayId = json["milestoneDisplayId"] as? Int
-            ?? (json["milestoneDisplayId"] as? Double).flatMap { Int(exactly: $0) }
+        // Parse via the shared helper so JSON booleans are rejected: JSONSerialization
+        // delivers `true`/`false` as NSNumber(CFBoolean), which `as? Int` would otherwise
+        // accept as 1/0 and silently target M-1/M-0 [T-1211, T-1283].
+        let milestoneDisplayId = IntentHelpers.parseIntValue(json["milestoneDisplayId"])
 
         // Reject non-integer milestoneDisplayId when key is present [T-613]
         if json["milestoneDisplayId"] != nil, milestoneDisplayId == nil {
