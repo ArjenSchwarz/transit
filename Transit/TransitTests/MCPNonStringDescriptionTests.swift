@@ -108,6 +108,23 @@ struct MCPNonStringDescriptionTests {
         #expect(task.taskDescription == "A description")
     }
 
+    @Test func mcpCreateTaskAcceptsAbsentDescription() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_task",
+            arguments: [
+                "name": "Task", "type": "bug",
+                "projectId": project.id.uuidString
+            ]
+        ))
+
+        #expect(try !MCPTestHelpers.isError(response))
+        let task = try #require(try env.context.fetch(FetchDescriptor<TransitTask>()).first)
+        #expect(task.taskDescription == nil)
+    }
+
     // MARK: - create_milestone
 
     @Test func mcpCreateMilestoneRejectsNumericDescription() async throws {
@@ -196,6 +213,22 @@ struct MCPNonStringDescriptionTests {
         #expect(try !MCPTestHelpers.isError(response))
         let milestone = try #require(try env.context.fetch(FetchDescriptor<Milestone>()).first)
         #expect(milestone.milestoneDescription == "Beta release")
+    }
+
+    @Test func mcpCreateMilestoneAcceptsAbsentDescription() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_milestone",
+            arguments: [
+                "name": "v1.0", "projectId": project.id.uuidString
+            ]
+        ))
+
+        #expect(try !MCPTestHelpers.isError(response))
+        let milestone = try #require(try env.context.fetch(FetchDescriptor<Milestone>()).first)
+        #expect(milestone.milestoneDescription == nil)
     }
 }
 

@@ -262,4 +262,20 @@ struct IntentNonStringDescriptionTests {
         let milestone = try #require(try svc.context.fetch(FetchDescriptor<Milestone>()).first)
         #expect(milestone.milestoneDescription == "Beta release")
     }
+
+    @Test func createMilestoneAcceptsAbsentDescription() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        let input = """
+        {"name":"v1.0","projectId":"\(project.id.uuidString)"}
+        """
+
+        let result = await CreateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["milestoneId"] is String)
+    }
 }

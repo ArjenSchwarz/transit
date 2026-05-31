@@ -74,10 +74,8 @@ struct CreateMilestoneIntent: AppIntent {
             return IntentHelpers.mapProjectLookupError(error).json
         }
 
-        // When the optional description key is present it MUST be a string. A
-        // non-string value (number, boolean, array, null) would otherwise be
-        // silently dropped by `as? String`, making a malformed request look
-        // successful [T-1192].
+        // Reject non-string description: as? String silently drops
+        // present-but-wrong-type values, making a malformed request look successful. [T-1192]
         if let rawDescription = json["description"], rawDescription as? String == nil {
             return IntentError.invalidInput(hint: "description must be a string").json
         }

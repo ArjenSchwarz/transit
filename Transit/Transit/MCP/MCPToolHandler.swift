@@ -247,10 +247,8 @@ final class MCPToolHandler {
             resolvedMilestone = milestone
         }
 
-        // When the optional description key is present it MUST be a string. A
-        // non-string value (number, boolean, array, null) would otherwise be
-        // silently dropped by `as? String`, making a malformed request look
-        // successful [T-1192].
+        // Reject non-string description: as? String silently drops
+        // present-but-wrong-type values, making a malformed request look successful. [T-1192]
         if args["description"] != nil, args["description"] as? String == nil {
             return errorResult("description must be a string")
         }
@@ -514,10 +512,8 @@ extension MCPToolHandler {
             return errorResult(IntentHelpers.mapProjectLookupError(error).hint)
         }
 
-        // When the optional description key is present it MUST be a string. A
-        // non-string value (number, boolean, array, null) would otherwise be
-        // silently dropped by `as? String`, making a malformed request look
-        // successful [T-1192].
+        // Reject non-string description: as? String silently drops
+        // present-but-wrong-type values, making a malformed request look successful. [T-1192]
         if args["description"] != nil, args["description"] as? String == nil {
             return errorResult("description must be a string")
         }
