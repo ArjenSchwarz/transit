@@ -65,7 +65,11 @@ final class MilestoneService {
 
         let displayID: DisplayID
         do {
-            let id = try await displayIDAllocator.allocateNextID()
+            // Snapshot display IDs already committed locally inside the
+            // allocation gate (via closure) so a stale counter read cannot
+            // produce a duplicate milestone ID, even with a concurrent create
+            // that committed just before us (T-1395).
+            let id = try await displayIDAllocator.allocateNextID(excluding: { self.usedDisplayIDs() })
             displayID = .permanent(id)
         } catch {
             displayID = .provisional
@@ -208,7 +212,10 @@ final class MilestoneService {
 
         for milestone in milestones {
             do {
-                let newID = try await displayIDAllocator.allocateNextID()
+                // Recompute used IDs inside the gate so a promoted ID never
+                // collides with one already committed (including ones just
+                // assigned in this loop) (T-1395).
+                let newID = try await displayIDAllocator.allocateNextID(excluding: { self.usedDisplayIDs() })
                 milestone.permanentDisplayId = newID
                 try save(modelContext)
             } catch {
@@ -231,6 +238,16 @@ final class MilestoneService {
             throw Error.milestoneNotFound
         }
         return milestone
+    }
+
+    /// Returns the set of permanent display IDs already committed to the local
+    /// store. Keeps newly allocated milestone IDs collision-free (T-1395).
+    private func usedDisplayIDs() -> Set<Int> {
+        let descriptor = FetchDescriptor<Milestone>(
+            predicate: #Predicate { $0.permanentDisplayId != nil }
+        )
+        guard let milestones = try? modelContext.fetch(descriptor) else { return [] }
+        return Set(milestones.compactMap(\.permanentDisplayId))
     }
 
     func findByDisplayID(_ displayId: Int) throws -> Milestone {
