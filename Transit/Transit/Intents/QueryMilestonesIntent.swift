@@ -69,13 +69,12 @@ struct QueryMilestonesIntent: AppIntent {
 
         // Single-milestone lookup by displayId. Remaining filters still apply conjunctively —
         // a milestone that does not satisfy them is filtered out, mirroring QueryTasksIntent [T-963].
-        if let displayIdValue = json["displayId"] {
-            let displayId: Int
-            switch coerceDisplayId(displayIdValue) {
-            case .success(let value):
-                displayId = value
-            case .failure(let error):
-                return error.json
+        if json["displayId"] != nil {
+            // Route through IntentHelpers.parseIntValue so JSON booleans (delivered as
+            // NSNumber wrapping CFBoolean) are rejected rather than silently coerced to
+            // 1/0 and targeting M-1/M-0. A plain `as? Int` would accept them. [T-1280]
+            guard let displayId = IntentHelpers.parseIntValue(json["displayId"]) else {
+                return IntentError.invalidInput(hint: "displayId must be an integer").json
             }
 
             let milestone: Milestone
@@ -122,17 +121,6 @@ struct QueryMilestonesIntent: AppIntent {
             return .invalidInput(hint: "project must be a string")
         }
         return nil
-    }
-
-    /// Coerces a raw JSON `displayId` value into an `Int`, accepting integer-valued doubles.
-    private static func coerceDisplayId(_ value: Any) -> Result<Int, IntentError> {
-        if let intVal = value as? Int {
-            return .success(intVal)
-        }
-        if let doubleVal = value as? Double, let intVal = Int(exactly: doubleVal) {
-            return .success(intVal)
-        }
-        return .failure(.invalidInput(hint: "displayId must be an integer"))
     }
 
     @MainActor
