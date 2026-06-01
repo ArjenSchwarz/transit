@@ -31,6 +31,7 @@
 | [Sync Heartbeat](#sync-heartbeat) | 2026-03-28 | No Tasks | Periodic SwiftData write to force CloudKit sync on macOS |
 | [Duplicate Display ID Cleanup](#duplicate-display-id-cleanup) | 2026-04-25 | Done | Scan and reassign tasks/milestones sharing a permanentDisplayId |
 | [Update Task All Fields](#update-task-all-fields) | 2026-05-22 | Done | Extend update_task MCP tool and App Intent to update name, description, type, and metadata |
+| [Search Empty State](#search-empty-state) | 2026-05-31 | Planned | Show ContentUnavailableView.search empty state when dashboard text search has no matches |
 
 ---
 
@@ -292,3 +293,11 @@ Extend the `update_task` MCP tool and `UpdateTaskIntent` App Intent to update na
 - [design.md](update-task-all-fields/design.md)
 - [requirements.md](update-task-all-fields/requirements.md)
 - [tasks.md](update-task-all-fields/tasks.md)
+
+## Search Empty State
+
+Show a `ContentUnavailableView.search` empty state on the dashboard when text search is the only active filter and yields no matches (T-198).
+
+- [decision_log.md](search-empty-state/decision_log.md)
+- [smolspec.md](search-empty-state/smolspec.md)
+- [tasks.md](search-empty-state/tasks.md)
