@@ -31,7 +31,7 @@
 | [Sync Heartbeat](#sync-heartbeat) | 2026-03-28 | No Tasks | Periodic SwiftData write to force CloudKit sync on macOS |
 | [Duplicate Display ID Cleanup](#duplicate-display-id-cleanup) | 2026-04-25 | Done | Scan and reassign tasks/milestones sharing a permanentDisplayId |
 | [Update Task All Fields](#update-task-all-fields) | 2026-05-22 | Done | Extend update_task MCP tool and App Intent to update name, description, type, and metadata |
-| [Search Empty State](#search-empty-state) | 2026-05-31 | Planned | Show ContentUnavailableView.search empty state when dashboard text search has no matches |
+| [Search Empty State](#search-empty-state) | 2026-05-31 | Done | Show ContentUnavailableView.search empty state when dashboard text search has no matches |
 
 ---
 
