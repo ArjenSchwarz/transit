@@ -63,20 +63,24 @@ struct DashboardView: View {
     }
 
     var body: some View {
+        // Compute the filtered columns once per render; the board and the
+        // empty-state overlay both read it, so this avoids recomputing
+        // buildFilteredColumns (and skips recompute on geometry-only changes). [T-198]
+        let columns = filteredColumns
         GeometryReader { geometry in
             let rawColumnCount = max(1, Int(geometry.size.width / Self.columnMinWidth))
             let columnCount = isPhoneLandscape ? min(rawColumnCount, 3) : rawColumnCount
 
             if columnCount == 1 {
                 SingleColumnView(
-                    columns: filteredColumns,
+                    columns: columns,
                     selectedColumn: $selectedColumn,
                     onTaskTap: { handleTaskTap($0) },
                     onDrop: handleDrop
                 )
             } else {
                 KanbanBoardView(
-                    columns: filteredColumns,
+                    columns: columns,
                     visibleCount: min(columnCount, 5),
                     initialScrollTarget: isPhoneLandscape ? .planning : nil,
                     onTaskTap: { handleTaskTap($0) },
@@ -91,7 +95,7 @@ struct DashboardView: View {
             DashboardEmptyStateOverlay(
                 kind: DashboardLogic.emptyStateKind(
                     hasAnyTask: !allTasks.isEmpty,
-                    columnsAllEmpty: filteredColumns.values.allSatisfy(\.isEmpty),
+                    columnsAllEmpty: columns.values.allSatisfy(\.isEmpty),
                     searchText: effectiveSearchText,
                     hasOtherFilters: hasOtherFilters
                 )
