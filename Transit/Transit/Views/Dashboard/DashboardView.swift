@@ -43,8 +43,8 @@ struct DashboardView: View {
             || !effectiveSearchText.isEmpty
     }
 
-    /// Non-search filters only (project/type/milestone). Used to decide whether
-    /// the search-specific empty state applies (search-only) or the generic one. [T-198]
+    /// Excludes search text (unlike `hasAnyFilter`) so the empty-state logic can
+    /// distinguish the search-only case from the combined-filter case. [T-198]
     private var hasOtherFilters: Bool {
         !selectedProjectIDs.isEmpty
             || !selectedTypes.isEmpty
@@ -63,9 +63,9 @@ struct DashboardView: View {
     }
 
     var body: some View {
-        // Compute the filtered columns once per render; the board and the
-        // empty-state overlay both read it, so this avoids recomputing
-        // buildFilteredColumns (and skips recompute on geometry-only changes). [T-198]
+        // Compute the filtered columns once and share them with both the board
+        // and the empty-state overlay, so buildFilteredColumns runs once per
+        // render pass instead of once for each consumer. [T-198]
         let columns = filteredColumns
         GeometryReader { geometry in
             let rawColumnCount = max(1, Int(geometry.size.width / Self.columnMinWidth))
@@ -355,6 +355,10 @@ enum DashboardLogic {
 
     /// Decides which empty state the dashboard shows, from plain value inputs
     /// (no SwiftUI types) so the precedence rules can be unit-tested. [T-198]
+    ///
+    /// `searchText` is expected to be already trimmed by the caller (the view
+    /// passes `effectiveSearchText`); this function treats any non-empty string
+    /// as an active search and does not trim.
     ///
     /// Precedence, most specific first:
     /// 1. No tasks at all → `.noTasks` (an empty database wins even with search text)

@@ -281,4 +281,19 @@ struct DashboardSearchTests {
         )
         #expect(kind == .none)
     }
+
+    @Test func emptyStateWhitespaceSearchTextIsCallerTrimmed() {
+        // Contract: trimming is the caller's job — the view passes
+        // `effectiveSearchText`, which is already trimmed, so whitespace-only
+        // input never reaches this function as a non-empty string. The function
+        // itself does not trim, so a raw whitespace string is treated as an
+        // active search (and echoed back verbatim). This pins the contract.
+        let kind = DashboardLogic.emptyStateKind(
+            hasAnyTask: true,
+            columnsAllEmpty: true,
+            searchText: "   ",
+            hasOtherFilters: false
+        )
+        #expect(kind == .search(text: "   "))
+    }
 }
