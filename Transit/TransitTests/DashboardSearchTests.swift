@@ -215,4 +215,85 @@ struct DashboardSearchTests {
         let ideaTasks = columns[.idea] ?? []
         #expect(ideaTasks.count == 2)
     }
+
+    // MARK: - Empty state selection [T-198]
+
+    @Test func emptyStateNoTasksWinsEvenWithSearchText() {
+        // Empty database takes precedence over any query (decision_log.md Decision 2).
+        let kind = DashboardLogic.emptyStateKind(
+            hasAnyTask: false,
+            columnsAllEmpty: true,
+            searchText: "login",
+            hasOtherFilters: false
+        )
+        #expect(kind == .noTasks)
+    }
+
+    @Test func emptyStateSearchOnlyNoMatchReturnsSearchWithQuery() {
+        let kind = DashboardLogic.emptyStateKind(
+            hasAnyTask: true,
+            columnsAllEmpty: true,
+            searchText: "no-such-task",
+            hasOtherFilters: false
+        )
+        #expect(kind == .search(text: "no-such-task"))
+    }
+
+    @Test func emptyStateSearchOnlyWithMatchesReturnsNone() {
+        let kind = DashboardLogic.emptyStateKind(
+            hasAnyTask: true,
+            columnsAllEmpty: false,
+            searchText: "login",
+            hasOtherFilters: false
+        )
+        #expect(kind == .none)
+    }
+
+    @Test func emptyStateNonSearchFilterNoMatchReturnsFiltered() {
+        let kind = DashboardLogic.emptyStateKind(
+            hasAnyTask: true,
+            columnsAllEmpty: true,
+            searchText: "",
+            hasOtherFilters: true
+        )
+        #expect(kind == .filtered)
+    }
+
+    @Test func emptyStateSearchPlusOtherFilterNoMatchReturnsFiltered() {
+        // Search combined with another filter shows the generic message, not the
+        // search state (decision_log.md Decision 1).
+        let kind = DashboardLogic.emptyStateKind(
+            hasAnyTask: true,
+            columnsAllEmpty: true,
+            searchText: "login",
+            hasOtherFilters: true
+        )
+        #expect(kind == .filtered)
+    }
+
+    @Test func emptyStateEmptySearchTextTreatedAsNoSearch() {
+        // The view passes already-trimmed search text; an empty string means no search.
+        let kind = DashboardLogic.emptyStateKind(
+            hasAnyTask: true,
+            columnsAllEmpty: true,
+            searchText: "",
+            hasOtherFilters: false
+        )
+        #expect(kind == .none)
+    }
+
+    @Test func emptyStateWhitespaceSearchTextIsCallerTrimmed() {
+        // Contract: trimming is the caller's job — the view passes
+        // `effectiveSearchText`, which is already trimmed, so whitespace-only
+        // input never reaches this function as a non-empty string. The function
+        // itself does not trim, so a raw whitespace string is treated as an
+        // active search (and echoed back verbatim). This pins the contract.
+        let kind = DashboardLogic.emptyStateKind(
+            hasAnyTask: true,
+            columnsAllEmpty: true,
+            searchText: "   ",
+            hasOtherFilters: false
+        )
+        #expect(kind == .search(text: "   "))
+    }
 }

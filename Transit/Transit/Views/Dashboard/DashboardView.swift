@@ -43,6 +43,14 @@ struct DashboardView: View {
             || !effectiveSearchText.isEmpty
     }
 
+    /// Excludes search text (unlike `hasAnyFilter`) so the empty-state logic can
+    /// distinguish the search-only case from the combined-filter case. [T-198]
+    private var hasOtherFilters: Bool {
+        !selectedProjectIDs.isEmpty
+            || !selectedTypes.isEmpty
+            || !selectedMilestones.isEmpty
+    }
+
     private var filteredColumns: [DashboardColumn: [TransitTask]] {
         DashboardLogic.buildFilteredColumns(
             allTasks: allTasks,
@@ -55,20 +63,24 @@ struct DashboardView: View {
     }
 
     var body: some View {
+        // Compute the filtered columns once and share them with both the board
+        // and the empty-state overlay, so buildFilteredColumns runs once per
+        // render pass instead of once for each consumer. [T-198]
+        let columns = filteredColumns
         GeometryReader { geometry in
             let rawColumnCount = max(1, Int(geometry.size.width / Self.columnMinWidth))
             let columnCount = isPhoneLandscape ? min(rawColumnCount, 3) : rawColumnCount
 
             if columnCount == 1 {
                 SingleColumnView(
-                    columns: filteredColumns,
+                    columns: columns,
                     selectedColumn: $selectedColumn,
                     onTaskTap: { handleTaskTap($0) },
                     onDrop: handleDrop
                 )
             } else {
                 KanbanBoardView(
-                    columns: filteredColumns,
+                    columns: columns,
                     visibleCount: min(columnCount, 5),
                     initialScrollTarget: isPhoneLandscape ? .planning : nil,
                     onTaskTap: { handleTaskTap($0) },
@@ -80,11 +92,14 @@ struct DashboardView: View {
             BoardBackground(theme: resolvedTheme)
         }
         .overlay {
-            if allTasks.isEmpty {
-                EmptyStateView(message: "No tasks yet. Tap + to create one.")
-            } else if hasAnyFilter && filteredColumns.values.allSatisfy(\.isEmpty) {
-                EmptyStateView(message: "No matching tasks.\nClear filters to see all tasks.")
-            }
+            DashboardEmptyStateOverlay(
+                kind: DashboardLogic.emptyStateKind(
+                    hasAnyTask: !allTasks.isEmpty,
+                    columnsAllEmpty: columns.values.allSatisfy(\.isEmpty),
+                    searchText: effectiveSearchText,
+                    hasOtherFilters: hasOtherFilters
+                )
+            )
         }
         .navigationTitle("Transit")
         .searchable(text: $searchText)
@@ -274,6 +289,31 @@ struct DashboardView: View {
     }
 }
 
+// MARK: - Empty State Overlay
+
+/// Renders the dashboard's empty-state overlay for a given `EmptyStateKind`. Kept as a
+/// separate view (not a `DashboardView` computed property) so it stays decoupled from
+/// `DashboardView`'s state. The `.searchable` modifier lives on `DashboardView`'s body,
+/// outside this overlay, so the search bar stays visible when the search state shows. [T-198]
+private struct DashboardEmptyStateOverlay: View {
+    let kind: DashboardLogic.EmptyStateKind
+
+    var body: some View {
+        switch kind {
+        case .none:
+            EmptyView()
+        case .noTasks:
+            EmptyStateView(message: "No tasks yet. Tap + to create one.")
+        case .search(let text):
+            ContentUnavailableView.search(text: text)
+                .accessibilityIdentifier("dashboard.searchEmptyState")
+        case .filtered:
+            EmptyStateView(message: "No matching tasks.\nClear filters to see all tasks.")
+                .accessibilityIdentifier("dashboard.filterEmptyState")
+        }
+    }
+}
+
 // MARK: - Focused Value Key
 
 private struct FocusedShowAddTask: FocusedValueKey {
@@ -303,6 +343,46 @@ enum DashboardLogic {
     enum ColumnSortOrder {
         case recent
         case organized
+    }
+
+    /// Which empty-state overlay (if any) the dashboard should show. [T-198]
+    enum EmptyStateKind: Equatable {
+        case none
+        case noTasks
+        case search(text: String)
+        case filtered
+    }
+
+    /// Decides which empty state the dashboard shows, from plain value inputs
+    /// (no SwiftUI types) so the precedence rules can be unit-tested. [T-198]
+    ///
+    /// `searchText` is expected to be already trimmed by the caller (the view
+    /// passes `effectiveSearchText`); this function treats any non-empty string
+    /// as an active search and does not trim.
+    ///
+    /// Precedence, most specific first:
+    /// 1. No tasks at all → `.noTasks` (an empty database wins even with search text)
+    /// 2. Some columns have tasks → `.none`
+    /// 3. Search text is the only active filter → `.search(text:)`
+    /// 4. Search text and/or other filters active → `.filtered`
+    /// 5. Otherwise → `.none`
+    static func emptyStateKind(
+        hasAnyTask: Bool,
+        columnsAllEmpty: Bool,
+        searchText: String,
+        hasOtherFilters: Bool
+    ) -> EmptyStateKind {
+        guard hasAnyTask else { return .noTasks }
+        guard columnsAllEmpty else { return .none }
+
+        let hasSearch = !searchText.isEmpty
+        if hasSearch && !hasOtherFilters {
+            return .search(text: searchText)
+        }
+        if hasSearch || hasOtherFilters {
+            return .filtered
+        }
+        return .none
     }
 
     /// Testable column builder: groups tasks by column, applies project, type, milestone,
