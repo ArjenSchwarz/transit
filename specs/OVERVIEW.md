@@ -299,5 +299,6 @@ Extend the `update_task` MCP tool and `UpdateTaskIntent` App Intent to update na
 Show a `ContentUnavailableView.search` empty state on the dashboard when text search is the only active filter and yields no matches (T-198).
 
 - [decision_log.md](search-empty-state/decision_log.md)
+- [implementation.md](search-empty-state/implementation.md)
 - [smolspec.md](search-empty-state/smolspec.md)
 - [tasks.md](search-empty-state/tasks.md)
