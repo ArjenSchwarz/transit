@@ -122,6 +122,14 @@ struct TaskUpdateValidatorTests {
         return false
     }
 
+    private func isInvalidPriority(_ error: TaskUpdateValidationError, contains substring: String? = nil) -> Bool {
+        if case .invalidPriority(let message) = error {
+            guard let substring else { return true }
+            return message.contains(substring)
+        }
+        return false
+    }
+
     // MARK: - Name (AC 1.1–1.4)
 
     @Test func validate_nameSet_trimsAndApplies() throws {
@@ -294,6 +302,131 @@ struct TaskUpdateValidatorTests {
                 "Expected capitalized type '\(value)' to be rejected with invalidInput, got \(error)"
             )
         }
+    }
+
+    // MARK: - Priority (Decision 8/9; Req 5.2, 6.2, 6.4)
+
+    @Test func validate_priorityAbsent_noChange() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, project: project)
+
+        let result = TaskUpdateValidator.validate(
+            ["name": "x"], task: task, milestoneService: svc.milestone
+        )
+        let update = try unwrapSuccess(result)
+        // Priority omitted -> no change carried.
+        #expect(update.priority == nil)
+    }
+
+    @Test func validate_priorityValid_setsValue() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, project: project)
+
+        let result = TaskUpdateValidator.validate(
+            ["priority": "high"], task: task, milestoneService: svc.milestone
+        )
+        let update = try unwrapSuccess(result)
+        #expect(update.priority == .high)
+        #expect(update.hasChanges == true)
+    }
+
+    @Test func validate_priorityInvalid_returnsInvalidPriority() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, project: project)
+
+        let result = TaskUpdateValidator.validate(
+            ["priority": "urgent"], task: task, milestoneService: svc.milestone
+        )
+        let error = try unwrapFailure(result)
+        #expect(
+            isInvalidPriority(error, contains: "urgent"),
+            "Expected .invalidPriority listing the bad value, got \(error)"
+        )
+        // Must map to the dedicated INVALID_PRIORITY code on the intent surface (Decision 9).
+        #expect(error.intentError.code == "INVALID_PRIORITY")
+    }
+
+    @Test func validate_priorityNonString_rejects() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, project: project)
+
+        let args = try jsonRoundTrip("{\"priority\": 1}")
+        let result = TaskUpdateValidator.validate(args, task: task, milestoneService: svc.milestone)
+        let error = try unwrapFailure(result)
+        #expect(
+            isInvalidInput(error, contains: "priority"),
+            "Expected priority-specific invalidInput, got \(error)"
+        )
+    }
+
+    /// Exact lowercase match required (Req Value Format) — capitalized values rejected.
+    @Test func validate_priorityCapitalized_rejects() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, project: project)
+
+        for value in ["High", "MEDIUM", "Low"] {
+            let result = TaskUpdateValidator.validate(
+                ["priority": value], task: task, milestoneService: svc.milestone
+            )
+            let error = try unwrapFailure(result)
+            #expect(
+                isInvalidPriority(error, contains: value),
+                "Expected capitalized priority '\(value)' to be rejected, got \(error)"
+            )
+        }
+    }
+
+    /// Proves the `apply` `hasFieldChange` term was added — a priority-only update
+    /// that validates but is never applied would leave the task at medium. [Decision 8]
+    @Test func apply_setsPriority_inMemory() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, project: project)
+        #expect(task.priority == .medium)
+        try svc.context.save()
+        #expect(svc.context.hasChanges == false)
+
+        let result = TaskUpdateValidator.validate(
+            ["priority": "high"], task: task, milestoneService: svc.milestone
+        )
+        let update = try unwrapSuccess(result)
+
+        try TaskUpdateValidator.apply(
+            update, to: task,
+            taskService: svc.task, milestoneService: svc.milestone
+        )
+
+        #expect(task.priority == .high)
+        // apply must not save — the context should still be dirty.
+        #expect(svc.context.hasChanges == true)
+    }
+
+    /// Decision 8: omitting priority on an update leaves the stored value untouched.
+    @Test func apply_priorityOmitted_leavesUnchanged() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Old", type: .bug, project: project)
+        task.priority = .high
+        try svc.context.save()
+
+        let result = TaskUpdateValidator.validate(
+            ["name": "New"], task: task, milestoneService: svc.milestone
+        )
+        let update = try unwrapSuccess(result)
+        #expect(update.priority == nil)
+
+        try TaskUpdateValidator.apply(
+            update, to: task,
+            taskService: svc.task, milestoneService: svc.milestone
+        )
+
+        #expect(task.name == "New")
+        #expect(task.priority == .high, "Priority must be unchanged when omitted")
     }
 
     // MARK: - Metadata (AC 4.1–4.4)

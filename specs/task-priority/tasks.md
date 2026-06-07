@@ -62,7 +62,7 @@ references:
 
 ## Automation
 
-- [ ] 7. Add INVALID_PRIORITY error code to IntentError enum and MCP error-code set <!-- id:3dib3xo -->
+- [x] 7. Add INVALID_PRIORITY error code to IntentError enum and MCP error-code set <!-- id:3dib3xo -->
   - Parallel to INVALID_TYPE/INVALID_STATUS (Decision 9)
   - Wiring task; consumed by validator, MCP handler, and intents
   - Blocked-by: 3dib3xj (Implement TaskPriority enum in Models/TaskPriority.swift)
@@ -70,7 +70,7 @@ references:
   - Requirements: [5.5](requirements.md#5.5), [6.4](requirements.md#6.4)
   - References: specs/task-priority/decision_log.md
 
-- [ ] 8. Write tests for TaskUpdateValidator priority validation <!-- id:3dib3xp -->
+- [x] 8. Write tests for TaskUpdateValidator priority validation <!-- id:3dib3xp -->
   - Absent priority -> no change (.success(nil))
   - Invalid raw -> INVALID_PRIORITY
   - Valid -> applied (proves hasFieldChange term added so it cannot validate-but-not-apply)
@@ -79,7 +79,7 @@ references:
   - Requirements: [5.2](requirements.md#5.2), [6.2](requirements.md#6.2), [6.4](requirements.md#6.4)
   - References: specs/task-priority/design.md
 
-- [ ] 9. Implement validatePriority in TaskUpdateValidator <!-- id:3dib3xq -->
+- [x] 9. Implement validatePriority in TaskUpdateValidator <!-- id:3dib3xq -->
   - Mirror validateType exactly: Optional<TaskPriority>, NOT FieldChange (non-clearable)
   - Add ValidatedTaskUpdate.priority, hasChanges term, apply's hasFieldChange term (L103), pass to updateTask(priority:)
   - Covers BOTH MCP update_task and update intent
@@ -88,7 +88,7 @@ references:
   - Requirements: [5.2](requirements.md#5.2), [6.2](requirements.md#6.2), [6.4](requirements.md#6.4)
   - References: specs/task-priority/design.md, specs/task-priority/decision_log.md
 
-- [ ] 10. Write tests for MCP create_task and query_tasks priority <!-- id:3dib3xr -->
+- [x] 10. Write tests for MCP create_task and query_tasks priority <!-- id:3dib3xr -->
   - create with/without priority (response echoes resolved value); invalid priority -> INVALID_PRIORITY and NO task created
   - query_tasks returns priority; filters by single value and by array (multi-value)
   - Invalid query filter value rejected
@@ -97,7 +97,7 @@ references:
   - Requirements: [5.1](requirements.md#5.1), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5)
   - References: specs/task-priority/design.md
 
-- [ ] 11. Implement MCP priority support <!-- id:3dib3xs -->
+- [x] 11. Implement MCP priority support <!-- id:3dib3xs -->
   - MCPToolDefinitions: priority .stringEnum on create_task/update_task; priority .array on query_tasks (mirror status)
   - handleCreateTask: parse optional default medium, validate, apply; create response via taskToDict echoes priority
   - handleQueryTasks: validateEnumFilter allowArray:true; MCPQueryFilters gains priorities:[String]? + predicate comparing task.priority.rawValue (computed, NOT priorityRawValue)
@@ -107,7 +107,7 @@ references:
   - Requirements: [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [1.4](requirements.md#1.4)
   - References: specs/task-priority/design.md
 
-- [ ] 12. Write tests for JSON App Intents priority <!-- id:3dib3xt -->
+- [x] 12. Write tests for JSON App Intents priority <!-- id:3dib3xt -->
   - Create: default medium / explicit / invalid -> INVALID_PRIORITY
   - Update: set and omit-unchanged; extend UpdateTaskAllFieldsParityTests for MCP/intent lockstep
   - Query: scalar single-value filter; invalid rejected
@@ -117,7 +117,7 @@ references:
   - Requirements: [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4)
   - References: specs/task-priority/design.md
 
-- [ ] 13. Implement JSON App Intents priority support <!-- id:3dib3xu -->
+- [x] 13. Implement JSON App Intents priority support <!-- id:3dib3xu -->
   - CreateTaskIntent: add to inputParameterDescription AND @Parameter literal (lockstep, T-1170); optional-with-default validation (absent->medium, invalid->INVALID_PRIORITY), pass to createTask
   - UpdateTaskIntent: document in both literals; logic via TaskUpdateValidator
   - QueryTasksIntent: scalar priority:String? on QueryFilters, validateEnumFilters clause, applyFilters compares task.priority.rawValue (computed), @Parameter docs

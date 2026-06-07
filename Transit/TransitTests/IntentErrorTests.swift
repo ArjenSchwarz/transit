@@ -32,6 +32,11 @@ struct IntentErrorTests {
         #expect(error.code == "INVALID_TYPE")
     }
 
+    @Test func invalidPriorityCode() {
+        let error = IntentError.invalidPriority(hint: "Unknown priority: urgent")
+        #expect(error.code == "INVALID_PRIORITY")
+    }
+
     @Test func invalidInputCode() {
         let error = IntentError.invalidInput(hint: "Missing required field: name")
         #expect(error.code == "INVALID_INPUT")

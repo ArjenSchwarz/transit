@@ -158,6 +158,68 @@ struct UpdateTaskIntentTests {
         #expect(task.milestone != nil)
     }
 
+    // MARK: - Priority (Req 6.2, Decision 8)
+
+    @Test func setPriorityViaUpdate() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task 1", project: project, displayId: 10)
+        #expect(task.priority == .medium)
+
+        let input = """
+        {"displayId":10,"priority":"high"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["priority"] as? String == "high")
+        #expect(task.priority == .high)
+    }
+
+    @Test func omittingPriorityLeavesItUnchanged() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task 1", project: project, displayId: 10)
+        task.priority = .high
+
+        // An unrelated rename must not reset priority to medium (Decision 8).
+        let input = """
+        {"displayId":10,"name":"Renamed"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["name"] as? String == "Renamed")
+        #expect(parsed["priority"] as? String == "high")
+        #expect(task.priority == .high)
+    }
+
+    @Test func invalidPriorityReturnsInvalidPriority() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let task = makeTask(in: svc.context, name: "Task 1", project: project, displayId: 10)
+        task.priority = .low
+
+        let input = """
+        {"displayId":10,"priority":"urgent"}
+        """
+
+        let result = UpdateTaskIntent.execute(
+            input: input, taskService: svc.task, milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_PRIORITY")
+        // No mutation on validation failure.
+        #expect(task.priority == .low)
+    }
+
     // MARK: - Error Cases
 
     @Test func unknownTaskReturnsTaskNotFound() throws {

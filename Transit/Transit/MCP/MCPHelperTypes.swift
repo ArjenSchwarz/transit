@@ -7,6 +7,7 @@ struct MCPQueryFilters {
     let statuses: [String]?
     let notStatuses: [String]?
     let type: String?
+    let priorities: [String]?
     let projectId: UUID?
     let search: String?
     let milestoneIds: Set<UUID>?
@@ -42,6 +43,18 @@ struct MCPQueryFilters {
         } else {
             notStatusesArg = nil
         }
+        // priority mirrors status: schema declares an array, but accept a single
+        // string defensively (MCP args are untyped). handleQueryTasks rejects
+        // malformed values before reaching here.
+        let priorities: [String]?
+        if let array = args["priority"] as? [String] {
+            priorities = array
+        } else if let single = args["priority"] as? String {
+            priorities = [single]
+        } else {
+            priorities = nil
+        }
+
         // Use the strict parser so numeric/string/null values never coerce to a
         // boolean. `handleQueryTasks` rejects malformed values before reaching
         // here; this defaults to false for an absent (or, defensively, malformed)
@@ -58,7 +71,8 @@ struct MCPQueryFilters {
 
         return MCPQueryFilters(
             statuses: statuses, notStatuses: resolvedNotStatuses,
-            type: type, projectId: projectId, search: search, milestoneIds: milestoneIds
+            type: type, priorities: priorities, projectId: projectId,
+            search: search, milestoneIds: milestoneIds
         )
     }
 
@@ -66,6 +80,11 @@ struct MCPQueryFilters {
         if let statuses, !statuses.isEmpty, !statuses.contains(task.statusRawValue) { return false }
         if let notStatuses, !notStatuses.isEmpty, notStatuses.contains(task.statusRawValue) { return false }
         if let type, task.typeRawValue != type { return false }
+        // Effective-priority invariant (Req 1.4): compare the computed accessor so a
+        // legacy task with no stored priority matches a `["medium"]` filter.
+        if let priorities, !priorities.isEmpty, !priorities.contains(task.priority.rawValue) {
+            return false
+        }
         if let projectId, task.project?.id != projectId { return false }
         // Invariant: callers in MCPToolHandler.handleQueryTasks return early when
         // matchingIds is empty, so milestoneIds is always non-empty here.

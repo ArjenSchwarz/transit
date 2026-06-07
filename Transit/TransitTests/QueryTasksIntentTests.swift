@@ -3,6 +3,8 @@ import SwiftData
 import Testing
 @testable import Transit
 
+// swiftlint:disable type_body_length
+
 @MainActor @Suite(.serialized)
 struct QueryTasksIntentTests {
 
@@ -177,6 +179,65 @@ struct QueryTasksIntentTests {
         #expect(parsed.first?["type"] as? String == "bug")
     }
 
+    // MARK: - Priority Filter (Req 6.3 — scalar single-value)
+
+    @Test func priorityFilterReturnsMatchingTasks() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let high = makeTask(in: svc.context, project: project, name: "High", displayId: 1)
+        high.priority = .high
+        let low = makeTask(in: svc.context, project: project, name: "Low", displayId: 2)
+        low.priority = .low
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"priority\":\"high\"}", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSONArray(result)
+        #expect(parsed.count == 1)
+        #expect(parsed.first?["name"] as? String == "High")
+        #expect(parsed.first?["priority"] as? String == "high")
+    }
+
+    @Test func responseIncludesPriorityForEachTask() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let high = makeTask(in: svc.context, project: project, name: "High", displayId: 1)
+        high.priority = .high
+        // Default (medium) task to confirm the effective accessor is serialized.
+        makeTask(in: svc.context, project: project, name: "Default", displayId: 2)
+
+        let result = QueryTasksIntent.execute(
+            input: "{}", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSONArray(result)
+        let byName = Dictionary(uniqueKeysWithValues: parsed.compactMap { dict -> (String, String)? in
+            guard let name = dict["name"] as? String, let priority = dict["priority"] as? String else {
+                return nil
+            }
+            return (name, priority)
+        })
+        #expect(byName["High"] == "high")
+        #expect(byName["Default"] == "medium")
+    }
+
+    @Test func invalidPriorityFilterReturnsInvalidPriority() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeTask(in: svc.context, project: project, name: "Task", displayId: 1)
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"priority\":\"urgent\"}", projectService: svc.project, taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_PRIORITY")
+    }
+
     // MARK: - DisplayId Lookup
 
     @Test func displayIdLookupReturnsDetailedTask() throws {
@@ -294,3 +355,5 @@ struct QueryTasksIntentTests {
         #expect(item.keys.contains("lastStatusChangeDate"))
     }
 }
+
+// swiftlint:enable type_body_length

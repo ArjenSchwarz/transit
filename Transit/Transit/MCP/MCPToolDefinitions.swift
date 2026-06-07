@@ -60,6 +60,10 @@ nonisolated enum MCPToolDefinitions {
                     "Task type (required)",
                     values: TaskType.allCases.map(\.rawValue)
                 ),
+                "priority": .stringEnum(
+                    "Task priority (optional, defaults to medium)",
+                    values: TaskPriority.allCases.map(\.rawValue)
+                ),
                 "projectId": .string(
                     "Project UUID. At least one of projectId or project is required; projectId takes precedence."
                 ),
@@ -97,7 +101,7 @@ nonisolated enum MCPToolDefinitions {
     )
 
     // swiftlint:disable:next line_length
-    private static let queryTasksDescription = "Search and filter tasks. All filters are optional — omit all to return every task. Use displayId for single-task lookup with full details. Use project for case-insensitive name filtering. status accepts an array of statuses to include. not_status accepts an array of statuses to exclude. unfinished=true excludes done and abandoned tasks (merged with not_status if both provided). Use search for case-insensitive substring matching on task name and description."
+    private static let queryTasksDescription = "Search and filter tasks. All filters are optional — omit all to return every task. Use displayId for single-task lookup with full details. Use project for case-insensitive name filtering. status accepts an array of statuses to include. not_status accepts an array of statuses to exclude. priority accepts an array of priorities to include. unfinished=true excludes done and abandoned tasks (merged with not_status if both provided). Use search for case-insensitive substring matching on task name and description."
 
     static let queryTasks = MCPToolDefinition(
         name: "query_tasks",
@@ -117,6 +121,10 @@ nonisolated enum MCPToolDefinitions {
                 "type": .stringEnum(
                     "Filter by type",
                     values: TaskType.allCases.map(\.rawValue)
+                ),
+                "priority": .array(
+                    "Filter by priority (include tasks matching any listed priority)",
+                    enumValues: TaskPriority.allCases.map(\.rawValue)
                 ),
                 "projectId": .string("Filter by project UUID"),
                 "project": .string("Project name (optional, case-insensitive)"),
@@ -242,6 +250,10 @@ nonisolated enum MCPToolDefinitions {
                 "type": .stringEnum(
                     "New task type (exact lowercase match required)",
                     values: TaskType.allCases.map(\.rawValue)
+                ),
+                "priority": .stringEnum(
+                    "New task priority (exact lowercase match required; omit to leave unchanged)",
+                    values: TaskPriority.allCases.map(\.rawValue)
                 ),
                 "metadata": .object(
                     "Replaces the entire metadata dictionary. Pass {} to clear all metadata. Values must be strings."

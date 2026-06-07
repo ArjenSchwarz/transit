@@ -1,5 +1,7 @@
 import Foundation
 
+// swiftlint:disable file_length
+
 /// Shared validator and applier for `update_task` across the MCP tool and
 /// `UpdateTaskIntent`. Both surfaces parse JSON into `[String: Any]`, resolve
 /// the target task, then call `validate` to produce a `ValidatedTaskUpdate`
@@ -9,8 +11,9 @@ import Foundation
 @MainActor
 enum TaskUpdateValidator {
 
+    // swiftlint:disable cyclomatic_complexity
     /// Walks the JSON args in a deterministic order (name → description → type
-    /// → metadata → milestone) and produces a fully-validated update. Pure:
+    /// → priority → metadata → milestone) and produces a fully-validated update. Pure:
     /// never mutates `task` or the model context. Milestone resolution uses
     /// `milestoneService` for read-only lookups. The walk order is not part
     /// of the public contract (AC 5.2) — callers MUST NOT depend on which
@@ -41,6 +44,13 @@ enum TaskUpdateValidator {
         case .success(let value): type = value
         }
 
+        // priority
+        let priority: TaskPriority?
+        switch validatePriority(args) {
+        case .failure(let error): return .failure(error)
+        case .success(let value): priority = value
+        }
+
         // metadata
         let metadata: FieldChange<[String: String]>
         switch strictStringMetadata(from: args["metadata"]) {
@@ -60,11 +70,13 @@ enum TaskUpdateValidator {
                 name: name,
                 description: description,
                 type: type,
+                priority: priority,
                 metadata: metadata,
                 milestoneAction: milestoneAction
             )
         )
     }
+    // swiftlint:enable cyclomatic_complexity
 
     /// Applies a validated update to the task in memory via the service layer.
     /// Calls `taskService.updateTask(..., save: false)` once with every
@@ -80,7 +92,7 @@ enum TaskUpdateValidator {
         taskService: TaskService,
         milestoneService: MilestoneService
     ) throws {
-        // Walk order: name → description → type → metadata → milestone.
+        // Walk order: name → description → type → priority → metadata → milestone.
         // Only call updateTask if at least one of its fields changes — otherwise
         // we'd issue a no-op service call that still adds nothing observable but
         // is wasted work.
@@ -103,6 +115,7 @@ enum TaskUpdateValidator {
         let hasFieldChange = update.name != nil
             || update.description.isChange
             || update.type != nil
+            || update.priority != nil
             || update.metadata.isChange
 
         if hasFieldChange {
@@ -113,6 +126,7 @@ enum TaskUpdateValidator {
                 clearDescription: clearDesc,
                 type: update.type,
                 metadata: metadataArg,
+                priority: update.priority,
                 save: false
             )
         }
@@ -202,6 +216,24 @@ enum TaskUpdateValidator {
             return .failure(.invalidInput("Invalid type: \(str). Must be one of: \(valid)"))
         }
         return .success(type)
+    }
+
+    /// Validates the optional `priority` field. Mirrors `validateType`'s shape but
+    /// surfaces a bad raw value as `.invalidPriority` (a dedicated INVALID_PRIORITY
+    /// code, Decision 9) rather than the generic `.invalidInput`. Priority is
+    /// non-clearable (Decision 8): an absent key means "no change".
+    private static func validatePriority(
+        _ args: [String: Any]
+    ) -> Result<TaskPriority?, TaskUpdateValidationError> {
+        guard let raw = args["priority"] else { return .success(nil) }
+        guard let str = raw as? String else {
+            return .failure(.invalidInput("priority must be a string"))
+        }
+        guard let priority = TaskPriority(rawValue: str) else {
+            let valid = TaskPriority.allCases.map(\.rawValue).joined(separator: ", ")
+            return .failure(.invalidPriority("Invalid priority: \(str). Must be one of: \(valid)"))
+        }
+        return .success(priority)
     }
 
     /// Mirrors the precedence in the existing MCP handler and
@@ -301,7 +333,7 @@ enum TaskUpdateValidator {
 
 /// A pure data carrier for a fully-validated update. Field representation
 /// makes invalid states unrepresentable:
-/// - Non-clearable fields (`name`, `type`) use `Optional<T>` — `nil` = no change.
+/// - Non-clearable fields (`name`, `type`, `priority`) use `Optional<T>` — `nil` = no change.
 /// - Clearable fields (`description`, `metadata`) use `FieldChange<T>` to
 ///   distinguish "set" from "clear" cleanly.
 /// - Milestone uses its own enum because "assign" carries a `Milestone`
@@ -310,6 +342,7 @@ struct ValidatedTaskUpdate {
     let name: String?
     let description: FieldChange<String>
     let type: TaskType?
+    let priority: TaskPriority?
     let metadata: FieldChange<[String: String]>
     let milestoneAction: MilestoneAction?
 
@@ -317,6 +350,7 @@ struct ValidatedTaskUpdate {
         name != nil
             || description.isChange
             || type != nil
+            || priority != nil
             || metadata.isChange
             || milestoneAction != nil
     }
@@ -355,6 +389,7 @@ enum MilestoneAction {
 /// across surfaces (AC 5.2 carve-out).
 enum TaskUpdateValidationError: Error {
     case invalidInput(String)
+    case invalidPriority(String)
     case milestoneNotFound(message: String)
     case duplicateMilestoneDisplayID(message: String)
     case milestoneProjectMismatch
@@ -366,6 +401,7 @@ enum TaskUpdateValidationError: Error {
     var mcpMessage: String {
         switch self {
         case .invalidInput(let message),
+             .invalidPriority(let message),
              .milestoneNotFound(let message),
              .duplicateMilestoneDisplayID(let message):
             return message
@@ -383,6 +419,8 @@ enum TaskUpdateValidationError: Error {
         switch self {
         case .invalidInput(let hint):
             return .invalidInput(hint: hint)
+        case .invalidPriority(let hint):
+            return .invalidPriority(hint: hint)
         case .milestoneNotFound(let message):
             return .milestoneNotFound(hint: message)
         case .duplicateMilestoneDisplayID(let message):
@@ -398,3 +436,5 @@ enum TaskUpdateValidationError: Error {
         }
     }
 }
+
+// swiftlint:enable file_length

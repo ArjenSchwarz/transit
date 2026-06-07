@@ -197,6 +197,22 @@ final class MCPToolHandler {
             return errorResult("Invalid type: \(typeRaw). Must be one of: \(valid)")
         }
 
+        // Priority is optional and defaults to medium. A present-but-invalid value
+        // is rejected before any task is created (Req 5.5).
+        let priority: TaskPriority
+        if let priorityRaw = args["priority"] {
+            guard let priorityStr = priorityRaw as? String else {
+                return errorResult("priority must be a string")
+            }
+            guard let parsed = TaskPriority(rawValue: priorityStr) else {
+                let valid = TaskPriority.allCases.map(\.rawValue).joined(separator: ", ")
+                return errorResult("Invalid priority: \(priorityStr). Must be one of: \(valid)")
+            }
+            priority = parsed
+        } else {
+            priority = .medium
+        }
+
         // Reject malformed or non-string projectId when the key is present
         // [T-743, T-788].
         let projectId: UUID?
@@ -260,7 +276,8 @@ final class MCPToolHandler {
                 description: args["description"] as? String,
                 type: taskType,
                 project: project,
-                metadata: IntentHelpers.stringMetadata(from: args["metadata"])
+                metadata: IntentHelpers.stringMetadata(from: args["metadata"]),
+                priority: priority
             )
         } catch {
             return errorResult("Task creation failed: \(error)")
@@ -278,7 +295,8 @@ final class MCPToolHandler {
 
         var response: [String: Any] = [
             "taskId": task.id.uuidString,
-            "status": task.statusRawValue
+            "status": task.statusRawValue,
+            "priority": task.priority.rawValue
         ]
         if let displayId = task.permanentDisplayId {
             response["displayId"] = displayId
@@ -430,6 +448,10 @@ final class MCPToolHandler {
         // type is a single-value filter (schema declares a string enum; read back as
         // args["type"] as? String). Reject arrays so they aren't silently dropped. [T-1404]
         if let error = validateEnumFilter(args, key: "type", type: TaskType.self, allowArray: false) {
+            return error
+        }
+        // priority is a multi-value filter (schema declares an array, mirroring status).
+        if let error = validateEnumFilter(args, key: "priority", type: TaskPriority.self, allowArray: true) {
             return error
         }
 
@@ -1136,7 +1158,9 @@ extension MCPToolHandler {
                     "taskId": task.id.uuidString,
                     "name": task.name,
                     "status": task.statusRawValue,
-                    "type": task.typeRawValue
+                    "type": task.typeRawValue,
+                    // Effective-priority invariant (Req 1.4): computed accessor, NOT priorityRawValue.
+                    "priority": task.priority.rawValue
                 ]
                 if let displayId = task.permanentDisplayId { taskDict["displayId"] = displayId }
                 return taskDict

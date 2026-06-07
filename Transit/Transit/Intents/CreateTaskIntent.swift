@@ -22,6 +22,7 @@ struct CreateTaskIntent: AppIntent {
         JSON object with task details. Required fields: "name" (string), "type" (bug | feature | chore | \
         research | documentation), and at least one of "projectId" (UUID) or "project" (name) to identify \
         the project. Optional: "description" (string), \
+        "priority" (low | medium | high; defaults to medium), \
         "metadata" (object with string values; non-string values are ignored), "milestone" (name), \
         "milestoneDisplayId" (integer). \
         Example: {"name": "Fix login", "type": "bug", "project": "Alpha", "milestoneDisplayId": 1}
@@ -33,6 +34,7 @@ struct CreateTaskIntent: AppIntent {
         JSON object with task details. Required fields: "name" (string), "type" (bug | feature | chore | \
         research | documentation), and at least one of "projectId" (UUID) or "project" (name) to identify \
         the project. Optional: "description" (string), \
+        "priority" (low | medium | high; defaults to medium), \
         "metadata" (object with string values; non-string values are ignored), "milestone" (name), \
         "milestoneDisplayId" (integer). \
         Example: {"name": "Fix login", "type": "bug", "project": "Alpha", "milestoneDisplayId": 1}
@@ -63,7 +65,7 @@ struct CreateTaskIntent: AppIntent {
     // MARK: - Logic (testable without @Dependency)
 
     @MainActor
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     static func execute(
         input: String,
         taskService: TaskService,
@@ -80,6 +82,15 @@ struct CreateTaskIntent: AppIntent {
         let name = json["name"] as! String // swiftlint:disable:this force_cast
         let typeRaw = json["type"] as! String // swiftlint:disable:this force_cast
         let taskType = TaskType(rawValue: typeRaw)! // swiftlint:disable:this force_unwrapping
+
+        // Priority is optional and defaults to medium. Unlike the required `type`
+        // force-unwrap above, this is an optional-with-default path: absent -> .medium;
+        // present-and-invalid -> INVALID_PRIORITY (Decision 9); present-and-valid -> parse.
+        let priority: TaskPriority
+        switch parsePriority(json) {
+        case .failure(let error): return error.json
+        case .success(let parsed): priority = parsed
+        }
 
         // Resolve project: projectId takes precedence over project name.
         // Validate key presence separately from string/UUID parsing so non-string
@@ -117,7 +128,8 @@ struct CreateTaskIntent: AppIntent {
                 description: json["description"] as? String,
                 type: taskType,
                 project: project,
-                metadata: IntentHelpers.stringMetadata(from: json["metadata"])
+                metadata: IntentHelpers.stringMetadata(from: json["metadata"]),
+                priority: priority
             )
         } catch {
             return IntentError.invalidInput(hint: "Task creation failed").json
@@ -145,7 +157,9 @@ struct CreateTaskIntent: AppIntent {
     private static func buildResponse(_ task: TransitTask) -> String {
         var response: [String: Any] = [
             "taskId": task.id.uuidString,
-            "status": task.statusRawValue
+            "status": task.statusRawValue,
+            // Effective-priority invariant (Req 1.4): echo the computed accessor.
+            "priority": task.priority.rawValue
         ]
         if let displayId = task.permanentDisplayId {
             response["displayId"] = displayId
@@ -210,6 +224,20 @@ struct CreateTaskIntent: AppIntent {
             return (milestone, nil)
         }
         return (nil, nil)
+    }
+
+    /// Parses the optional `priority` field. Absent -> `.medium`;
+    /// present-but-non-string -> INVALID_INPUT; present-but-unknown -> INVALID_PRIORITY
+    /// (Decision 9). Priority is non-clearable, so there is no "absent = clear" case.
+    private static func parsePriority(_ json: [String: Any]) -> Result<TaskPriority, IntentError> {
+        guard let raw = json["priority"] else { return .success(.medium) }
+        guard let str = raw as? String else {
+            return .failure(.invalidInput(hint: "priority must be a string"))
+        }
+        guard let priority = TaskPriority(rawValue: str) else {
+            return .failure(.invalidPriority(hint: "Unknown priority: \(str)"))
+        }
+        return .success(priority)
     }
 
     private static func validateInput(_ json: [String: Any]) -> IntentError? {

@@ -206,7 +206,9 @@ struct QueryMilestonesIntent: AppIntent {
                     "taskId": task.id.uuidString,
                     "name": task.name,
                     "status": task.statusRawValue,
-                    "type": task.typeRawValue
+                    "type": task.typeRawValue,
+                    // Effective-priority invariant (Req 1.4): computed accessor, NOT priorityRawValue.
+                    "priority": task.priority.rawValue
                 ]
                 if let displayId = task.permanentDisplayId {
                     taskDict["displayId"] = displayId

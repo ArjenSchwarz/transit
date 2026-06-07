@@ -1,7 +1,7 @@
 import CoreFoundation
 import Foundation
 
-// swiftlint:disable type_body_length
+// swiftlint:disable type_body_length file_length
 /// Shared utilities for App Intent JSON parsing and response encoding.
 /// Nonisolated because these are pure functions that only use Foundation types.
 nonisolated enum IntentHelpers {
@@ -265,6 +265,9 @@ nonisolated enum IntentHelpers {
             "name": task.name,
             "status": task.statusRawValue,
             "type": task.typeRawValue,
+            // Effective-priority invariant (Req 1.4): serialize the computed accessor,
+            // NOT priorityRawValue, so legacy tasks read as "medium".
+            "priority": task.priority.rawValue,
             "lastStatusChangeDate": formatter.string(from: task.lastStatusChangeDate)
         ]
         if let displayId = task.permanentDisplayId {
@@ -310,6 +313,8 @@ nonisolated enum IntentHelpers {
             "taskId": task.id.uuidString,
             "name": task.name,
             "type": task.typeRawValue,
+            // Effective-priority invariant (Req 1.4): computed accessor, NOT priorityRawValue.
+            "priority": task.priority.rawValue,
             "status": task.statusRawValue
         ]
         if let displayId = task.permanentDisplayId {
@@ -395,4 +400,4 @@ nonisolated enum IntentHelpers {
         return nil
     }
 }
-// swiftlint:enable type_body_length
+// swiftlint:enable type_body_length file_length
