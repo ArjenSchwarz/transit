@@ -32,7 +32,7 @@
 | [Duplicate Display ID Cleanup](#duplicate-display-id-cleanup) | 2026-04-25 | Done | Scan and reassign tasks/milestones sharing a permanentDisplayId |
 | [Update Task All Fields](#update-task-all-fields) | 2026-05-22 | Done | Extend update_task MCP tool and App Intent to update name, description, type, and metadata |
 | [Search Empty State](#search-empty-state) | 2026-05-31 | Done | Show ContentUnavailableView.search empty state when dashboard text search has no matches |
-| [Task Priority](#task-priority) | 2026-06-06 | Planned | Add a low/medium/high priority field with board glyph, filter, and MCP/Intent support |
+| [Task Priority](#task-priority) | 2026-06-06 | In Progress | Add a low/medium/high priority field with board glyph, filter, and MCP/Intent support |
 
 ---
 
