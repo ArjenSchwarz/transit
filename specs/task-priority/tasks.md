@@ -8,7 +8,7 @@ references:
 
 ## Foundation
 
-- [ ] 1. Write tests for TaskPriority enum <!-- id:3dib3xi -->
+- [x] 1. Write tests for TaskPriority enum <!-- id:3dib3xi -->
   - Raw values low/medium/high; allCases ordering
   - tintColor for all three (high .red, medium .orange, low .blue)
   - glyphSymbol returns nil ONLY for medium; arrow.up.circle.fill for high, arrow.down.circle.fill for low
@@ -17,7 +17,7 @@ references:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.4](requirements.md#2.4)
   - References: specs/task-priority/design.md
 
-- [ ] 2. Implement TaskPriority enum in Models/TaskPriority.swift <!-- id:3dib3xj -->
+- [x] 2. Implement TaskPriority enum in Models/TaskPriority.swift <!-- id:3dib3xj -->
   - String, Codable, CaseIterable; import SwiftUI for Color
   - Mirror TaskType shape
   - Blocked-by: 3dib3xi (Write tests for TaskPriority enum)
@@ -25,7 +25,7 @@ references:
   - Requirements: [1.1](requirements.md#1.1), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.4](requirements.md#2.4)
   - References: specs/task-priority/design.md
 
-- [ ] 3. Write tests for TransitTask priority accessor <!-- id:3dib3xk -->
+- [x] 3. Write tests for TransitTask priority accessor <!-- id:3dib3xk -->
   - Default priorityRawValue is medium
   - Empty or unrecognized raw value reads as .medium via computed accessor
   - Setter writes rawValue; init param sets priorityRawValue
@@ -34,7 +34,7 @@ references:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.5](requirements.md#1.5)
   - References: specs/task-priority/design.md
 
-- [ ] 4. Add priorityRawValue stored property, priority computed accessor, and init param to TransitTask <!-- id:3dib3xl -->
+- [x] 4. Add priorityRawValue stored property, priority computed accessor, and init param to TransitTask <!-- id:3dib3xl -->
   - priorityRawValue: String = medium (CloudKit-safe default, same shape as statusRawValue/typeRawValue)
   - init gains priority: TaskPriority = .medium
   - No production reads of priorityRawValue outside accessor/init/setter
@@ -43,7 +43,7 @@ references:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.5](requirements.md#1.5)
   - References: specs/task-priority/design.md, specs/task-priority/decision_log.md
 
-- [ ] 5. Write tests for TaskService priority create/update <!-- id:3dib3xm -->
+- [x] 5. Write tests for TaskService priority create/update <!-- id:3dib3xm -->
   - createTask defaults to medium and honors explicit value
   - updateTask sets priority
   - updateTask omitting priority leaves it unchanged (Decision 8)
@@ -52,7 +52,7 @@ references:
   - Requirements: [1.2](requirements.md#1.2), [5.2](requirements.md#5.2)
   - References: specs/task-priority/design.md
 
-- [ ] 6. Add priority param to TaskService createTask (both overloads) and updateTask <!-- id:3dib3xn -->
+- [x] 6. Add priority param to TaskService createTask (both overloads) and updateTask <!-- id:3dib3xn -->
   - createTask(..., priority: TaskPriority = .medium); thread into TransitTask init
   - updateTask(..., priority: TaskPriority? = nil) -> if let priority { task.priority = priority }
   - Blocked-by: 3dib3xm (Write tests for TaskService priority create/update)
