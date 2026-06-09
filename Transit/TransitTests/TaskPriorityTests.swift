@@ -25,6 +25,14 @@ struct TaskPriorityTests {
         #expect(TaskPriority.allCases == [.low, .medium, .high])
     }
 
+    // MARK: - displayOrder
+
+    @Test func displayOrderIsHighToLow() {
+        // Pickers and the board filter iterate displayOrder (most-actionable
+        // first), not allCases (source order). This ordering is user-visible.
+        #expect(TaskPriority.displayOrder == [.high, .medium, .low])
+    }
+
     // MARK: - tintColor
 
     @Test func tintColorMatchesSpec() {

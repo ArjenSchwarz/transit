@@ -80,7 +80,7 @@ Idea | Planning | Spec | In Progress | Done/Abandoned
 - Sort: `lastStatusChangeDate` descending within each column, with a toggle for "Organized" sort
 - Cross-column drag changes status; no vertical reorder within columns
 - Search bar supports name, description, and display ID matching (e.g. "T-42")
-- Filter menus for project, type, and milestone
+- Filter menus for project, type, milestone, and priority
 
 ### Platform Layout
 
@@ -115,7 +115,7 @@ Intents exposed as Shortcuts, each accepting/returning structured JSON via `@Par
 
 - **CreateTaskIntent** — create task with optional milestone assignment
 - **UpdateStatusIntent** — move task to new status with optional comment
-- **QueryTasksIntent** — filter by project/status/type/milestone/search/date range
+- **QueryTasksIntent** — filter by project/status/type/priority/milestone/search/date range
 - **UpdateTaskIntent** — update task properties (milestone assignment)
 - **CreateMilestoneIntent** — create milestone within a project
 - **QueryMilestonesIntent** — filter milestones
@@ -124,7 +124,7 @@ Intents exposed as Shortcuts, each accepting/returning structured JSON via `@Par
 - **AddCommentIntent** — add comment to a task
 - **GenerateReportIntent** — generate markdown report of completed/abandoned tasks
 
-Error responses are JSON-encoded in the return string (not thrown) so CLI callers get parseable output. Error codes: `TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`, `INVALID_INPUT`, `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `MILESTONE_PROJECT_MISMATCH`, `INTERNAL_ERROR`.
+Error responses are JSON-encoded in the return string (not thrown) so CLI callers get parseable output. Error codes: `TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`, `INVALID_PRIORITY`, `INVALID_INPUT`, `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `MILESTONE_PROJECT_MISMATCH`, `INTERNAL_ERROR`.
 
 **Visual intents** (in `Intents/Visual/`) use native App Intent entities and queries for Shortcuts UI integration: `AddTaskIntent`, `FindTasksIntent`.
 
@@ -201,7 +201,8 @@ Services follow a consistent pattern: mutate in memory, then `save()`, rolling b
 
 ## Key Design Decisions
 
-- No task dependencies, no priority field, no full status history in V1
+- No task dependencies, no full status history in V1
+- Tasks have a low/medium/high priority field (default medium), stored as a CloudKit-safe `priorityRawValue` with a computed `TaskPriority` accessor that reads any absent/empty/legacy value as medium (no migration). Shown as a board-card glyph for high/low (medium suppressed), filterable on the board, editable in create/edit/detail, and read/settable via MCP and App Intents
 - New tasks always start in Idea status
 - Abandoned tasks restore to Idea (not previous status)
 - Filter state is ephemeral (resets on launch)
