@@ -172,6 +172,7 @@ struct AddTaskSheetSaveErrorTests {
             name: "Orphan Candidate",
             description: nil,
             type: .bug,
+            priority: .medium,
             projectID: projectA.id,
             milestone: milestoneInB
         )
@@ -199,6 +200,7 @@ struct AddTaskSheetSaveErrorTests {
             name: "Happy Task",
             description: nil,
             type: .feature,
+            priority: .medium,
             projectID: project.id,
             milestone: milestone
         )
@@ -224,6 +226,7 @@ struct AddTaskSheetSaveErrorTests {
             name: "No Milestone Task",
             description: nil,
             type: .feature,
+            priority: .medium,
             projectID: project.id,
             milestone: nil
         )

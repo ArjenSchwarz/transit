@@ -128,7 +128,7 @@ references:
 
 ## UI
 
-- [ ] 14. Write tests for dashboard priority filter predicate <!-- id:3dib3xv -->
+- [x] 14. Write tests for dashboard priority filter predicate <!-- id:3dib3xv -->
   - DashboardLogic.buildFilteredColumns / matchesFilters: single and multi priority selection
   - Empty selection = all priorities pass
   - Intersection with project and type filters
@@ -138,7 +138,7 @@ references:
   - Requirements: [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4)
   - References: specs/task-priority/design.md
 
-- [ ] 15. Implement PriorityFilterMenu and wire into DashboardView <!-- id:3dib3xw -->
+- [x] 15. Implement PriorityFilterMenu and wire into DashboardView <!-- id:3dib3xw -->
   - New Views/Dashboard/PriorityFilterMenu.swift mirroring TypeFilterMenu; iterate ordered [high,medium,low] with Circle().fill(tintColor)+checkmark; ids dashboard.filter.priorities and filter.priority.<raw>
   - DashboardView: @State selectedPriorities; toolbar next to TypeFilterMenu; include in hasAnyFilter/hasOtherFilters; clear-all; thread into buildFilteredColumns/matchesFilters predicate
   - Ephemeral @State resets on launch
@@ -147,7 +147,7 @@ references:
   - Requirements: [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [3.6](requirements.md#3.6), [3.7](requirements.md#3.7)
   - References: specs/task-priority/design.md
 
-- [ ] 16. Implement PriorityIndicator and add to TaskCardView <!-- id:3dib3xx -->
+- [x] 16. Implement PriorityIndicator and add to TaskCardView <!-- id:3dib3xx -->
   - New Views/Shared/PriorityIndicator.swift: Image(systemName: glyphSymbol) for high/low, nothing for medium; .font(.caption), tintColor, accessibilityLabel, id dashboard.taskCard.priority
   - Bare symbol, NOT a TypeBadge text capsule; slot into TaskCardView badges HStack
   - Medium has no card glyph (by design; not VoiceOver-discoverable from card)
@@ -156,7 +156,7 @@ references:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4)
   - References: specs/task-priority/design.md
 
-- [ ] 17. Add priority picker to AddTaskSheet <!-- id:3dib3xy -->
+- [x] 17. Add priority picker to AddTaskSheet <!-- id:3dib3xy -->
   - @State selectedPriority = .medium; Picker over ordered cases on iOS and macOS mirroring the Type picker
   - Add to AddTaskFormResetLogic.Defaults; thread through TaskDraft.priority into createTask
   - Blocked-by: 3dib3xn (Add priority param to TaskService createTask (both overloads) and updateTask)
@@ -164,14 +164,14 @@ references:
   - Requirements: [4.1](requirements.md#4.1)
   - References: specs/task-priority/design.md
 
-- [ ] 18. Add priority picker to TaskEditView <!-- id:3dib3xz -->
+- [x] 18. Add priority picker to TaskEditView <!-- id:3dib3xz -->
   - @State selectedPriority; load = task.priority; Picker iOS+macOS; save passes priority to updateTask(save:false) before the atomic save
   - Blocked-by: 3dib3xn (Add priority param to TaskService createTask (both overloads) and updateTask)
   - Stream: 2
   - Requirements: [4.2](requirements.md#4.2), [4.3](requirements.md#4.3)
   - References: specs/task-priority/design.md
 
-- [ ] 19. Add priority row to TaskDetailView <!-- id:3dib3y0 -->
+- [x] 19. Add priority row to TaskDetailView <!-- id:3dib3y0 -->
   - Priority row in both iOS (LabeledContent) and macOS (FormRow) layouts
   - Render as text for all three levels (task.priority.rawValue.capitalized), like the Status row, so medium is visible
   - Blocked-by: 3dib3xl (Add priorityRawValue stored property, priority computed accessor, and init param to TransitTask)

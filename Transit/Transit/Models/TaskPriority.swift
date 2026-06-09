@@ -5,6 +5,11 @@ enum TaskPriority: String, Codable, CaseIterable {
     case medium
     case high
 
+    /// Order for pickers and the filter menu: most actionable value first.
+    /// `allCases` is source order (low-first); display surfaces iterate this
+    /// instead so high reads first.
+    static let displayOrder: [TaskPriority] = [.high, .medium, .low]
+
     /// Color used for the filter dot (all three) and the card glyph (low/high).
     var tintColor: Color {
         switch self {
