@@ -17,6 +17,7 @@ struct AddTaskSheet: View {
     @State var name = ""
     @State var taskDescription = ""
     @State var selectedType: TaskType = .feature
+    @State var selectedPriority: TaskPriority = .medium
     @State private var selectedProjectID: UUID?
     @State var selectedMilestone: Milestone?
     @State private var selectedDetent: PresentationDetent = .large
@@ -118,6 +119,12 @@ struct AddTaskSheet: View {
                     }
                 }
 
+                Picker("Priority", selection: $selectedPriority) {
+                    ForEach(TaskPriority.displayOrder, id: \.self) { priority in
+                        Text(priority.rawValue.capitalized).tag(priority)
+                    }
+                }
+
                 Picker("Project", selection: $selectedProjectID) {
                     ForEach(projects) { project in
                         HStack {
@@ -172,6 +179,17 @@ struct AddTaskSheet: View {
                             Picker("", selection: $selectedType) {
                                 ForEach(TaskType.allCases, id: \.self) { type in
                                     Text(type.rawValue.capitalized).tag(type)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .fixedSize()
+                        }
+
+                        FormRow("Priority", labelWidth: Self.labelWidth) {
+                            Picker("", selection: $selectedPriority) {
+                                ForEach(TaskPriority.displayOrder, id: \.self) { priority in
+                                    Text(priority.rawValue.capitalized).tag(priority)
                                 }
                             }
                             .labelsHidden()
@@ -239,6 +257,7 @@ struct AddTaskSheet: View {
         name = defaults.name
         taskDescription = defaults.description
         selectedType = defaults.type
+        selectedPriority = defaults.priority
         selectedMilestone = defaults.milestone
         selectedProjectID = AddTaskFormResetLogic.defaultProjectID(
             from: projects, current: selectedProjectID
@@ -264,6 +283,7 @@ enum AddTaskFormResetLogic {
         let name: String
         let description: String
         let type: TaskType
+        let priority: TaskPriority
         let milestone: Milestone?
     }
 
@@ -271,6 +291,7 @@ enum AddTaskFormResetLogic {
         name: "",
         description: "",
         type: .feature,
+        priority: .medium,
         milestone: nil
     )
 

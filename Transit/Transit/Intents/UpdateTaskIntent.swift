@@ -31,6 +31,7 @@ struct UpdateTaskIntent: AppIntent {
     "name" (string, trimmed, non-empty); \
     "description" (string, trimmed; pass "" or whitespace-only to clear); \
     "type" (string, one of: bug, feature, chore, research, documentation); \
+    "priority" (string, one of: low, medium, high; omit to leave unchanged — not clearable); \
     "metadata" (object with string values; replaces entire metadata dict; pass {} to clear all). \
     Milestone fields: "milestoneDisplayId" (integer), "milestone" (name within task's project), \
     or "clearMilestone" (boolean, true to remove). \
@@ -46,6 +47,7 @@ struct UpdateTaskIntent: AppIntent {
         "name" (string, trimmed, non-empty); \
         "description" (string, trimmed; pass "" or whitespace-only to clear); \
         "type" (string, one of: bug, feature, chore, research, documentation); \
+        "priority" (string, one of: low, medium, high; omit to leave unchanged — not clearable); \
         "metadata" (object with string values; replaces entire metadata dict; pass {} to clear all). \
         Milestone fields: "milestoneDisplayId" (integer), "milestone" (name within task's project), \
         or "clearMilestone" (boolean, true to remove). \

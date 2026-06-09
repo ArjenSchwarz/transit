@@ -15,6 +15,7 @@ extension AddTaskSheet {
             name: trimmedName,
             description: description.isEmpty ? nil : description,
             type: selectedType,
+            priority: selectedPriority,
             projectID: project.id,
             milestone: selectedMilestone
         )
@@ -39,6 +40,7 @@ extension AddTaskSheet {
         let name: String
         let description: String?
         let type: TaskType
+        let priority: TaskPriority
         let projectID: UUID
         let milestone: Milestone?
     }
@@ -61,7 +63,8 @@ extension AddTaskSheet {
             name: draft.name,
             description: draft.description,
             type: draft.type,
-            projectID: draft.projectID
+            projectID: draft.projectID,
+            priority: draft.priority
         )
         guard let milestone = draft.milestone else { return }
         do {

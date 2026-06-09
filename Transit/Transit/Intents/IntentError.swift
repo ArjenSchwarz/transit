@@ -6,6 +6,7 @@ nonisolated enum IntentError: Error {
     case ambiguousProject(hint: String)
     case invalidStatus(hint: String)
     case invalidType(hint: String)
+    case invalidPriority(hint: String)
     case invalidInput(hint: String)
     case milestoneNotFound(hint: String)
     case duplicateMilestoneName(hint: String)
@@ -19,6 +20,7 @@ nonisolated enum IntentError: Error {
         case .ambiguousProject: "AMBIGUOUS_PROJECT"
         case .invalidStatus: "INVALID_STATUS"
         case .invalidType: "INVALID_TYPE"
+        case .invalidPriority: "INVALID_PRIORITY"
         case .invalidInput: "INVALID_INPUT"
         case .milestoneNotFound: "MILESTONE_NOT_FOUND"
         case .duplicateMilestoneName: "DUPLICATE_MILESTONE_NAME"
@@ -34,6 +36,7 @@ nonisolated enum IntentError: Error {
              .ambiguousProject(let hint),
              .invalidStatus(let hint),
              .invalidType(let hint),
+             .invalidPriority(let hint),
              .invalidInput(let hint),
              .milestoneNotFound(let hint),
              .duplicateMilestoneName(let hint),

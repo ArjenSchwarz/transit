@@ -186,6 +186,20 @@ struct UpdateTaskAllFieldsParityTests {
         )
     }
 
+    @Test func updatePriority_parity() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let task = try await env.taskService.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+        let taskDisplayId = try #require(task.permanentDisplayId)
+
+        try await runParityCase(
+            env: env,
+            arguments: ["displayId": taskDisplayId, "priority": "high"]
+        )
+    }
+
     @Test func updateMetadata_parity() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
@@ -243,6 +257,7 @@ struct UpdateTaskAllFieldsParityTests {
                 "name": "Renamed",
                 "description": "new desc",
                 "type": "chore",
+                "priority": "high",
                 "metadata": ["new": "val"],
                 "milestoneDisplayId": milestoneDisplayId
             ]

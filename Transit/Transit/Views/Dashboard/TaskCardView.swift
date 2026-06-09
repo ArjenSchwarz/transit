@@ -58,6 +58,8 @@ struct TaskCardView: View {
 
                 TypeBadge(type: task.type)
 
+                PriorityIndicator(priority: task.priority)
+
                 if let milestone = task.milestone {
                     Text(milestone.name)
                         .font(.caption2)

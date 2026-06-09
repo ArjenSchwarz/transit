@@ -9,6 +9,7 @@ final class TransitTask {
     var taskDescription: String?
     var statusRawValue: String = "idea"
     var typeRawValue: String = "feature"
+    var priorityRawValue: String = "medium"
     var creationDate: Date = Date()
     var lastStatusChangeDate: Date = Date()
     var completionDate: Date?
@@ -28,6 +29,14 @@ final class TransitTask {
     var type: TaskType {
         get { TaskType(rawValue: typeRawValue) ?? .feature }
         set { typeRawValue = newValue.rawValue }
+    }
+
+    /// Effective priority. Legacy tasks (absent/empty/unrecognized raw value)
+    /// read as `.medium` (the invariant — Req 1.4). No production code reads
+    /// `priorityRawValue` outside this accessor, the init, and the setter.
+    var priority: TaskPriority {
+        get { TaskPriority(rawValue: priorityRawValue) ?? .medium }
+        set { priorityRawValue = newValue.rawValue }
     }
 
     var displayID: DisplayID {
@@ -105,12 +114,14 @@ final class TransitTask {
         type: TaskType,
         project: Project,
         displayID: DisplayID,
-        metadata: [String: String]? = nil
+        metadata: [String: String]? = nil,
+        priority: TaskPriority = .medium
     ) {
         self.id = UUID()
         self.name = name
         self.taskDescription = description
         self.typeRawValue = type.rawValue
+        self.priorityRawValue = priority.rawValue
         self.project = project
         self.creationDate = Date.now
         self.lastStatusChangeDate = Date.now

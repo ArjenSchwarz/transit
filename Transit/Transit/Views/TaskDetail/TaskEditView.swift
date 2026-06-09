@@ -14,6 +14,7 @@ struct TaskEditView: View {
     @State private var name: String = ""
     @State private var taskDescription: String = ""
     @State private var selectedType: TaskType = .feature
+    @State private var selectedPriority: TaskPriority = .medium
     @State private var selectedStatus: TaskStatus = .idea
     @State private var selectedProjectID: UUID?
     @State private var selectedMilestone: Milestone?
@@ -98,6 +99,12 @@ struct TaskEditView: View {
                 }
             }
 
+            Picker("Priority", selection: $selectedPriority) {
+                ForEach(TaskPriority.displayOrder, id: \.self) { priority in
+                    Text(priority.rawValue.capitalized).tag(priority)
+                }
+            }
+
             Picker("Project", selection: $selectedProjectID) {
                 ForEach(projects) { project in
                     HStack {
@@ -154,6 +161,17 @@ struct TaskEditView: View {
                             Picker("", selection: $selectedType) {
                                 ForEach(TaskType.allCases, id: \.self) { type in
                                     Text(type.rawValue.capitalized).tag(type)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .fixedSize()
+                        }
+
+                        FormRow("Priority", labelWidth: Self.labelWidth) {
+                            Picker("", selection: $selectedPriority) {
+                                ForEach(TaskPriority.displayOrder, id: \.self) { priority in
+                                    Text(priority.rawValue.capitalized).tag(priority)
                                 }
                             }
                             .labelsHidden()
@@ -275,6 +293,7 @@ extension TaskEditView {
         name = task.name
         taskDescription = task.taskDescription ?? ""
         selectedType = task.type
+        selectedPriority = task.priority
         selectedStatus = task.status
         selectedProjectID = task.project?.id
         selectedMilestone = task.milestone
@@ -309,6 +328,7 @@ extension TaskEditView {
                 clearDescription: trimmedDesc.isEmpty,
                 type: selectedType,
                 metadata: metadata,
+                priority: selectedPriority,
                 save: false
             )
 

@@ -23,6 +23,7 @@ private struct QueryFilters: Codable {
     var displayId: Int?
     var status: String?
     var type: String?
+    var priority: String?
     var projectId: String?
     var search: String?
     var completionDate: DateRangeFilter?
@@ -34,6 +35,7 @@ private struct QueryFilters: Codable {
         displayId: Int? = nil,
         status: String? = nil,
         type: String? = nil,
+        priority: String? = nil,
         projectId: String? = nil,
         search: String? = nil,
         completionDate: DateRangeFilter? = nil,
@@ -44,6 +46,7 @@ private struct QueryFilters: Codable {
         self.displayId = displayId
         self.status = status
         self.type = type
+        self.priority = priority
         self.projectId = projectId
         self.search = search
         self.completionDate = completionDate
@@ -72,7 +75,8 @@ struct QueryTasksIntent: AppIntent {
         JSON object with optional filters: "displayId" (integer, for single-task lookup with detailed output \
         including description and metadata), "status" (idea | planning | spec | ready-for-implementation | \
         in-progress | ready-for-review | done | abandoned), "type" (bug | feature | chore | research | \
-        documentation), "projectId" (UUID), "search" (case-insensitive substring match on name and description), \
+        documentation), "priority" (low | medium | high), "projectId" (UUID), \
+        "search" (case-insensitive substring match on name and description), \
         "milestone" (name), "milestoneDisplayId" (integer), "completionDate", "lastStatusChangeDate". \
         Date filters accept {"relative":"today|this-week|this-month"} or {"from":"YYYY-MM-DD","to":"YYYY-MM-DD"} \
         (from/to optional and inclusive; relative takes precedence if both are present). \
@@ -247,6 +251,9 @@ struct QueryTasksIntent: AppIntent {
         if let type = filters.type, TaskType(rawValue: type) == nil {
             return .invalidType(hint: "Unknown type: \(type)")
         }
+        if let priority = filters.priority, TaskPriority(rawValue: priority) == nil {
+            return .invalidPriority(hint: "Unknown priority: \(priority)")
+        }
         return nil
     }
 
@@ -285,6 +292,11 @@ struct QueryTasksIntent: AppIntent {
                 continue
             }
             if let type = filters.type, task.typeRawValue != type {
+                continue
+            }
+            // Effective-priority invariant (Req 1.4): compare the computed accessor so a
+            // legacy task with no stored priority matches a "medium" filter.
+            if let priority = filters.priority, task.priority.rawValue != priority {
                 continue
             }
             if let search = effectiveSearch {

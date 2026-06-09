@@ -138,6 +138,28 @@ struct IntentHelpersTaskUpdateResponseDictTests {
         #expect(dict["type"] as? String == "chore")
     }
 
+    @Test func priorityAlwaysPresent() throws {
+        let fix = try makeFixture()
+        let task = makeTask(in: fix.context, project: fix.project)
+        task.priority = .high
+
+        let dict = IntentHelpers.taskUpdateResponseDict(task)
+
+        #expect(dict["priority"] as? String == "high")
+    }
+
+    /// Effective-priority invariant (Req 1.4): a task with no stored priority
+    /// serializes as "medium" through the computed accessor.
+    @Test func priorityDefaultsToMediumWhenUnset() throws {
+        let fix = try makeFixture()
+        let task = makeTask(in: fix.context, project: fix.project)
+        task.priorityRawValue = ""
+
+        let dict = IntentHelpers.taskUpdateResponseDict(task)
+
+        #expect(dict["priority"] as? String == "medium")
+    }
+
     // MARK: - Conditionally-present keys (omitted when nil/empty)
 
     @Test func noDisplayId_omitsDisplayId() throws {

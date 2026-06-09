@@ -23,6 +23,7 @@ struct AddTaskSheetResetTests {
         #expect(defaults.name.isEmpty)
         #expect(defaults.description.isEmpty)
         #expect(defaults.type == .feature)
+        #expect(defaults.priority == .medium)
         #expect(defaults.milestone == nil)
     }
 

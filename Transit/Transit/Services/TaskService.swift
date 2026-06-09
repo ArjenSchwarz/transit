@@ -53,7 +53,8 @@ final class TaskService {
         description: String?,
         type: TaskType,
         projectID: UUID,
-        metadata: [String: String]? = nil
+        metadata: [String: String]? = nil,
+        priority: TaskPriority = .medium
     ) async throws -> TransitTask {
         let descriptor = FetchDescriptor<Project>(
             predicate: #Predicate { $0.id == projectID }
@@ -66,7 +67,8 @@ final class TaskService {
             description: description,
             type: type,
             project: project,
-            metadata: metadata
+            metadata: metadata,
+            priority: priority
         )
     }
 
@@ -79,6 +81,7 @@ final class TaskService {
         type: TaskType,
         project: Project,
         metadata: [String: String]? = nil,
+        priority: TaskPriority = .medium,
         save: (ModelContext) throws -> Void = { try $0.save() }
     ) async throws -> TransitTask {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -105,7 +108,8 @@ final class TaskService {
             type: type,
             project: project,
             displayID: displayID,
-            metadata: metadata
+            metadata: metadata,
+            priority: priority
         )
         StatusEngine.initializeNewTask(task)
 
@@ -261,6 +265,7 @@ final class TaskService {
         clearDescription: Bool = false,
         type: TaskType? = nil,
         metadata: [String: String]? = nil,
+        priority: TaskPriority? = nil,
         save: Bool = true
     ) throws {
         if let name {
@@ -277,6 +282,7 @@ final class TaskService {
         }
         if let type { task.type = type }
         if let metadata { task.metadata = metadata }
+        if let priority { task.priority = priority }
 
         guard save else { return }
 

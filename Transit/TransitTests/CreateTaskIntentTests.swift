@@ -3,6 +3,9 @@ import SwiftData
 import Testing
 @testable import Transit
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
+
 @MainActor @Suite(.serialized)
 struct CreateTaskIntentTests {
 
@@ -168,6 +171,65 @@ struct CreateTaskIntentTests {
 
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")
+    }
+
+    // MARK: - Priority (Req 6.1, 6.4)
+
+    @Test func defaultsToMediumPriority() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        let input = """
+        {"projectId":"\(project.id.uuidString)","name":"Task","type":"feature"}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["priority"] as? String == "medium")
+
+        let tasks = try svc.task.fetchAllTasks()
+        #expect(tasks.first?.priority == .medium)
+    }
+
+    @Test func honorsExplicitPriority() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        let input = """
+        {"projectId":"\(project.id.uuidString)","name":"Task","type":"feature","priority":"high"}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["priority"] as? String == "high")
+
+        let tasks = try svc.task.fetchAllTasks()
+        #expect(tasks.first?.priority == .high)
+    }
+
+    @Test func invalidPriorityReturnsInvalidPriorityAndCreatesNoTask() async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+
+        let input = """
+        {"projectId":"\(project.id.uuidString)","name":"Task","type":"feature","priority":"urgent"}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_PRIORITY")
+
+        let tasks = try svc.task.fetchAllTasks()
+        #expect(tasks.isEmpty)
     }
 
     @Test func invalidTypeReturnsInvalidType() async throws {
@@ -342,3 +404,6 @@ struct CreateTaskIntentTests {
         #expect((parsed["hint"] as? String)?.contains("projectId") == true)
     }
 }
+
+// swiftlint:enable type_body_length
+// swiftlint:enable file_length

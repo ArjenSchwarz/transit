@@ -54,6 +54,7 @@ struct TaskDetailView: View {
         Section {
             LabeledContent("Name", value: task.name)
             LabeledContent("Type") { TypeBadge(type: task.type) }
+            LabeledContent("Priority", value: task.priority.rawValue.capitalized)
             LabeledContent("Status", value: task.status.displayName)
             if let project = task.project {
                 LabeledContent("Project") {
@@ -114,6 +115,10 @@ struct TaskDetailView: View {
 
                         FormRow("Type", labelWidth: Self.labelWidth) {
                             TypeBadge(type: task.type)
+                        }
+
+                        FormRow("Priority", labelWidth: Self.labelWidth) {
+                            Text(task.priority.rawValue.capitalized)
                         }
 
                         FormRow("Status", labelWidth: Self.labelWidth) {

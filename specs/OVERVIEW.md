@@ -32,6 +32,7 @@
 | [Duplicate Display ID Cleanup](#duplicate-display-id-cleanup) | 2026-04-25 | Done | Scan and reassign tasks/milestones sharing a permanentDisplayId |
 | [Update Task All Fields](#update-task-all-fields) | 2026-05-22 | Done | Extend update_task MCP tool and App Intent to update name, description, type, and metadata |
 | [Search Empty State](#search-empty-state) | 2026-05-31 | Done | Show ContentUnavailableView.search empty state when dashboard text search has no matches |
+| [Task Priority](#task-priority) | 2026-06-06 | Done | Add a low/medium/high priority field with board glyph, filter, and MCP/Intent support |
 
 ---
 
@@ -302,3 +303,13 @@ Show a `ContentUnavailableView.search` empty state on the dashboard when text se
 - [implementation.md](search-empty-state/implementation.md)
 - [smolspec.md](search-empty-state/smolspec.md)
 - [tasks.md](search-empty-state/tasks.md)
+
+## Task Priority
+
+Add a low/medium/high priority field (default medium) to tasks, shown as a board-card glyph for high/low, filterable on the board, editable in the create/edit/detail screens, and readable/settable via the MCP server and App Intents (T-1463).
+
+- [decision_log.md](task-priority/decision_log.md)
+- [design.md](task-priority/design.md)
+- [implementation.md](task-priority/implementation.md)
+- [requirements.md](task-priority/requirements.md)
+- [tasks.md](task-priority/tasks.md)

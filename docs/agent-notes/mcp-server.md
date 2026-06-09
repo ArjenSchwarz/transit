@@ -36,10 +36,10 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 
 | Tool | Description |
 |------|-------------|
-| `create_task` | Create a new task (name and type required; at least one of project / projectId required to identify the project; description and metadata optional) |
+| `create_task` | Create a new task (name and type required; at least one of project / projectId required to identify the project; description, metadata, and priority optional — priority defaults to medium, invalid priority rejects with no task created) |
 | `update_task_status` | Change task status (by displayId or taskId) |
-| `update_task` | Update a task's mutable fields — any combination of `name`, `description`, `type`, `metadata`, and milestone assignment (`milestone` / `milestoneDisplayId` / `clearMilestone`) — in a single atomic call. Identify task by displayId or taskId. |
-| `query_tasks` | List tasks with optional status/type/project filters; includes comments |
+| `update_task` | Update a task's mutable fields — any combination of `name`, `description`, `type`, `priority`, `metadata`, and milestone assignment (`milestone` / `milestoneDisplayId` / `clearMilestone`) — in a single atomic call. Priority is non-clearable: omit to leave unchanged. Identify task by displayId or taskId. |
+| `query_tasks` | List tasks with optional status/type/priority/project filters (priority accepts an array of values to include); includes comments |
 | `add_comment` | Add a comment to a task (by displayId or taskId); always sets `isAgent: true` |
 
 ### Maintenance tools (gated, default off)

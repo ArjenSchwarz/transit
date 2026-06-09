@@ -8,6 +8,7 @@ struct DashboardView: View {
     @State private var selectedProjectIDs: Set<UUID> = []
     @State private var selectedTypes: Set<TaskType> = []
     @State private var selectedMilestones: Set<UUID> = []
+    @State private var selectedPriorities: Set<TaskPriority> = []
     @State private var sortOrder: DashboardLogic.ColumnSortOrder = .recent
     @State private var selectedColumn: DashboardColumn = .inProgress // [req 13.3]
     @State private var selectedTask: TransitTask?
@@ -37,10 +38,7 @@ struct DashboardView: View {
     }
 
     private var hasAnyFilter: Bool {
-        !selectedProjectIDs.isEmpty
-            || !selectedTypes.isEmpty
-            || !selectedMilestones.isEmpty
-            || !effectiveSearchText.isEmpty
+        hasOtherFilters || !effectiveSearchText.isEmpty
     }
 
     /// Excludes search text (unlike `hasAnyFilter`) so the empty-state logic can
@@ -49,6 +47,7 @@ struct DashboardView: View {
         !selectedProjectIDs.isEmpty
             || !selectedTypes.isEmpty
             || !selectedMilestones.isEmpty
+            || !selectedPriorities.isEmpty
     }
 
     private var filteredColumns: [DashboardColumn: [TransitTask]] {
@@ -57,6 +56,7 @@ struct DashboardView: View {
             selectedProjectIDs: selectedProjectIDs,
             selectedTypes: selectedTypes,
             selectedMilestones: selectedMilestones,
+            selectedPriorities: selectedPriorities,
             searchText: effectiveSearchText,
             sortOrder: sortOrder
         )
@@ -114,6 +114,7 @@ struct DashboardView: View {
                     selectedProjectIDs: $selectedProjectIDs
                 )
                 TypeFilterMenu(selectedTypes: $selectedTypes)
+                PriorityFilterMenu(selectedPriorities: $selectedPriorities)
                 MilestoneFilterMenu(
                     projects: projects,
                     selectedProjectIDs: selectedProjectIDs,
@@ -194,6 +195,7 @@ struct DashboardView: View {
                 selectedProjectIDs.removeAll()
                 selectedTypes.removeAll()
                 selectedMilestones.removeAll()
+                selectedPriorities.removeAll()
                 searchText = ""
             } label: {
                 Label("Clear All", systemImage: "xmark.circle.fill")
@@ -392,21 +394,21 @@ enum DashboardLogic {
         selectedProjectIDs: Set<UUID>,
         selectedTypes: Set<TaskType> = [],
         selectedMilestones: Set<UUID> = [],
+        selectedPriorities: Set<TaskPriority> = [],
         searchText: String = "",
         sortOrder: ColumnSortOrder = .recent,
         now: Date = .now
     ) -> [DashboardColumn: [TransitTask]] {
         let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let selection = FilterSelection(
+            projectIDs: selectedProjectIDs,
+            types: selectedTypes,
+            milestones: selectedMilestones,
+            priorities: selectedPriorities,
+            searchText: trimmedSearch
+        )
 
-        let filtered = allTasks.filter { task in
-            matchesFilters(
-                task: task,
-                selectedProjectIDs: selectedProjectIDs,
-                selectedTypes: selectedTypes,
-                selectedMilestones: selectedMilestones,
-                searchText: trimmedSearch
-            )
-        }
+        let filtered = allTasks.filter { matchesFilters(task: $0, selection: selection) }
 
         var grouped = Dictionary(grouping: filtered) { $0.status.column }
 
@@ -464,38 +466,55 @@ enum DashboardLogic {
         return lhs.lastStatusChangeDate > rhs.lastStatusChangeDate
     }
 
-    private static func matchesFilters(
-        task: TransitTask,
-        selectedProjectIDs: Set<UUID>,
-        selectedTypes: Set<TaskType>,
-        selectedMilestones: Set<UUID>,
-        searchText: String
-    ) -> Bool {
+    /// The board's active filter selections, bundled so the predicate stays
+    /// under SwiftLint's parameter-count limit as filter dimensions grow.
+    /// `searchText` is expected to be already trimmed by the caller.
+    struct FilterSelection {
+        var projectIDs: Set<UUID> = []
+        var types: Set<TaskType> = []
+        var milestones: Set<UUID> = []
+        var priorities: Set<TaskPriority> = []
+        var searchText: String = ""
+    }
+
+    private static func matchesFilters(task: TransitTask, selection: FilterSelection) -> Bool {
         guard task.project != nil else { return false }
 
-        if !selectedProjectIDs.isEmpty {
+        if !selection.projectIDs.isEmpty {
             guard let projectId = task.project?.id,
-                  selectedProjectIDs.contains(projectId) else { return false }
+                  selection.projectIDs.contains(projectId) else { return false }
         }
 
-        if !selectedTypes.isEmpty {
-            guard selectedTypes.contains(task.type) else { return false }
+        if !selection.types.isEmpty {
+            guard selection.types.contains(task.type) else { return false }
+        }
+
+        // Computed accessor (not priorityRawValue) so legacy tasks read as
+        // medium and match a `[.medium]` filter. [req 1.4, 3.2]
+        if !selection.priorities.isEmpty {
+            guard selection.priorities.contains(task.priority) else { return false }
         }
 
         // In-memory milestone filter (can't use #Predicate for optional relationships)
-        if !selectedMilestones.isEmpty {
+        if !selection.milestones.isEmpty {
             guard let milestoneId = task.milestone?.id,
-                  selectedMilestones.contains(milestoneId) else { return false }
+                  selection.milestones.contains(milestoneId) else { return false }
         }
 
-        if !searchText.isEmpty {
-            let nameMatch = task.name.localizedCaseInsensitiveContains(searchText)
-            let descMatch = task.taskDescription?.localizedCaseInsensitiveContains(searchText) ?? false
-            let displayIdMatch = task.displayID.formatted.localizedCaseInsensitiveContains(searchText)
-            guard nameMatch || descMatch || displayIdMatch else { return false }
-        }
+        guard matchesSearch(task: task, searchText: selection.searchText) else { return false }
 
         return true
+    }
+
+    /// Matches a task against the search text (name, description, display ID).
+    /// An empty search matches everything. Extracted from `matchesFilters` to
+    /// keep that function under SwiftLint's cyclomatic-complexity limit.
+    private static func matchesSearch(task: TransitTask, searchText: String) -> Bool {
+        guard !searchText.isEmpty else { return true }
+        let nameMatch = task.name.localizedCaseInsensitiveContains(searchText)
+        let descMatch = task.taskDescription?.localizedCaseInsensitiveContains(searchText) ?? false
+        let displayIdMatch = task.displayID.formatted.localizedCaseInsensitiveContains(searchText)
+        return nameMatch || descMatch || displayIdMatch
     }
 
     /// Whether the bare "t" key shortcut should open the Add Task sheet.
