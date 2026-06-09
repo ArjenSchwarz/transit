@@ -47,7 +47,11 @@ struct PriorityFilterMenu: View {
         // so the most actionable value reads first.
         ForEach(TaskPriority.displayOrder, id: \.self) { priority in
             Button {
-                $selectedPriorities.contains(priority).wrappedValue.toggle()
+                if selectedPriorities.contains(priority) {
+                    selectedPriorities.remove(priority)
+                } else {
+                    selectedPriorities.insert(priority)
+                }
             } label: {
                 HStack {
                     Circle()
