@@ -181,7 +181,7 @@ references:
 
 ## Verification
 
-- [ ] 20. Write effective-priority invariant cross-surface regression test <!-- id:3dib3y1 -->
+- [x] 20. Write effective-priority invariant cross-surface regression test <!-- id:3dib3y1 -->
   - A task with priorityRawValue = empty string (legacy) reads/serializes as medium and is matched by a medium filter on every read surface
   - Surfaces: board matchesFilters, MCPQueryFilters.matches, MCP taskToDict serialization, intent applyFilters, intent taskUpdateResponseDict
   - This is the guard against a raw-value copy-paste breaking Req 1.4
