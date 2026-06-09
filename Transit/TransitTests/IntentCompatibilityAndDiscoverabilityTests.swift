@@ -108,7 +108,11 @@ struct IntentCompatibilityTests {
         #expect(parsed["taskId"] is String)
         #expect(parsed["status"] as? String == "idea")
         #expect(parsed["displayId"] is Int)
-        #expect(parsed.keys.count == 3)
+        // Priority (T-1463) is now echoed in the create response, defaulting to
+        // medium when the input omits it. Existing keys are unchanged, so the
+        // contract stays backward-compatible for callers that ignore new keys.
+        #expect(parsed["priority"] as? String == "medium")
+        #expect(parsed.keys.count == 4)
     }
 
     @Test func updateStatusIntentJsonContractRemainsCompatible() throws {
