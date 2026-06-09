@@ -310,5 +310,6 @@ Add a low/medium/high priority field (default medium) to tasks, shown as a board
 
 - [decision_log.md](task-priority/decision_log.md)
 - [design.md](task-priority/design.md)
+- [implementation.md](task-priority/implementation.md)
 - [requirements.md](task-priority/requirements.md)
 - [tasks.md](task-priority/tasks.md)
