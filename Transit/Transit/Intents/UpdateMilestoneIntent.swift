@@ -93,12 +93,7 @@ struct UpdateMilestoneIntent: AppIntent {
         let status: MilestoneStatus?
         let name: String?
         let description: FieldChange<String>
-        var hasChanges: Bool {
-            if case .noChange = description {
-                return status != nil || name != nil
-            }
-            return true
-        }
+        var hasChanges: Bool { status != nil || name != nil || description.isChange }
     }
 
     private enum Validation {
@@ -207,6 +202,12 @@ struct UpdateMilestoneIntent: AppIntent {
         ]
         if let displayId = milestone.permanentDisplayId {
             response["displayId"] = displayId
+        }
+        // Emit description only when set, matching the MCP `milestoneToDict`
+        // serializer: a cleared (nil) description is omitted entirely so callers
+        // can distinguish "no description" from an empty string [T-1555].
+        if let description = milestone.milestoneDescription {
+            response["description"] = description
         }
         return IntentHelpers.encodeJSON(response)
     }

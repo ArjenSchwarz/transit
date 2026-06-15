@@ -751,12 +751,7 @@ extension MCPToolHandler {
         let status: MilestoneStatus?
         let name: String?
         let description: FieldChange<String>
-        var hasChanges: Bool {
-            if case .noChange = description {
-                return status != nil || name != nil
-            }
-            return true
-        }
+        var hasChanges: Bool { status != nil || name != nil || description.isChange }
     }
 
     private enum MilestoneValidation {

@@ -364,7 +364,12 @@ enum FieldChange<T> {
     case set(T)
     case clear
 
-    var isChange: Bool {
+    // `nonisolated` so the property is callable from any isolation domain —
+    // notably the synchronous `||` autoclosures in `hasChanges` computed
+    // properties on `ValidatedMilestoneUpdate` / `ValidatedUpdate`, which are
+    // not main-actor-isolated under SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor.
+    // The check only reads the enum payload, so it carries no actor state.
+    nonisolated var isChange: Bool {
         if case .noChange = self { false } else { true }
     }
 }

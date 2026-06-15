@@ -58,7 +58,8 @@ struct UpdateMilestoneClearDescIntentTests {
             milestoneService: svc.milestone, projectService: svc.project
         )
 
-        _ = try parseJSON(result)
+        let parsed = try parseJSON(result)
+        #expect(parsed["description"] as? String == "text")
         let refreshed = try svc.milestone.findByID(milestone.id)
         #expect(refreshed.milestoneDescription == "text")
     }
@@ -73,7 +74,8 @@ struct UpdateMilestoneClearDescIntentTests {
             milestoneService: svc.milestone, projectService: svc.project
         )
 
-        _ = try parseJSON(result)
+        let parsed = try parseJSON(result)
+        #expect(parsed["description"] == nil, "Response should omit description when cleared")
         let refreshed = try svc.milestone.findByID(milestone.id)
         #expect(refreshed.milestoneDescription == nil)
     }
@@ -88,7 +90,8 @@ struct UpdateMilestoneClearDescIntentTests {
             milestoneService: svc.milestone, projectService: svc.project
         )
 
-        _ = try parseJSON(result)
+        let parsed = try parseJSON(result)
+        #expect(parsed["description"] == nil, "Response should omit description when cleared")
         let refreshed = try svc.milestone.findByID(milestone.id)
         #expect(refreshed.milestoneDescription == nil)
     }
@@ -105,6 +108,7 @@ struct UpdateMilestoneClearDescIntentTests {
 
         let parsed = try parseJSON(result)
         #expect(parsed["status"] as? String == "done")
+        #expect(parsed["description"] == nil, "Response should omit description when cleared")
         let refreshed = try svc.milestone.findByID(milestone.id)
         #expect(refreshed.milestoneDescription == nil)
         #expect(refreshed.statusRawValue == "done")
