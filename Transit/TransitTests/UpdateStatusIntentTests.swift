@@ -167,6 +167,93 @@ struct UpdateStatusIntentTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
     }
 
+    // MARK: - Non-String Status (T-1544)
+    //
+    // A present-but-non-string `status` must be rejected explicitly with
+    // INVALID_STATUS / "status must be a string" — consistent with the milestone
+    // status paths and enum filter validation — rather than being misreported as
+    // a missing field via `as? String` silently failing.
+
+    @Test func numericStatusReturnsInvalidStatus() throws {
+        let (taskService, context) = try makeService()
+        let project = makeProject(in: context)
+        makeTask(in: context, project: project, displayId: 1)
+
+        let input = """
+        {"displayId":1,"status":123}
+        """
+
+        let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_STATUS")
+        #expect((parsed["hint"] as? String)?.contains("status must be a string") == true)
+    }
+
+    @Test func booleanStatusReturnsInvalidStatus() throws {
+        let (taskService, context) = try makeService()
+        let project = makeProject(in: context)
+        makeTask(in: context, project: project, displayId: 1)
+
+        let input = """
+        {"displayId":1,"status":true}
+        """
+
+        let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_STATUS")
+        #expect((parsed["hint"] as? String)?.contains("status must be a string") == true)
+    }
+
+    @Test func arrayStatusReturnsInvalidStatus() throws {
+        let (taskService, context) = try makeService()
+        let project = makeProject(in: context)
+        makeTask(in: context, project: project, displayId: 1)
+
+        let input = """
+        {"displayId":1,"status":["done"]}
+        """
+
+        let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_STATUS")
+        #expect((parsed["hint"] as? String)?.contains("status must be a string") == true)
+    }
+
+    @Test func nullStatusReturnsInvalidStatus() throws {
+        let (taskService, context) = try makeService()
+        let project = makeProject(in: context)
+        makeTask(in: context, project: project, displayId: 1)
+
+        let input = """
+        {"displayId":1,"status":null}
+        """
+
+        let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_STATUS")
+        #expect((parsed["hint"] as? String)?.contains("status must be a string") == true)
+    }
+
+    /// A present-but-non-string status must be rejected before any mutation —
+    /// the task's status must be unchanged.
+    @Test func nonStringStatusDoesNotMutateTask() throws {
+        let (taskService, context) = try makeService()
+        let project = makeProject(in: context)
+        let task = makeTask(in: context, project: project, displayId: 1, status: .idea)
+
+        let input = """
+        {"displayId":1,"status":123}
+        """
+
+        _ = UpdateStatusIntent.execute(input: input, taskService: taskService)
+
+        #expect(task.statusRawValue == "idea")
+    }
+
     // MARK: - taskId Lookup
 
     @Test func updateViaTaskIdWorks() throws {

@@ -325,8 +325,14 @@ final class MCPToolHandler {
     // MARK: - update_task_status
 
     private func handleUpdateStatus(_ args: [String: Any]) -> MCPToolResult {
-        guard let statusString = args["status"] as? String else {
+        // When the "status" argument is present it MUST be a string — a non-string
+        // value would otherwise be silently dropped by `as? String` and misreported
+        // as missing. Reject it before any mutation, like the milestone paths [T-1544].
+        guard args["status"] != nil else {
             return errorResult("Missing required argument: status")
+        }
+        guard let statusString = args["status"] as? String else {
+            return errorResult("status must be a string")
         }
         guard let newStatus = TaskStatus(rawValue: statusString) else {
             let valid = TaskStatus.allCases.map(\.rawValue).joined(separator: ", ")
