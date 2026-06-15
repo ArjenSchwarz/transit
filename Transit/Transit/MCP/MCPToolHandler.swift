@@ -325,11 +325,9 @@ final class MCPToolHandler {
     // MARK: - update_task_status
 
     private func handleUpdateStatus(_ args: [String: Any]) -> MCPToolResult {
-        // When the "status" argument is present it MUST be a string. A non-string
-        // value (e.g. integer, boolean, array, null) would otherwise be silently
-        // dropped by `as? String` and misreported as a missing argument, masking the
-        // malformed status. Reject it explicitly before attempting any mutation,
-        // consistent with the milestone status paths and enum filter validation [T-1544].
+        // When the "status" argument is present it MUST be a string — a non-string
+        // value would otherwise be silently dropped by `as? String` and misreported
+        // as missing. Reject it before any mutation, like the milestone paths [T-1544].
         guard args["status"] != nil else {
             return errorResult("Missing required argument: status")
         }

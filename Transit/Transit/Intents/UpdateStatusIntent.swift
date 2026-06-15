@@ -42,11 +42,10 @@ struct UpdateStatusIntent: AppIntent {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json
         }
 
-        // When the "status" key is present it MUST be a string. A non-string value
-        // (e.g. integer, boolean, array, null) would otherwise be silently dropped by
-        // `as? String` and misreported as a missing field, masking the malformed
-        // status. Reject it explicitly with INVALID_STATUS, consistent with the
-        // milestone status paths and enum filter validation [T-1544].
+        // When the "status" key is present it MUST be a string — a non-string value
+        // (integer, boolean, array, null) would otherwise be silently dropped by
+        // `as? String` and misreported as a missing field. Reject it explicitly,
+        // consistent with the milestone status paths [T-1544].
         guard json["status"] != nil else {
             return IntentError.invalidInput(hint: "Missing required field: status").json
         }

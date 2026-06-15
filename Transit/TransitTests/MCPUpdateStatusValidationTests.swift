@@ -5,12 +5,6 @@ import Testing
 @testable import Transit
 
 // T-1544: Reject non-string `status` on update_task_status before any mutation.
-//
-// A present-but-non-string `status` (numeric, boolean, array, null) was
-// previously misreported as "Missing required argument: status" via `as? String`
-// silently failing. It must instead be rejected explicitly with
-// "status must be a string", consistent with the milestone status paths and
-// enum filter validation, and before the task is mutated.
 @MainActor @Suite(.serialized)
 struct MCPUpdateStatusValidationTests {
 
