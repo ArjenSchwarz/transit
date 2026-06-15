@@ -21,7 +21,8 @@ struct UpdateMilestoneIntent: AppIntent {
         (integer), "milestoneId" (UUID), or "name" + "project"/"projectId". \
         Update fields: "name" (new name when identified by displayId/milestoneId), \
         "newName" (new name when identified by name+project), \
-        "description" (new description), "status" (open | done | abandoned). \
+        "description" (new description; pass "" or whitespace-only to clear), \
+        "status" (open | done | abandoned). \
         Example: {"displayId": 1, "status": "done"}
         """
     )
@@ -91,8 +92,8 @@ struct UpdateMilestoneIntent: AppIntent {
     private struct ValidatedUpdate {
         let status: MilestoneStatus?
         let name: String?
-        let description: String?
-        var hasChanges: Bool { status != nil || name != nil || description != nil }
+        let description: FieldChange<String>
+        var hasChanges: Bool { status != nil || name != nil || description.isChange }
     }
 
     private enum Validation {
@@ -142,14 +143,19 @@ struct UpdateMilestoneIntent: AppIntent {
             trimmedName = trimmed
         }
 
-        // Validate description. Same reasoning as name: a present-but-non-string value
-        // must be rejected rather than silently dropped [T-1230].
-        var newDescription: String?
+        // Validate description. Same reasoning as name: a present-but-non-string
+        // value must be rejected rather than silently dropped [T-1230]. An empty
+        // or whitespace-only string is an explicit clear signal that sets the
+        // description back to nil, mirroring update_task's clear semantics [T-1555].
+        let newDescription: FieldChange<String>
         if let rawDescription = json["description"] {
             guard let descriptionString = rawDescription as? String else {
                 return .invalid(IntentError.invalidInput(hint: "description must be a string").json)
             }
-            newDescription = descriptionString
+            let trimmed = descriptionString.trimmingCharacters(in: .whitespacesAndNewlines)
+            newDescription = trimmed.isEmpty ? .clear : .set(trimmed)
+        } else {
+            newDescription = .noChange
         }
 
         return .valid(ValidatedUpdate(
@@ -172,8 +178,13 @@ struct UpdateMilestoneIntent: AppIntent {
         if let name = update.name {
             milestone.name = name
         }
-        if let description = update.description {
-            milestone.milestoneDescription = description
+        switch update.description {
+        case .noChange:
+            break
+        case .set(let value):
+            milestone.milestoneDescription = value
+        case .clear:
+            milestone.milestoneDescription = nil
         }
     }
 
@@ -191,6 +202,12 @@ struct UpdateMilestoneIntent: AppIntent {
         ]
         if let displayId = milestone.permanentDisplayId {
             response["displayId"] = displayId
+        }
+        // Emit description only when set, matching the MCP `milestoneToDict`
+        // serializer: a cleared (nil) description is omitted entirely so callers
+        // can distinguish "no description" from an empty string [T-1555].
+        if let description = milestone.milestoneDescription {
+            response["description"] = description
         }
         return IntentHelpers.encodeJSON(response)
     }
