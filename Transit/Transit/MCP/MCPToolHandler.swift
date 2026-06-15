@@ -225,7 +225,7 @@ final class MCPToolHandler {
         // request falls through to the generic missing-project error instead of
         // surfacing the type mismatch. projectId-takes-precedence is preserved: when a
         // valid projectId is present the `project` name is ignored regardless of type.
-        if projectId == nil, args["project"] != nil, !(args["project"] is String) {
+        if projectId == nil, let rawProject = args["project"], !(rawProject is String) {
             return errorResult("project must be a string")
         }
         let projectName = args["project"] as? String
@@ -548,7 +548,7 @@ extension MCPToolHandler {
         // Reject a present non-string `project` when projectId is absent [T-1453].
         // Mirrors handleCreateTask: a malformed `project` must surface as a type
         // mismatch rather than being silently dropped by `as? String`.
-        if projectId == nil, args["project"] != nil, !(args["project"] is String) {
+        if projectId == nil, let rawProject = args["project"], !(rawProject is String) {
             return errorResult("project must be a string")
         }
         let projectName = args["project"] as? String

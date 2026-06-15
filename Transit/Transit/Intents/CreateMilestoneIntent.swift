@@ -111,7 +111,7 @@ struct CreateMilestoneIntent: AppIntent {
         case .failure(let error): return .failure(error)
         case .success(let parsed): projectId = parsed
         }
-        if projectId == nil, json["project"] != nil, !(json["project"] is String) {
+        if projectId == nil, let rawProject = json["project"], !(rawProject is String) {
             return .failure(.invalidInput(hint: "project must be a string"))
         }
         let projectName = json["project"] as? String

@@ -105,6 +105,24 @@ struct IntentCreateNonStringProjectTests {
         #expect((parsed["hint"] as? String)?.contains("project") == true)
     }
 
+    @Test func createTaskRejectsObjectProject() async throws {
+        let svc = try makeServices()
+        _ = makeProject(in: svc.context, name: "Alpha")
+
+        let input = """
+        {"name":"Task","type":"bug","project":{}}
+        """
+
+        let result = await CreateTaskIntent.execute(
+            input: input, taskService: svc.task, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("project") == true)
+        #expect((parsed["hint"] as? String)?.contains("string") == true)
+    }
+
     @Test func createTaskValidProjectIdIgnoresNonStringProjectName() async throws {
         // projectId-takes-precedence: a valid projectId must win even when the
         // `project` name is malformed. Guards against an over-strict fix.
@@ -180,6 +198,24 @@ struct IntentCreateNonStringProjectTests {
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")
         #expect((parsed["hint"] as? String)?.contains("project") == true)
+    }
+
+    @Test func createMilestoneRejectsObjectProject() async throws {
+        let svc = try makeServices()
+        _ = makeProject(in: svc.context, name: "Alpha")
+
+        let input = """
+        {"name":"v1.0","project":{}}
+        """
+
+        let result = await CreateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("project") == true)
+        #expect((parsed["hint"] as? String)?.contains("string") == true)
     }
 
     @Test func createMilestoneValidProjectIdIgnoresNonStringProjectName() async throws {

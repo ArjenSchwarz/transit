@@ -105,7 +105,7 @@ struct CreateTaskIntent: AppIntent {
         // request falls through to the generic missing-project error instead of
         // surfacing the type mismatch. projectId-takes-precedence is preserved: when a
         // valid projectId is present the `project` name is ignored regardless of type.
-        if projectId == nil, json["project"] != nil, !(json["project"] is String) {
+        if projectId == nil, let rawProject = json["project"], !(rawProject is String) {
             return IntentError.invalidInput(hint: "project must be a string").json
         }
         let projectName = json["project"] as? String

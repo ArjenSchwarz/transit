@@ -58,6 +58,20 @@ struct MCPCreateNonStringProjectTests {
         #expect(errorMessage.contains("project") && errorMessage.contains("string"))
     }
 
+    @Test func createTaskObjectProjectReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        _ = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_task",
+            arguments: ["name": "X", "type": "bug", "project": [String: Any]()]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("project") && errorMessage.contains("string"))
+    }
+
     @Test func createTaskValidProjectIdIgnoresNonStringProjectName() async throws {
         // projectId-takes-precedence: a valid projectId must win even when the
         // `project` name is malformed. Guards against an over-strict fix.
@@ -116,6 +130,20 @@ struct MCPCreateNonStringProjectTests {
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "create_milestone",
             arguments: ["name": "v1.0", "project": ["Alpha"]]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("project") && errorMessage.contains("string"))
+    }
+
+    @Test func createMilestoneObjectProjectReturnsError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        _ = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_milestone",
+            arguments: ["name": "v1.0", "project": [String: Any]()]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
