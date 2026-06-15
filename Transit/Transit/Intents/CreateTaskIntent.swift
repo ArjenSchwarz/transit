@@ -100,6 +100,14 @@ struct CreateTaskIntent: AppIntent {
         case .failure(let error): return error.json
         case .success(let parsed): projectId = parsed
         }
+        // Reject a present non-string `project` when projectId is absent [T-1453].
+        // Without this guard `as? String` silently drops the malformed value and the
+        // request falls through to the generic missing-project error instead of
+        // surfacing the type mismatch. projectId-takes-precedence is preserved: when a
+        // valid projectId is present the `project` name is ignored regardless of type.
+        if projectId == nil, json["project"] != nil, !(json["project"] is String) {
+            return IntentError.invalidInput(hint: "project must be a string").json
+        }
         let projectName = json["project"] as? String
         let lookupResult = projectService.findProject(id: projectId, name: projectName)
 
