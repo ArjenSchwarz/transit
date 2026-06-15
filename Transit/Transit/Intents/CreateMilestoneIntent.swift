@@ -57,21 +57,11 @@ struct CreateMilestoneIntent: AppIntent {
         }
 
         // Resolve project. Validate key presence separately from string/UUID parsing
-        // so non-string values (numbers, bools, etc.) are rejected too [T-743, T-788].
-        let projectId: UUID?
-        switch IntentHelpers.validateUUIDField("projectId", in: json) {
-        case .failure(let error): return error.json
-        case .success(let parsed): projectId = parsed
-        }
-        let projectName = json["project"] as? String
-        let lookupResult = projectService.findProject(id: projectId, name: projectName)
-
+        // so non-string values (numbers, bools, etc.) are rejected too [T-743, T-788, T-1453].
         let project: Project
-        switch lookupResult {
-        case .success(let found):
-            project = found
-        case .failure(let error):
-            return IntentHelpers.mapProjectLookupError(error).json
+        switch Self.resolveProject(from: json, projectService: projectService) {
+        case .failure(let error): return error.json
+        case .success(let found): project = found
         }
 
         // Reject non-string description: as? String silently drops
@@ -104,5 +94,30 @@ struct CreateMilestoneIntent: AppIntent {
             response["displayId"] = displayId
         }
         return IntentHelpers.encodeJSON(response)
+    }
+
+    /// Resolves the target project from `projectId` (precedence) or `project` name.
+    /// Validates key presence separately from value type so non-string values are
+    /// rejected rather than silently dropped: a malformed `projectId` fails UUID
+    /// validation [T-743, T-788], and a present non-string `project` (when no
+    /// projectId is supplied) is rejected with `project must be a string` [T-1453].
+    @MainActor
+    private static func resolveProject(
+        from json: [String: Any],
+        projectService: ProjectService
+    ) -> Result<Project, IntentError> {
+        let projectId: UUID?
+        switch IntentHelpers.validateUUIDField("projectId", in: json) {
+        case .failure(let error): return .failure(error)
+        case .success(let parsed): projectId = parsed
+        }
+        if projectId == nil, let rawProject = json["project"], !(rawProject is String) {
+            return .failure(.invalidInput(hint: "project must be a string"))
+        }
+        let projectName = json["project"] as? String
+        switch projectService.findProject(id: projectId, name: projectName) {
+        case .success(let found): return .success(found)
+        case .failure(let error): return .failure(IntentHelpers.mapProjectLookupError(error))
+        }
     }
 }
