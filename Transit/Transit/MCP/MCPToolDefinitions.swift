@@ -208,7 +208,9 @@ nonisolated enum MCPToolDefinitions {
                 "displayId": .integer("Milestone display ID (e.g. 3 for M-3)"),
                 "milestoneId": .string("Milestone UUID"),
                 "name": .string("New name"),
-                "description": .string("New description"),
+                "description": .string(
+                    "New description. Pass \"\" or whitespace-only to clear."
+                ),
                 "status": .stringEnum(
                     "New status",
                     values: MilestoneStatus.allCases.map(\.rawValue)
