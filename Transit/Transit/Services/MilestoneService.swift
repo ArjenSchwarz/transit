@@ -71,13 +71,13 @@ final class MilestoneService {
             // that committed just before us (T-1395).
             let id = try await displayIDAllocator.allocateNextID(excluding: { self.usedDisplayIDs() })
             displayID = .permanent(id)
-        } catch is CancellationError {
+        } catch let error as CancellationError {
             // The allocation gate propagates CancellationError when this caller is
             // cancelled while waiting for an ID (T-1395). Cancellation must abort the
             // create before any insert/save so a cancelled request never mutates
             // persistent state — only genuine CloudKit/offline failures fall back to
             // a provisional ID (T-1426).
-            throw CancellationError()
+            throw error
         } catch {
             displayID = .provisional
         }

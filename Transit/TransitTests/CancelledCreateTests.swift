@@ -31,7 +31,6 @@ struct CancelledCreateTests {
         private var changeTag = 0
 
         private var firstLoadStarted = false
-        private var hasSignaledFirstLoad = false
         private var firstLoadReached: CheckedContinuation<Void, Never>?
 
         private var hasReleased = false
@@ -44,7 +43,7 @@ struct CancelledCreateTests {
         /// Suspends until the first `loadCounter` call has been entered, i.e. the
         /// holder now owns the allocation gate.
         func waitUntilGateHeld() async {
-            if hasSignaledFirstLoad { return }
+            if firstLoadStarted { return }
             await withCheckedContinuation { firstLoadReached = $0 }
         }
 
@@ -59,7 +58,6 @@ struct CancelledCreateTests {
         func loadCounter() async throws -> DisplayIDAllocator.CounterSnapshot {
             if !firstLoadStarted {
                 firstLoadStarted = true
-                hasSignaledFirstLoad = true
                 firstLoadReached?.resume()
                 firstLoadReached = nil
 
