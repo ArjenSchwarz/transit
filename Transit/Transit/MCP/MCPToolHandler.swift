@@ -971,11 +971,20 @@ extension MCPToolHandler {
     }
 
     private func handleAddComment(_ args: [String: Any]) -> MCPToolResult {
-        guard let content = args["content"] as? String, !content.isEmpty else {
-            return errorResult("Missing required argument: content")
+        // Distinguish a missing required field from a present-but-non-string one.
+        // A bare `as? String` would silently drop a number/bool/array/null and
+        // misreport it as "Missing required argument", so reject the type
+        // mismatch with a field-specific message first, mirroring
+        // update_task_status [T-1205, T-1579].
+        let content: String
+        switch requiredString(args, key: "content") {
+        case .success(let value): content = value
+        case .failure(.message(let message)): return errorResult(message)
         }
-        guard let authorName = args["authorName"] as? String, !authorName.isEmpty else {
-            return errorResult("Missing required argument: authorName")
+        let authorName: String
+        switch requiredString(args, key: "authorName") {
+        case .success(let value): authorName = value
+        case .failure(.message(let message)): return errorResult(message)
         }
 
         // Reject non-integer displayId when key is present [T-634]
@@ -1071,6 +1080,26 @@ extension MCPToolHandler {
             return .failure(.message("Invalid arguments: must be a JSON object"))
         }
         return .success(dict)
+    }
+
+    /// Validates a required string argument by key, distinguishing a missing
+    /// field from a present-but-malformed one. Returns `.success(value)` for a
+    /// non-empty string, or `.failure` with "Missing required argument: <key>"
+    /// when absent/empty and "<key> must be a string" when present but not a
+    /// string (number, boolean, array, null). Without the explicit type check a
+    /// bare `as? String` collapses malformed values into the missing-field
+    /// error [T-1579].
+    private func requiredString(_ args: [String: Any], key: String) -> Result<String, ResolveError> {
+        guard let raw = args[key] else {
+            return .failure(.message("Missing required argument: \(key)"))
+        }
+        guard let value = raw as? String else {
+            return .failure(.message("\(key) must be a string"))
+        }
+        guard !value.isEmpty else {
+            return .failure(.message("Missing required argument: \(key)"))
+        }
+        return .success(value)
     }
 
     /// Validates a UUID-shaped argument by key. Returns `.success(nil)` when the
