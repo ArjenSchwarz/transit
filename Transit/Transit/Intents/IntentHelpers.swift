@@ -181,7 +181,12 @@ nonisolated enum IntentHelpers {
             return resolveMilestoneByDisplayId(json, milestoneService: milestoneService)
         } else if json["milestoneId"] != nil {
             return resolveMilestoneById(json, milestoneService: milestoneService)
-        } else if let name = json["name"] as? String {
+        } else if let rawName = json["name"] {
+            // A present-but-non-string "name" must be rejected here; otherwise `as? String`
+            // swallows it and the caller gets the generic "Provide ... or name" hint. [T-1572]
+            guard let name = rawName as? String else {
+                return .failure(.invalidInput(hint: "name must be a string"))
+            }
             return resolveMilestoneByName(
                 name, json: json,
                 milestoneService: milestoneService, projectService: projectService
