@@ -1,6 +1,15 @@
 import AppIntents
 import Foundation
 
+/// Narrow seam over the task service's full-table fetch so query intents can be
+/// tested against a failing storage layer. `TaskService` conforms directly. [T-1566]
+@MainActor
+protocol TaskFetching {
+    func fetchAllTasks() throws -> [TransitTask]
+}
+
+extension TaskService: TaskFetching {}
+
 private struct DateRangeFilter: Codable {
     var relative: String?
     var from: String?
@@ -55,6 +64,8 @@ private struct QueryFilters: Codable {
         self.milestoneDisplayId = milestoneDisplayId
     }
 }
+
+// swiftlint:disable type_body_length
 
 /// Queries tasks with optional filters via JSON input. Exposed as "Transit: Query Tasks"
 /// in Shortcuts. [req 18.1-18.5]
@@ -125,7 +136,8 @@ struct QueryTasksIntent: AppIntent {
         input: String,
         projectService: ProjectService,
         taskService: TaskService,
-        milestoneService: MilestoneService
+        milestoneService: MilestoneService,
+        taskFetcher: TaskFetching? = nil
     ) -> String {
         switch parseInput(input) {
         case .failure(let error):
@@ -135,7 +147,8 @@ struct QueryTasksIntent: AppIntent {
                 filters: filters,
                 projectService: projectService,
                 taskService: taskService,
-                milestoneService: milestoneService
+                milestoneService: milestoneService,
+                taskFetcher: taskFetcher ?? taskService
             )
         }
     }
@@ -145,7 +158,8 @@ struct QueryTasksIntent: AppIntent {
         filters: QueryFilters,
         projectService: ProjectService,
         taskService: TaskService,
-        milestoneService: MilestoneService
+        milestoneService: MilestoneService,
+        taskFetcher: TaskFetching
     ) -> String {
 
         // Validate projectId, enum, and date filters if present
@@ -188,7 +202,15 @@ struct QueryTasksIntent: AppIntent {
             }
         }
 
-        let allTasks = (try? taskService.fetchAllTasks()) ?? []
+        // Surface storage fetch failures as INTERNAL_ERROR instead of letting `try?`
+        // collapse them into a successful empty array, which a caller cannot tell apart
+        // from a valid "no tasks match" result. Mirrors the MCP query path. [T-1566]
+        let allTasks: [TransitTask]
+        do {
+            allTasks = try taskFetcher.fetchAllTasks()
+        } catch {
+            return IntentError.internalError(hint: "Failed to fetch tasks: \(error)").json
+        }
         let filtered = applyFilters(filters, to: allTasks, resolvedMilestoneId: resolvedMilestoneId)
         let formatter = ISO8601DateFormatter()
         return IntentHelpers.encodeJSONArray(filtered.map {
@@ -366,3 +388,5 @@ struct QueryTasksIntent: AppIntent {
     }
 
 }
+
+// swiftlint:enable type_body_length

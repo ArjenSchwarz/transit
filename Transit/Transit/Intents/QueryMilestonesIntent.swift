@@ -1,6 +1,15 @@
 import AppIntents
 import Foundation
 
+/// Narrow seam over the milestone service's full-table fetch so query intents can be
+/// tested against a failing storage layer. `MilestoneService` conforms directly. [T-1566]
+@MainActor
+protocol MilestoneFetching {
+    func fetchAllMilestones() throws -> [Milestone]
+}
+
+extension MilestoneService: MilestoneFetching {}
+
 /// Queries milestones with optional filters via JSON input. Exposed as "Transit: Query Milestones"
 /// in Shortcuts. [req 13.2]
 struct QueryMilestonesIntent: AppIntent {
@@ -47,8 +56,10 @@ struct QueryMilestonesIntent: AppIntent {
     static func execute(
         input: String,
         milestoneService: MilestoneService,
-        projectService: ProjectService
+        projectService: ProjectService,
+        milestoneFetcher: MilestoneFetching? = nil
     ) -> String {
+        let fetcher = milestoneFetcher ?? milestoneService
         let json = parseInput(input)
         guard let json else {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json
@@ -89,8 +100,16 @@ struct QueryMilestonesIntent: AppIntent {
             return IntentHelpers.encodeJSONArray(filtered.map { milestoneToDict($0, detailed: true) })
         }
 
-        // Fetch all milestones and filter in-memory
-        let allMilestones = (try? milestoneService.fetchAllMilestones()) ?? []
+        // Fetch all milestones and filter in-memory. Surface storage fetch failures as
+        // INTERNAL_ERROR instead of letting `try?` collapse them into a successful empty
+        // array, which a caller cannot tell apart from a valid "no milestones match"
+        // result. Mirrors the MCP query path. [T-1566]
+        let allMilestones: [Milestone]
+        do {
+            allMilestones = try fetcher.fetchAllMilestones()
+        } catch {
+            return IntentError.internalError(hint: "Failed to fetch milestones: \(error)").json
+        }
         let filtered = applyFilters(json, to: allMilestones, projectService: projectService)
         return IntentHelpers.encodeJSONArray(filtered.map { milestoneToDict($0) })
     }
