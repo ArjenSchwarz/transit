@@ -180,6 +180,90 @@ struct MilestoneRenameTypeValidationTests {
         #expect(parsed["error"] as? String == "INVALID_INPUT")
     }
 
+    // MARK: - name+project identifier path: malformed "name" identifier [T-1572]
+
+    @Test func numericNameIdentifierReturnsInvalidInput() throws {
+        // T-1572: With no displayId/milestoneId present, "name" is the identifier.
+        // A non-string name must be rejected as INVALID_INPUT rather than skipped
+        // and reported as the generic "Provide displayId, milestoneId, or name" hint.
+        // No update fields (e.g. status) may be applied.
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let input = """
+        {"name":123,"project":"Test Project","status":"done"}
+        """
+
+        let result = UpdateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(parsed["hint"] as? String == "name must be a string")
+        let milestone = try svc.milestone.findByDisplayID(1)
+        #expect(milestone.statusRawValue == "open", "Status should not have been changed")
+    }
+
+    @Test func nullNameIdentifierReturnsInvalidInput() throws {
+        // name: null — explicitly present but null. Treat as malformed rather than
+        // absent, even though no displayId/milestoneId is supplied [T-1572].
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let input = """
+        {"name":null,"project":"Test Project","status":"done"}
+        """
+
+        let result = UpdateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(parsed["hint"] as? String == "name must be a string")
+        let milestone = try svc.milestone.findByDisplayID(1)
+        #expect(milestone.statusRawValue == "open", "Status should not have been changed")
+    }
+
+    @Test func booleanNameIdentifierReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let input = """
+        {"name":true,"project":"Test Project"}
+        """
+
+        let result = UpdateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(parsed["hint"] as? String == "name must be a string")
+    }
+
+    @Test func arrayNameIdentifierReturnsInvalidInput() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let input = """
+        {"name":["v1.0"],"project":"Test Project"}
+        """
+
+        let result = UpdateMilestoneIntent.execute(
+            input: input, milestoneService: svc.milestone, projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(parsed["hint"] as? String == "name must be a string")
+    }
+
     // MARK: - description field
 
     @Test func updateNumericDescriptionReturnsInvalidInput() throws {
