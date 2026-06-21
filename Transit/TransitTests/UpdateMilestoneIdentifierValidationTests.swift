@@ -204,6 +204,62 @@ struct UpdateMilestoneIdentifierValidationTests {
         #expect((parsed["hint"] as? String)?.contains("projectId") == true)
     }
 
+    // MARK: - Malformed project name
+
+    @Test func nonStringProjectRejectsInsteadOfFallingBack() throws {
+        // T-1592: When `project` is present as a non-string during name-based
+        // milestone lookup (and projectId is absent), reject with INVALID_INPUT
+        // instead of treating `project` as absent and surfacing the generic
+        // project/no-identifier error. Mirrors the projectId and name guards.
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let input = """
+        {"name":"v1.0","project":123,"status":"done"}
+        """
+
+        let result = UpdateMilestoneIntent.execute(
+            input: input,
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("project must be a string") == true)
+
+        // Milestone must NOT have been updated via the project-name fallback
+        let milestone = try svc.milestone.findByDisplayID(1)
+        #expect(milestone.statusRawValue == "open")
+    }
+
+    @Test func nullProjectRejectsInsteadOfFallingBack() throws {
+        // JSON `null` arrives as NSNull, which is present-but-non-string, so it is
+        // rejected with the type error rather than treated as absent. Matches the
+        // CreateTaskIntent project guard [T-1453].
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+
+        let input = """
+        {"name":"v1.0","project":null,"status":"done"}
+        """
+
+        let result = UpdateMilestoneIntent.execute(
+            input: input,
+            milestoneService: svc.milestone,
+            projectService: svc.project
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect((parsed["hint"] as? String)?.contains("project must be a string") == true)
+
+        let milestone = try svc.milestone.findByDisplayID(1)
+        #expect(milestone.statusRawValue == "open")
+    }
+
     // MARK: - Valid identifiers still work
 
     @Test func validMilestoneIdStillWorks() throws {

@@ -242,6 +242,13 @@ nonisolated enum IntentHelpers {
         switch validateUUIDField("projectId", in: json) {
         case .failure(let error): return .failure(error)
         case .success(let projectId):
+            // A present-but-non-string "project" must be rejected here when no
+            // projectId was supplied; otherwise `as? String` swallows it and the
+            // caller gets the generic project/no-identifier error instead of the
+            // field-specific INVALID_INPUT used by related paths. [T-1592]
+            if projectId == nil, let rawProject = json["project"], !(rawProject is String) {
+                return .failure(.invalidInput(hint: "project must be a string"))
+            }
             let projectName = json["project"] as? String
             let lookupResult = projectService.findProject(id: projectId, name: projectName)
             guard case .success(let project) = lookupResult else {
