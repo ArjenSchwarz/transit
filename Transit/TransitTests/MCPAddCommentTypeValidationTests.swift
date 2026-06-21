@@ -171,6 +171,31 @@ struct MCPAddCommentTypeValidationTests {
         #expect(comments.isEmpty)
     }
 
+    @Test func addCommentArrayAuthorNameReturnsTypeError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let task = try await env.taskService.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+        let displayId = try #require(task.permanentDisplayId)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "add_comment",
+            arguments: [
+                "displayId": displayId,
+                "content": "Note",
+                "authorName": ["nested"]
+            ]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let text = try MCPTestHelpers.errorText(response)
+        #expect(text.contains("authorName"))
+
+        let comments = try env.commentService.fetchComments(for: task.id)
+        #expect(comments.isEmpty)
+    }
+
     @Test func addCommentNullAuthorNameReturnsTypeError() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
