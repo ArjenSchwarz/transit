@@ -59,7 +59,6 @@ struct QueryMilestonesIntent: AppIntent {
         projectService: ProjectService,
         milestoneFetcher: MilestoneFetching? = nil
     ) -> String {
-        let fetcher = milestoneFetcher ?? milestoneService
         let json = parseInput(input)
         guard let json else {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json
@@ -104,6 +103,7 @@ struct QueryMilestonesIntent: AppIntent {
         // INTERNAL_ERROR instead of letting `try?` collapse them into a successful empty
         // array, which a caller cannot tell apart from a valid "no milestones match"
         // result. Mirrors the MCP query path. [T-1566]
+        let fetcher = milestoneFetcher ?? milestoneService
         let allMilestones: [Milestone]
         do {
             allMilestones = try fetcher.fetchAllMilestones()
