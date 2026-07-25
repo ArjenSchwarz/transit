@@ -218,12 +218,23 @@ refusal.
 
 **Automated:**
 
-- [x] Regression tests pass
-- [x] Full test suite passes
-- [x] SwiftLint passes (`make lint`, `--strict`)
+- [x] `make lint` - 0 violations (strict)
+- [x] `make test-quick` (macOS, full unit suite including the macOS-only MCP tests) - 1362 passed,
+      0 failed, single test host, all 22 new tests green
+- [~] `make test` (iOS Simulator) - reached 813 passed / 0 failed, including all 15 new App Intent
+      tests, then the `xcodebuild` process wedged after the test phase. This is the environment
+      issue described in `docs/agent-notes/build-sandbox-wedge.md`, aggravated by three other
+      worktrees running `xcodebuild` concurrently on the same machine (several already wedged at
+      0% CPU). Re-run when the machine is quiet. No test failure was observed at any point.
+- [ ] `make test-ui` - not run, same environment constraint
 
 **Manual verification:** Not performed - the failure requires an unopenable persistent store,
 which the injected-failure tests reproduce more reliably than a manual disk-full setup.
+
+**Note on the first test runs:** the initial versions of the regression suites created a fallback
+container per test, which crash-looped the test host (six restarts, ~850 spurious failures).
+That was a defect in the tests, not the fix - see the Regression Test section for the cause and
+the fixture that resolves it.
 
 ## Prevention
 
