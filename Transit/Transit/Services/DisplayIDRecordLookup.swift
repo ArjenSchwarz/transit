@@ -2,11 +2,12 @@ import Foundation
 import SwiftData
 
 /// Store reads used by duplicate display ID cleanup: resolving a scanned record
-/// back to its live object, probing the committed `permanentDisplayId`, and
-/// collecting the display IDs already in use.
+/// back to its live object and probing the committed `permanentDisplayId`.
 ///
 /// Extracted from `DisplayIDMaintenanceService` to keep that type focused on the
-/// scan/reassign flow.
+/// scan/reassign flow. The used-display-ID snapshots that used to live here moved
+/// to `UsedDisplayIDs`, which is shared with the other allocation call sites and
+/// throws rather than swallowing a fetch failure (T-1621).
 struct DisplayIDRecordLookup {
 
     private let modelContext: ModelContext
@@ -43,29 +44,5 @@ struct DisplayIDRecordLookup {
         let descriptor = FetchDescriptor<Milestone>(predicate: #Predicate { $0.id == id })
         let probe = ModelContext(modelContext.container)
         return (try? probe.fetch(descriptor).first)?.permanentDisplayId
-    }
-
-    // MARK: - Used display IDs
-
-    /// Permanent task display IDs already committed to the local store. Passed to
-    /// `DisplayIDAllocator.allocateNextID(excluding:)` so a stale or stuck counter
-    /// read cannot reissue an ID a record already holds (T-1766). Fetch failures
-    /// degrade to an empty set so allocation still proceeds, matching the other
-    /// allocation call sites (T-1621 tracks the swallowed error).
-    func usedTaskDisplayIDs() -> Set<Int> {
-        let descriptor = FetchDescriptor<TransitTask>(
-            predicate: #Predicate { $0.permanentDisplayId != nil }
-        )
-        guard let tasks = try? modelContext.fetch(descriptor) else { return [] }
-        return Set(tasks.compactMap(\.permanentDisplayId))
-    }
-
-    /// Milestone companion to `usedTaskDisplayIDs` (T-1766).
-    func usedMilestoneDisplayIDs() -> Set<Int> {
-        let descriptor = FetchDescriptor<Milestone>(
-            predicate: #Predicate { $0.permanentDisplayId != nil }
-        )
-        guard let milestones = try? modelContext.fetch(descriptor) else { return [] }
-        return Set(milestones.compactMap(\.permanentDisplayId))
     }
 }

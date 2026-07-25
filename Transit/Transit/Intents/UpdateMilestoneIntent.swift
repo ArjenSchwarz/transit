@@ -140,9 +140,8 @@ struct UpdateMilestoneIntent: AppIntent {
             guard !trimmed.isEmpty else {
                 return .invalid(IntentHelpers.mapMilestoneError(.invalidName).json)
             }
-            if let project = milestone.project,
-               milestoneService.milestoneNameExists(trimmed, in: project, excluding: milestone.id) {
-                return .invalid(IntentHelpers.mapMilestoneError(.duplicateName).json)
+            if let conflict = renameConflict(trimmed, milestone: milestone, milestoneService: milestoneService) {
+                return .invalid(conflict)
             }
             trimmedName = trimmed
         }
@@ -165,6 +164,30 @@ struct UpdateMilestoneIntent: AppIntent {
         return .valid(ValidatedUpdate(
             status: newStatus, name: trimmedName, description: newDescription
         ))
+    }
+
+    /// JSON error payload for a rename that collides with an existing milestone in the
+    /// same project, or `nil` when the name is free.
+    ///
+    /// A failed duplicate check surfaces as INTERNAL_ERROR rather than "no conflict":
+    /// CloudKit-backed SwiftData has no unique constraint, so this check is the whole
+    /// uniqueness invariant and a swallowed fetch failure would commit a duplicate
+    /// name [T-1614].
+    @MainActor
+    private static func renameConflict(
+        _ name: String,
+        milestone: Milestone,
+        milestoneService: MilestoneService
+    ) -> String? {
+        guard let project = milestone.project else { return nil }
+        do {
+            guard try milestoneService.milestoneNameExists(name, in: project, excluding: milestone.id) else {
+                return nil
+            }
+            return IntentHelpers.mapMilestoneError(.duplicateName).json
+        } catch {
+            return IntentError.internalError(hint: "Could not verify milestone name uniqueness: \(error)").json
+        }
     }
 
     // MARK: - Apply

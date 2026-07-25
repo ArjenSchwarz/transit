@@ -10,13 +10,26 @@ final class MilestoneService {
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
 
+    /// Store reads for the two invariants that are derived from a fetch result —
+    /// name uniqueness and the used-display-ID snapshot. Separate from
+    /// `modelContext` only so tests can inject a failing fetch (T-1614, T-1621);
+    /// production always passes the same context.
+    private let fetcher: any ModelFetching
+    private let usedDisplayIDs: UsedDisplayIDs
+
     /// Single-flight guard for `promoteProvisionalMilestones`. Prevents
     /// concurrent promotion runs from overlapping (T-597).
     private var isPromotingMilestones = false
 
-    init(modelContext: ModelContext, displayIDAllocator: DisplayIDAllocator) {
+    init(
+        modelContext: ModelContext,
+        displayIDAllocator: DisplayIDAllocator,
+        fetcher: (any ModelFetching)? = nil
+    ) {
         self.modelContext = modelContext
         self.displayIDAllocator = displayIDAllocator
+        self.fetcher = fetcher ?? modelContext
+        self.usedDisplayIDs = UsedDisplayIDs(fetcher ?? modelContext)
     }
 
     // MARK: - CRUD
@@ -33,7 +46,7 @@ final class MilestoneService {
             throw Error.invalidName
         }
 
-        guard !milestoneNameExists(trimmedName, in: project) else {
+        guard try !milestoneNameExists(trimmedName, in: project) else {
             throw Error.duplicateName
         }
 
@@ -43,7 +56,7 @@ final class MilestoneService {
             // allocation gate (via closure) so a stale counter read cannot
             // produce a duplicate milestone ID, even with a concurrent create
             // that committed just before us (T-1395).
-            let id = try await displayIDAllocator.allocateNextID(excluding: { self.usedDisplayIDs() })
+            let id = try await displayIDAllocator.allocateNextID(excluding: { try self.usedDisplayIDs.milestones() })
             displayID = .permanent(id)
         } catch let error as CancellationError {
             // The allocation gate propagates CancellationError when this caller is
@@ -52,6 +65,12 @@ final class MilestoneService {
             // persistent state — only genuine CloudKit/offline failures fall back to
             // a provisional ID (T-1426).
             throw error
+        } catch DisplayIDAllocator.Error.usedIDLookupFailed(let description) {
+            // The local store could not be read, so the collision guard never ran.
+            // That is not the offline condition provisional IDs exist for, and a
+            // provisional ID would hide a broken store behind a normal-looking
+            // create — surface it instead (T-1621).
+            throw DisplayIDAllocator.Error.usedIDLookupFailed(description: description)
         } catch {
             displayID = .provisional
         }
@@ -62,7 +81,7 @@ final class MilestoneService {
         // SwiftData cannot express `@Attribute(.unique)`, so this service check
         // *is* the invariant — and it only holds if the last check and the insert
         // are not separated by a suspension point, which is the case from here on.
-        guard !milestoneNameExists(trimmedName, in: project) else {
+        guard try !milestoneNameExists(trimmedName, in: project) else {
             throw Error.duplicateName
         }
 
@@ -96,7 +115,7 @@ final class MilestoneService {
             }
 
             if let project = milestone.project {
-                guard !milestoneNameExists(trimmedName, in: project, excluding: milestone.id) else {
+                guard try !milestoneNameExists(trimmedName, in: project, excluding: milestone.id) else {
                     throw Error.duplicateName
                 }
             }
@@ -209,7 +228,9 @@ final class MilestoneService {
                 // Recompute used IDs inside the gate so a promoted ID never
                 // collides with one already committed (including ones just
                 // assigned in this loop) (T-1395).
-                let newID = try await displayIDAllocator.allocateNextID(excluding: { self.usedDisplayIDs() })
+                let newID = try await displayIDAllocator.allocateNextID(
+                    excluding: { try self.usedDisplayIDs.milestones() }
+                )
                 milestone.permanentDisplayId = newID
                 try save(modelContext)
             } catch {
@@ -232,16 +253,6 @@ final class MilestoneService {
             throw Error.milestoneNotFound
         }
         return milestone
-    }
-
-    /// Returns the set of permanent display IDs already committed to the local
-    /// store. Keeps newly allocated milestone IDs collision-free (T-1395).
-    private func usedDisplayIDs() -> Set<Int> {
-        let descriptor = FetchDescriptor<Milestone>(
-            predicate: #Predicate { $0.permanentDisplayId != nil }
-        )
-        guard let milestones = try? modelContext.fetch(descriptor) else { return [] }
-        return Set(milestones.compactMap(\.permanentDisplayId))
     }
 
     func findByDisplayID(_ displayId: Int) throws -> Milestone {
@@ -309,13 +320,24 @@ final class MilestoneService {
         }
     }
 
-    func milestoneNameExists(_ name: String, in project: Project, excluding milestoneId: UUID? = nil) -> Bool {
+    /// Whether the project already holds a milestone with this name
+    /// (case-insensitive), optionally ignoring one milestone for renames.
+    ///
+    /// Throws the underlying storage error when the project's milestones cannot be
+    /// read. CloudKit-backed SwiftData forbids `@Attribute(.unique)`, so this check
+    /// *is* the uniqueness invariant — including the post-allocation re-check in
+    /// `createMilestone` that closes the TOCTOU window (T-1764). Reporting `false`
+    /// for an unreadable store would let both checks pass on a name that is already
+    /// taken (T-1614).
+    func milestoneNameExists(
+        _ name: String, in project: Project, excluding milestoneId: UUID? = nil
+    ) throws -> Bool {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let projectID = project.id
         let descriptor = FetchDescriptor<Milestone>(
             predicate: #Predicate { $0.project?.id == projectID }
         )
-        let milestones = (try? modelContext.fetch(descriptor)) ?? []
+        let milestones = try fetcher.fetch(descriptor)
         return milestones.contains { milestone in
             if let milestoneId, milestone.id == milestoneId { return false }
             return milestone.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame

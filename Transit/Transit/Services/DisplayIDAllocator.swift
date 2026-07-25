@@ -20,6 +20,12 @@ final class DisplayIDAllocator: @unchecked Sendable {
         /// CloudKit counter record is off limits (T-1797). Callers treat this like any
         /// other allocation failure and fall back to a provisional ID.
         case cloudSyncInactive
+        /// The caller's `excluding:` snapshot of already-used display IDs could not be
+        /// read, so the collision guard cannot be evaluated (T-1621). Distinct from the
+        /// CloudKit failures above because it means the *local* store is unreadable:
+        /// callers must not treat it as an offline condition and fall back to a
+        /// provisional ID. The description carries the underlying storage error.
+        case usedIDLookupFailed(description: String)
     }
 
     /// Abstracts the counter persistence so tests can inject an in-memory store.
@@ -120,7 +126,13 @@ final class DisplayIDAllocator: @unchecked Sendable {
     ///
     /// Throws `.cloudSyncInactive` immediately — before the gate and before any store
     /// access — when the live container is not CloudKit-backed (T-1797).
-    func allocateNextID(excluding usedIDs: @MainActor @Sendable () -> Set<Int> = { [] }) async throws -> Int {
+    ///
+    /// `usedIDs` is allowed to throw. A storage failure there means the guard cannot be
+    /// evaluated at all, so allocation fails with `.usedIDLookupFailed` rather than
+    /// proceeding against an empty set that would silently disable it (T-1621).
+    func allocateNextID(
+        excluding usedIDs: @MainActor @Sendable () throws -> Set<Int> = { [] }
+    ) async throws -> Int {
         guard isCloudSyncActive else { throw Error.cloudSyncInactive }
         return try await allocationGate.run {
             try await self.allocateLocked(excluding: usedIDs)
@@ -131,7 +143,9 @@ final class DisplayIDAllocator: @unchecked Sendable {
     /// allocation gate, so reads and CAS writes do not interleave with another
     /// in-process allocation. The `usedIDs` snapshot is recomputed on every
     /// attempt inside the gate so it always reflects the latest committed state.
-    private func allocateLocked(excluding usedIDs: @MainActor @Sendable () -> Set<Int>) async throws -> Int {
+    private func allocateLocked(
+        excluding usedIDs: @MainActor @Sendable () throws -> Set<Int>
+    ) async throws -> Int {
         var attempt = 0
         while attempt < retryLimit {
             attempt += 1
@@ -141,7 +155,16 @@ final class DisplayIDAllocator: @unchecked Sendable {
             // Combine committed IDs (from the caller) with IDs this process has
             // already issued but not yet observed committed, so neither a stale
             // counter read nor the allocate→commit gap can yield a duplicate.
-            let used = await usedIDs().union(issuedIDs)
+            let committed: Set<Int>
+            do {
+                committed = try await usedIDs()
+            } catch {
+                // Without the snapshot the collision guard below is meaningless, so
+                // fail the allocation instead of returning a candidate we could not
+                // check (T-1621).
+                throw Error.usedIDLookupFailed(description: "\(error)")
+            }
+            let used = committed.union(issuedIDs)
 
             // If the counter points at an ID that is already in use, skip past
             // the whole occupied range in one CAS instead of handing back a
@@ -178,9 +201,12 @@ final class DisplayIDAllocator: @unchecked Sendable {
     /// Finds tasks with provisional display IDs (permanentDisplayId == nil),
     /// sorts them by creation date, and allocates permanent IDs one at a time.
     /// `save` is injectable for tests that need to simulate a save failure
-    /// after the permanent ID has been assigned in memory.
+    /// after the permanent ID has been assigned in memory. `usedTaskIDs` is
+    /// injectable for tests that need to simulate an unreadable local store
+    /// (T-1621); it defaults to reading the committed IDs from `context`.
     func promoteProvisionalTasks(
         in context: ModelContext,
+        usedTaskIDs: (@MainActor @Sendable () throws -> Set<Int>)? = nil,
         save: (ModelContext) throws -> Void = { try $0.save() }
     ) async {
         // Scene activation and connectivity restore both call this unconditionally; with
@@ -199,12 +225,15 @@ final class DisplayIDAllocator: @unchecked Sendable {
             return
         }
 
+        // Exclude IDs already committed locally (recomputed inside the gate on
+        // every attempt so just-promoted IDs are included) so promotion never
+        // assigns a duplicate (T-1395). A failed read throws rather than yielding
+        // an empty set, which would disable the guard entirely (T-1621).
+        let usedIDs = usedTaskIDs ?? { try UsedDisplayIDs(context).tasks() }
+
         for task in tasks {
             do {
-                // Exclude IDs already committed locally (recomputed inside the
-                // gate so just-promoted IDs are included) so promotion never
-                // assigns a duplicate (T-1395).
-                let newID = try await allocateNextID(excluding: { Self.usedTaskDisplayIDs(in: context) })
+                let newID = try await allocateNextID(excluding: usedIDs)
                 task.permanentDisplayId = newID
                 try save(context)
             } catch {
@@ -215,17 +244,6 @@ final class DisplayIDAllocator: @unchecked Sendable {
                 break
             }
         }
-    }
-
-    /// Permanent task display IDs already committed to `context`. Used to keep
-    /// promotion allocations collision-free (T-1395). Failures degrade to an
-    /// empty set so promotion still proceeds.
-    private static func usedTaskDisplayIDs(in context: ModelContext) -> Set<Int> {
-        let descriptor = FetchDescriptor<TransitTask>(
-            predicate: #Predicate { $0.permanentDisplayId != nil }
-        )
-        guard let tasks = try? context.fetch(descriptor) else { return [] }
-        return Set(tasks.compactMap(\.permanentDisplayId))
     }
 }
 

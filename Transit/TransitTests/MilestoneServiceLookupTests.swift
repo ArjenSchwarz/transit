@@ -117,8 +117,8 @@ struct MilestoneServiceLookupTests {
         let project = makeProject(in: context)
         _ = try await service.createMilestone(name: "v1.0", description: nil, project: project)
 
-        #expect(service.milestoneNameExists("V1.0", in: project))
-        #expect(!service.milestoneNameExists("v2.0", in: project))
+        #expect(try service.milestoneNameExists("V1.0", in: project))
+        #expect(try !service.milestoneNameExists("v2.0", in: project))
     }
 
     @Test func milestoneNameExistsExcludesSpecifiedID() async throws {
@@ -126,6 +126,6 @@ struct MilestoneServiceLookupTests {
         let project = makeProject(in: context)
         let milestone = try await service.createMilestone(name: "v1.0", description: nil, project: project)
 
-        #expect(!service.milestoneNameExists("v1.0", in: project, excluding: milestone.id))
+        #expect(try !service.milestoneNameExists("v1.0", in: project, excluding: milestone.id))
     }
 }

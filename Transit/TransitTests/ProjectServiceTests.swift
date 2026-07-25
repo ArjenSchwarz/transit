@@ -100,21 +100,21 @@ struct ProjectServiceTests {
         let (service, _) = try makeService()
         try service.createProject(name: "Transit", description: "Desc", gitRepo: nil, colorHex: "#000000")
 
-        #expect(service.projectNameExists("Transit") == true)
+        #expect(try service.projectNameExists("Transit") == true)
     }
 
     @Test func projectNameExistsReturnsTrueForCaseInsensitiveMatch() throws {
         let (service, _) = try makeService()
         try service.createProject(name: "Transit", description: "Desc", gitRepo: nil, colorHex: "#000000")
 
-        #expect(service.projectNameExists("transit") == true)
+        #expect(try service.projectNameExists("transit") == true)
     }
 
     @Test func projectNameExistsReturnsFalseWhenNoMatch() throws {
         let (service, _) = try makeService()
         try service.createProject(name: "Transit", description: "Desc", gitRepo: nil, colorHex: "#000000")
 
-        #expect(service.projectNameExists("Orbit") == false)
+        #expect(try service.projectNameExists("Orbit") == false)
     }
 
     @Test func projectNameExistsExcludesSpecifiedProject() throws {
@@ -122,7 +122,7 @@ struct ProjectServiceTests {
         let project = try service.createProject(name: "Transit", description: "Desc", gitRepo: nil, colorHex: "#000000")
 
         // Same name should not conflict when the project itself is excluded (rename to same name).
-        #expect(service.projectNameExists("Transit", excluding: project.id) == false)
+        #expect(try service.projectNameExists("Transit", excluding: project.id) == false)
     }
 
     @Test func projectNameExistsDetectsConflictWithOtherProject() throws {
@@ -131,7 +131,7 @@ struct ProjectServiceTests {
         try service.createProject(name: "Orbit", description: "Desc", gitRepo: nil, colorHex: "#111111")
 
         // "Orbit" exists and is not the excluded project, so this should return true.
-        #expect(service.projectNameExists("Orbit", excluding: first.id) == true)
+        #expect(try service.projectNameExists("Orbit", excluding: first.id) == true)
     }
 
     @Test func createProjectTrimsWhitespaceFromName() throws {
