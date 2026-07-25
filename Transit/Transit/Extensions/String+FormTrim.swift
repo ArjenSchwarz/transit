@@ -7,7 +7,10 @@ extension String {
     /// in pasted content (T-1063). Centralising the trim character set here keeps form input
     /// normalisation consistent with the App Intent, MCP, and service layers, all of which
     /// already use `.whitespacesAndNewlines`.
-    func trimmedForFormInput() -> String {
+    ///
+    /// `nonisolated` so the edit snapshots — which must be nonisolated to conform
+    /// to `EditSnapshot` — normalise their strings exactly the way the forms do.
+    nonisolated func trimmedForFormInput() -> String {
         trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

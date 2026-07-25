@@ -102,6 +102,7 @@ All business logic lives in `Services/`, not in views:
 - **ContainerFactory** — creates ModelContainer with graceful fallback to in-memory on error
 - **ConnectivityMonitor** — NWPathMonitor wrapper, triggers display ID promotion for both tasks and milestones on connectivity restore
 - **QuickActionService** — home screen quick action handling
+- **EditMerge** (`EditMerge.swift`, plus `TaskEditMerge`/`ProjectEditMerge`/`MilestoneEditMerge`) — three-way merge (load-time baseline vs. form vs. live model) used by the task, project, and milestone editors so a save writes only the fields the user changed and same-field conflicts are surfaced instead of silently resolved. Each editor supplies a field enum, a snapshot, an applier, and a load-once draft form.
 
 ### Navigation
 
@@ -182,6 +183,7 @@ Services follow a consistent pattern: mutate in memory, then `save()`, rolling b
 - Color extensions using `UIColor`/`NSColor` become `@MainActor` isolated. Use `Color.resolve(in: EnvironmentValues())` instead.
 - `@Model` inits should take raw stored types (`colorHex: String`), not SwiftUI types (`Color`).
 - Test files must explicitly `import Foundation` and use `@MainActor` annotation.
+- A type conforming to an app-defined protocol that inherits a stdlib protocol (`CaseIterable`, `Hashable`, `Equatable`) must be declared `nonisolated` — otherwise the conformance is main-actor-isolated and the compiler rejects it ("crosses into main actor-isolated code"). Marking the *protocol* `@MainActor` does not help. This is why `TaskEditSnapshot` and friends are `nonisolated`; any helper they call (e.g. `String.trimmedForFormInput()`) must be `nonisolated` too.
 
 ### Liquid Glass
 

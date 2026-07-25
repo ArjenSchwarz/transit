@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Declaration order is the order fields are listed to the user when they
 /// conflict, so keep it aligned with the form layout.
-enum TaskEditField: CaseIterable {
+nonisolated enum TaskEditField: EditableField {
     case name
     case description
     case type
@@ -36,7 +36,7 @@ enum TaskEditField: CaseIterable {
 /// Taken three times per save: once when the editor loads (the baseline), once
 /// from the form's `@State` (what the user is submitting), and once from the
 /// task itself at save time (what is stored right now).
-struct TaskEditSnapshot: Equatable {
+nonisolated struct TaskEditSnapshot: EditSnapshot {
     var name: String
     var description: String
     var type: TaskType
@@ -102,56 +102,10 @@ struct TaskEditSnapshot: Equatable {
 
 /// Three-way comparison deciding what a task-editor save should write.
 ///
-/// The editor and the MCP server share `mainContext`, so an MCP write — and a
-/// CloudKit merge — lands on the same `TransitTask` instance the editor is
-/// showing. The live values are therefore always readable at save time, and the
-/// load-time baseline is the only record of where the user started. Comparing
-/// all three separates "the user set this value" from "this is merely what the
-/// form loaded", which is what the editor previously could not tell apart
-/// (T-1798).
-struct TaskEditMerge: Equatable {
-
-    /// Fields the user changed. Only these are written.
-    let changedFields: Set<TaskEditField>
-
-    /// Fields the user and an external writer both changed, to different values.
-    /// Surfaced to the user rather than resolved automatically — neither side's
-    /// value is safe to discard on the user's behalf.
-    let conflictingFields: Set<TaskEditField>
-
-    var hasChanges: Bool { !changedFields.isEmpty }
-
-    var hasConflicts: Bool { !conflictingFields.isEmpty }
-
-    init(original: TaskEditSnapshot, edited: TaskEditSnapshot, live: TaskEditSnapshot) {
-        var changed: Set<TaskEditField> = []
-        var conflicting: Set<TaskEditField> = []
-
-        for field in TaskEditField.allCases where edited.differs(from: original, in: field) {
-            changed.insert(field)
-
-            // Both sides moved away from the baseline. Landing on the same value
-            // is agreement, not a conflict.
-            if live.differs(from: original, in: field), edited.differs(from: live, in: field) {
-                conflicting.insert(field)
-            }
-        }
-
-        changedFields = changed
-        conflictingFields = conflicting
-    }
-
-    func changed(_ field: TaskEditField) -> Bool {
-        changedFields.contains(field)
-    }
-
-    /// Conflicting field labels in declaration order, for the conflict alert.
-    var conflictingFieldNames: [String] {
-        TaskEditField.allCases
-            .filter(conflictingFields.contains)
-            .map(\.displayName)
-    }
-}
+/// The comparison itself lives in `EditMerge`, shared with the project and
+/// milestone editors so all three resolve concurrent writes identically
+/// (T-1817).
+typealias TaskEditMerge = EditMerge<TaskEditSnapshot>
 
 // MARK: - Applier
 
