@@ -1,7 +1,7 @@
 # Bugfix Report: Task Editor Clobbers Concurrent Updates
 
 **Date:** 2026-07-25
-**Status:** Investigating
+**Status:** Fixed
 **Ticket:** T-1798
 
 ## Description of the Issue
@@ -58,7 +58,7 @@ type, priority, status, project, milestone and metadata.
 
 ## Discovered Root Cause
 
-`save()` submits the entire form unconditionally:
+`save()` submitted the entire form unconditionally:
 
 ```swift
 try taskService.updateTask(
@@ -75,20 +75,20 @@ try milestoneService.setMilestone(selectedMilestone, on: task, save: false)
 ```
 
 `TaskService.updateTask` treats every non-`nil` argument as "apply this". The view
-never passes `nil`, so every field is always written back from a snapshot that may
-be minutes old.
+never passed `nil`, so every field was always written back from a snapshot that
+could be minutes old.
 
 **Defect type:** Lost update (last-writer-wins over a stale read) — a logic error,
 not a race in the threading sense. Everything runs on `@MainActor` and the two
-writes are strictly ordered. What is missing is the comparison that would tell the
-second writer it is overwriting the first.
+writes are strictly ordered. What was missing is the comparison that would tell
+the second writer it is overwriting the first.
 
 **Why it occurred:** The editor was written for a single-writer world. When the MCP
 server was added it was deliberately wired to the shared `mainContext` so agent
 changes appear live in the UI — which made the app a *concurrent* writer without
 the editor's write path being revisited. The form-state pattern (snapshot into
 `@State`, submit the form) is the right shape for a cancellable editor; it just
-needs a baseline to diff against.
+needed a baseline to diff against.
 
 **Contributing factors:**
 - `updateTask`'s optional-means-no-change contract is expressive enough to submit a
@@ -98,22 +98,126 @@ needs a baseline to diff against.
 
 ## Resolution for the Issue
 
-_(Filled in after implementation.)_
+A **three-way merge** at save time. The editor now keeps the task's values from
+when it loaded (`original`), reads the form (`edited`), and re-reads the task
+(`live`) at the moment of saving. Per field:
+
+| user changed | external changed | outcome |
+|---|---|---|
+| no | – | not written — the external value stands |
+| yes | no | written |
+| yes | yes, same value | written (agreement, no prompt) |
+| yes | yes, different value | **conflict — the user is asked** |
+
+Reading `live` at save time is sound precisely *because* the editor and MCP share
+`mainContext`: the external write has already landed on the same `TransitTask`
+instance the view holds, so `TaskEditSnapshot(task:)` sees it without any refetch.
+
+**Changes made:**
+- `Transit/Transit/Services/TaskEditMerge.swift` *(new)* — `TaskEditField`,
+  `TaskEditSnapshot` (value copy of the eight editable fields, normalised the way
+  the form normalises input), `TaskEditMerge` (the three-way comparison producing
+  `changedFields` and `conflictingFields`), and `TaskEditApplier` (writes only the
+  changed fields, still routed through the services, still deferring persistence).
+- `Transit/Transit/Views/TaskDetail/TaskEditView.swift` — records the baseline in
+  `loadTask()`, computes the merge in `save()`, writes only changed fields, and
+  presents the conflict alert instead of saving when a conflict is found. Adds
+  `adoptLiveValues(for:)` for the "use theirs" branch. `loadTask()` is now
+  idempotent — a second `onAppear` no longer discards in-flight edits or resets
+  the baseline.
+- `Transit/Transit/Views/TaskDetail/TaskEditConflictAlert.swift` *(new)* — the
+  alert and its copy.
+- `Transit/Transit/Views/TaskDetail/TaskEditView+Milestones.swift` *(new)* —
+  `availableMilestones` moved out unchanged, to keep the view file within the
+  SwiftLint `file_length` limit.
+
+### Conflict-surfacing behaviour (and why)
+
+A same-field conflict **blocks the save** and raises an alert naming the affected
+fields, offering two choices:
+
+- **Keep My Changes** — the save proceeds; the user's values win on the
+  conflicting fields.
+- **Use Updated Values** — the external values are loaded into the form, the
+  baseline is re-taken, and **the editor stays open without saving**.
+
+In both branches the user's edits to *non-conflicting* fields are preserved.
+
+Rationale: the editor has no basis for preferring either version, so picking one
+silently is what caused this bug in the first place. Blocking the save keeps the
+existing atomicity guarantee (T-361/T-452) — there is never a partial write where
+some fields landed and a conflicting one did not. "Use Updated Values" deliberately
+does not save, because its purpose is to let the user *see* what the other writer
+did before committing; discarding their typing invisibly would be a smaller version
+of the same defect.
+
+Alternatives considered:
+- **Last-writer-wins on the user's side (status quo).** Rejected — the bug.
+- **External writer always wins.** Rejected — silently discards the user's typing.
+- **Save non-conflicting fields, then prompt for the rest.** Rejected — breaks the
+  atomic save and leaves the task in a half-applied state if the user cancels.
+- **Live-bind the form to the model (no snapshot).** Rejected — the editor is
+  cancellable by design; fields must not write through until Save.
 
 ## Regression Test
 
-**Test file:** `Transit/TransitTests/TaskEditConcurrentUpdateTests.swift`
+**Test files:**
+- `Transit/TransitTests/TaskEditConcurrentUpdateTests.swift` — external-change
+  survival, including the ticket's exact repro
+  (`externalUpdateSurvivesUnrelatedFormEdit`), plus status, milestone and
+  no-op-save cases.
+- `Transit/TransitTests/TaskEditOrdinaryEditTests.swift` — ordinary editing still
+  applies every field; description clearing (T-854) and project-move milestone
+  clearing (Decision 6) still work.
+- Conflict detection lives in `TaskEditConflictDetectionTests` (same file as the
+  first): different-value conflicts, same-value agreement, per-field granularity,
+  metadata by value, and the alert copy.
 
-Pre-fix state: the suite does not compile, because the merge API it exercises
-(`TaskEditSnapshot`, `TaskEditMerge`, `TaskEditApplier`) does not exist yet — the
-production code has no concept of "which fields did the user change". That is the
-red phase.
+**Red phase:** before the fix the suites did not compile — production code had no
+concept of "which fields did the user change".
 
 **Run command:** `make test-quick`
 
+## Affected Files
+
+| File | Change |
+|------|--------|
+| `Transit/Transit/Services/TaskEditMerge.swift` | New — snapshot, three-way merge, applier |
+| `Transit/Transit/Views/TaskDetail/TaskEditView.swift` | Baseline capture, merge-driven save, conflict alert |
+| `Transit/Transit/Views/TaskDetail/TaskEditConflictAlert.swift` | New — conflict alert + copy |
+| `Transit/Transit/Views/TaskDetail/TaskEditView+Milestones.swift` | New — `availableMilestones` moved, unchanged |
+| `Transit/TransitTests/TaskEditConcurrentUpdateTests.swift` | New — regression + conflict suites |
+| `Transit/TransitTests/TaskEditOrdinaryEditTests.swift` | New — ordinary-edit suite |
+
+## Verification
+
+**Automated:**
+- [x] Regression tests pass (14 new tests)
+- [x] Full unit suite passes — 1367 passed, 0 failed
+- [x] `make lint` clean (`--strict`, 0 violations in 274 files)
+
+**Note on the test runs:** the suite was executed while three sibling fix streams
+were building concurrently (peak load average ~270). Both runs finished with zero
+failures, but `xcodebuild` hung in post-test teardown after `Testing started
+completed` — an environment artifact of several Transit test hosts running at once,
+unrelated to this change.
+
+## Prevention
+
+**Recommendations:**
+- Any form editing a shared `@Model` needs a load-time baseline. The pattern
+  "snapshot to `@State`, write everything back" is only safe with a single writer,
+  and Transit stopped being single-writer when the MCP server was added.
+- `TaskEditSnapshot`/`TaskEditMerge` are generic in shape and could be reused for
+  the other editors.
+- Prefer passing `nil` for untouched fields to the service layer's
+  optional-means-no-change APIs rather than resubmitting whole forms.
+
 ## Related
 
-- T-1817 — `ProjectEditView` and `MilestoneEditView` share the same
-  snapshot-and-write-everything-back pattern. Out of scope here; tracked separately.
+- **T-1817** — `ProjectEditView` and `MilestoneEditView` have the *same*
+  snapshot-and-write-everything-back defect. Deliberately out of scope here;
+  fixed separately under that ticket. The merge types added here are the obvious
+  basis for that fix.
 - T-854 — description clearing must keep working (`clearDescription`).
-- T-452 — save/rollback pattern the editor relies on.
+- T-361 / T-452 — the atomic save/rollback behaviour this fix preserves.

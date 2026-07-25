@@ -22,6 +22,16 @@ struct TaskEditView: View {
     @State private var selectedDetent: PresentationDetent = .large
     @State private var errorMessage: String?
 
+    /// The task's values when the editor loaded. Diffing the form against this
+    /// baseline is what tells "the user set this" apart from "this is merely
+    /// what was loaded", so a save writes only the fields the user touched
+    /// (T-1798). `nil` until `loadTask()` runs.
+    @State private var originalSnapshot: TaskEditSnapshot?
+
+    /// Set when a save finds fields that both the user and an external writer
+    /// changed. Presence drives the conflict alert.
+    @State private var pendingConflict: TaskEditMerge?
+
     private var selectedProject: Project? {
         guard let id = selectedProjectID else { return nil }
         return projects.first { $0.id == id }
@@ -52,12 +62,19 @@ struct TaskEditView: View {
         } message: {
             Text(errorMessage ?? "")
         }
+        .taskEditConflictAlert(
+            conflict: $pendingConflict,
+            keepMine: { save(overwritingConflicts: true) },
+            useTheirs: { adoptLiveValues(for: $0) }
+        )
     }
+}
 
-    // MARK: - iOS Layout
+// MARK: - iOS Layout
 
-    #if os(iOS)
-    private var iOSForm: some View {
+#if os(iOS)
+extension TaskEditView {
+    fileprivate var iOSForm: some View {
         Form {
             iOSFieldsSection
 
@@ -89,7 +106,7 @@ struct TaskEditView: View {
         .onAppear { loadTask() }
     }
 
-    private var iOSFieldsSection: some View {
+    fileprivate var iOSFieldsSection: some View {
         Section {
             TextField("Name", text: $name)
 
@@ -114,8 +131,8 @@ struct TaskEditView: View {
                     .tag(Optional(project.id))
                 }
             }
-            .onChange(of: selectedProjectID) { oldValue, _ in
-                guard oldValue != nil else { return }
+            .onChange(of: selectedProjectID) { oldValue, newValue in
+                guard oldValue != nil, newValue != task.project?.id else { return }
                 selectedMilestone = nil
             }
 
@@ -128,7 +145,7 @@ struct TaskEditView: View {
         }
     }
 
-    private var iOSStatusSection: some View {
+    fileprivate var iOSStatusSection: some View {
         Section {
             Picker("Status", selection: $selectedStatus) {
                 ForEach(TaskStatus.allCases, id: \.self) { status in
@@ -137,14 +154,16 @@ struct TaskEditView: View {
             }
         }
     }
-    #endif
+}
+#endif
 
-    // MARK: - macOS Layout
+// MARK: - macOS Layout
 
-    #if os(macOS)
-    private static let labelWidth: CGFloat = 90
+#if os(macOS)
+extension TaskEditView {
+    fileprivate static let labelWidth: CGFloat = 90
 
-    private var macOSForm: some View {
+    fileprivate var macOSForm: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 LiquidGlassSection(title: "Details") {
@@ -192,8 +211,8 @@ struct TaskEditView: View {
                             .labelsHidden()
                             .pickerStyle(.menu)
                             .fixedSize()
-                            .onChange(of: selectedProjectID) { oldValue, _ in
-                                guard oldValue != nil else { return }
+                            .onChange(of: selectedProjectID) { oldValue, newValue in
+                                guard oldValue != nil, newValue != task.project?.id else { return }
                                 selectedMilestone = nil
                             }
                         }
@@ -262,34 +281,22 @@ struct TaskEditView: View {
         }
         .onAppear { loadTask() }
     }
-    #endif
-
 }
+#endif
 
 // MARK: - Data Loading & Actions
 
 extension TaskEditView {
 
-    static func availableMilestones(
-        project: Project?,
-        selectedMilestone: Milestone?,
-        milestoneService: MilestoneService
-    ) -> [Milestone] {
-        guard let project else { return [] }
-        var milestones = milestoneService.milestonesForProject(project, status: .open)
-
-        guard let selectedMilestone, selectedMilestone.project?.id == project.id else {
-            return milestones
-        }
-
-        if milestones.contains(where: { $0.id == selectedMilestone.id }) == false {
-            milestones.append(selectedMilestone)
-        }
-
-        return milestones
-    }
-
+    /// Copies the task into the form and records the baseline the save-time
+    /// merge diffs against.
+    ///
+    /// Runs once. A second `onAppear` — returning from a pushed screen, for
+    /// instance — must not discard in-flight edits or reset the baseline, which
+    /// would make every field look untouched again.
     fileprivate func loadTask() {
+        guard originalSnapshot == nil else { return }
+
         name = task.name
         taskDescription = task.taskDescription ?? ""
         selectedType = task.type
@@ -298,47 +305,63 @@ extension TaskEditView {
         selectedProjectID = task.project?.id
         selectedMilestone = task.milestone
         metadata = task.metadata
+        originalSnapshot = TaskEditSnapshot(task: task)
     }
 
-    fileprivate func save() {
-        let trimmedName = name.trimmedForFormInput()
-        guard !trimmedName.isEmpty else { return }
+    fileprivate func editedSnapshot() -> TaskEditSnapshot {
+        TaskEditSnapshot(
+            name: name,
+            description: taskDescription,
+            type: selectedType,
+            priority: selectedPriority,
+            status: selectedStatus,
+            projectID: selectedProjectID,
+            milestoneID: selectedMilestone?.id,
+            metadata: metadata
+        )
+    }
 
-        let trimmedDesc = taskDescription.trimmedForFormInput()
+    /// Persists the user's edits.
+    ///
+    /// Only fields the user actually changed are written, so a concurrent MCP or
+    /// CloudKit write to a *different* field survives (T-1798). When both sides
+    /// changed the *same* field the save stops and asks;
+    /// `overwritingConflicts` carries the user's answer back in.
+    fileprivate func save(overwritingConflicts: Bool = false) {
+        guard let originalSnapshot else { return }
+
+        let edited = editedSnapshot()
+        guard !edited.name.isEmpty else { return }
+
+        let merge = TaskEditMerge(
+            original: originalSnapshot,
+            edited: edited,
+            live: TaskEditSnapshot(task: task)
+        )
+
+        // Nothing to write. Saving anyway is exactly how the stale form used to
+        // revert other writers' changes.
+        guard merge.hasChanges else {
+            dismissAll()
+            return
+        }
+
+        if merge.hasConflicts, !overwritingConflicts {
+            pendingConflict = merge
+            return
+        }
 
         do {
-            // All mutations use save: false to defer persistence.
-            // A single modelContext.save() at the end makes the operation atomic —
-            // either everything persists or everything rolls back.
-
-            // Update project if changed — clears milestone via Decision 6
-            if let newProjectID = selectedProjectID, task.project?.id != newProjectID,
-               let newProject = projects.first(where: { $0.id == newProjectID }) {
-                try taskService.changeProject(task: task, to: newProject, save: false)
-            }
-
-            // Apply field mutations through TaskService for validation.
-            // Uses save: false to defer persistence until the atomic save below.
-            // clearDescription disambiguates "user emptied the field" from
-            // "no change requested" so an existing description can be removed (T-854).
-            try taskService.updateTask(
-                task,
-                name: trimmedName,
-                description: trimmedDesc.isEmpty ? nil : trimmedDesc,
-                clearDescription: trimmedDesc.isEmpty,
-                type: selectedType,
-                metadata: metadata,
-                priority: selectedPriority,
-                save: false
+            // Every mutation defers persistence. The single modelContext.save()
+            // below makes the edit atomic — all of it lands or none of it does.
+            let applier = TaskEditApplier(taskService: taskService, milestoneService: milestoneService)
+            try applier.apply(
+                merge,
+                edited: edited,
+                to: task,
+                project: selectedProject,
+                milestone: selectedMilestone
             )
-
-            // Update milestone via service for validation
-            try milestoneService.setMilestone(selectedMilestone, on: task, save: false)
-
-            // Status change goes through TaskService for side effects
-            if selectedStatus != task.status {
-                try taskService.updateStatus(task: task, to: selectedStatus, save: false)
-            }
 
             try modelContext.save()
             dismissAll()
@@ -346,5 +369,29 @@ extension TaskEditView {
             modelContext.safeRollback()
             errorMessage = "Could not save task. Please try again."
         }
+    }
+
+    /// Drops the user's edits to the conflicting fields in favour of the values
+    /// now on the task, and re-baselines so untouched fields stay untouched and
+    /// the user's other edits stay pending.
+    ///
+    /// The editor deliberately stays open and nothing is saved: the point is to
+    /// show the user what the other writer did before they commit to anything.
+    fileprivate func adoptLiveValues(for merge: TaskEditMerge) {
+        for field in merge.conflictingFields {
+            switch field {
+            case .name: name = task.name
+            case .description: taskDescription = task.taskDescription ?? ""
+            case .type: selectedType = task.type
+            case .priority: selectedPriority = task.priority
+            case .status: selectedStatus = task.status
+            case .project: selectedProjectID = task.project?.id
+            case .milestone: selectedMilestone = task.milestone
+            case .metadata: metadata = task.metadata
+            }
+        }
+
+        originalSnapshot = TaskEditSnapshot(task: task)
+        pendingConflict = nil
     }
 }
