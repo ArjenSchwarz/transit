@@ -174,9 +174,18 @@ and routing, and makes the parsing rules directly unit-testable.
 ## Verification
 
 **Automated:**
-- [x] Regression tests fail before the fix (403 expectations return 200) and pass after
-- [x] Full unit test suite passes (`make test-quick`)
+- [x] Regression tests fail before the fix and pass after. The pre-fix
+  `make test-quick` run reported 1361 passing / 9 failing, the 9 being exactly
+  the new route-level rejection tests. The post-fix run reported 1371 passing /
+  0 failing, including all 30 new tests.
 - [x] SwiftLint passes (`make lint`, strict mode)
+- [~] `make test-quick` did not reach its final `Test Succeeded` banner. Every
+  `xcodebuild` process on the machine (four parallel fix streams, not just this
+  one) stalled at 0% CPU in state `SN` around the ~1350-test mark — the wedge
+  described in `docs/agent-notes/build-sandbox-wedge.md`. Zero test failures
+  were reported in any post-fix run before the stall, and the stall reproduces
+  identically on the pre-fix tree, so it is environmental rather than caused by
+  this change.
 
 **Manual verification:**
 - `curl -X POST http://127.0.0.1:3141/mcp -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`
