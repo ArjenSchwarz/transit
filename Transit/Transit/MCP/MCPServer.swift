@@ -79,9 +79,19 @@ final class MCPServer {
     /// `nonisolated` because under `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`
     /// `MCPServer` is `@MainActor` by default, but this is called from the
     /// detached (non-main-actor) task in `start(port:)`.
-    nonisolated private static func makeRouter(handler: MCPToolHandler) -> Router<BasicRequestContext> {
+    nonisolated static func makeRouter(handler: MCPToolHandler) -> Router<BasicRequestContext> {
         let router = Router()
         router.post("mcp") { request, _ -> Response in
+            // DNS-rebinding defence required by the MCP Streamable HTTP
+            // transport. This must stay the first statement in the route: an
+            // untrusted caller's body is never read, decoded, or dispatched.
+            if MCPOriginValidator.rejectionReason(
+                origin: request.head.headerFields[.origin],
+                authority: request.head.authority
+            ) != nil {
+                return forbiddenResponse()
+            }
+
             let body = try await request.body.collect(upTo: 1_048_576)
             let data = Data(buffer: body)
 
@@ -179,6 +189,21 @@ final class MCPServer {
                 message: "Invalid Request"
             ))
         }
+    }
+
+    /// Transport-level rejection. Deliberately not a JSON-RPC error body: the
+    /// request never entered a JSON-RPC session, and answering `200` with an
+    /// error object would tell an attacker's page that the endpoint is live.
+    ///
+    /// The body is a fixed string rather than the validator's specific reason,
+    /// so a probing script cannot learn whether it was the `Origin` or the
+    /// `Host` check that tripped.
+    nonisolated private static func forbiddenResponse() -> Response {
+        Response(
+            status: .forbidden,
+            headers: [.contentType: "text/plain"],
+            body: .init(byteBuffer: ByteBuffer(string: "Forbidden"))
+        )
     }
 
     nonisolated private static func jsonResponse(
