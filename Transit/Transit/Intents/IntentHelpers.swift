@@ -151,11 +151,24 @@ nonisolated enum IntentHelpers {
             return .success(try taskService.resolveTask(from: json))
         } catch TaskService.Error.invalidIdentifier(let field) {
             return .failure(.invalidInput(hint: invalidIdentifierHint(for: field)))
+        } catch TaskService.Error.duplicateDisplayID {
+            return .failure(.internalError(hint: duplicateTaskIdentifierHint(from: json)))
         } catch {
             return .failure(.taskNotFound(
                 hint: "Provide either displayId (integer) or taskId (UUID)"
             ))
         }
+    }
+
+    /// Hint for a `displayId` matched by more than one task. CloudKit cannot enforce
+    /// unique display IDs, so the store — not the request — is at fault, and the fix
+    /// is display-ID maintenance rather than a corrected identifier. Reported as
+    /// INTERNAL_ERROR to match `mapMilestoneError` and `QueryTasksIntent`. [T-1097, T-1837]
+    static func duplicateTaskIdentifierHint(from json: [String: Any]) -> String {
+        guard let displayId = parseIntValue(json["displayId"]) else {
+            return "A duplicate task identifier was detected"
+        }
+        return "Duplicate task identifier for displayId \(displayId)"
     }
 
     /// Field-specific hint for an `invalidIdentifier` rejection. [T-808]

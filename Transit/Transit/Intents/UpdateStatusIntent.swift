@@ -73,19 +73,15 @@ struct UpdateStatusIntent: AppIntent {
             ).json
         }
 
+        // Resolve through the shared helper so this intent reports malformed
+        // identifiers (INVALID_INPUT, T-808) and duplicate display IDs
+        // (INTERNAL_ERROR, T-1837) exactly like UpdateTaskIntent does — an
+        // inlined copy of the mapping is what let the duplicate case drift into
+        // TASK_NOT_FOUND here.
         let task: TransitTask
-        do {
-            task = try taskService.resolveTask(from: json)
-        } catch TaskService.Error.invalidIdentifier(let field) {
-            // Reject malformed identifiers with a field-specific INVALID_INPUT
-            // instead of falling back to TASK_NOT_FOUND. [T-808]
-            return IntentError.invalidInput(
-                hint: IntentHelpers.invalidIdentifierHint(for: field)
-            ).json
-        } catch {
-            return IntentError.taskNotFound(
-                hint: "Provide either displayId (integer) or taskId (UUID)"
-            ).json
+        switch IntentHelpers.resolveTask(from: json, taskService: taskService) {
+        case .success(let resolved): task = resolved
+        case .failure(let error): return error.json
         }
 
         let previousStatus = task.statusRawValue

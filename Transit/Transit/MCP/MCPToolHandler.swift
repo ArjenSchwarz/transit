@@ -371,14 +371,9 @@ final class MCPToolHandler {
         }
 
         let task: TransitTask
-        do {
-            task = try taskService.resolveTask(from: args)
-        } catch TaskService.Error.invalidIdentifier(let field) {
-            // Reject malformed identifiers with a field-specific message
-            // instead of returning the generic not-found error. [T-808]
-            return errorResult(IntentHelpers.invalidIdentifierHint(for: field))
-        } catch {
-            return errorResult("Provide either displayId (integer) or taskId (UUID string)")
+        switch resolveTaskArgument(args) {
+        case .success(let resolved): task = resolved
+        case .failure(.message(let message)): return errorResult(message)
         }
 
         // Reject non-string comment/authorName: as? String silently drops
@@ -546,6 +541,10 @@ final class MCPToolHandler {
             task = try taskService.findByDisplayID(displayId)
         } catch TaskService.Error.taskNotFound {
             return textResult(IntentHelpers.encodeJSONArray([]))
+        } catch TaskService.Error.duplicateDisplayID {
+            // Name the duplicate explicitly rather than leaking the raw error, so
+            // query_tasks reports it the same way the mutation tools do. [T-1837]
+            return errorResult(duplicateTaskIdentifierMessage(displayId: displayId))
         } catch {
             return errorResult("Lookup failed: \(error)")
         }
@@ -919,14 +918,9 @@ extension MCPToolHandler {
         }
 
         let task: TransitTask
-        do {
-            task = try taskService.resolveTask(from: args)
-        } catch TaskService.Error.invalidIdentifier(let field) {
-            // Reject malformed identifiers with a field-specific message
-            // instead of returning the generic not-found error. [T-808]
-            return errorResult(IntentHelpers.invalidIdentifierHint(for: field))
-        } catch {
-            return errorResult("Provide either displayId (integer) or taskId (UUID string)")
+        switch resolveTaskArgument(args) {
+        case .success(let resolved): task = resolved
+        case .failure(.message(let message)): return errorResult(message)
         }
 
         // Validate every field before applying any change. The validator is
@@ -1019,14 +1013,9 @@ extension MCPToolHandler {
         }
 
         let task: TransitTask
-        do {
-            task = try taskService.resolveTask(from: args)
-        } catch TaskService.Error.invalidIdentifier(let field) {
-            // Reject malformed identifiers with a field-specific message
-            // instead of returning the generic not-found error. [T-808]
-            return errorResult(IntentHelpers.invalidIdentifierHint(for: field))
-        } catch {
-            return errorResult("Provide either displayId (integer) or taskId (UUID string)")
+        switch resolveTaskArgument(args) {
+        case .success(let resolved): task = resolved
+        case .failure(.message(let message)): return errorResult(message)
         }
 
         let comment: Comment
@@ -1086,6 +1075,36 @@ extension MCPToolHandler {
 
     enum ResolveError: Error {
         case message(String)
+    }
+
+    /// Resolves the task identified by `args`, mapping resolver failures to MCP messages.
+    ///
+    /// Shared by every task mutation tool so the three surfaces cannot drift apart.
+    /// `duplicateDisplayID` needs its own branch: more than one task carries the
+    /// requested display ID, which the operator repairs with display-ID maintenance.
+    /// The catch-all used to report it as "provide either displayId or taskId", so
+    /// duplicate-ID corruption was indistinguishable from a missing task. Wording
+    /// mirrors the milestone resolver's duplicate branch. [T-1837]
+    private func resolveTaskArgument(_ args: [String: Any]) -> Result<TransitTask, ResolveError> {
+        do {
+            return .success(try taskService.resolveTask(from: args))
+        } catch TaskService.Error.invalidIdentifier(let field) {
+            // Reject malformed identifiers with a field-specific message
+            // instead of returning the generic not-found error. [T-808]
+            return .failure(.message(IntentHelpers.invalidIdentifierHint(for: field)))
+        } catch TaskService.Error.duplicateDisplayID {
+            return .failure(.message(
+                duplicateTaskIdentifierMessage(displayId: IntentHelpers.parseIntValue(args["displayId"]))
+            ))
+        } catch {
+            return .failure(.message("Provide either displayId (integer) or taskId (UUID string)"))
+        }
+    }
+
+    /// Message for a display ID matched by more than one task. [T-1837]
+    private func duplicateTaskIdentifierMessage(displayId: Int?) -> String {
+        guard let displayId else { return "Duplicate task identifier detected" }
+        return "Duplicate task identifier detected for displayId \(displayId)"
     }
 
     private func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }
