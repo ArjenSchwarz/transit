@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import SwiftData
 import SwiftUI
 
@@ -107,10 +108,16 @@ struct SettingsView: View {
         Section("General") {
             TextField("Your Name", text: $userDisplayName)
             LabeledContent("About Transit", value: appVersion)
-            Toggle("iCloud Sync", isOn: $syncEnabled)
-                .onChange(of: syncEnabled) { _, enabled in
-                    syncManager.setSyncEnabled(enabled)
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle("iCloud Sync", isOn: $syncEnabled)
+                    .onChange(of: syncEnabled) { _, enabled in
+                        syncManager.setSyncEnabled(enabled)
+                    }
+                Text(syncFootnote)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("settings.syncFootnote")
+            }
             NavigationLink(value: NavigationDestination.acknowledgments) {
                 Text("Acknowledgments")
             }
@@ -130,6 +137,23 @@ struct SettingsView: View {
     #endif
 
     // MARK: - Shared Helpers
+
+    /// Disclosure shown under the iCloud Sync toggle.
+    ///
+    /// SwiftData fixes a container's CloudKit mode at launch and Transit deliberately does
+    /// not swap the live container out underneath running views, the MCP server, and
+    /// in-flight writes (Decision 21). The toggle is therefore restart-scoped, and the UI
+    /// says so rather than implying an immediate effect [T-1857, req 12.7].
+    static func syncFootnote(requiresRestart: Bool) -> String {
+        requiresRestart
+            ? "Quit and reopen Transit to apply this change. "
+                + "Until then, syncing continues as it was when Transit launched."
+            : "Takes effect after you quit and reopen Transit."
+    }
+
+    var syncFootnote: String {
+        Self.syncFootnote(requiresRestart: syncManager.syncChangeRequiresRestart)
+    }
 
     private func projectRow(_ project: Project) -> some View {
         HStack(spacing: 12) {
@@ -385,12 +409,19 @@ extension SettingsView {
                         .foregroundStyle(.secondary)
                 }
                 FormRow("iCloud Sync", labelWidth: Self.labelWidth) {
-                    Toggle("", isOn: $syncEnabled)
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                        .onChange(of: syncEnabled) { _, enabled in
-                            syncManager.setSyncEnabled(enabled)
-                        }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle("", isOn: $syncEnabled)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .onChange(of: syncEnabled) { _, enabled in
+                                syncManager.setSyncEnabled(enabled)
+                            }
+                        Text(syncFootnote)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("settings.syncFootnote")
+                    }
                 }
             }
         }

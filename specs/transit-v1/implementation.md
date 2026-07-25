@@ -109,12 +109,12 @@ Transit integrates into a developer workflow where AI agents and CI pipelines ca
 ### Architecture Impact
 
 - **Single mutation path** via services means future entry points (MCP agent, widgets) can add task operations without risk of inconsistent status handling.
-- **CloudKit counter** in the SwiftData zone means the display ID system is coupled to CloudKit sync — if CloudKit is disabled, provisional IDs accumulate until sync is re-enabled.
+- **CloudKit counter** in the SwiftData zone means the display ID system is coupled to CloudKit sync — if CloudKit is disabled, provisional IDs accumulate until sync is re-enabled. Enforced by gating allocation, promotion, and the maintenance counter-advance fence on `DisplayIDAllocator.isCloudSyncActive`, fixed at launch from the mode the container was actually built with (T-1797, Decision 21).
 - **No schema versioning** means V2 schema changes will need a migration strategy designed from scratch.
 
 ### Potential Issues
 
-1. **Sync toggle latency**: The CloudKit configuration is set at `ModelContainer` creation. Disabling sync takes effect on next launch, not immediately. Users may be confused if they toggle sync off and see one more sync occur.
+1. **Sync toggle latency**: The CloudKit configuration is set at `ModelContainer` creation. Disabling sync takes effect on next launch, not immediately — sync genuinely continues until the app is quit and reopened. Rather than swapping the live container, the Settings toggle states its restart scope outright and shows a pending-restart notice while the preference and the live container disagree (T-1857, Decision 21).
 
 2. **Display ID allocation under load**: The optimistic locking retry loop (5 attempts) could fail if many devices allocate simultaneously. In practice, this is a single-user app, so contention is near-zero.
 
@@ -175,7 +175,8 @@ All 20 requirement sections (1-20) from the spec are implemented:
 
 ### Known Limitations (by design)
 
-- Sync toggle takes effect on next app launch (Decision 19)
+- Sync toggle takes effect on next app launch, disclosed in the Settings UI (Decision 21, superseding Decision 19)
+- Tasks and milestones created in a sync-disabled launch keep provisional "T-•" IDs until sync is re-enabled and the app relaunched (req 15.7)
 - No task deletion — tasks can only be abandoned (req 2.7)
 - No project deletion in V1 (req 1.6)
 - Filter state is ephemeral, resets on launch (req 9.6)

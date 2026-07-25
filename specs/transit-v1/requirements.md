@@ -191,9 +191,9 @@ This document defines the requirements for the complete V1 implementation. The d
 4. <a name="12.4"></a>WHEN the user taps a project row, the system SHALL navigate to a project detail/edit view
 5. <a name="12.5"></a>The Projects section SHALL include a "+" button in the section header to create new projects
 6. <a name="12.6"></a>The settings view SHALL include a "General" section with: About Transit (version number) and iCloud Sync toggle
-7. <a name="12.7"></a>The iCloud Sync toggle SHALL enable or disable CloudKit synchronisation (per [15.4](#15.4))
+7. <a name="12.7"></a>The iCloud Sync toggle SHALL enable or disable CloudKit synchronisation from the next app launch onwards (per [15.4](#15.4)), and SHALL display alongside it a statement that the change takes effect after quitting and reopening Transit — the toggle SHALL NOT imply immediate effect (Decision 21)
 8. <a name="12.8"></a>The settings view SHALL use a standard iOS grouped list layout
-9. <a name="12.9"></a>WHEN re-enabling CloudKit sync after it was disabled, the system SHALL trigger a full sync of local and remote changes
+9. <a name="12.9"></a>WHEN re-enabling CloudKit sync after it was disabled, the system SHALL trigger a full sync of local and remote changes on the next launch
 
 ---
 
@@ -236,9 +236,10 @@ This document defines the requirements for the complete V1 implementation. The d
 1. <a name="15.1"></a>The system SHALL store Project and Task records in a CloudKit private database
 2. <a name="15.2"></a>The system SHALL sync records automatically via CloudKit push notifications and on app foreground
 3. <a name="15.3"></a>The system SHALL use CloudKit's default last-write-wins conflict resolution
-4. <a name="15.4"></a>The system SHALL provide a toggle in Settings to enable or disable CloudKit sync (per [12.7](#12.7))
+4. <a name="15.4"></a>The system SHALL provide a toggle in Settings to enable or disable CloudKit sync, taking effect on the next app launch (per [12.7](#12.7))
 5. <a name="15.5"></a>The system SHALL support creating tasks while offline, assigning provisional local display IDs (per [3.4](#3.4) and [3.5](#3.5))
 6. <a name="15.6"></a>WHEN the dashboard is visible and remote changes are received, the system SHALL update the displayed tasks to reflect the current state
+7. <a name="15.7"></a>WHILE CloudKit sync is disabled for the current launch, the system SHALL NOT read or write the CloudKit display ID counter, and SHALL assign provisional display IDs to tasks and milestones created in that state
 
 ---
 

@@ -596,7 +596,7 @@ The alternative (App Group containers) adds significant complexity: a shared con
 ## Decision 19: Pragmatic Sync Toggle via CloudKit Options
 
 **Date**: 2026-02-09
-**Status**: accepted
+**Status**: superseded by Decision 21
 
 ### Context
 
@@ -656,3 +656,110 @@ Handoff statuses are intentional signals ("this needs human attention") that sho
 
 **Negative:**
 - Users cannot set handoff statuses via drag (must use detail view or CLI)
+
+---
+
+## Decision 21: Restart-Scoped iCloud Sync Toggle, Explicitly Disclosed
+
+**Date**: 2026-07-25
+**Status**: accepted
+
+### Context
+
+Decision 19 planned to make the iCloud Sync toggle take effect immediately by nilling
+`NSPersistentStoreDescription.cloudKitContainerOptions` on the live store. That was never
+implemented. What shipped instead selects the `ModelContainer`'s CloudKit mode once in
+`TransitApp.init` and leaves it fixed for the process lifetime, while the toggle only
+writes a `UserDefaults` flag.
+
+Two bugs fell out of the gap between the documented intent and the shipped behaviour.
+T-1857: a user who turns iCloud Sync off keeps syncing until they quit the app, with
+nothing in the UI saying so — a privacy control that silently does not take effect.
+T-1797: the reverse direction. A launch with sync off correctly builds the container with
+`cloudKitDatabase: .none`, but the display ID subsystem still constructed CloudKit-backed
+allocators and ran promotion unconditionally, so creating a task while online read and
+wrote the private CloudKit counter record despite sync being off.
+
+Transit also runs an MCP server and App Intents against the same container, so a
+container swap is not confined to the view layer.
+
+### Decision
+
+Keep the container's CloudKit mode fixed at launch. Do not recreate or reinject the
+`ModelContainer` at runtime, and do not attempt a Core Data-level sync pause.
+
+Instead:
+
+1. `SyncManager` tracks the preference (`isSyncEnabled`) and the mode the live container
+   actually runs in (`isCloudSyncActive`) as two separate values, exposing
+   `syncChangeRequiresRestart` when they disagree.
+2. The Settings toggle always states that a change takes effect after quitting and
+   reopening Transit, and escalates to a pending-restart notice while the two disagree.
+3. Everything that talks to CloudKit directly — the display ID counter above all — gates
+   on `isCloudSyncActive`, never on the preference.
+
+### Rationale
+
+Requirement 12.7's real intent is that the user is never misled about whether their data
+is syncing. Honest disclosure satisfies that intent; live container surgery is not
+required to satisfy it.
+
+Swapping a live CloudKit-backed container out from under active views, the MCP server,
+and in-flight writes is a large blast radius: every `@Query`, every service holding a
+`ModelContext`, and any in-progress MCP or App Intent write would need to survive the
+swap. The regression risk exceeds the cost of the behaviour being restart-scoped, and
+`implementation.md` had already been documenting restart-scoped behaviour in practice.
+
+Gating on the *active* mode rather than the preference is what makes both directions
+coherent. With sync on at launch and the toggle flipped off, the container is still
+syncing, so allocation should keep issuing permanent IDs — switching to provisional IDs
+mid-launch would create records needing promotion while their data syncs anyway. With
+sync off at launch and the toggle flipped on, the local store is not syncing, so burning
+IDs from a shared counter would be wrong. In both cases the active mode gives the right
+answer and the preference does not.
+
+### Alternatives Considered
+
+- **Recreate the `ModelContainer` on toggle**: Tear down views, build a new container,
+  re-inject it. Rejected — the blast radius covers the view hierarchy, the MCP server,
+  and in-flight automation writes, which is more regression risk than the disclosure gap
+  it closes.
+- **Pause sync via `cloudKitContainerOptions = nil` (Decision 19)**: Rejected — relies on
+  reaching through SwiftData to Core Data-level API that SwiftData does not expose as a
+  supported surface, and it was never implemented in three years of the codebase's life,
+  which is itself evidence about its practicality.
+- **Disable the toggle entirely and make sync configuration launch-only**: Rejected —
+  requirement 15.4 calls for a toggle in Settings, and forcing the user to a different
+  mechanism is worse than a toggle with an honest caption.
+- **Gate CloudKit access on the live preference rather than the active mode**: Rejected —
+  it makes display IDs inconsistent with what the container is actually doing in both
+  toggle directions (see Rationale).
+
+### Consequences
+
+**Positive:**
+- The privacy control no longer misleads: the UI states its scope, both at rest and while
+  a change is pending.
+- With sync off at launch, the CloudKit counter record is never touched — provisional IDs
+  accumulate as `implementation.md` always claimed they did.
+- No live container replacement, so views, the MCP server, and in-flight writes are
+  untouched by the toggle.
+- `SyncManager` now has one clear meaning per property instead of one property doing two
+  jobs.
+
+**Negative:**
+- Disabling sync genuinely does not stop syncing until the user quits and reopens the app.
+  This is now disclosed rather than silent, but it is still true.
+- A user who wants sync stopped immediately has to quit the app; there is no in-app way to
+  force it.
+- Sync-disabled launches accumulate provisional "T-•" IDs, which are less useful for CLI
+  and agent workflows until the user re-enables sync and relaunches.
+
+### Impact
+
+`Services/SyncManager.swift`, `Services/DisplayIDAllocator.swift`,
+`Services/MilestoneService.swift`, `Services/DisplayIDMaintenanceService.swift`,
+`TransitApp.swift`, `Views/Settings/SettingsView.swift`. Supersedes Decision 19 and
+updates requirements [12.7], [12.9], [15.4], and new [15.7].
+
+---
