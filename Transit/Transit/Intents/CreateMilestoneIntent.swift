@@ -46,8 +46,12 @@ struct CreateMilestoneIntent: AppIntent {
     static func execute(
         input: String,
         milestoneService: MilestoneService,
-        projectService: ProjectService
+        projectService: ProjectService,
+        persistence: PersistenceAvailability = .shared
     ) async -> String {
+        // Refuse to write while the in-memory fallback container is active [T-1836].
+        if let unavailable = IntentHelpers.fallbackStorageErrorJSON(persistence) { return unavailable }
+
         guard let json = IntentHelpers.parseJSON(input) else {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json
         }

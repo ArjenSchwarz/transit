@@ -14,6 +14,19 @@ final class MCPToolHandler {
     private let milestoneService: MilestoneService
     private let maintenanceService: DisplayIDMaintenanceService
     private let settings: MCPSettings
+    private let persistence: PersistenceAvailability
+
+    /// Tools that only read.
+    private static let readOnlyToolNames: Set<String> = [
+        "query_tasks", "query_milestones", "get_projects", "scan_duplicate_display_ids"
+    ]
+
+    /// Tools blocked while fallback storage is active. Derived by subtracting the read-only
+    /// allow-list from the full tool list, so a newly added tool is treated as mutating
+    /// (fails safe) without a second edit here [T-1818].
+    private static let mutatingToolNames: Set<String> = Set(
+        MCPToolDefinitions.tools(includingMaintenance: true).map(\.name)
+    ).subtracting(readOnlyToolNames)
 
     init(
         taskService: TaskService,
@@ -21,7 +34,8 @@ final class MCPToolHandler {
         commentService: CommentService,
         milestoneService: MilestoneService,
         maintenanceService: DisplayIDMaintenanceService,
-        settings: MCPSettings
+        settings: MCPSettings,
+        persistence: PersistenceAvailability = .shared
     ) {
         self.taskService = taskService
         self.projectService = projectService
@@ -29,6 +43,7 @@ final class MCPToolHandler {
         self.milestoneService = milestoneService
         self.maintenanceService = maintenanceService
         self.settings = settings
+        self.persistence = persistence
     }
 
     // MARK: - JSON-RPC Dispatch
@@ -122,6 +137,17 @@ final class MCPToolHandler {
                 id: id,
                 code: JSONRPCErrorCode.methodNotFound,
                 message: "Tool '\(name)' is disabled. Enable maintenance tools in Transit Settings."
+            )
+        }
+
+        // Reject mutations while Transit is running on the in-memory fallback container. The
+        // write would look successful and then vanish on restart, and an MCP client never sees
+        // the app's degraded-storage alert, so success is indistinguishable from durable
+        // persistence [T-1818]. Reads stay available: they cannot lose data, and every follow-up
+        // action that could act on a stale read is blocked by this same gate.
+        if Self.mutatingToolNames.contains(name), persistence.isFallbackStorageActive {
+            return JSONRPCResponse.success(
+                id: id, result: errorResult(PersistenceAvailability.unavailableHint)
             )
         }
 

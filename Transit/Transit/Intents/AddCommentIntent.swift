@@ -55,8 +55,14 @@ struct AddCommentIntent: AppIntent {
         commentText: String,
         authorName: String,
         isAgent: Bool,
-        services: Services
+        services: Services,
+        persistence: PersistenceAvailability = .shared
     ) throws {
+        // Refuse to write while the in-memory fallback container is active [T-1836].
+        guard !persistence.isFallbackStorageActive else {
+            throw VisualIntentError.persistenceUnavailable
+        }
+
         let task: TransitTask
         do {
             task = try services.taskService.resolveTask(from: taskIdentifier)

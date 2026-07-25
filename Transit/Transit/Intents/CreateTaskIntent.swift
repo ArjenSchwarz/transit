@@ -70,8 +70,12 @@ struct CreateTaskIntent: AppIntent {
         input: String,
         taskService: TaskService,
         projectService: ProjectService,
-        milestoneService: MilestoneService? = nil
+        milestoneService: MilestoneService? = nil,
+        persistence: PersistenceAvailability = .shared
     ) async -> String {
+        // Refuse to write while the in-memory fallback container is active [T-1836].
+        if let unavailable = IntentHelpers.fallbackStorageErrorJSON(persistence) { return unavailable }
+
         guard let json = IntentHelpers.parseJSON(input) else {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json
         }

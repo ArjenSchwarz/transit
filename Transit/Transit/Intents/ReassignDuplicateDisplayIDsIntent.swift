@@ -43,8 +43,14 @@ struct ReassignDuplicateDisplayIDsIntent: AppIntent {
     /// JSON encoding step itself.
     @MainActor
     static func execute(
-        maintenanceService: DisplayIDMaintenanceService
+        maintenanceService: DisplayIDMaintenanceService,
+        persistence: PersistenceAvailability = .shared
     ) async -> String {
+        // Refuse to write while the in-memory fallback container is active [T-1836]. Reassignment
+        // rewrites display IDs and appends audit comments; replaying it after a restart against
+        // the real store would be confusing at best.
+        if let unavailable = IntentHelpers.fallbackStorageErrorJSON(persistence) { return unavailable }
+
         let result = await maintenanceService.reassignDuplicates()
         do {
             return try IntentHelpers.encodeAsJSONString(result)

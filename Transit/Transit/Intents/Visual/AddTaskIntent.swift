@@ -60,8 +60,14 @@ struct AddTaskIntent: AppIntent {
         taskDescription: String?,
         type: TaskType,
         project: ProjectEntity,
-        services: Services
+        services: Services,
+        persistence: PersistenceAvailability = .shared
     ) async throws -> TaskCreationResult {
+        // Refuse to write while the in-memory fallback container is active [T-1836].
+        guard !persistence.isFallbackStorageActive else {
+            throw VisualIntentError.persistenceUnavailable
+        }
+
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
             throw VisualIntentError.invalidInput("Name is required.")
