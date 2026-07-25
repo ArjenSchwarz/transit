@@ -92,13 +92,7 @@ final class MilestoneService {
             displayID: displayID
         )
 
-        modelContext.insert(milestone)
-        do {
-            try save(modelContext)
-        } catch {
-            modelContext.delete(milestone)
-            throw error
-        }
+        try modelContext.insertOrDelete(milestone, save: save)
         return milestone
     }
 
@@ -129,12 +123,7 @@ final class MilestoneService {
             milestone.milestoneDescription = nil
         }
 
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback()
     }
 
     func updateStatus(_ milestone: Milestone, to newStatus: MilestoneStatus) throws {
@@ -152,22 +141,12 @@ final class MilestoneService {
             milestone.completionDate = nil
         }
 
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback()
     }
 
     func deleteMilestone(_ milestone: Milestone) throws {
         modelContext.delete(milestone)
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback()
     }
 
     // MARK: - Assignment
@@ -188,14 +167,7 @@ final class MilestoneService {
 
         task.milestone = milestone
 
-        guard save else { return }
-
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback(save: save)
     }
 
     // MARK: - Promotion
@@ -312,12 +284,7 @@ final class MilestoneService {
 
     /// Saves the model context. Rolls back on failure.
     func save() throws {
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback()
     }
 
     /// Whether the project already holds a milestone with this name

@@ -52,14 +52,11 @@ final class CommentService {
             isAgent: isAgent,
             task: resolvedTask
         )
-        modelContext.insert(comment)
         if let save {
-            do {
-                try save(modelContext)
-            } catch {
-                modelContext.delete(comment)
-                throw error
-            }
+            try modelContext.insertOrDelete(comment, save: save)
+        } else {
+            // Caller owns the save, so there is nothing to undo here yet.
+            modelContext.insert(comment)
         }
         return comment
     }
@@ -67,12 +64,7 @@ final class CommentService {
     /// Deletes a comment permanently.
     func deleteComment(_ comment: Comment) throws {
         modelContext.delete(comment)
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback()
     }
 
     /// Deletes multiple comments in a single save operation.
@@ -83,12 +75,7 @@ final class CommentService {
         for comment in comments {
             modelContext.delete(comment)
         }
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback()
     }
 
     /// Fetches comments for a task, querying from the Comment side.

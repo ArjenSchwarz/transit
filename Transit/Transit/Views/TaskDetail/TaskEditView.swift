@@ -352,21 +352,21 @@ extension TaskEditView {
         }
 
         do {
-            // Every mutation defers persistence. The single modelContext.save()
-            // below makes the edit atomic — all of it lands or none of it does.
-            let applier = TaskEditApplier(taskService: taskService, milestoneService: milestoneService)
-            try applier.apply(
-                merge,
-                edited: edited,
-                to: task,
-                project: selectedProject,
-                milestone: selectedMilestone
-            )
-
-            try modelContext.save()
+            // Every mutation defers persistence. The single save inside
+            // `saveOrRollback` makes the edit atomic — all of it lands or none
+            // of it does.
+            try modelContext.saveOrRollback {
+                let applier = TaskEditApplier(taskService: taskService, milestoneService: milestoneService)
+                try applier.apply(
+                    merge,
+                    edited: edited,
+                    to: task,
+                    project: selectedProject,
+                    milestone: selectedMilestone
+                )
+            }
             dismissAll()
         } catch {
-            modelContext.safeRollback()
             errorMessage = "Could not save task. Please try again."
         }
     }
