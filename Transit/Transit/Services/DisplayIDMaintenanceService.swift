@@ -13,6 +13,7 @@ final class DisplayIDMaintenanceService {
     private let milestoneAllocator: DisplayIDAllocator
     private let commentService: CommentService
     private let clock: () -> Date
+    private let lookup: DisplayIDRecordLookup
 
     /// Single-flight guard for `reassignDuplicates`. Mutated only on @MainActor.
     private var isReassigning = false
@@ -29,6 +30,7 @@ final class DisplayIDMaintenanceService {
         self.milestoneAllocator = milestoneAllocator
         self.commentService = commentService
         self.clock = clock
+        self.lookup = DisplayIDRecordLookup(modelContext: modelContext)
     }
 
     // MARK: - Scan
@@ -259,12 +261,10 @@ final class DisplayIDMaintenanceService {
     }
 
     private func reassignTaskLoser(loser: RecordRef, displayId: Int) async -> LoserOutcome {
-        guard let loserTask = fetchTask(id: loser.id) else {
+        guard let loserTask = lookup.task(id: loser.id) else {
             return .failed(GroupFailure(code: .staleId, message: "Task not found"))
         }
-        // SwiftData has no per-object refresh; a transient context reads the committed
-        // store value directly, bypassing the registered-object snapshot (T-1061).
-        guard let storedId = storedTaskDisplayId(id: loser.id) else {
+        guard let storedId = lookup.storedTaskDisplayId(id: loser.id) else {
             return .failed(GroupFailure(code: .staleId, message: "Display ID changed since scan"))
         }
         if storedId != displayId {
@@ -272,7 +272,10 @@ final class DisplayIDMaintenanceService {
         }
         let newId: Int
         do {
-            newId = try await taskAllocator.allocateNextID()
+            // Exclude every committed ID, not just the duplicate being repaired: the
+            // counter-advance fence above can be undone by a stale counter read, and
+            // handing back an in-use ID would trade one collision for another (T-1766).
+            newId = try await taskAllocator.allocateNextID(excluding: { self.lookup.usedTaskDisplayIDs() })
         } catch {
             return .failed(GroupFailure(code: .allocationFailed, message: error.localizedDescription))
         }
@@ -314,12 +317,11 @@ final class DisplayIDMaintenanceService {
 
         for loser in losers {
             // Re-fetch to pick up any peer-merged changes since the scan.
-            guard let loserMilestone = fetchMilestone(id: loser.id) else {
+            guard let loserMilestone = lookup.milestone(id: loser.id) else {
                 failure = GroupFailure(code: .staleId, message: "Milestone not found")
                 break
             }
-            // See `reassignTaskLoser` (T-1061).
-            guard let storedId = storedMilestoneDisplayId(id: loser.id) else {
+            guard let storedId = lookup.storedMilestoneDisplayId(id: loser.id) else {
                 failure = GroupFailure(code: .staleId, message: "Display ID changed since scan")
                 break
             }
@@ -330,7 +332,9 @@ final class DisplayIDMaintenanceService {
 
             let newId: Int
             do {
-                newId = try await milestoneAllocator.allocateNextID()
+                // See `reassignTaskLoser` (T-1766).
+                newId = try await milestoneAllocator
+                    .allocateNextID(excluding: { self.lookup.usedMilestoneDisplayIDs() })
             } catch {
                 failure = GroupFailure(code: .allocationFailed, message: error.localizedDescription)
                 break
@@ -357,30 +361,6 @@ final class DisplayIDMaintenanceService {
             type: .milestone, displayId: displayId,
             winner: winner, reassignments: entries, failure: failure
         )
-    }
-
-    private func fetchTask(id: UUID) -> TransitTask? {
-        let descriptor = FetchDescriptor<TransitTask>(predicate: #Predicate { $0.id == id })
-        return try? modelContext.fetch(descriptor).first
-    }
-
-    private func fetchMilestone(id: UUID) -> Milestone? {
-        let descriptor = FetchDescriptor<Milestone>(predicate: #Predicate { $0.id == id })
-        return try? modelContext.fetch(descriptor).first
-    }
-
-    // Reads loser's committed permanentDisplayId via a transient context (T-1061).
-    private func storedTaskDisplayId(id: UUID) -> Int? {
-        let descriptor = FetchDescriptor<TransitTask>(predicate: #Predicate { $0.id == id })
-        let probe = ModelContext(modelContext.container)
-        return (try? probe.fetch(descriptor).first)?.permanentDisplayId
-    }
-
-    // Milestone companion to `storedTaskDisplayId` (T-1061).
-    private func storedMilestoneDisplayId(id: UUID) -> Int? {
-        let descriptor = FetchDescriptor<Milestone>(predicate: #Predicate { $0.id == id })
-        let probe = ModelContext(modelContext.container)
-        return (try? probe.fetch(descriptor).first)?.permanentDisplayId
     }
 
     private func formattedToday() -> String {
