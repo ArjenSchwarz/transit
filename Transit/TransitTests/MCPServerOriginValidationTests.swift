@@ -5,6 +5,8 @@ import Hummingbird
 import Logging
 import NIOCore
 import NIOEmbedded
+import NIOHTTP1
+import NIOHTTPTypesHTTP1
 import SwiftData
 import Testing
 @testable import Transit
@@ -167,6 +169,49 @@ struct MCPServerOriginValidationTests {
         #expect(status == .forbidden)
     }
 
+    // MARK: - Real HTTP/1.1 header mapping
+    //
+    // The checks above synthesise `HTTPRequest` directly. These drive the same
+    // conversion Hummingbird uses in production — `HTTP1ToHTTPServerCodec`
+    // calls `HTTPRequest(head, secure:splitCookie:)` — so the load-bearing
+    // assumption that a raw `Host:` header lands in `head.authority` (and a raw
+    // `Origin:` header in `head.headerFields`) is proven, not assumed.
+
+    @Test func rawHTTP1RebindingHostIsRejected() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let status = try await respondToRawHTTP1(
+            handler: env.handler,
+            headers: [("Host", "rebind.example.com:3141"), ("Content-Type", "application/json")],
+            body: Self.toolsListBody
+        )
+        #expect(status == .forbidden)
+    }
+
+    @Test func rawHTTP1AttackerOriginIsRejected() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let status = try await respondToRawHTTP1(
+            handler: env.handler,
+            headers: [
+                ("Host", "127.0.0.1:3141"),
+                ("Origin", "https://evil.example.com"),
+                ("Content-Type", "application/json")
+            ],
+            body: Self.toolsListBody
+        )
+        #expect(status == .forbidden)
+    }
+
+    @Test func rawHTTP1LocalClientIsAccepted() async throws {
+        // What `curl -X POST http://127.0.0.1:3141/mcp` actually sends.
+        let env = try MCPTestHelpers.makeEnv()
+        let status = try await respondToRawHTTP1(
+            handler: env.handler,
+            headers: [("Host", "127.0.0.1:3141"), ("Content-Type", "application/json")],
+            body: Self.toolsListBody
+        )
+        #expect(status == .ok)
+    }
+
     // MARK: - Helpers
 
     private static let toolsListBody = #"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#
@@ -196,6 +241,34 @@ struct MCPServerOriginValidationTests {
             path: "/mcp",
             headerFields: headerFields
         )
+        return try await dispatch(responder: responder, head: head, body: body)
+    }
+
+    /// Builds an `HTTPRequestHead` exactly as NIO's HTTP/1 decoder would, then
+    /// converts it with the same initializer Hummingbird's
+    /// `HTTP1ToHTTPServerCodec` uses, so the raw wire headers reach the route
+    /// through the production mapping.
+    private func respondToRawHTTP1(
+        handler: MCPToolHandler,
+        headers: [(String, String)],
+        body: String
+    ) async throws -> HTTPResponse.Status {
+        let responder = MCPServer.makeRouter(handler: handler).buildResponder()
+        let http1Head = HTTPRequestHead(
+            version: .http1_1,
+            method: .POST,
+            uri: "/mcp",
+            headers: HTTPHeaders(headers)
+        )
+        let head = try HTTPRequest(http1Head, secure: false, splitCookie: false)
+        return try await dispatch(responder: responder, head: head, body: body)
+    }
+
+    private func dispatch(
+        responder: some HTTPResponder<BasicRequestContext>,
+        head: HTTPRequest,
+        body: String
+    ) async throws -> HTTPResponse.Status {
         let request = Request(head: head, body: RequestBody(buffer: ByteBuffer(string: body)))
 
         let channel = EmbeddedChannel()

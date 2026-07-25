@@ -107,9 +107,11 @@ which makes origin validation the only line of defence.
     than parsed leniently.
 - `Transit/Transit/MCP/MCPServer.swift` - the `POST /mcp` route now calls
   `MCPOriginValidator.rejectionReason(...)` as its first statement and returns
-  HTTP `403 Forbidden` with a short `text/plain` body before the request body is
-  collected, decoded, or dispatched. `makeRouter(handler:)` changed from
-  `private` to internal so route-level tests can exercise the real router.
+  HTTP `403 Forbidden` with a fixed `text/plain` body before the request body is
+  collected, decoded, or dispatched. The body is a constant `"Forbidden"` rather
+  than the specific reason, so a prober cannot learn which check tripped.
+  `makeRouter(handler:)` changed from `private` to internal so route-level tests
+  can exercise the real router.
 
 **Approach rationale:** The check belongs at the transport edge, before any
 parsing, because the point is to never let untrusted input reach the dispatcher.
@@ -158,6 +160,12 @@ and routing, and makes the parsing rules directly unit-testable.
 - `nullOriginIsRejected`, `localhostLookalikeOriginIsRejected`,
   `userInfoOriginIsRejected` - bypass attempts are rejected.
 - `nonLoopbackHostIsRejectedWhenOriginAbsent` - DNS-rebinding `Host` is rejected.
+- `rawHTTP1RebindingHostIsRejected`, `rawHTTP1AttackerOriginIsRejected`,
+  `rawHTTP1LocalClientIsAccepted` - build a real `HTTPRequestHead` with raw
+  wire headers and convert it with `HTTPRequest(head, secure:splitCookie:)`, the
+  exact initializer Hummingbird's `HTTP1ToHTTPServerCodec` uses. This proves the
+  load-bearing assumption that a raw `Host:` header lands in `head.authority`
+  (and `Origin:` in `head.headerFields`) rather than assuming it.
 
 **Run command:** `make test-quick`
 
@@ -179,6 +187,7 @@ and routing, and makes the parsing rules directly unit-testable.
   the new route-level rejection tests. The post-fix run reported 1371 passing /
   0 failing, including all 30 new tests.
 - [x] SwiftLint passes (`make lint`, strict mode)
+- [x] All 33 tests in the two new suites pass after the fix
 - [~] `make test-quick` did not reach its final `Test Succeeded` banner. Every
   `xcodebuild` process on the machine (four parallel fix streams, not just this
   one) stalled at 0% CPU in state `SN` around the ~1350-test mark — the wedge

@@ -85,11 +85,11 @@ final class MCPServer {
             // DNS-rebinding defence required by the MCP Streamable HTTP
             // transport. This must stay the first statement in the route: an
             // untrusted caller's body is never read, decoded, or dispatched.
-            if let reason = MCPOriginValidator.rejectionReason(
+            if MCPOriginValidator.rejectionReason(
                 origin: request.head.headerFields[.origin],
                 authority: request.head.authority
-            ) {
-                return forbiddenResponse(reason)
+            ) != nil {
+                return forbiddenResponse()
             }
 
             let body = try await request.body.collect(upTo: 1_048_576)
@@ -194,11 +194,15 @@ final class MCPServer {
     /// Transport-level rejection. Deliberately not a JSON-RPC error body: the
     /// request never entered a JSON-RPC session, and answering `200` with an
     /// error object would tell an attacker's page that the endpoint is live.
-    nonisolated private static func forbiddenResponse(_ reason: String) -> Response {
+    ///
+    /// The body is a fixed string rather than the validator's specific reason,
+    /// so a probing script cannot learn whether it was the `Origin` or the
+    /// `Host` check that tripped.
+    nonisolated private static func forbiddenResponse() -> Response {
         Response(
             status: .forbidden,
             headers: [.contentType: "text/plain"],
-            body: .init(byteBuffer: ByteBuffer(string: reason))
+            body: .init(byteBuffer: ByteBuffer(string: "Forbidden"))
         )
     }
 

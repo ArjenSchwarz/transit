@@ -97,10 +97,15 @@ nonisolated enum MCPOriginValidator {
     }
 
     /// Whether `suffix` is a `":<port>"` fragment with a valid TCP port.
+    ///
+    /// The explicit ASCII-digit check is not redundant with `Int(_:)`: that
+    /// initializer also accepts a leading `+`, which would otherwise let a
+    /// `:+80` suffix through as port 80.
     private static func isPortSuffix(_ suffix: String) -> Bool {
         guard suffix.hasPrefix(":") else { return false }
         let digits = suffix.dropFirst()
-        guard !digits.isEmpty, digits.allSatisfy(\.isASCII), digits.allSatisfy(\.isNumber),
+        guard !digits.isEmpty,
+              digits.allSatisfy({ $0.isASCII && $0.isNumber }),
               let port = Int(digits) else { return false }
         return MCPSettings.validPortRange.contains(port)
     }

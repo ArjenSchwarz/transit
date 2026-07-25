@@ -74,7 +74,15 @@ Gotchas:
   `Origin` header at all; rejecting absence breaks the entire agent integration.
 - **Rejections are plain HTTP 403, not JSON-RPC errors.** The request never
   entered a JSON-RPC session, and a `200` with an error object would confirm to
-  an attacker's page that the endpoint is live.
+  an attacker's page that the endpoint is live. The body is a fixed
+  `"Forbidden"` rather than the specific reason, so a prober cannot tell whether
+  the `Origin` or the `Host` check tripped.
+- **The `Host` header arrives as `request.head.authority`, not
+  `headerFields[.host]`.** Hummingbird's `HTTP1ToHTTPServerCodec` calls
+  `HTTPRequest(head, secure:splitCookie:)`, which lifts `Host` into the
+  authority pseudo-header. The `rawHTTP1*` tests in
+  `MCPServerOriginValidationTests` drive that exact conversion, so the mapping
+  is proven rather than assumed.
 - **Don't parse the origin with `URL`/`URLComponents`.** They are lenient by
   design — `URL(string: "http://127.0.0.1@evil.example.com")?.host` is
   `evil.example.com`. `MCPOriginValidator` parses by hand and fails closed.
