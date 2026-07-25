@@ -62,6 +62,13 @@ struct TransitApp: App {
         self.containerError = containerResult.error
         _showContainerError = State(initialValue: containerResult.error != nil)
 
+        // Single persistence-availability signal, derived once from the container outcome and
+        // consulted by both automation surfaces. The in-app alert above only reaches an
+        // interactive user; MCP clients and Shortcuts/CLI callers rely on this flag to learn
+        // that their writes would not survive a restart [T-1818, T-1836].
+        let persistence = PersistenceAvailability.shared
+        persistence.update(from: containerResult)
+
         if !isInert && Self.uiTestScenario == nil && containerResult.error == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
@@ -124,7 +131,8 @@ struct TransitApp: App {
         let mcpToolHandler = MCPToolHandler(
             taskService: taskService, projectService: projectService,
             commentService: commentService, milestoneService: milestoneService,
-            maintenanceService: maintenanceService, settings: mcpSettings
+            maintenanceService: maintenanceService, settings: mcpSettings,
+            persistence: persistence
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
         #endif

@@ -7,6 +7,10 @@ enum VisualIntentError: LocalizedError, Equatable {
     case projectNotFound(String)
     case taskNotFound(String)
     case taskCreationFailed(String)
+    /// Transit is running on the in-memory fallback container, so the write would be lost on
+    /// restart. Uses INTERNAL_ERROR to match the JSON intents' code for the same condition
+    /// [T-1818, T-1836].
+    case persistenceUnavailable
 
     var code: String {
         switch self {
@@ -22,6 +26,8 @@ enum VisualIntentError: LocalizedError, Equatable {
             "TASK_NOT_FOUND"
         case .taskCreationFailed:
             "TASK_CREATION_FAILED"
+        case .persistenceUnavailable:
+            "INTERNAL_ERROR"
         }
     }
 
@@ -39,6 +45,8 @@ enum VisualIntentError: LocalizedError, Equatable {
             "Task not found: \(hint)"
         case .taskCreationFailed(let hint):
             "Task creation failed: \(hint)"
+        case .persistenceUnavailable:
+            PersistenceAvailability.unavailableHint
         }
     }
 
@@ -56,6 +64,8 @@ enum VisualIntentError: LocalizedError, Equatable {
             "The specified task could not be found in Transit."
         case .taskCreationFailed:
             "Transit could not create the task due to an unexpected failure."
+        case .persistenceUnavailable:
+            "Transit could not open its database and is using temporary storage."
         }
     }
 
@@ -73,6 +83,8 @@ enum VisualIntentError: LocalizedError, Equatable {
             "Verify the task identifier and try again."
         case .taskCreationFailed:
             "Try again in a moment. If the issue persists, reopen Transit."
+        case .persistenceUnavailable:
+            "Restart Transit and check available device storage, then try again."
         }
     }
 }

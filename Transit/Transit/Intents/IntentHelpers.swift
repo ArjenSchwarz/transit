@@ -97,6 +97,18 @@ nonisolated enum IntentHelpers {
         return text
     }
 
+    /// The JSON error body every mutating App Intent returns while Transit is running on the
+    /// in-memory fallback container, or `nil` when writes are durable.
+    ///
+    /// INTERNAL_ERROR is the documented code for "the request was well-formed but Transit could
+    /// not carry it out", which is exactly this case — the caller did nothing wrong, the store
+    /// did. Reusing it keeps the error vocabulary unchanged for existing CLI callers [T-1836].
+    @MainActor
+    static func fallbackStorageErrorJSON(_ persistence: PersistenceAvailability) -> String? {
+        guard persistence.isFallbackStorageActive else { return nil }
+        return IntentError.internalError(hint: PersistenceAvailability.unavailableHint).json
+    }
+
     /// Translates ProjectLookupError to IntentError.
     static func mapProjectLookupError(_ error: ProjectLookupError) -> IntentError {
         switch error {
