@@ -66,6 +66,13 @@ struct AddCommentIntent: AppIntent {
         let task: TransitTask
         do {
             task = try services.taskService.resolveTask(from: taskIdentifier)
+        } catch TaskService.Error.duplicateDisplayID {
+            // The identifier matches several tasks, so the comment has no unambiguous
+            // home. Report it as a duplicate (INTERNAL_ERROR) rather than "not found",
+            // which would hide that the store needs display-ID maintenance. [T-1837]
+            throw VisualIntentError.duplicateIdentifier(
+                "More than one task uses identifier '\(taskIdentifier)'."
+            )
         } catch {
             throw VisualIntentError.taskNotFound(
                 "No task matching '\(taskIdentifier)'."
