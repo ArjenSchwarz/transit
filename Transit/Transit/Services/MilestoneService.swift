@@ -7,32 +7,6 @@ import SwiftData
 @MainActor @Observable
 final class MilestoneService {
 
-    enum Error: Swift.Error, Equatable, LocalizedError {
-        case invalidName
-        case milestoneNotFound
-        case duplicateName
-        case duplicateDisplayID
-        case projectRequired
-        case projectMismatch
-
-        var errorDescription: String? {
-            switch self {
-            case .invalidName:
-                "Milestone name cannot be empty."
-            case .milestoneNotFound:
-                "The specified milestone could not be found."
-            case .duplicateName:
-                "A milestone with this name already exists in the project."
-            case .duplicateDisplayID:
-                "A duplicate milestone identifier was detected."
-            case .projectRequired:
-                "Task must belong to a project before assigning a milestone."
-            case .projectMismatch:
-                "Milestone and task must belong to the same project."
-            }
-        }
-    }
-
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
 
@@ -80,6 +54,16 @@ final class MilestoneService {
             throw error
         } catch {
             displayID = .provisional
+        }
+
+        // Re-check uniqueness after the allocation await. The check above ran
+        // before this method suspended, so a concurrent create could have
+        // committed the same name in the meantime (T-1764). CloudKit-backed
+        // SwiftData cannot express `@Attribute(.unique)`, so this service check
+        // *is* the invariant — and it only holds if the last check and the insert
+        // are not separated by a suspension point, which is the case from here on.
+        guard !milestoneNameExists(trimmedName, in: project) else {
+            throw Error.duplicateName
         }
 
         let milestone = Milestone(
@@ -335,6 +319,37 @@ final class MilestoneService {
         return milestones.contains { milestone in
             if let milestoneId, milestone.id == milestoneId { return false }
             return milestone.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+        }
+    }
+}
+
+// MARK: - Errors
+
+extension MilestoneService {
+
+    enum Error: Swift.Error, Equatable, LocalizedError {
+        case invalidName
+        case milestoneNotFound
+        case duplicateName
+        case duplicateDisplayID
+        case projectRequired
+        case projectMismatch
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidName:
+                "Milestone name cannot be empty."
+            case .milestoneNotFound:
+                "The specified milestone could not be found."
+            case .duplicateName:
+                "A milestone with this name already exists in the project."
+            case .duplicateDisplayID:
+                "A duplicate milestone identifier was detected."
+            case .projectRequired:
+                "Task must belong to a project before assigning a milestone."
+            case .projectMismatch:
+                "Milestone and task must belong to the same project."
+            }
         }
     }
 }
