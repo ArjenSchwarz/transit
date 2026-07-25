@@ -886,19 +886,21 @@ Requirements covered: [19.1], [19.2], [19.3]
 
 ### CloudKit Sync Toggle
 
-Toggling CloudKit sync at runtime is non-trivial — you cannot reconfigure a live `ModelContainer`. V1 uses a pragmatic approach:
+Toggling CloudKit sync at runtime is non-trivial — you cannot reconfigure a live `ModelContainer`. The toggle is therefore **restart-scoped and explicitly disclosed as such** (Decision 21, superseding Decision 19):
 
-- The `ModelContainer` is always created with `cloudKitDatabase: .private(...)`.
-- The sync toggle in Settings controls a `UserDefaults` flag (`syncEnabled`).
-- When `syncEnabled == false`: the app sets the `NSPersistentCloudKitContainer`'s underlying `NSPersistentStoreDescription.cloudKitContainerOptions = nil` to pause sync. Local reads and writes continue normally.
-- When `syncEnabled` transitions from `false` to `true`: restore `cloudKitContainerOptions`, then call `container.initializeCloudKitSchema(options: [])` followed by a manual export of pending changes. SwiftData's persistent history tracking handles the delta sync — changes made while sync was off are pushed on re-enable. [req 12.9]
+- The sync toggle in Settings controls a `UserDefaults` flag (`syncEnabled`), surfaced as `SyncManager.isSyncEnabled`.
+- The `ModelContainer`'s CloudKit mode is chosen once in `TransitApp.init` from that flag — `cloudKitDatabase: .private(...)` when enabled, `.none` when disabled — and never changes for the lifetime of the process.
+- `SyncManager` tracks the two separately: `isSyncEnabled` (the preference, flips immediately) and `isCloudSyncActive` (the mode the live container actually runs in, fixed at launch). `syncChangeRequiresRestart` is true while they disagree.
+- The Settings toggle always carries a caption stating that the change takes effect after quitting and reopening Transit, escalating to an explicit pending-restart notice while `syncChangeRequiresRestart` is true. The toggle must never imply immediate effect. [req 12.7, req 15.4]
+- Everything that reaches CloudKit directly — the display ID counter in particular — gates on `isCloudSyncActive`, never on the preference. With sync off at launch the counter record is never read or written, and provisional IDs accumulate. [T-1797]
+- Re-enabling sync takes effect on the next launch. SwiftData's persistent history tracking then handles the delta sync of changes made while sync was off, and `promoteProvisionalTasks` / `promoteProvisionalMilestones` upgrade the accumulated provisional IDs. [req 12.9]
 
-**Fallback**: If the above approach proves unreliable during implementation, an acceptable alternative is recreating the `ModelContainer` with a new configuration. This requires dismissing all views, creating a new container, and re-injecting it into the environment. More disruptive but simpler to reason about.
+**Rejected**: recreating the `ModelContainer` at runtime (dismissing views, building a new container, re-injecting it), and pausing sync by nilling `NSPersistentStoreDescription.cloudKitContainerOptions`. Swapping a live CloudKit-backed container out from under active views, the MCP server, and in-flight writes carries more regression risk than the disclosure gap it closes. See Decision 21.
 
 ### CloudKit Sync Errors
 
 - **Quota exceeded / account issues** → Surface via SwiftData's error handling. Not custom-handled in V1.
-- **Provisional tasks with sync disabled** → If the user disables sync while provisional tasks exist, those tasks keep their "T-•" IDs until sync is re-enabled. On re-enable, `promoteProvisionalTasks` runs as part of the sync restoration flow.
+- **Provisional tasks with sync disabled** → If the user disables sync while provisional tasks exist, those tasks keep their "T-•" IDs until sync is re-enabled. Tasks and milestones created in a sync-disabled launch also get provisional IDs, because the CloudKit counter is off limits in that mode. On re-enable and relaunch, `promoteProvisionalTasks` / `promoteProvisionalMilestones` run as part of the sync restoration flow. [T-1797]
 
 ### UI Validation Errors
 

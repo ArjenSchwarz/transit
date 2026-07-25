@@ -204,6 +204,9 @@ final class MilestoneService {
     func promoteProvisionalMilestones(
         save: (ModelContext) throws -> Void = { try $0.save() }
     ) async {
+        // Mirrors `DisplayIDAllocator.promoteProvisionalTasks`: with the live container
+        // not CloudKit-backed there is nothing to promote to (T-1797).
+        guard displayIDAllocator.isCloudSyncActive else { return }
         guard !isPromotingMilestones else { return }
         isPromotingMilestones = true
         defer { isPromotingMilestones = false }

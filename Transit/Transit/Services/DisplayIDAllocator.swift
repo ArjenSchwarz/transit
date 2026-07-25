@@ -16,6 +16,10 @@ final class DisplayIDAllocator: @unchecked Sendable {
     enum Error: Swift.Error, Equatable {
         case conflict
         case retriesExhausted
+        /// The live `ModelContainer` was created with `cloudKitDatabase: .none`, so the
+        /// CloudKit counter record is off limits (T-1797). Callers treat this like any
+        /// other allocation failure and fall back to a provisional ID.
+        case cloudSyncInactive
     }
 
     /// Abstracts the counter persistence so tests can inject an in-memory store.
@@ -29,6 +33,18 @@ final class DisplayIDAllocator: @unchecked Sendable {
     /// store via `init(store:retryLimit:)`.
     let counterStore: CounterStore
     private let retryLimit: Int
+
+    /// Whether the live `ModelContainer` is CloudKit-backed. The display-ID counter lives
+    /// in SwiftData's CloudKit zone, so when the container was created with
+    /// `cloudKitDatabase: .none` the counter must not be read or written at all —
+    /// allocation and promotion no-op and provisional IDs accumulate until the user
+    /// re-enables sync and relaunches (T-1797).
+    ///
+    /// Fixed at construction because SwiftData fixes the container's CloudKit mode at
+    /// launch; flipping the Settings toggle does not change what the live container does
+    /// (T-1857). Callers that need to skip work entirely — rather than catch the thrown
+    /// `.cloudSyncInactive` — can read this directly.
+    let isCloudSyncActive: Bool
 
     /// Single-flight guard for `promoteProvisionalTasks`. Prevents concurrent
     /// promotion runs from overlapping (T-597). Must only be accessed from
@@ -57,22 +73,25 @@ final class DisplayIDAllocator: @unchecked Sendable {
     /// window (T-1395). Only mutated while holding the gate, on @MainActor.
     private var issuedIDs: Set<Int> = []
 
-    init(store: CounterStore, retryLimit: Int = 5) {
+    init(store: CounterStore, retryLimit: Int = 5, isCloudSyncActive: Bool = true) {
         self.counterStore = store
         self.retryLimit = max(1, retryLimit)
+        self.isCloudSyncActive = isCloudSyncActive
     }
 
     convenience init(
         container: CKContainer = .default(),
         counterRecordName: String = "global-counter",
-        retryLimit: Int = 5
+        retryLimit: Int = 5,
+        isCloudSyncActive: Bool = true
     ) {
         self.init(
             store: CloudKitCounterStore(
                 database: container.privateCloudDatabase,
                 recordName: counterRecordName
             ),
-            retryLimit: retryLimit
+            retryLimit: retryLimit,
+            isCloudSyncActive: isCloudSyncActive
         )
     }
 
@@ -98,8 +117,12 @@ final class DisplayIDAllocator: @unchecked Sendable {
     ///
     /// Allocation is serialised in-process via `allocationGate` so concurrent
     /// callers run their load→CAS cycles one at a time.
+    ///
+    /// Throws `.cloudSyncInactive` immediately — before the gate and before any store
+    /// access — when the live container is not CloudKit-backed (T-1797).
     func allocateNextID(excluding usedIDs: @MainActor @Sendable () -> Set<Int> = { [] }) async throws -> Int {
-        try await allocationGate.run {
+        guard isCloudSyncActive else { throw Error.cloudSyncInactive }
+        return try await allocationGate.run {
             try await self.allocateLocked(excluding: usedIDs)
         }
     }
@@ -160,6 +183,9 @@ final class DisplayIDAllocator: @unchecked Sendable {
         in context: ModelContext,
         save: (ModelContext) throws -> Void = { try $0.save() }
     ) async {
+        // Scene activation and connectivity restore both call this unconditionally; with
+        // sync off there is nothing to promote to, so bail before even fetching (T-1797).
+        guard isCloudSyncActive else { return }
         guard !isPromotingTasks else { return }
         isPromotingTasks = true
         defer { isPromotingTasks = false }
@@ -300,87 +326,5 @@ extension DisplayIDAllocator.CounterStore {
             }
         }
         throw DisplayIDAllocator.Error.retriesExhausted
-    }
-}
-
-// MARK: - CloudKit Implementation
-
-private final class CloudKitCounterStore: DisplayIDAllocator.CounterStore {
-    private static let counterRecordType = "DisplayIDCounter"
-    private static let counterField = "nextDisplayId"
-    private static let zoneID = CKRecordZone.ID(
-        zoneName: "com.apple.coredata.cloudkit.zone",
-        ownerName: CKCurrentUserDefaultName
-    )
-
-    private let counterRecordID: CKRecord.ID
-    private let database: CKDatabase
-
-    init(database: CKDatabase, recordName: String = "global-counter") {
-        self.database = database
-        self.counterRecordID = CKRecord.ID(recordName: recordName, zoneID: Self.zoneID)
-    }
-
-    func loadCounter() async throws -> DisplayIDAllocator.CounterSnapshot {
-        do {
-            let record = try await database.record(for: counterRecordID)
-            let nextID = Self.extractNextDisplayID(from: record)
-            return DisplayIDAllocator.CounterSnapshot(
-                nextDisplayID: nextID,
-                changeTag: record.recordChangeTag
-            )
-        } catch let error as CKError where error.code == .unknownItem {
-            return DisplayIDAllocator.CounterSnapshot(nextDisplayID: 1, changeTag: nil)
-        }
-    }
-
-    func saveCounter(nextDisplayID: Int, expectedChangeTag: String?) async throws {
-        let record: CKRecord
-        if let expectedChangeTag {
-            let fetchedRecord = try await database.record(for: counterRecordID)
-            guard fetchedRecord.recordChangeTag == expectedChangeTag else {
-                throw DisplayIDAllocator.Error.conflict
-            }
-            record = fetchedRecord
-        } else {
-            record = CKRecord(recordType: Self.counterRecordType, recordID: counterRecordID)
-        }
-        record[Self.counterField] = NSNumber(value: nextDisplayID)
-
-        do {
-            try await modify(recordsToSave: [record])
-        } catch let error as CKError where error.code == .serverRecordChanged {
-            throw DisplayIDAllocator.Error.conflict
-        }
-    }
-
-    private func modify(recordsToSave: [CKRecord]) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Swift.Error>) in
-            let operation = CKModifyRecordsOperation(
-                recordsToSave: recordsToSave,
-                recordIDsToDelete: nil
-            )
-            operation.savePolicy = .ifServerRecordUnchanged
-            operation.isAtomic = true
-            operation.modifyRecordsResultBlock = { result in
-                switch result {
-                case .success:
-                    continuation.resume()
-                case .failure(let error):
-                    continuation.resume(throwing: error)
-                }
-            }
-            database.add(operation)
-        }
-    }
-
-    private static func extractNextDisplayID(from record: CKRecord) -> Int {
-        if let number = record[counterField] as? NSNumber {
-            return max(1, number.intValue)
-        }
-        if let value = record[counterField] as? Int {
-            return max(1, value)
-        }
-        return 1
     }
 }

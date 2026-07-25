@@ -147,10 +147,10 @@ final class DisplayIDMaintenanceService {
 
         // Counter advance per type, independent. A failure aborts that type only.
         let taskAdvance = await advanceCounterIfNeeded(
-            store: taskAllocator.counterStore, sampledMax: taskMax
+            allocator: taskAllocator, sampledMax: taskMax
         )
         let milestoneAdvance = await advanceCounterIfNeeded(
-            store: milestoneAllocator.counterStore, sampledMax: milestoneMax
+            allocator: milestoneAllocator, sampledMax: milestoneMax
         )
 
         var groupResults: [GroupResult] = []
@@ -202,12 +202,24 @@ final class DisplayIDMaintenanceService {
         return await reassignMilestoneGroup(displayId: group.displayId, winner: winner, losers: losers)
     }
 
+    /// Message surfaced per group when duplicate cleanup is attempted with iCloud Sync
+    /// off. Reassignment needs a fresh ID from the CloudKit counter, which is off limits
+    /// in that mode (T-1797), so the run reports rather than silently doing nothing.
+    static let cloudSyncInactiveWarning = """
+        iCloud Sync is off, so the display ID counter is unavailable. Turn iCloud Sync on, \
+        quit and reopen Transit, then run maintenance again.
+        """
+
     /// Advances the counter to `sampledMax + 1` if `sampledMax` is non-nil.
     /// Returns nil when there are no records of that type (no fence needed).
     private func advanceCounterIfNeeded(
-        store: DisplayIDAllocator.CounterStore, sampledMax: Int?
+        allocator: DisplayIDAllocator, sampledMax: Int?
     ) async -> CounterAdvanceEntry? {
         guard let sampledMax else { return nil }
+        guard allocator.isCloudSyncActive else {
+            return CounterAdvanceEntry(advancedTo: nil, warning: Self.cloudSyncInactiveWarning)
+        }
+        let store = allocator.counterStore
         let target = sampledMax + 1
         do {
             try await store.advanceCounter(toAtLeast: target)

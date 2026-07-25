@@ -53,9 +53,17 @@ struct TransitApp: App {
         let config: ModelConfiguration
         if isInert || Self.uiTestScenario != nil {
             config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+            // Test hosts bypass makeModelConfiguration, so record the mode explicitly —
+            // otherwise the display-ID subsystem would think CloudKit is live [T-1797].
+            syncManager.recordActiveCloudSync(false)
         } else {
             config = syncManager.makeModelConfiguration(schema: schema)
         }
+        // The CloudKit mode the live container actually runs in, fixed for this launch.
+        // Everything that touches the CloudKit display-ID counter gates on this rather
+        // than on `syncManager.isSyncEnabled`, which the user can flip at any time
+        // without the container changing underneath it [T-1797, T-1857].
+        let cloudSyncActive = syncManager.isCloudSyncActive
         let containerResult = ContainerFactory.makeContainer(schema: schema, configuration: config)
         let container = containerResult.container
         self.container = container
@@ -74,10 +82,13 @@ struct TransitApp: App {
         }
 
         let context = container.mainContext
-        let allocator = DisplayIDAllocator()
+        let allocator = DisplayIDAllocator(isCloudSyncActive: cloudSyncActive)
         self.displayIDAllocator = allocator
 
-        let milestoneAllocator = DisplayIDAllocator(counterRecordName: "milestone-counter")
+        let milestoneAllocator = DisplayIDAllocator(
+            counterRecordName: "milestone-counter",
+            isCloudSyncActive: cloudSyncActive
+        )
         self.milestoneIDAllocator = milestoneAllocator
 
         let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
@@ -95,9 +106,13 @@ struct TransitApp: App {
             // Wire up connectivity restore to trigger display ID promotion.
             // The closure is @MainActor @Sendable, and context (container.mainContext)
             // is MainActor-isolated, so it can be captured directly.
-            connectivityMonitor.onRestore = { @Sendable in
-                await allocator.promoteProvisionalTasks(in: context)
-                await milestoneService.promoteProvisionalMilestones()
+            // Only wired when the container is CloudKit-backed: with sync off, regaining
+            // connectivity must not start reaching for the CloudKit counter [T-1797].
+            if cloudSyncActive {
+                connectivityMonitor.onRestore = { @Sendable in
+                    await allocator.promoteProvisionalTasks(in: context)
+                    await milestoneService.promoteProvisionalMilestones()
+                }
             }
             connectivityMonitor.start()
         }

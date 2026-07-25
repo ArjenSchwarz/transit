@@ -49,6 +49,7 @@ actor InMemoryCounterStore: DisplayIDAllocator.CounterStore {
     private var changeTag: Int = 0
     private var pendingSaveOutcomes: [SaveOutcome] = []
     private var attemptCount: Int = 0
+    private var loadCount: Int = 0
 
     init(initialNextDisplayID: Int = 1) {
         self.nextDisplayID = initialNextDisplayID
@@ -58,12 +59,24 @@ actor InMemoryCounterStore: DisplayIDAllocator.CounterStore {
         attemptCount
     }
 
+    /// Number of `loadCounter` calls. Together with `saveAttemptCount` this proves
+    /// whether the counter store was reached at all — the core assertion for T-1797.
+    var loadAttemptCount: Int {
+        loadCount
+    }
+
+    /// True when neither `loadCounter` nor `saveCounter` has ever been called.
+    var wasNeverAccessed: Bool {
+        loadCount == 0 && attemptCount == 0
+    }
+
     func enqueueSaveOutcomes(_ outcomes: [SaveOutcome]) {
         pendingSaveOutcomes.append(contentsOf: outcomes)
     }
 
     func loadCounter() async throws -> DisplayIDAllocator.CounterSnapshot {
-        DisplayIDAllocator.CounterSnapshot(
+        loadCount += 1
+        return DisplayIDAllocator.CounterSnapshot(
             nextDisplayID: nextDisplayID,
             changeTag: "\(changeTag)"
         )
