@@ -21,6 +21,7 @@ Claude Code ←→ HTTP POST /mcp (localhost:3141) ←→ MCPServer ←→ MCPTo
 - `Transit/Transit/MCP/MCPToolHandler.swift` — Tool dispatch, handler methods, helpers
 - `Transit/Transit/MCP/MCPToolDefinitions.swift` — Tool schema definitions (extracted for file length)
 - `Transit/Transit/MCP/MCPServer.swift` — Hummingbird server lifecycle and HTTP routing
+- `Transit/Transit/MCP/MCPOriginValidator.swift` — transport-level `Origin`/`Host` validation
 - `Transit/TransitTests/MCPToolHandlerTests.swift` — Unit tests
 
 ## Actor Isolation Pattern
@@ -50,6 +51,39 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 - When the toggle is off, `tools/list` excludes both maintenance tools and `tools/call` for either name returns JSON-RPC `methodNotFound` (-32601) with the literal message `Tool '<name>' is disabled. Enable maintenance tools in Transit Settings.` — distinct from the "Unknown tool" message used for genuinely unknown names.
 - The toggle takes effect on the next `tools/list` without restart (settings is read live).
 - Dispatch handlers (`handleScanDuplicateDisplayIds`, `handleReassignDuplicateDisplayIds`) encode `DisplayIDMaintenanceTypes` (Codable structs) via a shared `encodedTextResult(_:)` helper that JSON-encodes any `Encodable` and wraps it in the `MCPToolResult.content[text]` envelope.
+
+## Origin / Host Validation (T-1833)
+
+Binding to 127.0.0.1 keeps the *network* out, not the browser running on the same
+machine. The MCP Streamable HTTP transport therefore requires `Origin` validation
+on every request, and `MCPServer.makeRouter` runs it as the **first statement of
+the route**, before `request.body.collect(...)`.
+
+`MCPOriginValidator.rejectionReason(origin:authority:)` encodes the policy:
+
+| Input | Result |
+|-------|--------|
+| `Origin` absent | allowed — real MCP clients are not browsers and send none |
+| `Origin` = `http`/`https` + loopback host (`127.0.0.1`, `localhost`, `::1`) | allowed |
+| any other `Origin` (incl. `null`, `file://`, `evil.localhost`, `127.0.0.1.evil.com`) | HTTP 403 |
+| `Host` present and not loopback | HTTP 403 — the DNS-rebinding signature |
+
+Gotchas:
+
+- **Never reject a missing `Origin`.** Claude Code and CLI callers send no
+  `Origin` header at all; rejecting absence breaks the entire agent integration.
+- **Rejections are plain HTTP 403, not JSON-RPC errors.** The request never
+  entered a JSON-RPC session, and a `200` with an error object would confirm to
+  an attacker's page that the endpoint is live.
+- **Don't parse the origin with `URL`/`URLComponents`.** They are lenient by
+  design — `URL(string: "http://127.0.0.1@evil.example.com")?.host` is
+  `evil.example.com`. `MCPOriginValidator` parses by hand and fails closed.
+- **Host matching is exact.** `*.localhost` resolves to loopback on some
+  resolvers, so subdomains are not accepted.
+- Any new route added to `MCPServer` must repeat the check. If a second route
+  ever appears, promote it to a Hummingbird middleware instead.
+- `MCPSettings.validPortRange` is `nonisolated` so the validator (which runs on
+  NIO threads) can reuse it.
 
 ## JSON-RPC Methods Handled
 

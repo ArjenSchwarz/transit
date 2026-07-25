@@ -11,7 +11,11 @@ final class MCPSettings {
 
     /// Valid TCP port range. Port 0 means "any available port" to the OS and is
     /// not a usable fixed address for the MCP server, so it is excluded.
-    static let validPortRange = 1...65535
+    ///
+    /// `nonisolated` so it is also usable from the server's NIO threads — the
+    /// class is `@MainActor` by default under this project's isolation setting,
+    /// but a constant range is trivially `Sendable`.
+    nonisolated static let validPortRange = 1...65535
 
     /// Whether a value is a usable TCP port for binding the MCP server.
     static func isValidPort(_ value: Int) -> Bool {
