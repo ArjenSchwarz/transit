@@ -4,7 +4,6 @@ import SwiftData
 /// Coordinates task creation, status changes, and lookups. Uses StatusEngine
 /// for all status transitions and DisplayIDAllocator for display ID assignment.
 @MainActor @Observable
-// swiftlint:disable:next type_body_length
 final class TaskService {
 
     enum Error: Swift.Error, LocalizedError, Equatable {
@@ -136,13 +135,7 @@ final class TaskService {
         )
         StatusEngine.initializeNewTask(task)
 
-        modelContext.insert(task)
-        do {
-            try save(modelContext)
-        } catch {
-            modelContext.delete(task)
-            throw error
-        }
+        try modelContext.insertOrDelete(task, save: save)
         return task
     }
 
@@ -170,7 +163,7 @@ final class TaskService {
             StatusEngine.applyTransition(task: task, to: newStatus)
         }
 
-        do {
+        try modelContext.saveOrRollback(save: save) {
             if let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                let commentAuthor, let commentService {
                 try commentService.addComment(
@@ -181,27 +174,13 @@ final class TaskService {
                     save: nil
                 )
             }
-
-            guard save else { return }
-
-            try modelContext.save()
-        } catch {
-            // Note: all services share mainContext, so rollback discards all
-            // unsaved mutations on that context, not just this method's changes.
-            modelContext.safeRollback()
-            throw error
         }
     }
 
     /// Moves a task to `.abandoned` status.
     func abandon(task: TransitTask) throws {
         StatusEngine.applyTransition(task: task, to: .abandoned)
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback()
     }
 
     /// Restores an abandoned task back to `.idea` status.
@@ -210,12 +189,7 @@ final class TaskService {
             throw Error.restoreRequiresAbandonedTask
         }
         StatusEngine.applyTransition(task: task, to: .idea)
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback()
     }
 
     // MARK: - Project Management
@@ -228,14 +202,7 @@ final class TaskService {
         }
         task.project = newProject
 
-        guard save else { return }
-
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback(save: save)
     }
 
     // MARK: - Resolution
@@ -307,14 +274,7 @@ final class TaskService {
         if let metadata { task.metadata = metadata }
         if let priority { task.priority = priority }
 
-        guard save else { return }
-
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback(save: save)
     }
 
     // MARK: - Lookup
@@ -368,25 +328,14 @@ final class TaskService {
     /// Deletes a task and optionally saves the context.
     func deleteTask(_ task: TransitTask, save: Bool = true) throws {
         modelContext.delete(task)
-        guard save else { return }
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback(save: save)
     }
 
     // MARK: - Persistence
 
     /// Saves the model context. Rolls back on failure.
     func save() throws {
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback()
     }
 
     /// Reverts in-memory mutations on the model context. Used by handlers to

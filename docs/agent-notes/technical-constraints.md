@@ -110,6 +110,39 @@ Test files that use SwiftData need `@Suite(.serialized)` to avoid concurrent acc
 
 **In production**: The production `safeRollback()` extension (in `ModelContext+SafeRollback.swift`) calls `refaultAllEntities()` which fetches all five entity types: Project, TransitTask, Comment, Milestone, and SyncHeartbeat. If a new `@Model` entity is added, it must be added to `refaultAllEntities()` as well. T-777 fixed a gap where SyncHeartbeat was missing from this list.
 
+## Save-Failure Recovery: Three Strategies, Two Helpers
+
+`Extensions/ModelContext+Save.swift` holds the two helpers every persistence path
+should go through. They are not interchangeable — picking the wrong one
+reintroduces a fixed bug.
+
+| Path | Helper | Recovery on failure |
+|------|--------|---------------------|
+| Update / delete of an already-persisted model | `saveOrRollback(save:_:)` | `safeRollback()` — reverts the whole context |
+| Create (insert of a brand-new model) | `insertOrDelete(_:save:)` | `delete(model)` — removes only the insert |
+| Background display-ID promotion | *neither* | Reset only the field that was assigned |
+
+Why creates cannot use rollback: `rollback()` does not reliably re-fault a
+freshly inserted `@Model` (T-452), so the object stays registered in the shared
+context and gets committed by the next unrelated `save()` (T-486, and the same
+gap later found in `CommentService.addComment`).
+
+Why promotion uses neither: promotion runs opportunistically on the shared
+`mainContext`, so a context-wide rollback would discard the user's unrelated
+unsaved edits (T-449). `DisplayIDAllocator.promoteProvisionalTasks` and
+`MilestoneService.promoteProvisionalMilestones` therefore just set
+`permanentDisplayId` back to `nil`.
+
+`saveOrRollback` also rolls back when the *mutation closure* throws, not only
+when `save()` throws — `TaskService.updateStatus` and `TaskEditView.save` rely on
+that to undo a partially applied multi-step edit. `save: false` applies the
+mutation without persisting (the caller owns the save) but still rolls back a
+throwing mutation.
+
+`TaskService.rollback()` remains a bare `safeRollback()` passthrough: MCP's
+`update_task` needs to abandon an in-memory transaction between two service calls
+without any save attempt (T-650).
+
 ## Display ID Promotion Single-Flight Guard
 
 `DisplayIDAllocator.promoteProvisionalTasks(in:)` and `MilestoneService.promoteProvisionalMilestones()` are guarded by `isPromotingTasks` and `isPromotingMilestones` flags respectively. These prevent concurrent promotion runs from overlapping when triggered simultaneously by `ScenePhaseModifier.task`, `ScenePhaseModifier.onChange(.active)`, and `ConnectivityMonitor.onRestore`. The guard uses `defer` to reset on both success and failure. See T-597.

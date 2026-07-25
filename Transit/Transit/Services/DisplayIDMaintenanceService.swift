@@ -283,9 +283,8 @@ final class DisplayIDMaintenanceService {
         }
         loserTask.permanentDisplayId = newId
         do {
-            try modelContext.save()
+            try modelContext.saveOrRollback()
         } catch {
-            modelContext.safeRollback()
             return .failed(GroupFailure(code: .saveFailed, message: error.localizedDescription))
         }
         let commentWarning = appendAuditComment(to: loserTask, oldId: displayId, newId: newId)
@@ -345,9 +344,8 @@ final class DisplayIDMaintenanceService {
             let previousId = displayId
             loserMilestone.permanentDisplayId = newId
             do {
-                try modelContext.save()
+                try modelContext.saveOrRollback()
             } catch {
-                modelContext.safeRollback()
                 failure = GroupFailure(code: .saveFailed, message: error.localizedDescription)
                 break
             }

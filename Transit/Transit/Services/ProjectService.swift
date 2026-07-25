@@ -50,13 +50,7 @@ final class ProjectService {
             throw ProjectMutationError.duplicateName(trimmedName)
         }
         let project = Project(name: trimmedName, description: description, gitRepo: gitRepo, colorHex: colorHex)
-        modelContext.insert(project)
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.delete(project)
-            throw error
-        }
+        try modelContext.insertOrDelete(project)
         return project
     }
 
@@ -91,12 +85,7 @@ final class ProjectService {
         project.projectDescription = description
         project.gitRepo = gitRepo
         project.colorHex = colorHex
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.safeRollback()
-            throw error
-        }
+        try modelContext.saveOrRollback()
     }
 
     // MARK: - Lookup
