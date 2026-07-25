@@ -815,9 +815,8 @@ extension MCPToolHandler {
             guard !trimmed.isEmpty else {
                 return .invalid(errorResult("Milestone name cannot be empty"))
             }
-            if let project = milestone.project,
-               milestoneService.milestoneNameExists(trimmed, in: project, excluding: milestone.id) {
-                return .invalid(errorResult("A milestone with this name already exists in the project"))
+            if let conflict = milestoneRenameConflict(trimmed, milestone: milestone) {
+                return .invalid(conflict)
             }
             trimmedName = trimmed
         }
@@ -840,6 +839,25 @@ extension MCPToolHandler {
         return .valid(ValidatedMilestoneUpdate(
             status: newStatus, name: trimmedName, description: newDescription
         ))
+    }
+
+    /// Error result for a rename that collides with an existing milestone in the same
+    /// project, or `nil` when the name is free.
+    ///
+    /// A failed duplicate check reports the storage error rather than "no conflict":
+    /// CloudKit-backed SwiftData has no unique constraint, so this check is the whole
+    /// uniqueness invariant and a swallowed fetch failure would commit a duplicate
+    /// name [T-1614].
+    private func milestoneRenameConflict(_ name: String, milestone: Milestone) -> MCPToolResult? {
+        guard let project = milestone.project else { return nil }
+        do {
+            guard try milestoneService.milestoneNameExists(name, in: project, excluding: milestone.id) else {
+                return nil
+            }
+            return errorResult("A milestone with this name already exists in the project")
+        } catch {
+            return errorResult("Milestone name check failed: \(error)")
+        }
     }
 
     private func applyMilestoneUpdate(_ update: ValidatedMilestoneUpdate, to milestone: Milestone) {

@@ -37,9 +37,19 @@ final class TaskService {
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
 
-    init(modelContext: ModelContext, displayIDAllocator: DisplayIDAllocator) {
+    /// Committed display IDs feeding the allocator's collision guard. Reads through
+    /// an injectable seam only so tests can simulate an unreadable store (T-1621);
+    /// production reads the same context.
+    private let usedDisplayIDs: UsedDisplayIDs
+
+    init(
+        modelContext: ModelContext,
+        displayIDAllocator: DisplayIDAllocator,
+        fetcher: (any ModelFetching)? = nil
+    ) {
         self.modelContext = modelContext
         self.displayIDAllocator = displayIDAllocator
+        self.usedDisplayIDs = UsedDisplayIDs(fetcher ?? modelContext)
     }
 
     // MARK: - Task Creation
@@ -96,7 +106,7 @@ final class TaskService {
             // concurrent create that committed just before us — so the allocator
             // never hands back an in-use ID even against a stale counter read
             // (T-1395).
-            let id = try await displayIDAllocator.allocateNextID(excluding: { self.usedDisplayIDs() })
+            let id = try await displayIDAllocator.allocateNextID(excluding: { try self.usedDisplayIDs.tasks() })
             displayID = .permanent(id)
         } catch let error as CancellationError {
             // The allocation gate propagates CancellationError when this caller is
@@ -105,6 +115,12 @@ final class TaskService {
             // persistent state — only genuine CloudKit/offline failures fall back to
             // a provisional ID (T-1426).
             throw error
+        } catch DisplayIDAllocator.Error.usedIDLookupFailed(let description) {
+            // The local store could not be read, so the collision guard never ran.
+            // That is not the offline condition provisional IDs exist for, and a
+            // provisional ID would hide a broken store behind a normal-looking
+            // create — surface it instead (T-1621).
+            throw DisplayIDAllocator.Error.usedIDLookupFailed(description: description)
         } catch {
             displayID = .provisional
         }
@@ -312,17 +328,6 @@ final class TaskService {
             throw Error.taskNotFound
         }
         return task
-    }
-
-    /// Returns the set of permanent display IDs already committed to the local
-    /// store. Used to keep newly allocated IDs collision-free (T-1395). Failures
-    /// degrade to an empty set so allocation still proceeds.
-    private func usedDisplayIDs() -> Set<Int> {
-        let descriptor = FetchDescriptor<TransitTask>(
-            predicate: #Predicate { $0.permanentDisplayId != nil }
-        )
-        guard let tasks = try? modelContext.fetch(descriptor) else { return [] }
-        return Set(tasks.compactMap(\.permanentDisplayId))
     }
 
     /// Finds a task by its permanent display ID. Throws on not-found or duplicates.

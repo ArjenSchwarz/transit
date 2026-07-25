@@ -22,8 +22,14 @@ final class ProjectService {
 
     private let modelContext: ModelContext
 
-    init(modelContext: ModelContext) {
+    /// Store reads for the name-uniqueness invariant. Separate from `modelContext`
+    /// only so tests can inject a failing fetch (T-1614); production always passes
+    /// the same context.
+    private let fetcher: any ModelFetching
+
+    init(modelContext: ModelContext, fetcher: (any ModelFetching)? = nil) {
         self.modelContext = modelContext
+        self.fetcher = fetcher ?? modelContext
     }
 
     // MARK: - Creation
@@ -32,14 +38,15 @@ final class ProjectService {
     ///
     /// Throws `ProjectMutationError.invalidName` if the trimmed name is empty,
     /// or `ProjectMutationError.duplicateName` if a project with the same
-    /// name (case-insensitive) already exists.
+    /// name (case-insensitive) already exists. Rethrows the underlying storage
+    /// error when the duplicate check itself cannot be read (T-1614).
     @discardableResult
     func createProject(name: String, description: String, gitRepo: String?, colorHex: String) throws -> Project {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
             throw ProjectMutationError.invalidName
         }
-        if projectNameExists(trimmedName) {
+        if try projectNameExists(trimmedName) {
             throw ProjectMutationError.duplicateName(trimmedName)
         }
         let project = Project(name: trimmedName, description: description, gitRepo: gitRepo, colorHex: colorHex)
@@ -77,7 +84,7 @@ final class ProjectService {
         guard !trimmedName.isEmpty else {
             throw ProjectMutationError.invalidName
         }
-        if projectNameExists(trimmedName, excluding: project.id) {
+        if try projectNameExists(trimmedName, excluding: project.id) {
             throw ProjectMutationError.duplicateName(trimmedName)
         }
         project.name = trimmedName
@@ -143,10 +150,15 @@ final class ProjectService {
     /// When `excluding` is provided, the project with that ID is ignored — this
     /// supports the rename scenario where the project's own current name should
     /// not count as a conflict.
-    func projectNameExists(_ name: String, excluding projectId: UUID? = nil) -> Bool {
+    ///
+    /// Throws the underlying storage error when the projects cannot be read.
+    /// CloudKit-backed SwiftData forbids `@Attribute(.unique)`, so this check *is*
+    /// the uniqueness invariant — reporting `false` for an unreadable store would
+    /// let create/rename commit a duplicate name with nothing underneath to stop
+    /// it (T-1614).
+    func projectNameExists(_ name: String, excluding projectId: UUID? = nil) throws -> Bool {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let descriptor = FetchDescriptor<Project>()
-        let allProjects = (try? modelContext.fetch(descriptor)) ?? []
+        let allProjects = try fetcher.fetch(FetchDescriptor<Project>())
         return allProjects.contains { project in
             if let projectId, project.id == projectId { return false }
             return project.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame

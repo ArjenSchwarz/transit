@@ -14,6 +14,7 @@ final class DisplayIDMaintenanceService {
     private let commentService: CommentService
     private let clock: () -> Date
     private let lookup: DisplayIDRecordLookup
+    private let usedDisplayIDs: UsedDisplayIDs
 
     /// Single-flight guard for `reassignDuplicates`. Mutated only on @MainActor.
     private var isReassigning = false
@@ -31,6 +32,7 @@ final class DisplayIDMaintenanceService {
         self.commentService = commentService
         self.clock = clock
         self.lookup = DisplayIDRecordLookup(modelContext: modelContext)
+        self.usedDisplayIDs = UsedDisplayIDs(modelContext)
     }
 
     // MARK: - Scan
@@ -275,7 +277,7 @@ final class DisplayIDMaintenanceService {
             // Exclude every committed ID, not just the duplicate being repaired: the
             // counter-advance fence above can be undone by a stale counter read, and
             // handing back an in-use ID would trade one collision for another (T-1766).
-            newId = try await taskAllocator.allocateNextID(excluding: { self.lookup.usedTaskDisplayIDs() })
+            newId = try await taskAllocator.allocateNextID(excluding: { try self.usedDisplayIDs.tasks() })
         } catch {
             return .failed(GroupFailure(code: .allocationFailed, message: error.localizedDescription))
         }
@@ -334,7 +336,7 @@ final class DisplayIDMaintenanceService {
             do {
                 // See `reassignTaskLoser` (T-1766).
                 newId = try await milestoneAllocator
-                    .allocateNextID(excluding: { self.lookup.usedMilestoneDisplayIDs() })
+                    .allocateNextID(excluding: { try self.usedDisplayIDs.milestones() })
             } catch {
                 failure = GroupFailure(code: .allocationFailed, message: error.localizedDescription)
                 break
