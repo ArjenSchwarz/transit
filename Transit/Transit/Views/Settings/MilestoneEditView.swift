@@ -7,18 +7,34 @@ struct MilestoneEditView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.resolvedTheme) private var resolvedTheme
 
-    @State private var name: String = ""
-    @State private var milestoneDescription: String = ""
+    /// The draft, its baseline, and the load-once guard, held as one value so a
+    /// second `onAppear` cannot discard in-flight edits.
+    @State private var form = MilestoneEditForm()
     @State private var isSaving = false
     @State private var errorMessage: String?
 
+    /// Set when a save finds fields that both the user and an external writer
+    /// changed. Presence drives the conflict alert.
+    @State private var pendingConflict: MilestoneEditMerge?
+
     private var isEditing: Bool { milestone != nil }
 
-    private var canSave: Bool {
-        !name.trimmedForFormInput().isEmpty
+    var body: some View {
+        formContent
+            .alert("Save Failed", isPresented: $errorMessage.isPresent) {
+                Button("OK") { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+            .editConflictAlert(
+                subject: "Milestone",
+                conflict: $pendingConflict,
+                keepMine: { saveExisting(overwritingConflicts: true) },
+                useTheirs: { adoptLiveValues(for: $0) }
+            )
     }
 
-    var body: some View {
+    private var formContent: some View {
         #if os(macOS)
         macOSForm
         #else
@@ -32,8 +48,8 @@ struct MilestoneEditView: View {
     private var iOSForm: some View {
         Form {
             Section {
-                TextField("Name", text: $name)
-                TextField("Description", text: $milestoneDescription, axis: .vertical)
+                TextField("Name", text: $form.name)
+                TextField("Description", text: $form.description, axis: .vertical)
                     .lineLimit(3...6)
             }
         }
@@ -41,11 +57,6 @@ struct MilestoneEditView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar { editToolbar }
-        .alert("Save Failed", isPresented: $errorMessage.isPresent) {
-            Button("OK") { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
         .onAppear { loadMilestone() }
     }
     #endif
@@ -65,11 +76,11 @@ struct MilestoneEditView: View {
                         verticalSpacing: 14
                     ) {
                         FormRow("Name", labelWidth: Self.labelWidth) {
-                            TextField("", text: $name)
+                            TextField("", text: $form.name)
                         }
 
                         FormRow("Description", labelWidth: Self.labelWidth) {
-                            TextField("", text: $milestoneDescription, axis: .vertical)
+                            TextField("", text: $form.description, axis: .vertical)
                                 .lineLimit(3...6)
                         }
                     }
@@ -86,13 +97,8 @@ struct MilestoneEditView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") { save() }
-                    .disabled(!canSave || isSaving)
+                    .disabled(!form.canSave || isSaving)
             }
-        }
-        .alert("Save Failed", isPresented: $errorMessage.isPresent) {
-            Button("OK") { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
         }
         .onAppear { loadMilestone() }
     }
@@ -109,51 +115,83 @@ struct MilestoneEditView: View {
         }
         ToolbarItem(placement: .confirmationAction) {
             Button("Save", systemImage: "checkmark") { save() }
-                .disabled(!canSave || isSaving)
+                .disabled(!form.canSave || isSaving)
         }
     }
 
+    /// Copies the milestone into the form and records the save-time baseline.
+    /// Runs once per milestone, so a second `onAppear` leaves the draft alone.
     private func loadMilestone() {
-        if let milestone {
-            name = milestone.name
-            milestoneDescription = milestone.milestoneDescription ?? ""
-        }
+        guard let milestone else { return }
+        form.load(from: milestone)
     }
 
     private func save() {
-        let trimmedName = name.trimmedForFormInput()
-        let trimmedDesc = milestoneDescription.trimmedForFormInput()
+        guard form.canSave else { return }
+        if milestone == nil {
+            createMilestone()
+        } else {
+            saveExisting()
+        }
+    }
 
-        if let milestone {
+    /// Persists the user's edits to an existing milestone.
+    ///
+    /// Only fields the user actually changed are written, so a concurrent MCP or
+    /// CloudKit write to a *different* field survives (T-1817). When both sides
+    /// changed the *same* field the save stops and asks; `overwritingConflicts`
+    /// carries the user's answer back in.
+    private func saveExisting(overwritingConflicts: Bool = false) {
+        guard let milestone, let merge = form.merge(against: milestone) else { return }
+
+        // Nothing to write. Saving anyway is exactly how the stale form used to
+        // revert other writers' changes.
+        guard merge.hasChanges else {
+            dismiss()
+            return
+        }
+
+        if merge.hasConflicts, !overwritingConflicts {
+            pendingConflict = merge
+            return
+        }
+
+        do {
+            let applier = MilestoneEditApplier(milestoneService: milestoneService)
+            try applier.apply(merge, edited: form.edited, to: milestone)
+        } catch {
+            errorMessage = error.localizedDescription
+            return
+        }
+        dismiss()
+    }
+
+    private func createMilestone() {
+        let edited = form.edited
+        isSaving = true
+        Task {
+            defer { isSaving = false }
             do {
-                try milestoneService.updateMilestone(
-                    milestone,
-                    name: trimmedName,
-                    description: trimmedDesc.isEmpty ? nil : trimmedDesc,
-                    clearDescription: trimmedDesc.isEmpty
+                try await milestoneService.createMilestone(
+                    name: edited.name,
+                    description: edited.description.isEmpty ? nil : edited.description,
+                    project: project
                 )
             } catch {
                 errorMessage = error.localizedDescription
                 return
             }
-        } else {
-            isSaving = true
-            Task {
-                defer { isSaving = false }
-                do {
-                    try await milestoneService.createMilestone(
-                        name: trimmedName,
-                        description: trimmedDesc.isEmpty ? nil : trimmedDesc,
-                        project: project
-                    )
-                } catch {
-                    errorMessage = error.localizedDescription
-                    return
-                }
-                dismiss()
-            }
-            return
+            dismiss()
         }
-        dismiss()
+    }
+
+    /// Loads the external values for the conflicting fields and re-baselines.
+    ///
+    /// The editor deliberately stays open and nothing is saved: the point is to
+    /// show the user what the other writer did before they commit to anything.
+    private func adoptLiveValues(for merge: MilestoneEditMerge) {
+        guard let milestone else { return }
+        form.adoptLiveValues(for: merge, from: milestone)
+        pendingConflict = nil
     }
 }
