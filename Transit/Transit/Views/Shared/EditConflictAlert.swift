@@ -48,6 +48,26 @@ struct EditConflictAlert<Snapshot: EditSnapshot>: ViewModifier {
     }
 }
 
+/// Presents a conflict immediately, or after one yield when replacing the alert
+/// currently being dismissed by SwiftUI.
+@MainActor
+func presentEditConflict<Snapshot: EditSnapshot>(
+    _ merge: EditMerge<Snapshot>,
+    in conflict: Binding<EditMerge<Snapshot>?>,
+    replacingShownAlert: Bool
+) {
+    guard replacingShownAlert else {
+        conflict.wrappedValue = merge
+        return
+    }
+
+    conflict.wrappedValue = nil
+    Task { @MainActor in
+        await Task.yield()
+        conflict.wrappedValue = merge
+    }
+}
+
 extension View {
     func editConflictAlert<Snapshot: EditSnapshot>(
         subject: String,

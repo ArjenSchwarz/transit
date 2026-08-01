@@ -192,7 +192,7 @@ extension ProjectEditView {
 
         if merge.hasConflicts {
             guard let shownConflict, merge.hasSameConflictSnapshot(as: shownConflict) else {
-                presentConflict(merge, replacingShownAlert: shownConflict != nil)
+                presentEditConflict(merge, in: $pendingConflict, replacingShownAlert: shownConflict != nil)
                 return
             }
         }
@@ -239,27 +239,13 @@ extension ProjectEditView {
         dismiss()
     }
 
-    /// Re-presents a changed conflict after the current alert has dismissed.
-    fileprivate func presentConflict(_ merge: ProjectEditMerge, replacingShownAlert: Bool) {
-        guard replacingShownAlert else {
-            pendingConflict = merge
-            return
-        }
-
-        pendingConflict = nil
-        Task { @MainActor in
-            await Task.yield()
-            pendingConflict = merge
-        }
-    }
-
     /// Recomputes before using external values. Changed conflict fields or
     /// values cause a new alert; otherwise the form performs a complete safe
     /// rebase and remains open for review.
     fileprivate func adoptLiveValues(for shownConflict: ProjectEditMerge) {
         guard let project, let merge = form.merge(against: project) else { return }
         guard !merge.hasConflicts || merge.hasSameConflictSnapshot(as: shownConflict) else {
-            presentConflict(merge, replacingShownAlert: true)
+            presentEditConflict(merge, in: $pendingConflict, replacingShownAlert: true)
             return
         }
 

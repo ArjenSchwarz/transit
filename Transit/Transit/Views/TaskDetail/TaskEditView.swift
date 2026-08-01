@@ -340,7 +340,7 @@ extension TaskEditView {
 
         if merge.hasConflicts {
             guard let shownConflict, merge.hasSameConflictSnapshot(as: shownConflict) else {
-                presentConflict(merge, replacingShownAlert: shownConflict != nil)
+                presentEditConflict(merge, in: $pendingConflict, replacingShownAlert: shownConflict != nil)
                 return
             }
         }
@@ -363,26 +363,15 @@ extension TaskEditView {
         }
     }
 
-    fileprivate func presentConflict(_ merge: TaskEditMerge, replacingShownAlert: Bool) {
-        guard replacingShownAlert else {
-            pendingConflict = merge
-            return
-        }
-        pendingConflict = nil
-        Task { @MainActor in
-            await Task.yield()
-            pendingConflict = merge
-        }
-    }
-
     fileprivate func adoptLiveValues(for shownConflict: TaskEditMerge) {
         guard let merge = currentMerge() else { return }
         guard !merge.hasConflicts || merge.hasSameConflictSnapshot(as: shownConflict) else {
-            presentConflict(merge, replacingShownAlert: true)
+            presentEditConflict(merge, in: $pendingConflict, replacingShownAlert: true)
             return
         }
 
         let rebased = merge.rebasedEdited
+        // The rebased ID can only originate from the edited selection or live task.
         let rebasedMilestone = [selectedMilestone, task.milestone]
             .compactMap { $0 }
             .first { $0.id == rebased.milestoneID }

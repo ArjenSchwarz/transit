@@ -105,12 +105,12 @@ Task, project, and milestone snapshots implement per-field replacement for share
 ## Verification
 
 **Automated:**
-- [x] `make test-quick` — passed after the final regression assertions.
-- [x] `make lint` — passed, including strict SwiftLint and the SwiftData ownership guard. `TaskEditView.swift` remains at the 400-line limit.
-- [ ] `make test` — attempted twice. The first clean build and warmed retry each hit the 20-minute command timeout. The latest run built the app, launched the iPhone 17 simulator, and showed a large number of passing tests (including new project conflict tests) with no reported failure before timeout, but it did not emit a final suite result.
-- [ ] `make test-ui` — not started because unrelated T-2019 and T-1768 `make test` processes remained active for more than 25 minutes on the same iPhone 17 simulator and another worktree began `make test-ui`. Those other agents' processes were intentionally left untouched.
+- [x] `make test-quick` — passed after the final regression assertions and first-round review cleanup.
+- [x] `make lint` — passed, including strict SwiftLint and the SwiftData ownership guard. Shared alert-helper extraction reduced `TaskEditView.swift` to 389 lines.
+- [ ] `make test` — attempted three times. The final attempt ran after competing Transit simulator jobs had cleared, built all changed code and tests, launched iPhone 17, and showed many passing tests with no test failure before the fixed 20-minute command timeout. It did not emit a final suite result and repeatedly reported DTDeviceKit failure to start `com.apple.mobile.notification_proxy` because Xcode could not establish a secure device connection.
+- [ ] `make test-ui` — the target completed one result bundle before the wrapper reported exit 124: 15 test methods passed and six failed. The failures were unrelated dashboard/settings assertions, and the task-edit test failed while checking the milestone on the detail screen before opening Edit. The run also repeatedly reported the same DTDeviceKit secure-connection failure and missing LLDB debugger-version errors, so it is not a clean simulator validation.
 
-**Manual verification:** Not performed; the merge invariants and all six task/project/milestone scenarios are exercised by the green macOS unit suite.
+**Manual verification:** Not performed; the merge invariants and all six task/project/milestone rebase and alert-race scenarios are exercised by the green macOS unit suite.
 
 ## Prevention
 

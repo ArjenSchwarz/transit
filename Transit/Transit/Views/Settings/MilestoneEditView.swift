@@ -149,7 +149,7 @@ struct MilestoneEditView: View {
 
         if merge.hasConflicts {
             guard let shownConflict, merge.hasSameConflictSnapshot(as: shownConflict) else {
-                presentConflict(merge, replacingShownAlert: shownConflict != nil)
+                presentEditConflict(merge, in: $pendingConflict, replacingShownAlert: shownConflict != nil)
                 return
             }
         }
@@ -184,27 +184,13 @@ struct MilestoneEditView: View {
         }
     }
 
-    /// Re-presents a changed conflict after the current alert has dismissed.
-    private func presentConflict(_ merge: MilestoneEditMerge, replacingShownAlert: Bool) {
-        guard replacingShownAlert else {
-            pendingConflict = merge
-            return
-        }
-
-        pendingConflict = nil
-        Task { @MainActor in
-            await Task.yield()
-            pendingConflict = merge
-        }
-    }
-
     /// Recomputes before using external values. Changed conflict fields or
     /// values cause a new alert; otherwise the form performs a complete safe
     /// rebase and remains open for review.
     private func adoptLiveValues(for shownConflict: MilestoneEditMerge) {
         guard let milestone, let merge = form.merge(against: milestone) else { return }
         guard !merge.hasConflicts || merge.hasSameConflictSnapshot(as: shownConflict) else {
-            presentConflict(merge, replacingShownAlert: true)
+            presentEditConflict(merge, in: $pendingConflict, replacingShownAlert: true)
             return
         }
 
