@@ -227,10 +227,10 @@ struct TaskServiceTests {
             isStoredInMemoryOnly: true,
             cloudKitDatabase: .none
         )
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let testContainer = try TestModelContainer(schema: schema, configurations: [config])
 
         // Use container.mainContext for the service — this is the fix
-        let context = container.mainContext
+        let context = testContainer.container.mainContext
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         let service = TaskService(modelContext: context, displayIDAllocator: allocator)
@@ -249,7 +249,7 @@ struct TaskServiceTests {
         try service.updateStatus(task: task, to: .inProgress)
 
         // Verify the change persisted by re-fetching from a fresh context
-        let verifyContext = ModelContext(container)
+        let verifyContext = ModelContext(testContainer.container)
         let taskID = task.id
         let descriptor = FetchDescriptor<TransitTask>(
             predicate: #Predicate { $0.id == taskID }

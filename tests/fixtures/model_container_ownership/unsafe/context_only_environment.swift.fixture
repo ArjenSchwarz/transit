@@ -1,0 +1,10 @@
+struct Environment {
+    let context: ModelContext
+    let service: Service
+}
+
+func makeEnvironment() throws -> Environment {
+    let container = try ModelContainer(for: Schema([]))
+    let context = ModelContext(container)
+    return Environment(context: context, service: Service(modelContext: context))
+}

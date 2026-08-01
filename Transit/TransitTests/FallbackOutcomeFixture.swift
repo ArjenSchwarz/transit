@@ -44,7 +44,11 @@ enum FallbackOutcomeFixture {
             schema: schema, configuration: config
         ) { innerSchema, innerConfig in
             if failPrimaryStore { throw InjectedFailure.primaryCreationFailed }
-            return try ModelContainer(for: innerSchema, configurations: [innerConfig])
+            let testContainer = try TestModelContainer(
+                schema: innerSchema,
+                configurations: [innerConfig]
+            )
+            return testContainer.container
         }
     }
 }

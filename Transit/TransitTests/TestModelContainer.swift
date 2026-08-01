@@ -5,10 +5,9 @@ import SwiftData
 /// Owns an isolated in-memory ModelContainer and its ModelContext for tests.
 ///
 /// Construct this fixture at the test boundary instead of returning a bare
-/// ModelContext from helper functions. Containers are also retained centrally
-/// so even an accidentally temporary fixture cannot orphan an escaped context.
-/// The explicit `newContainer()` escape hatch is not registered; its caller must
-/// retain that container while any derived contexts remain in use.
+/// ModelContext from helper functions. Every container is retained centrally,
+/// including custom-schema fixtures used by multi-context tests, so no public
+/// raw-container factory can bypass the ownership guarantee.
 @MainActor
 struct TestModelContainer {
     let container: ModelContainer
@@ -20,14 +19,6 @@ struct TestModelContainer {
     private static var retainedContainers: [ModelContainer] = []
 
     init() throws {
-        let container = try Self.newContainer()
-        self.container = container
-        self.context = ModelContext(container)
-        Self.retainedContainers.append(container)
-    }
-
-    /// Returns a fresh in-memory ModelContainer for tests needing multiple contexts on one store.
-    static func newContainer() throws -> ModelContainer {
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
         let config = ModelConfiguration(
             "TransitTests-\(UUID().uuidString)",
@@ -35,7 +26,16 @@ struct TestModelContainer {
             isStoredInMemoryOnly: true,
             cloudKitDatabase: .none
         )
-        return try ModelContainer(for: schema, configurations: [config])
+        try self.init(schema: schema, configurations: [config])
+    }
+
+    /// Creates a retained fixture for tests that need a custom schema or
+    /// multiple contexts sharing one store.
+    init(schema: Schema, configurations: [ModelConfiguration]) throws {
+        let container = try ModelContainer(for: schema, configurations: configurations)
+        self.container = container
+        self.context = ModelContext(container)
+        Self.retainedContainers.append(container)
     }
 
     /// Performs a rollback and forces re-faulting of all @Model objects.

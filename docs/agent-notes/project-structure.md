@@ -94,5 +94,5 @@ prerequisite and prefix the command with `$(XCODEBUILD_ENV)` and
 
 ## Test Infrastructure
 
-- **TestModelContainer** (`TransitTests/TestModelContainer.swift`) — Shared in-memory ModelContainer for SwiftData tests. Uses `Schema` + `cloudKitDatabase: .none` to avoid conflicts with the app's CloudKit entitlements. Tests get fresh `ModelContext` instances via `newContext()`.
+- **TestModelContainer** (`TransitTests/TestModelContainer.swift`) — Owning in-memory SwiftData fixture with explicit `Schema` and `cloudKitDatabase: .none`. Each initializer centrally retains its container; custom-schema and multi-context tests use `init(schema:configurations:)`.
 - Test suites using SwiftData should use `@Suite(.serialized)` trait.

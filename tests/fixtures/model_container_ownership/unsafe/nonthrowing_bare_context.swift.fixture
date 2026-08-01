@@ -1,0 +1,4 @@
+func makeContext() -> ModelContext {
+    let container = try! ModelContainer(for: Schema([]))
+    return ModelContext(container)
+}

@@ -105,7 +105,7 @@ The fixture creates a fresh container with:
 
 All three are required. Without `cloudKitDatabase: .none`, it conflicts with the CloudKit-enabled default store. Without the explicit `Schema`, the `cloudKitDatabase: .none` parameter crashes. The fixture retains both container and context, and test support centrally retains created containers so accidentally extracting a temporary fixture's context cannot orphan its store.
 
-Tests that intentionally need multiple contexts on one store may call `TestModelContainer.newContainer()` but must retain that returned container for the full test lifetime.
+Tests that intentionally need multiple contexts on one store construct `TestModelContainer` and derive each context from its `container` property. Tests needing a custom schema or configuration use `TestModelContainer(schema:configurations:)`; every initializer participates in central retention. Direct `ModelContainer` construction and raw container/context factories in test sources are rejected by the ownership guard run from `make lint`.
 
 Test files that use SwiftData need `@Suite(.serialized)` to avoid concurrent access issues.
 

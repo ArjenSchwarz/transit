@@ -74,7 +74,7 @@ App Intent that generates a markdown report via Shortcuts. Located at `Transit/T
 - `ReportLogicTests` uses `@Suite(.serialized)` with `TestModelContainer` since it needs SwiftData
 - Test helpers in `ReportLogicTestHelpers.swift` for SwiftData-based tests
 - Formatter tests construct `ReportData`/`ProjectGroup`/`ReportTask` directly via local helpers
-- `GenerateReportIntentTests` uses `makeReportTestContext()` and tests the static `execute` method directly
+- `GenerateReportIntentTests` uses `makeReportTestContainer()`, keeps the returned `TestModelContainer` alive, and tests the static `execute` method directly
 - `IntentCompatibilityAndDiscoverabilityTests` checks shortcut count — must be updated when adding new shortcuts
 
 ## SwiftLint
