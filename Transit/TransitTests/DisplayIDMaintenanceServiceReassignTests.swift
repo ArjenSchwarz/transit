@@ -19,70 +19,6 @@ struct DisplayIDMaintenanceServiceReassignTests {
         let project: Project
     }
 
-    /// Counter store that parks the loser's allocation after maintenance has
-    /// completed its two counter-fence reads. This pins the exact check-to-write
-    /// race from T-2019 without relying on scheduler timing.
-    private actor AllocationGatedCounterStore: DisplayIDAllocator.CounterStore {
-        private var nextDisplayID: Int
-        private var changeTag = 0
-        private var loadCount = 0
-
-        private var allocationStarted = false
-        private var allocationReleased = false
-        private var allocationReleaseContinuation: CheckedContinuation<Void, Never>?
-
-        init(initialNextDisplayID: Int = 100) {
-            self.nextDisplayID = initialNextDisplayID
-        }
-
-        /// Committed counter value. Callers assert on it to prove the gate parked
-        /// inside allocation rather than during the counter fence.
-        func currentNextDisplayID() -> Int { nextDisplayID }
-
-        /// Waits for the gated load to park, giving up at the deadline. Returning
-        /// `false` rather than parking forever means a changed counter-call
-        /// sequence fails the test instead of wedging the suite on a continuation
-        /// nobody resumes.
-        func waitUntilAllocationStarts(timeout: Duration = .seconds(10)) async -> Bool {
-            let deadline = ContinuousClock.now + timeout
-            while !allocationStarted && ContinuousClock.now < deadline {
-                try? await Task.sleep(for: .milliseconds(5))
-            }
-            return allocationStarted
-        }
-
-        func releaseAllocation() {
-            allocationReleased = true
-            allocationReleaseContinuation?.resume()
-            allocationReleaseContinuation = nil
-        }
-
-        func loadCounter() async throws -> DisplayIDAllocator.CounterSnapshot {
-            loadCount += 1
-            // Calls 1 and 2 come from `advanceCounterIfNeeded`: its threshold
-            // check and reported snapshot. Call 3 is `allocateLocked` reading the
-            // loser's candidate, which is the suspension point this test needs.
-            if loadCount == 3 {
-                allocationStarted = true
-                if !allocationReleased {
-                    await withCheckedContinuation { allocationReleaseContinuation = $0 }
-                }
-            }
-            return DisplayIDAllocator.CounterSnapshot(
-                nextDisplayID: nextDisplayID,
-                changeTag: "\(changeTag)"
-            )
-        }
-
-        func saveCounter(nextDisplayID: Int, expectedChangeTag: String?) async throws {
-            guard expectedChangeTag == "\(changeTag)" else {
-                throw DisplayIDAllocator.Error.conflict
-            }
-            self.nextDisplayID = nextDisplayID
-            changeTag += 1
-        }
-    }
-
     private struct GatedTestEnv {
         let context: ModelContext
         let service: DisplayIDMaintenanceService
@@ -93,7 +29,7 @@ struct DisplayIDMaintenanceServiceReassignTests {
     private func makeGatedEnv(gateTasks: Bool) throws -> GatedTestEnv {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
-        let gateStore = AllocationGatedCounterStore()
+        let gateStore = AllocationGatedCounterStore(gatedLoadNumber: 3)
         let taskAllocator: DisplayIDAllocator
         let milestoneAllocator: DisplayIDAllocator
         if gateTasks {

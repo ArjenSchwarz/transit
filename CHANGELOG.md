@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Deterministic two-context task and milestone regressions now pin the T-2020 peer-promotion race by suspending display-ID allocation while a second context commits a permanent ID.
+
 ### Fixed
 
 - MCP `update_task_status` now returns the exact comment created by its atomic status-plus-comment mutation (T-1823). `TaskService.updateStatus` propagates the created `Comment` to the handler for direct serialization instead of refetching every task comment and taking the last `creationDate`; a future-dated existing or concurrently imported comment can no longer replace the mutation result. If the atomic save fails, the newly inserted comment is deleted before the task state is rolled back so a later save cannot resurrect it. Regressions verify exact UUID propagation, future-clock-skew behavior, and service/MCP failure recovery.

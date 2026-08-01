@@ -122,3 +122,64 @@ actor InMemoryCounterStore: DisplayIDAllocator.CounterStore {
         changeTag += 1
     }
 }
+
+// MARK: - AllocationGatedCounterStore
+
+/// Deterministic counter store that parks a selected `loadCounter` call.
+///
+/// Concurrency regressions use this to commit peer-context changes while an
+/// allocation is suspended, without relying on scheduler timing. A timeout
+/// makes changed counter-call sequences fail instead of wedging the test suite.
+actor AllocationGatedCounterStore: DisplayIDAllocator.CounterStore {
+    private var nextDisplayID: Int
+    private var changeTag = 0
+    private var loadCount = 0
+    private let gatedLoadNumber: Int
+
+    private var allocationStarted = false
+    private var allocationReleased = false
+    private var allocationReleaseContinuation: CheckedContinuation<Void, Never>?
+
+    init(initialNextDisplayID: Int = 100, gatedLoadNumber: Int = 1) {
+        self.nextDisplayID = initialNextDisplayID
+        self.gatedLoadNumber = gatedLoadNumber
+    }
+
+    func currentNextDisplayID() -> Int { nextDisplayID }
+
+    func waitUntilAllocationStarts(timeout: Duration = .seconds(10)) async -> Bool {
+        let deadline = ContinuousClock.now + timeout
+        while !allocationStarted && ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        return allocationStarted
+    }
+
+    func releaseAllocation() {
+        allocationReleased = true
+        allocationReleaseContinuation?.resume()
+        allocationReleaseContinuation = nil
+    }
+
+    func loadCounter() async throws -> DisplayIDAllocator.CounterSnapshot {
+        loadCount += 1
+        if loadCount == gatedLoadNumber {
+            allocationStarted = true
+            if !allocationReleased {
+                await withCheckedContinuation { allocationReleaseContinuation = $0 }
+            }
+        }
+        return DisplayIDAllocator.CounterSnapshot(
+            nextDisplayID: nextDisplayID,
+            changeTag: "\(changeTag)"
+        )
+    }
+
+    func saveCounter(nextDisplayID: Int, expectedChangeTag: String?) async throws {
+        guard expectedChangeTag == "\(changeTag)" else {
+            throw DisplayIDAllocator.Error.conflict
+        }
+        self.nextDisplayID = nextDisplayID
+        changeTag += 1
+    }
+}

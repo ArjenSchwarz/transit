@@ -198,4 +198,100 @@ struct ConcurrentPromotionTests {
         await service.promoteProvisionalMilestones()
         #expect(milestone.permanentDisplayId != nil)
     }
+
+    // MARK: - Cross-device peer merge during allocation (T-2020)
+
+    @Test func taskPeerPromotionDuringAllocationIsPreserved() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let gateStore = AllocationGatedCounterStore(initialNextDisplayID: 100)
+        let allocator = DisplayIDAllocator(store: gateStore)
+
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "#000000")
+        context.insert(project)
+        let task = TransitTask(
+            name: "Synced provisional", type: .feature, project: project, displayID: .provisional
+        )
+        StatusEngine.initializeNewTask(task)
+        context.insert(task)
+        try context.save()
+
+        let taskID = task.id
+        let peerContext = ModelContext(testContainer.container)
+        let peerTask = try #require(try peerContext.fetch(FetchDescriptor<TransitTask>(
+            predicate: #Predicate { $0.id == taskID }
+        )).first)
+
+        var promotionSaveCount = 0
+        let promotion = Task { @MainActor in
+            await allocator.promoteProvisionalTasks(in: context, save: { context in
+                promotionSaveCount += 1
+                try context.save()
+            })
+        }
+        #expect(await gateStore.waitUntilAllocationStarts(), "Task allocation never parked")
+
+        peerTask.permanentDisplayId = 900
+        try peerContext.save()
+        await gateStore.releaseAllocation()
+        await promotion.value
+
+        #expect(promotionSaveCount == 0,
+                "Task promotion must not save after a peer assigns a permanent ID")
+        let probe = ModelContext(testContainer.container)
+        let storedTask = try #require(try probe.fetch(FetchDescriptor<TransitTask>(
+            predicate: #Predicate { $0.id == taskID }
+        )).first)
+        #expect(storedTask.permanentDisplayId == 900,
+                "A peer's permanent task ID must not be overwritten after allocation resumes")
+        #expect(await gateStore.currentNextDisplayID() == 101,
+                "The allocated counter value is deliberately consumed when the peer wins")
+    }
+
+    @Test func milestonePeerPromotionDuringAllocationIsPreserved() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let gateStore = AllocationGatedCounterStore(initialNextDisplayID: 200)
+        let allocator = DisplayIDAllocator(store: gateStore)
+        let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
+
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "#000000")
+        context.insert(project)
+        let milestone = Milestone(
+            name: "Synced provisional", description: nil, project: project, displayID: .provisional
+        )
+        context.insert(milestone)
+        try context.save()
+
+        let milestoneID = milestone.id
+        let peerContext = ModelContext(testContainer.container)
+        let peerMilestone = try #require(try peerContext.fetch(FetchDescriptor<Milestone>(
+            predicate: #Predicate { $0.id == milestoneID }
+        )).first)
+
+        var promotionSaveCount = 0
+        let promotion = Task { @MainActor in
+            await service.promoteProvisionalMilestones(save: { context in
+                promotionSaveCount += 1
+                try context.save()
+            })
+        }
+        #expect(await gateStore.waitUntilAllocationStarts(), "Milestone allocation never parked")
+
+        peerMilestone.permanentDisplayId = 901
+        try peerContext.save()
+        await gateStore.releaseAllocation()
+        await promotion.value
+
+        #expect(promotionSaveCount == 0,
+                "Milestone promotion must not save after a peer assigns a permanent ID")
+        let probe = ModelContext(testContainer.container)
+        let storedMilestone = try #require(try probe.fetch(FetchDescriptor<Milestone>(
+            predicate: #Predicate { $0.id == milestoneID }
+        )).first)
+        #expect(storedMilestone.permanentDisplayId == 901,
+                "A peer's permanent milestone ID must not be overwritten after allocation resumes")
+        #expect(await gateStore.currentNextDisplayID() == 201,
+                "The allocated counter value is deliberately consumed when the peer wins")
+    }
 }
