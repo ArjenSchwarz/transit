@@ -111,6 +111,7 @@ build-ios: prepare-cache-dirs
 .PHONY: build-macos
 build-macos: prepare-cache-dirs
 	$(XCODEBUILD_ENV) xcodebuild build \
+		-allowProvisioningUpdates \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=macOS' \
