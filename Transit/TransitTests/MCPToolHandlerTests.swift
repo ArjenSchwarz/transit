@@ -10,9 +10,12 @@ struct MCPToolHandlerTests {
 
     // MARK: - Initialize
 
-    @Test func initializeReturnsServerInfo() async throws {
+    @Test func initializeReturnsServerInfoForSupportedProtocolVersion() async throws {
         let env = try MCPTestHelpers.makeEnv()
-        let response = try #require(await env.handler.handle(MCPTestHelpers.request(method: "initialize")))
+        let response = try #require(await env.handler.handle(MCPTestHelpers.request(
+            method: "initialize",
+            params: validInitializeParams()
+        )))
 
         let data = try JSONEncoder().encode(response)
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -23,6 +26,101 @@ struct MCPToolHandlerTests {
         #expect(serverInfo["name"] as? String == "transit")
         let capabilities = try #require(result["capabilities"] as? [String: Any])
         #expect(capabilities["tools"] is [String: Any])
+    }
+
+    @Test func initializeWithoutParamsReturnsInvalidParams() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let response = await env.handler.handle(MCPTestHelpers.request(method: "initialize"))
+
+        let error = try MCPTestHelpers.jsonRPCError(response)
+        #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
+    }
+
+    @Test func initializeWithNonObjectParamsReturnsInvalidParams() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let request = JSONRPCRequest(
+            jsonrpc: "2.0",
+            id: .integer(1),
+            method: "initialize",
+            params: AnyCodable(["2025-03-26"])
+        )
+
+        let error = try MCPTestHelpers.jsonRPCError(await env.handler.handle(request))
+        #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
+    }
+
+    @Test func initializeRequiresEveryHandshakeField() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        for field in ["protocolVersion", "capabilities", "clientInfo"] {
+            var params = validInitializeParams()
+            params.removeValue(forKey: field)
+
+            let response = await env.handler.handle(MCPTestHelpers.request(method: "initialize", params: params))
+            let error = try MCPTestHelpers.jsonRPCError(response)
+            #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
+        }
+    }
+
+    @Test func initializeRejectsWrongRequiredFieldTypes() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let malformedFields: [(String, Any)] = [
+            ("protocolVersion", 20250326),
+            ("capabilities", []),
+            ("clientInfo", "Transit Tests")
+        ]
+
+        for (field, value) in malformedFields {
+            var params = validInitializeParams()
+            params[field] = value
+
+            let response = await env.handler.handle(MCPTestHelpers.request(method: "initialize", params: params))
+            let error = try MCPTestHelpers.jsonRPCError(response)
+            #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
+        }
+    }
+
+    @Test func initializeRejectsMalformedClientInfo() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let malformedClientInfo: [[String: Any]] = [
+            ["version": "1.0"],
+            ["name": "Transit Tests"],
+            ["name": 42, "version": "1.0"],
+            ["name": "Transit Tests", "version": 1]
+        ]
+
+        for clientInfo in malformedClientInfo {
+            var params = validInitializeParams()
+            params["clientInfo"] = clientInfo
+
+            let response = await env.handler.handle(MCPTestHelpers.request(method: "initialize", params: params))
+            let error = try MCPTestHelpers.jsonRPCError(response)
+            #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
+        }
+    }
+
+    @Test func initializeFallsBackToSupportedProtocolVersion() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        var params = validInitializeParams()
+        params["protocolVersion"] = "2099-01-01"
+
+        let response = try #require(await env.handler.handle(MCPTestHelpers.request(
+            method: "initialize",
+            params: params
+        )))
+        let data = try JSONEncoder().encode(response)
+        let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let result = try #require(json["result"] as? [String: Any])
+
+        #expect(result["protocolVersion"] as? String == "2025-03-26")
+    }
+
+    private func validInitializeParams() -> [String: Any] {
+        [
+            "protocolVersion": "2025-03-26",
+            "capabilities": [:] as [String: Any],
+            "clientInfo": ["name": "Transit Tests", "version": "1.0"]
+        ]
     }
 
     // MARK: - Tools List
