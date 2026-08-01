@@ -240,17 +240,35 @@ final class DisplayIDAllocator: @unchecked Sendable {
         // assigns a duplicate (T-1395). A failed read throws rather than yielding
         // an empty set, which would disable the guard entirely (T-1621).
         let usedIDs = usedTaskIDs ?? { try UsedDisplayIDs(context).tasks() }
+        let recordLookup = DisplayIDRecordLookup(modelContext: context)
 
         for task in tasks {
+            let newID: Int
             do {
-                let newID = try await allocateNextID(excluding: usedIDs)
-                task.permanentDisplayId = newID
+                newID = try await allocateNextID(excluding: usedIDs)
+                // Allocation suspends, so re-read committed state through a transient
+                // context before mutating the stale registered object (T-2020).
+                // Missing or unreadable records fail closed.
+                guard try recordLookup.taskIsStillProvisional(id: task.id) else {
+                    // The allocated counter value cannot be reused safely; another
+                    // record may already have observed it, so deliberately leave a gap.
+                    continue
+                }
+            } catch {
+                // Stop on allocation or committed-state read failure. Remaining
+                // tasks will be retried by the next lifecycle promotion pass.
+                break
+            }
+
+            task.permanentDisplayId = newID
+            do {
                 try save(context)
             } catch {
-                // Revert only this promotion attempt so unrelated unsaved edits
-                // on the shared context survive connectivity-triggered retries.
-                task.permanentDisplayId = nil
-                // Stop on first failure -- remaining tasks will be retried next pass.
+                // Revert only the value this promotion assigned. If SwiftData merged
+                // a peer value, preserve it rather than resetting the record to nil.
+                if task.permanentDisplayId == newID {
+                    task.permanentDisplayId = nil
+                }
                 break
             }
         }

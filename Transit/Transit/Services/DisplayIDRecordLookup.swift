@@ -28,6 +28,26 @@ struct DisplayIDRecordLookup {
         return try? modelContext.fetch(descriptor).first
     }
 
+    // MARK: - Promotion precondition probes
+
+    /// Returns true only when the task exists and its committed display ID is still
+    /// provisional. Fetch failures are thrown and a missing record returns false, so
+    /// promotion fails closed instead of treating unreadable state as `nil` (T-2020).
+    func taskIsStillProvisional(id: UUID) throws -> Bool {
+        let descriptor = FetchDescriptor<TransitTask>(predicate: #Predicate { $0.id == id })
+        let probe = ModelContext(modelContext.container)
+        guard let task = try probe.fetch(descriptor).first else { return false }
+        return task.permanentDisplayId == nil
+    }
+
+    /// Milestone companion to `taskIsStillProvisional` (T-2020).
+    func milestoneIsStillProvisional(id: UUID) throws -> Bool {
+        let descriptor = FetchDescriptor<Milestone>(predicate: #Predicate { $0.id == id })
+        let probe = ModelContext(modelContext.container)
+        guard let milestone = try probe.fetch(descriptor).first else { return false }
+        return milestone.permanentDisplayId == nil
+    }
+
     // MARK: - Committed display ID probes
 
     /// Reads the task's committed `permanentDisplayId`. SwiftData has no

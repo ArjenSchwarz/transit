@@ -1,7 +1,7 @@
 # Bugfix Report: Cross-Device Promotion Can Rewrite Permanent Display IDs
 
 **Date:** 2026-08-02
-**Status:** Investigating
+**Status:** Fixed
 **Ticket:** T-2020
 
 ## Description of the Issue
@@ -69,7 +69,21 @@ The initial provisional-state fetch expires across asynchronous allocation. Both
 
 ## Resolution for the Issue
 
-Pending implementation.
+**Changes made:**
+- `Transit/Transit/Services/DisplayIDRecordLookup.swift` — added throwing, fail-closed task and milestone probes that return true only for an existing committed provisional record.
+- `Transit/Transit/Services/DisplayIDAllocator.swift` — task promotion now probes after allocation and skips mutation/save when a peer ID exists; save recovery resets only the exact ID this run assigned.
+- `Transit/Transit/Services/MilestoneService.swift` — applies the same post-allocation ownership check and selective recovery to milestones.
+- `Transit/TransitTests/ConcurrentPromotionTests.swift` — added deterministic two-context/allocation regressions for both record types.
+- `Transit/TransitTests/TestModelContainer.swift` — generalized the existing allocation gate as shared test support; duplicate-maintenance tests continue to park their third counter read.
+
+**Approach rationale:** The transient probe is the strongest schema-neutral check SwiftData exposes. It runs after the final suspension point and immediately before the MainActor mutation/save, closes the demonstrated peer-merge window, fails closed on missing/unreadable state, and does not require a CloudKit production-schema deployment.
+
+**Alternatives considered:**
+- **Direct CloudKit owner reservation keyed by model type + UUID:** This is the strongest full ownership direction because the reservation and counter advance can be one atomic `CKModifyRecordsOperation`, making every promoter recover the same ID. It was not selected for this patch because it adds a new deployed CloudKit record schema and migration/operational surface. It also cannot share a transaction with SwiftData's separately managed model write, so the reservation must become durable allocation state rather than a short-lived lock.
+- **Rely on CloudKit conflict resolution:** Rejected because it allows a visible permanent ID to change after assignment.
+- **Process-local locking:** Already present from T-597 and cannot coordinate devices.
+
+**Remaining limitation:** The fix is not an atomic cross-device compare-and-set. If two devices both finish their final transient-context nil probe before either device's assignment has merged into the other's local store, both can still save different IDs and CloudKit can later resolve the conflict. SwiftData provides no conditional field update or transaction spanning its model record and the direct CloudKit counter. The implemented guarantee is specifically: a permanent ID already committed/merged into the local store by the time allocation returns will not be overwritten by that promotion pass.
 
 ## Regression Test
 
@@ -87,19 +101,28 @@ Pending implementation.
 
 | File | Change |
 |------|--------|
-| `Transit/TransitTests/ConcurrentPromotionTests.swift` | Failing two-context regressions |
+| `Transit/TransitTests/ConcurrentPromotionTests.swift` | Controlled two-context regressions for tasks and milestones |
 | `Transit/TransitTests/TestModelContainer.swift` | Shared configurable allocation gate |
-| `Transit/TransitTests/DisplayIDMaintenanceServiceReassignTests.swift` | Reuse shared gate |
-| `Transit/Transit/Services/DisplayIDAllocator.swift` | Planned task committed-state recheck |
-| `Transit/Transit/Services/MilestoneService.swift` | Planned milestone committed-state recheck |
+| `Transit/TransitTests/DisplayIDMaintenanceServiceReassignTests.swift` | Reuse shared gate at the existing third-load suspension point |
+| `Transit/Transit/Services/DisplayIDRecordLookup.swift` | Fail-closed committed provisional-state probes |
+| `Transit/Transit/Services/DisplayIDAllocator.swift` | Post-allocation task recheck and selective save recovery |
+| `Transit/Transit/Services/MilestoneService.swift` | Post-allocation milestone recheck and selective save recovery |
+| `docs/agent-notes/technical-constraints.md` | Exact guarantee, residual race, and owner-reservation direction |
+| `CHANGELOG.md` | Unreleased T-2020 fix entry |
 
 ## Verification
 
 **Automated:**
 - [x] Regression tests fail before the fix (`make test-quick`; both named T-2020 cases reported failed in the test output)
-- [ ] Regression tests pass after the fix
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression tests pass after the fix (`make test-quick`)
+- [x] Full macOS unit suite passes (`make test-quick`: 1,610 passed, 0 failed)
+- [x] All unit tests in the iOS combined run pass (`make test`: 1,149 passed overall; the only 3 failures were unrelated UI tests)
+- [x] Linters/validators pass (`make lint`, including the SwiftData ownership guard)
+- [ ] Full iOS/UI suite passes — blocked by unrelated existing UI failures below
+
+**Validation blockers:**
+- `make test`: 1,149 passed, 3 failed. Failures were `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`; there were zero non-UI failure markers.
+- `make test-ui`: 15 passed, 6 failed. It repeated the three failures above and also failed three Settings navigation cases. The xcresult shows `dashboard.settingsButton` in the toolbar's **More** overflow for `testSettingsHasBackChevron`; the other two Settings cases failed their existing assertions. No changed file implements these UI paths.
 
 **Manual verification:** Not applicable; deterministic context/allocation tests pin the required interleaving.
 

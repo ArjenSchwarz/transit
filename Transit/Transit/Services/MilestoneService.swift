@@ -212,21 +212,34 @@ final class MilestoneService {
             return
         }
 
+        let recordLookup = DisplayIDRecordLookup(modelContext: modelContext)
+
         for milestone in milestones {
+            let newID: Int
             do {
-                // Recompute used IDs inside the gate so a promoted ID never
-                // collides with one already committed (including ones just
-                // assigned in this loop) (T-1395).
-                let newID = try await displayIDAllocator.allocateNextID(
+                // Recompute used IDs inside the gate so just-committed IDs are excluded (T-1395).
+                newID = try await displayIDAllocator.allocateNextID(
                     excluding: { try self.usedDisplayIDs.milestones() }
                 )
-                milestone.permanentDisplayId = newID
+                // After suspension, transiently re-read committed state before
+                // mutating the stale object; missing/unreadable records fail closed (T-2020).
+                guard try recordLookup.milestoneIsStillProvisional(id: milestone.id) else {
+                    // Leave a gap: the allocated value cannot be safely reused.
+                    continue
+                }
+            } catch {
+                // Stop; the next lifecycle pass retries remaining milestones.
+                break
+            }
+
+            milestone.permanentDisplayId = newID
+            do {
                 try save(modelContext)
             } catch {
-                // Revert only this promotion attempt so unrelated unsaved edits
-                // on the shared context survive connectivity-triggered retries.
-                milestone.permanentDisplayId = nil
-                // Stop on first failure -- remaining milestones will be retried next pass.
+                // Reset only this run's value; preserve a peer merge.
+                if milestone.permanentDisplayId == newID {
+                    milestone.permanentDisplayId = nil
+                }
                 break
             }
         }
