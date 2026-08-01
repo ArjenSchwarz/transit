@@ -19,7 +19,25 @@ import Testing
 @MainActor @Suite(.serialized)
 struct CancelledCreateTests {
 
-    // MARK: - Test double
+    // MARK: - Test doubles
+
+    /// A non-cancellation-cooperative start barrier. Cancelling a task while it
+    /// waits here ensures the create path begins with cancellation already set.
+    private actor StartGate {
+        private var isReleased = false
+        private var continuation: CheckedContinuation<Void, Never>?
+
+        func wait() async {
+            guard !isReleased else { return }
+            await withCheckedContinuation { continuation = $0 }
+        }
+
+        func release() {
+            isReleased = true
+            continuation?.resume()
+            continuation = nil
+        }
+    }
 
     /// A counter store whose **first** `loadCounter` call blocks until the test
     /// explicitly releases it. Because `allocateNextID` reads the counter while
@@ -29,6 +47,9 @@ struct CancelledCreateTests {
     private actor GatedCounterStore: DisplayIDAllocator.CounterStore {
         private var nextDisplayID: Int
         private var changeTag = 0
+        private var saveAttempts = 0
+
+        var saveAttemptCount: Int { saveAttempts }
 
         private var firstLoadStarted = false
         private var firstLoadReached: CheckedContinuation<Void, Never>?
@@ -72,6 +93,7 @@ struct CancelledCreateTests {
         }
 
         func saveCounter(nextDisplayID: Int, expectedChangeTag: String?) async throws {
+            saveAttempts += 1
             guard expectedChangeTag == "\(changeTag)" else {
                 throw DisplayIDAllocator.Error.conflict
             }
@@ -89,6 +111,63 @@ struct CancelledCreateTests {
     }
 
     // MARK: - Tasks
+
+    /// A create that begins already cancelled must fail before an uncontended
+    /// allocation gate reaches the counter store.
+    @Test func preCancelledUncontendedTaskCreateDoesNotPersistRecord() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let startGate = StartGate()
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        let service = TaskService(modelContext: context, displayIDAllocator: allocator)
+        let project = makeProject(in: context)
+
+        let operation = Task { @MainActor in
+            await startGate.wait()
+            _ = try await service.createTask(
+                name: "Cancelled", description: nil, type: .feature, project: project
+            )
+        }
+        operation.cancel()
+        await startGate.release()
+
+        await #expect(throws: CancellationError.self) {
+            try await operation.value
+        }
+
+        let storeWasNeverAccessed = await store.wasNeverAccessed
+        #expect(storeWasNeverAccessed, "A pre-cancelled create must not enter the counter store")
+        #expect(try context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+    }
+
+    /// Cancellation while a non-cooperative counter store completes a successful
+    /// allocation must still abort before task insertion.
+    @Test func taskCancelledDuringSuccessfulAllocationDoesNotPersistRecord() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let store = GatedCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        let service = TaskService(modelContext: context, displayIDAllocator: allocator)
+        let project = makeProject(in: context)
+
+        let operation = Task { @MainActor in
+            _ = try await service.createTask(
+                name: "Cancelled", description: nil, type: .feature, project: project
+            )
+        }
+        await store.waitUntilGateHeld()
+        operation.cancel()
+        await store.releaseGate()
+
+        await #expect(throws: CancellationError.self) {
+            try await operation.value
+        }
+
+        let saveAttempts = await store.saveAttemptCount
+        #expect(saveAttempts == 1, "The allocation must succeed before cancellation is observed")
+        #expect(try context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+    }
 
     /// A task create that is cancelled while queued behind a gate-holding create
     /// must throw `CancellationError` and must NOT persist any (provisional) task.
@@ -136,6 +215,63 @@ struct CancelledCreateTests {
     }
 
     // MARK: - Milestones
+
+    /// A milestone create that begins already cancelled must fail before an
+    /// uncontended allocation gate reaches the counter store.
+    @Test func preCancelledUncontendedMilestoneCreateDoesNotPersistRecord() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let startGate = StartGate()
+        let store = InMemoryCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
+        let project = makeProject(in: context)
+
+        let operation = Task { @MainActor in
+            await startGate.wait()
+            _ = try await service.createMilestone(
+                name: "Cancelled", description: nil, project: project
+            )
+        }
+        operation.cancel()
+        await startGate.release()
+
+        await #expect(throws: CancellationError.self) {
+            try await operation.value
+        }
+
+        let storeWasNeverAccessed = await store.wasNeverAccessed
+        #expect(storeWasNeverAccessed, "A pre-cancelled create must not enter the counter store")
+        #expect(try context.fetch(FetchDescriptor<Milestone>()).isEmpty)
+    }
+
+    /// Cancellation while a non-cooperative counter store completes a successful
+    /// allocation must still abort before milestone insertion.
+    @Test func milestoneCancelledDuringSuccessfulAllocationDoesNotPersistRecord() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let store = GatedCounterStore()
+        let allocator = DisplayIDAllocator(store: store)
+        let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
+        let project = makeProject(in: context)
+
+        let operation = Task { @MainActor in
+            _ = try await service.createMilestone(
+                name: "Cancelled", description: nil, project: project
+            )
+        }
+        await store.waitUntilGateHeld()
+        operation.cancel()
+        await store.releaseGate()
+
+        await #expect(throws: CancellationError.self) {
+            try await operation.value
+        }
+
+        let saveAttempts = await store.saveAttemptCount
+        #expect(saveAttempts == 1, "The allocation must succeed before cancellation is observed")
+        #expect(try context.fetch(FetchDescriptor<Milestone>()).isEmpty)
+    }
 
     /// A milestone create that is cancelled while queued behind a gate-holding
     /// create must throw `CancellationError` and must NOT persist any record.
