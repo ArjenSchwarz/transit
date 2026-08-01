@@ -1,7 +1,7 @@
 # Bugfix Report: update_task_status can return the wrong comment
 
 **Date:** 2026-08-02
-**Status:** In Progress
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -37,7 +37,17 @@ When MCP `update_task_status` atomically changes a status and creates a comment,
 
 ## Resolution for the Issue
 
-_To be completed after the regression is proven and the fix is implemented._
+**Changes made:**
+- `Transit/Transit/Services/TaskService.swift` — `updateStatus` now returns the optional `Comment` created inside its atomic save closure.
+- `Transit/Transit/MCP/MCPToolHandler.swift` — `handleUpdateStatus` serializes that exact object; the timestamp-based `appendCommentDetails` refetch was removed, and both MCP comment mutation responses share one serializer.
+- `Transit/TransitTests/MCPToolHandlerCommentTests.swift` — added a future-dated existing-comment regression that compares the response UUID with the persisted comment created by the request.
+
+**Approach rationale:** Mutation identity is known at creation time and should be propagated directly. Returning `Comment?` is minimal, preserves atomicity, and leaves existing callers source-compatible through `@discardableResult`.
+
+**Alternatives considered:**
+- Fetch by expected content/author after saving — rejected because those fields are not unique and concurrent comments may match.
+- Fetch the latest comment by local timestamp or insertion order — rejected because neither is a reliable mutation identity across CloudKit peers.
+- Generate a UUID in the MCP handler and pass it into comment creation — rejected as unnecessary API surface when `CommentService.addComment` already returns the created model.
 
 ## Regression Test
 
@@ -52,19 +62,24 @@ _To be completed after the regression is proven and the fix is implemented._
 
 | File | Change |
 |------|--------|
-| `Transit/TransitTests/MCPToolHandlerCommentTests.swift` | Future-dated regression test |
-| `specs/bugfixes/update-task-status-wrong-comment/report.md` | Investigation and resolution record |
+| `Transit/Transit/Services/TaskService.swift` | Return the exact comment created by the atomic status update |
+| `Transit/Transit/MCP/MCPToolHandler.swift` | Serialize the returned comment directly and share comment response serialization |
+| `Transit/TransitTests/MCPToolHandlerCommentTests.swift` | Add the future-dated regression test |
+| `CHANGELOG.md` | Document the user-visible fix under Unreleased |
+| `specs/bugfixes/update-task-status-wrong-comment/report.md` | Record the investigation, resolution, and verification |
 
 ## Verification
 
 **Automated:**
 - [x] Regression test fails before the fix (returned future-dated comment UUID differed from the created comment UUID)
-- [ ] Regression test passes after the fix
-- [ ] Full quick test suite passes
-- [ ] Linters/validators pass
+- [x] Regression test passes after the fix as part of the macOS unit suite
+- [x] `make test-quick` passes: 1,609 passed, 0 failed, 0 skipped
+- [x] `make test` passes: 1,576 passed, 0 failed, 0 skipped
+- [x] `make lint` passes, including the SwiftData ownership guard and strict SwiftLint
+- [ ] `make test-ui`: 15 passed and 6 unrelated UI navigation/data-maintenance tests failed; all six failed again in a targeted retry. The change set contains no UI production or UI test changes.
 
 **Manual verification:**
-- Inspect the response comment ID and confirm it equals the newly persisted comment's ID rather than the future-dated record's ID.
+- The regression compares the response comment UUID, content, and author with the newly persisted comment, proving the future-dated record is not returned.
 
 ## Prevention
 

@@ -170,10 +170,11 @@ final class TaskService {
 
     /// Transitions a task to a new status via StatusEngine.
     /// When comment parameters are provided, creates a comment atomically
-    /// in the same save operation.
+    /// in the same save operation and returns that exact comment.
     /// Same-status updates are treated as no-ops so callers can safely retry
     /// or re-send the current status without mutating timestamps.
     /// Comments are always persisted regardless of whether the status changed.
+    @discardableResult
     func updateStatus(
         task: TransitTask,
         to newStatus: TaskStatus,
@@ -181,19 +182,20 @@ final class TaskService {
         commentAuthor: String? = nil,
         commentService: CommentService? = nil,
         save: Bool = true
-    ) throws {
+    ) throws -> Comment? {
         let statusChanged = task.status != newStatus
         let hasComment = comment.map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? false
-        guard statusChanged || hasComment else { return }
+        guard statusChanged || hasComment else { return nil }
 
         if statusChanged {
             StatusEngine.applyTransition(task: task, to: newStatus)
         }
 
+        var createdComment: Comment?
         try modelContext.saveOrRollback(save: save) {
             if let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                let commentAuthor, let commentService {
-                try commentService.addComment(
+                createdComment = try commentService.addComment(
                     to: task,
                     content: comment,
                     authorName: commentAuthor,
@@ -202,6 +204,7 @@ final class TaskService {
                 )
             }
         }
+        return createdComment
     }
 
     /// Moves a task to `.abandoned` status.
