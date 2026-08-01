@@ -178,8 +178,6 @@ extension MCPServer {
             var failure: String?
             do {
                 try await serviceGroup.run()
-            } catch is CancellationError {
-                failure = nil
             } catch {
                 failure = "Could not start server on port \(port): "
                     + error.localizedDescription
