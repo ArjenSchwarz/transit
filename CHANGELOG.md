@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Regression coverage and a systematic investigation report for MCP same-port restart and rapid off/on listener races (T-1826). The live loopback tests demonstrate that returning from `stop()` before Hummingbird releases its socket can produce `EADDRINUSE` and leave MCP stopped.
+
 ### Fixed
 
 - MCP `initialize` now requires object params with string `protocolVersion`, object `capabilities`, and typed `clientInfo` identity fields (T-1778). Missing or malformed method parameters return JSON-RPC `-32602 Invalid Params`. JSON-RPC request decoding now rejects scalar/null top-level `params` server-wide with `-32600 Invalid Request`. Supported `2025-03-26` requests are echoed and unsupported versions receive the server's latest advertised supported version. Focused handshake tests cover absent params/fields, wrong types, malformed client information, request-shape errors, and both negotiation paths.
