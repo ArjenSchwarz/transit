@@ -268,18 +268,25 @@ private actor AllocationGate {
 
     /// Runs `body` while holding the lock. Other callers queue until it returns.
     ///
+    /// Cancellation is checked before acquisition and again after acquisition,
+    /// before `body` starts. The second check closes the race where cancellation
+    /// arrives while `acquire()` is handing an uncontended or just-released lock
+    /// to this caller (T-1765).
+    ///
     /// Acquisition is cancellation-aware: if the calling Task is cancelled while
     /// suspended in the waiter queue, its continuation is removed and resumed
     /// rather than left pending (which would otherwise trip the runtime's
     /// "continuation leaked" check on teardown). A waiter that is cancelled out of
     /// the queue never held the lock, so `run` throws `CancellationError` without
     /// calling `release` — the lock is never lost. If cancellation races and loses
-    /// (the lock was already handed to this waiter via `release`), the waiter keeps
-    /// the lock, runs `body`, and releases normally.
+    /// (the lock was already handed to this waiter via `release`), the post-acquire
+    /// check observes it, and `defer` still releases the lock without running `body`.
     func run<T: Sendable>(_ body: @Sendable () async throws -> T) async throws -> T {
+        try Task.checkCancellation()
         let acquired = await acquire()
         guard acquired else { throw CancellationError() }
         defer { release() }
+        try Task.checkCancellation()
         return try await body()
     }
 

@@ -3,19 +3,18 @@ import SwiftData
 import Testing
 @testable import Transit
 
-/// Regression tests for T-1426: "Cancelled creates still persist provisional records".
+/// Regression tests for cancelled task and milestone creates (T-1426, T-1765).
 ///
-/// The T-1395 allocation gate (`DisplayIDAllocator`'s `AllocationGate`) propagates
-/// `CancellationError` when a caller is cancelled while waiting for display-ID
-/// allocation. Both creation services previously caught *every* allocation error
-/// and converted it into a `.provisional` ID, which meant a cancelled create still
-/// inserted and saved a new provisional record instead of aborting.
+/// T-1426 covered cancellation while queued behind a contended allocation gate.
+/// T-1765 closes two remaining paths: an already-cancelled caller could acquire a
+/// free gate, and cancellation during a non-cooperative successful allocation was
+/// not observed before insertion.
 ///
-/// These tests contend the allocation gate: a first ("holder") create acquires the
-/// gate and blocks inside the counter store, so a second create queues behind it.
-/// Cancelling the queued create must surface `CancellationError` and must NOT mutate
-/// persistent state. Genuine allocation failures (CloudKit/offline) still fall back
-/// to provisional IDs — covered by the existing allocator/concurrency suites.
+/// The tests cover pre-cancelled uncontended creates, cancellation while the
+/// allocation body succeeds, and cancellation while queued behind a gate holder.
+/// In every case cancellation must surface as `CancellationError` and must not
+/// mutate persistent state. Genuine CloudKit/offline allocation failures still
+/// fall back to provisional IDs in the existing allocator/concurrency suites.
 @MainActor @Suite(.serialized)
 struct CancelledCreateTests {
 

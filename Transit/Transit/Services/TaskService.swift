@@ -143,6 +143,12 @@ final class TaskService {
             displayID = .provisional
         }
 
+        // Counter stores are not required to cooperate with Swift cancellation.
+        // Re-check after allocation handling and immediately before constructing
+        // and inserting the model so a successfully allocated ID cannot turn a
+        // cancelled operation into a persisted task (T-1765).
+        try Task.checkCancellation()
+
         let task = TransitTask(
             name: trimmedName,
             description: description,
@@ -329,9 +335,7 @@ final class TaskService {
     // MARK: - Fetch
 
     /// Fetches all tasks from the model context.
-    func fetchAllTasks() throws -> [TransitTask] {
-        try modelContext.fetch(FetchDescriptor<TransitTask>())
-    }
+    func fetchAllTasks() throws -> [TransitTask] { try modelContext.fetch(FetchDescriptor<TransitTask>()) }
 
     /// Fetches terminal (done/abandoned) tasks with project relationship prefetched.
     func fetchTerminalTasks() throws -> [TransitTask] {

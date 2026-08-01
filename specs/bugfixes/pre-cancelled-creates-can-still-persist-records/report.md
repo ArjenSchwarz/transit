@@ -1,7 +1,7 @@
 # Bugfix Report: Pre-cancelled creates can still persist records
 
 **Date:** 2026-08-02
-**Status:** Investigating
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -48,7 +48,18 @@ The investigation followed the four-phase systematic debugging workflow.
 
 ## Resolution for the Issue
 
-Pending regression-test confirmation and implementation.
+**Changes made:**
+- `Transit/Transit/Services/DisplayIDAllocator.swift:285-289` - `AllocationGate.run` checks cancellation before acquisition and again after acquiring the lock but before invoking the body; the existing `defer` releases an acquired lock when the second check throws.
+- `Transit/Transit/Services/TaskService.swift:150` - Re-checks cancellation after permanent/provisional allocation handling and immediately before task construction and insertion.
+- `Transit/Transit/Services/MilestoneService.swift:82` - Re-checks cancellation after allocation handling and before the synchronous uniqueness re-check and insertion.
+- `Transit/TransitTests/CancelledCreateTests.swift` - Adds deterministic pre-cancelled uncontended and cancellation-during-successful-allocation regressions for both entity types while retaining the existing contended-gate cases.
+
+**Approach rationale:** The gate checks prevent cancelled work from entering a newly acquired allocation critical section, while the service checks protect the persistence boundary when a counter store completes successfully without observing cancellation. Together they cover both dependency-level and operation-level responsibility. The existing `modelContext.insertOrDelete` calls remain unchanged, preserving selective cleanup on save failure instead of introducing a context-wide rollback.
+
+**Alternatives considered:**
+- Check only inside `AllocationGate` after the body returns - Rejected because create services own the irreversible insertion boundary and should independently reject cancellation after any allocator implementation returns.
+- Rely on counter stores to throw cancellation - Rejected because Swift cancellation is cooperative and protocol implementations may legitimately use non-throwing continuations or external APIs that still complete successfully.
+- Roll back the context after insertion - Rejected because cancellation can be checked before insertion, and SwiftData rollback is not reliable cleanup for newly inserted models and could discard unrelated shared-context edits.
 
 ## Regression Test
 
@@ -68,18 +79,18 @@ Pending regression-test confirmation and implementation.
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Services/DisplayIDAllocator.swift` | Pending cancellation checks around gate acquisition/body |
-| `Transit/Transit/Services/TaskService.swift` | Pending post-allocation cancellation check |
-| `Transit/Transit/Services/MilestoneService.swift` | Pending post-allocation cancellation check |
-| `Transit/TransitTests/CancelledCreateTests.swift` | Four cancellation regressions |
+| `Transit/Transit/Services/DisplayIDAllocator.swift` | Cancellation checks before gate acquisition and before allocation body execution |
+| `Transit/Transit/Services/TaskService.swift` | Post-allocation cancellation check before insertion |
+| `Transit/Transit/Services/MilestoneService.swift` | Post-allocation cancellation check before uniqueness re-check/insertion |
+| `Transit/TransitTests/CancelledCreateTests.swift` | Four cancellation regressions and successful-allocation instrumentation |
 
 ## Verification
 
 **Automated:**
 - [x] Regression tests fail before the fix (four T-1765 cases fail; two existing T-1426 cases pass)
-- [ ] Regression tests pass after the fix
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression tests pass after the fix (`make test-quick PIPE_PRETTY=`)
+- [ ] Full test suite passes — `make test PIPE_PRETTY=` ran the cancellation regressions successfully on iOS but failed three unrelated UI tests: `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath` (duplicate accessibility element).
+- [x] Linters/validators pass (`make lint`)
 
 **Manual verification:**
 - Review the final diff to confirm `insertOrDelete` remains the persistence boundary for both create paths.
