@@ -208,7 +208,7 @@ struct MilestoneEditView: View {
             return
         }
 
-        form.adoptLiveValues(for: merge, from: milestone)
+        form.adoptLiveValues(for: merge)
         pendingConflict = nil
     }
 }

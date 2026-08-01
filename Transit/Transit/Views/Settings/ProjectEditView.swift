@@ -263,7 +263,7 @@ extension ProjectEditView {
             return
         }
 
-        form.adoptLiveValues(for: merge, from: project)
+        form.adoptLiveValues(for: merge)
         pendingConflict = nil
     }
 }

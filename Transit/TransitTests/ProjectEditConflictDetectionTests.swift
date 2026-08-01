@@ -97,7 +97,7 @@ struct ProjectEditConflictDetectionTests {
         form.colorHex = "00FF00"
 
         let merge = try #require(form.merge(against: project))
-        form.adoptLiveValues(for: merge, from: project)
+        form.adoptLiveValues(for: merge)
 
         #expect(form.name == "Renamed elsewhere")
         #expect(form.colorHex == "00FF00")
@@ -127,7 +127,7 @@ struct ProjectEditConflictDetectionTests {
         form.colorHex = "00FF00"
 
         let merge = try #require(form.merge(against: project))
-        form.adoptLiveValues(for: merge, from: project)
+        form.adoptLiveValues(for: merge)
 
         #expect(form.name == "Renamed elsewhere")
         #expect(form.description == "Rewritten elsewhere")

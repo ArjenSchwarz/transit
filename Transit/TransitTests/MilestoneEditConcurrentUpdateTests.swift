@@ -219,7 +219,7 @@ struct MilestoneEditConflictDetectionTests {
         form.description = "Rewritten by the user"
 
         let merge = try #require(form.merge(against: milestone))
-        form.adoptLiveValues(for: merge, from: milestone)
+        form.adoptLiveValues(for: merge)
 
         #expect(form.name == "Renamed elsewhere")
         #expect(form.description == "Rewritten by the user")
@@ -245,7 +245,7 @@ struct MilestoneEditConflictDetectionTests {
         form.name = "Renamed by the user"
 
         let merge = try #require(form.merge(against: milestone))
-        form.adoptLiveValues(for: merge, from: milestone)
+        form.adoptLiveValues(for: merge)
 
         #expect(form.name == "Renamed elsewhere")
         #expect(form.description == "Rewritten elsewhere")

@@ -141,7 +141,7 @@ struct MilestoneEditForm {
     /// Rebuilds the whole draft on the live snapshot shown by the resolved
     /// merge. Starting from live refreshes untouched external changes; only
     /// genuine non-conflicting user edits remain overlaid.
-    mutating func adoptLiveValues(for merge: MilestoneEditMerge, from _: Milestone) {
+    mutating func adoptLiveValues(for merge: MilestoneEditMerge) {
         let rebased = merge.rebasedEdited
         name = rebased.name
         description = rebased.description
