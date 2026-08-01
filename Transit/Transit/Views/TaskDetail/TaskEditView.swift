@@ -371,10 +371,13 @@ extension TaskEditView {
         }
 
         let rebased = merge.rebasedEdited
-        // The rebased ID can only originate from the edited selection or live task.
-        let rebasedMilestone = [selectedMilestone, task.milestone]
-            .compactMap { $0 }
-            .first { $0.id == rebased.milestoneID }
+        // The rebased ID can only originate from the edited selection or live
+        // task, and is dropped when it does not belong to the rebased project.
+        let rebasedMilestone = Self.rebasedMilestone(
+            milestoneID: rebased.milestoneID,
+            projectID: rebased.projectID,
+            candidates: [selectedMilestone, task.milestone]
+        )
         name = rebased.name
         taskDescription = rebased.description
         selectedType = rebased.type

@@ -102,7 +102,7 @@ All business logic lives in `Services/`, not in views:
 - **ContainerFactory** — creates ModelContainer with graceful fallback to in-memory on error
 - **ConnectivityMonitor** — NWPathMonitor wrapper, triggers display ID promotion for both tasks and milestones on connectivity restore
 - **QuickActionService** — home screen quick action handling
-- **EditMerge** (`EditMerge.swift`, plus `TaskEditMerge`/`ProjectEditMerge`/`MilestoneEditMerge`) — three-way merge (load-time baseline vs. form vs. live model) used by the task, project, and milestone editors so a save writes only the fields the user changed and same-field conflicts are surfaced instead of silently resolved. Each editor supplies a field enum, a snapshot, an applier, and a load-once draft form.
+- **EditMerge** (`EditMerge.swift`, plus `TaskEditMerge`/`ProjectEditMerge`/`MilestoneEditMerge`) — three-way merge (load-time baseline vs. form vs. live model) used by the task, project, and milestone editors so a save writes only the fields the user changed and same-field conflicts are surfaced instead of silently resolved. The merge retains the original, edited, and live snapshots so conflict consent is scoped to the exact values the alert showed and is re-validated when the button is pressed. Each editor supplies a field enum, a snapshot (including per-field `replacing(_:withValueFrom:)`), an applier, and load-once draft state (a value-type form where appropriate).
 
 ### Navigation
 

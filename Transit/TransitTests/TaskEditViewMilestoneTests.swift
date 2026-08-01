@@ -74,4 +74,87 @@ struct TaskEditViewMilestoneTests {
 
         #expect(availableMilestones.map(\.id) == [openMilestone.id])
     }
+
+    /// A rebase merges fields independently, so "Use Updated Values" can pair an
+    /// externally moved project with a milestone the user picked under the old
+    /// one. Carrying that pair into the draft makes every later save fail
+    /// `MilestoneService` project-match validation, so the milestone is dropped.
+    @Test func rebasedMilestoneIsDroppedWhenItBelongsToAnotherProject() async throws {
+        let (milestoneService, context) = try makeMilestoneService()
+        let originalProject = makeProject(in: context, name: "Original")
+        let externalProject = makeProject(in: context, name: "Moved elsewhere")
+        let userPick = try await milestoneService.createMilestone(
+            name: "Picked by the user",
+            description: nil,
+            project: originalProject
+        )
+
+        let rebased = TaskEditView.rebasedMilestone(
+            milestoneID: userPick.id,
+            projectID: externalProject.id,
+            candidates: [userPick, nil]
+        )
+
+        #expect(rebased == nil)
+    }
+
+    /// The ordinary case: the rebased milestone still belongs to the rebased
+    /// project, so the user's non-conflicting pick survives the rebase.
+    @Test func rebasedMilestoneIsKeptWhenItMatchesTheRebasedProject() async throws {
+        let (milestoneService, context) = try makeMilestoneService()
+        let project = makeProject(in: context)
+        let userPick = try await milestoneService.createMilestone(
+            name: "Picked by the user",
+            description: nil,
+            project: project
+        )
+
+        let rebased = TaskEditView.rebasedMilestone(
+            milestoneID: userPick.id,
+            projectID: project.id,
+            candidates: [userPick, nil]
+        )
+
+        #expect(rebased?.id == userPick.id)
+    }
+
+    /// An externally assigned milestone is resolved from the live task when the
+    /// user never picked one.
+    @Test func rebasedMilestoneResolvesTheLiveTaskMilestone() async throws {
+        let (milestoneService, context) = try makeMilestoneService()
+        let project = makeProject(in: context)
+        let externalPick = try await milestoneService.createMilestone(
+            name: "Assigned by MCP",
+            description: nil,
+            project: project
+        )
+
+        let rebased = TaskEditView.rebasedMilestone(
+            milestoneID: externalPick.id,
+            projectID: project.id,
+            candidates: [nil, externalPick]
+        )
+
+        #expect(rebased?.id == externalPick.id)
+    }
+
+    /// No milestone in the rebased draft means no selection, regardless of what
+    /// either side had before.
+    @Test func rebasedMilestoneIsNilWhenTheDraftHasNoMilestone() async throws {
+        let (milestoneService, context) = try makeMilestoneService()
+        let project = makeProject(in: context)
+        let candidate = try await milestoneService.createMilestone(
+            name: "Previously selected",
+            description: nil,
+            project: project
+        )
+
+        let rebased = TaskEditView.rebasedMilestone(
+            milestoneID: nil,
+            projectID: project.id,
+            candidates: [candidate, nil]
+        )
+
+        #expect(rebased == nil)
+    }
 }

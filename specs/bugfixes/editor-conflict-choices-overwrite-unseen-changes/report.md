@@ -63,6 +63,8 @@ The conflict flow treats both rebasing and overwrite consent as field-set operat
 
 Task, project, and milestone snapshots implement per-field replacement for shared rebasing. Each editor adopts the entire rebased draft and advances its baseline to the current live snapshot. Task milestone rebasing resolves the rebased milestone ID from the selected and current-live milestone candidates.
 
+Because a rebase merges each field independently, it can pair an externally moved project with a milestone the user picked under the old project — a combination `MilestoneService.setMilestone` rejects, which would leave the editor showing a blank milestone picker and failing every subsequent save with the generic error. `TaskEditView.rebasedMilestone(milestoneID:projectID:candidates:)` therefore applies Decision 6 (moving project clears the milestone) to the rebased draft and drops a candidate that does not belong to the rebased project.
+
 **Approach rationale:** Keeping snapshot identity and rebase policy in the shared merge layer gives all editors identical behavior and makes both race and rebase invariants directly testable.
 
 **Alternatives considered:**
@@ -79,7 +81,7 @@ Task, project, and milestone snapshots implement per-field replacement for share
 
 **Tests:** Each editor has a multi-field rebase regression and an alert-race regression. They verify that untouched live fields refresh, genuine non-conflicting user edits remain pending, and both a changed value for the same conflict field set and a newly added conflict invalidate the shown alert snapshot.
 
-**Red phase:** `make test-quick` failed while compiling `ProjectEditConflictDetectionTests.swift` because `ProjectEditMerge` had no `hasSameConflictSnapshot(as:)` member. This confirmed the required consent-scoping behavior was absent before implementation.
+**Red phase:** compile-only. `make test-quick` failed building `ProjectEditConflictDetectionTests.swift` because `ProjectEditMerge` had no `hasSameConflictSnapshot(as:)` member, and the rebase tests used the new one-argument `adoptLiveValues(for:)` signature. This confirmed the API was absent but is not behavioural evidence: no test in this change can fail against the pre-fix implementation for a behavioural reason, because the pre-fix implementation cannot compile them. The project-mismatch rebase tests added during pre-push review are the exception — they fail behaviourally without the `rebasedMilestone` project guard.
 
 **Green command:** `make test-quick`
 
@@ -91,9 +93,13 @@ Task, project, and milestone snapshots implement per-field replacement for share
 | `Transit/Transit/Services/TaskEditMerge.swift` | Add task snapshot field replacement for shared rebasing |
 | `Transit/Transit/Services/ProjectEditMerge.swift` | Add project field replacement and complete-form rebase |
 | `Transit/Transit/Services/MilestoneEditMerge.swift` | Add milestone field replacement and complete-form rebase |
-| `Transit/Transit/Views/Shared/EditConflictAlert.swift` | Pass the shown merge to both alert actions |
+| `Transit/Transit/Views/Shared/EditConflictAlert.swift` | Pass the shown merge to both alert actions; add the shared `presentEditConflict` dismiss/yield/re-present helper |
 | `Transit/Transit/Views/TaskDetail/TaskEditConflictAlert.swift` | Forward the shown task merge to keep-mine handling |
 | `Transit/Transit/Views/TaskDetail/TaskEditView.swift` | Recompute and validate both choices; adopt the complete rebased task draft |
+| `Transit/Transit/Views/TaskDetail/TaskEditView+Milestones.swift` | Resolve the rebased milestone, dropping one that does not belong to the rebased project |
+| `Transit/TransitTests/TaskEditViewMilestoneTests.swift` | Add rebased-milestone project-consistency regressions |
+| `Transit/TransitTests/TaskEditConflictConsentTests.swift` | Assert consent survives when the shown conflict is unchanged |
+| `CLAUDE.md` | Document snapshot retention, consent scoping, and the new snapshot requirement |
 | `Transit/Transit/Views/Settings/ProjectEditView.swift` | Recompute and validate both choices; re-alert on changed conflicts |
 | `Transit/Transit/Views/Settings/MilestoneEditView.swift` | Recompute and validate both choices; re-alert on changed conflicts |
 | `Transit/TransitTests/TaskEditConcurrentUpdateTests.swift` | Add task multi-field rebase and alert-race regressions |
@@ -112,12 +118,20 @@ Task, project, and milestone snapshots implement per-field replacement for share
 
 **Manual verification:** Not performed; the merge invariants and all six task/project/milestone rebase and alert-race scenarios are exercised by the green macOS unit suite.
 
+## Known limitation
+
+`presentEditConflict` re-presents a replaced alert by clearing the binding and re-setting it after a single `await Task.yield()`. Nothing orders that yield against SwiftUI's own dismissal, which writes `nil` through the alert's `isPresented` setter. If the dismissal write lands after the re-set, the replacement alert is swallowed and the button appears inert.
+
+This fails safe — nothing is written and the conflict state is discarded, not resolved — and it is self-recovering: pressing Save again finds `pendingConflict == nil`, takes the direct (non-replacing) branch, and presents the current conflict correctly. It is unverified in either direction: the path has no unit coverage (SwiftUI alert presentation ordering is not unit-testable) and neither `make test` nor `make test-ui` produced a clean simulator run. A dismissal-driven queue inside `EditConflictAlert` — promote a queued merge from the `isPresented` setter rather than after a fixed yield — would remove the timing assumption if this is ever observed in practice.
+
 ## Prevention
 
 - Treat conflict consent as authorization for exact values, not a Boolean permission to overwrite arbitrary future conflicts.
 - Rebase editable drafts by starting from the latest live snapshot and overlaying only known user-owned edits.
 - Keep conflict policy in the shared merge layer so all editors remain behaviorally aligned.
 - Keep same-field-value and newly-added-field alert races as separate regression assertions.
+- Assert both directions of a consent predicate. Every original T-1935 assertion checked that consent was *revoked*; an implementation returning `false` unconditionally would have passed the whole suite while making conflict alerts impossible to get past.
+- A field-independent rebase can produce a cross-field combination neither side ever held. Re-apply domain pairing rules (here, Decision 6) to the rebased draft.
 
 ## Related
 
