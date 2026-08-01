@@ -268,7 +268,7 @@ struct TaskServiceTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        try service.updateStatus(
+        let returnedComment = try service.updateStatus(
             task: task,
             to: .planning,
             comment: "Moving to planning",
@@ -278,9 +278,12 @@ struct TaskServiceTests {
 
         #expect(task.status == .planning)
         let comments = try commentService.fetchComments(for: task.id)
+        let persistedComment = try #require(comments.first)
+        let exactReturnedComment = try #require(returnedComment)
         #expect(comments.count == 1)
-        #expect(comments.first?.content == "Moving to planning")
-        #expect(comments.first?.authorName == "Agent")
+        #expect(persistedComment.id == exactReturnedComment.id)
+        #expect(persistedComment.content == "Moving to planning")
+        #expect(persistedComment.authorName == "Agent")
     }
 
     @Test func updateStatusWithCommentSetsIsAgentTrue() async throws {

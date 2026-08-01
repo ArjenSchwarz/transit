@@ -40,6 +40,7 @@ final class TaskService {
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
     private let createSave: (ModelContext) throws -> Void
+    private let statusSave: (ModelContext) throws -> Void
 
     /// Committed display IDs feeding the allocator's collision guard. Reads through
     /// an injectable seam only so tests can simulate an unreadable store (T-1621);
@@ -50,12 +51,14 @@ final class TaskService {
         modelContext: ModelContext,
         displayIDAllocator: DisplayIDAllocator,
         fetcher: (any ModelFetching)? = nil,
-        createSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
+        createSave: @escaping (ModelContext) throws -> Void = { try $0.save() },
+        statusSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
     ) {
         self.modelContext = modelContext
         self.displayIDAllocator = displayIDAllocator
         self.usedDisplayIDs = UsedDisplayIDs(fetcher ?? modelContext)
         self.createSave = createSave
+        self.statusSave = statusSave
     }
 
     // MARK: - Task Creation
@@ -170,10 +173,11 @@ final class TaskService {
 
     /// Transitions a task to a new status via StatusEngine.
     /// When comment parameters are provided, creates a comment atomically
-    /// in the same save operation.
+    /// in the same save operation and returns that exact comment.
     /// Same-status updates are treated as no-ops so callers can safely retry
     /// or re-send the current status without mutating timestamps.
     /// Comments are always persisted regardless of whether the status changed.
+    @discardableResult
     func updateStatus(
         task: TransitTask,
         to newStatus: TaskStatus,
@@ -181,19 +185,19 @@ final class TaskService {
         commentAuthor: String? = nil,
         commentService: CommentService? = nil,
         save: Bool = true
-    ) throws {
+    ) throws -> Comment? {
         let statusChanged = task.status != newStatus
         let hasComment = comment.map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? false
-        guard statusChanged || hasComment else { return }
+        guard statusChanged || hasComment else { return nil }
 
-        if statusChanged {
-            StatusEngine.applyTransition(task: task, to: newStatus)
-        }
-
-        try modelContext.saveOrRollback(save: save) {
+        var createdComment: Comment?
+        do {
+            if statusChanged {
+                StatusEngine.applyTransition(task: task, to: newStatus)
+            }
             if let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                let commentAuthor, let commentService {
-                try commentService.addComment(
+                createdComment = try commentService.addComment(
                     to: task,
                     content: comment,
                     authorName: commentAuthor,
@@ -201,7 +205,20 @@ final class TaskService {
                     save: nil
                 )
             }
+            if save {
+                try statusSave(modelContext)
+            }
+        } catch {
+            // A status update is an update, but its optional comment is a create.
+            // Delete the inserted model before rolling back so a failed save cannot
+            // leave a ghost comment that a later unrelated save would persist.
+            if let createdComment {
+                modelContext.delete(createdComment)
+            }
+            modelContext.safeRollback()
+            throw error
         }
+        return createdComment
     }
 
     /// Moves a task to `.abandoned` status.

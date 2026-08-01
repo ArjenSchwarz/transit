@@ -462,14 +462,14 @@ final class MCPToolHandler {
         }
         let commentText = args["comment"] as? String
         let commentAuthor = args["authorName"] as? String
-        let (commentError, hasComment) = validateCommentArgs(comment: commentText, author: commentAuthor)
-        if let commentError {
+        if let commentError = validateCommentArgs(comment: commentText, author: commentAuthor) {
             return commentError
         }
 
         let previousStatus = task.statusRawValue
+        let createdComment: Comment?
         do {
-            try taskService.updateStatus(
+            createdComment = try taskService.updateStatus(
                 task: task, to: newStatus,
                 comment: commentText, commentAuthor: commentAuthor, commentService: commentService
             )
@@ -478,7 +478,7 @@ final class MCPToolHandler {
         }
 
         var response = statusResponse(task: task, previousStatus: previousStatus, newStatus: newStatus)
-        appendCommentDetails(to: &response, taskID: task.id, hasComment: hasComment)
+        response["comment"] = createdComment.map(commentResponse)
         return textResult(IntentHelpers.encodeJSON(response))
     }
 
@@ -1137,26 +1137,19 @@ extension MCPToolHandler {
             return errorResult("Failed to add comment: \(error)")
         }
 
-        let isoFormatter = ISO8601DateFormatter()
-        let response: [String: Any] = [
-            "id": comment.id.uuidString,
-            "authorName": comment.authorName,
-            "content": comment.content,
-            "creationDate": isoFormatter.string(from: comment.creationDate)
-        ]
-        return textResult(IntentHelpers.encodeJSON(response))
+        return textResult(IntentHelpers.encodeJSON(commentResponse(comment)))
     }
 
     // MARK: - Helpers
 
-    private func validateCommentArgs(comment: String?, author: String?) -> (MCPToolResult?, Bool) {
+    private func validateCommentArgs(comment: String?, author: String?) -> MCPToolResult? {
         guard let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return (nil, false)
+            return nil
         }
         guard let author, !author.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return (errorResult("authorName is required when comment is provided"), false)
+            return errorResult("authorName is required when comment is provided")
         }
-        return (nil, true)
+        return nil
     }
 
     private func statusResponse(
@@ -1169,14 +1162,14 @@ extension MCPToolHandler {
         return res
     }
 
-    private func appendCommentDetails(to response: inout [String: Any], taskID: UUID, hasComment: Bool) {
-        guard hasComment,
-              let last = (try? commentService.fetchComments(for: taskID))?.last else { return }
-        let fmt = ISO8601DateFormatter()
-        response["comment"] = [
-            "id": last.id.uuidString, "authorName": last.authorName,
-            "content": last.content, "creationDate": fmt.string(from: last.creationDate)
-        ] as [String: Any]
+    private func commentResponse(_ comment: Comment) -> [String: Any] {
+        let formatter = ISO8601DateFormatter()
+        return [
+            "id": comment.id.uuidString,
+            "authorName": comment.authorName,
+            "content": comment.content,
+            "creationDate": formatter.string(from: comment.creationDate)
+        ]
     }
 
     enum ResolveError: Error {

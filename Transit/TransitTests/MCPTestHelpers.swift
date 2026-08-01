@@ -19,7 +19,8 @@ struct MCPTestEnv {
 enum MCPTestHelpers {
 
     static func makeEnv(
-        taskCreateSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
+        taskCreateSave: @escaping (ModelContext) throws -> Void = { try $0.save() },
+        taskStatusSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
     ) throws -> MCPTestEnv {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
@@ -28,7 +29,8 @@ enum MCPTestHelpers {
         let taskService = TaskService(
             modelContext: context,
             displayIDAllocator: taskAllocator,
-            createSave: taskCreateSave
+            createSave: taskCreateSave,
+            statusSave: taskStatusSave
         )
         let projectService = ProjectService(modelContext: context)
         let commentService = CommentService(modelContext: context)
