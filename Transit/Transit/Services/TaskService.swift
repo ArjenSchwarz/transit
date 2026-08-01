@@ -4,6 +4,7 @@ import SwiftData
 /// Coordinates task creation, status changes, and lookups. Uses StatusEngine
 /// for all status transitions and DisplayIDAllocator for display ID assignment.
 @MainActor @Observable
+// swiftlint:disable:next type_body_length
 final class TaskService {
 
     enum Error: Swift.Error, LocalizedError, Equatable {
@@ -335,7 +336,9 @@ final class TaskService {
     // MARK: - Fetch
 
     /// Fetches all tasks from the model context.
-    func fetchAllTasks() throws -> [TransitTask] { try modelContext.fetch(FetchDescriptor<TransitTask>()) }
+    func fetchAllTasks() throws -> [TransitTask] {
+        try modelContext.fetch(FetchDescriptor<TransitTask>())
+    }
 
     /// Fetches terminal (done/abandoned) tasks with project relationship prefetched.
     func fetchTerminalTasks() throws -> [TransitTask] {

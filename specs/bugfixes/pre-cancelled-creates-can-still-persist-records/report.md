@@ -54,7 +54,7 @@ The investigation followed the four-phase systematic debugging workflow.
 - `Transit/Transit/Services/MilestoneService.swift:82` - Re-checks cancellation after allocation handling and before the synchronous uniqueness re-check and insertion.
 - `Transit/TransitTests/CancelledCreateTests.swift` - Adds deterministic pre-cancelled uncontended and cancellation-during-successful-allocation regressions for both entity types while retaining the existing contended-gate cases.
 
-**Approach rationale:** The gate checks prevent cancelled work from entering a newly acquired allocation critical section, while the service checks protect the persistence boundary when a counter store completes successfully without observing cancellation. Together they cover both dependency-level and operation-level responsibility. The existing `modelContext.insertOrDelete` calls remain unchanged, preserving selective cleanup on save failure instead of introducing a context-wide rollback.
+**Approach rationale:** The gate checks prevent cancelled work from entering a newly acquired allocation critical section, while the service checks protect the persistence boundary when a counter store completes successfully without observing cancellation. Together they cover both dependency-level and operation-level responsibility. The existing `modelContext.insertOrDelete` calls remain unchanged, preserving selective cleanup on save failure instead of introducing a context-wide rollback. If cancellation arrives after `saveCounter` succeeds, the allocated display ID is intentionally left unused; the sequence may contain a gap, matching existing save-failure behavior and preferring a skipped number over a ghost record.
 
 **Alternatives considered:**
 - Check only inside `AllocationGate` after the body returns - Rejected because create services own the irreversible insertion boundary and should independently reject cancellation after any allocator implementation returns.
@@ -89,7 +89,7 @@ The investigation followed the four-phase systematic debugging workflow.
 **Automated:**
 - [x] Regression tests fail before the fix (four T-1765 cases fail; two existing T-1426 cases pass)
 - [x] Regression tests pass after the fix (`make test-quick PIPE_PRETTY=`)
-- [ ] Full test suite passes — `make test PIPE_PRETTY=` ran the cancellation regressions successfully on iOS but failed three unrelated UI tests: `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath` (duplicate accessibility element).
+- [ ] Full test suite passes — two `make test PIPE_PRETTY=` runs passed all T-1765 regressions on iOS but failed unrelated UI tests. The first failed `testClearAll`, `testEditViewPreservesTaskMilestone`, and `testDataMaintenanceGoldenPath`; the post-review rerun also failed three settings-navigation cases (`testSettingsHasBackChevron`, `testSettingsWithNoProjectsShowsCreatePrompt`, `testTappingGearPushesSettingsView`), confirming simulator/UI-suite instability outside the changed cancellation paths.
 - [x] Linters/validators pass (`make lint`)
 
 **Manual verification:**
