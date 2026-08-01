@@ -12,6 +12,7 @@ final class TaskService {
         case projectNotFound
         case duplicateDisplayID
         case restoreRequiresAbandonedTask
+        case milestoneProjectMismatch
         /// Identifier key present but malformed; field name surfaces a field-specific INVALID_INPUT [T-808]
         case invalidIdentifier(field: String)
 
@@ -27,6 +28,8 @@ final class TaskService {
                 "A duplicate task identifier was detected."
             case .restoreRequiresAbandonedTask:
                 "Only abandoned tasks can be restored."
+            case .milestoneProjectMismatch:
+                "Milestone and task must belong to the same project."
             case .invalidIdentifier(let field):
                 "The supplied \(field) is not a valid task identifier."
             }
@@ -35,6 +38,7 @@ final class TaskService {
 
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
+    private let createSave: (ModelContext) throws -> Void
 
     /// Committed display IDs feeding the allocator's collision guard. Reads through
     /// an injectable seam only so tests can simulate an unreadable store (T-1621);
@@ -44,11 +48,13 @@ final class TaskService {
     init(
         modelContext: ModelContext,
         displayIDAllocator: DisplayIDAllocator,
-        fetcher: (any ModelFetching)? = nil
+        fetcher: (any ModelFetching)? = nil,
+        createSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
     ) {
         self.modelContext = modelContext
         self.displayIDAllocator = displayIDAllocator
         self.usedDisplayIDs = UsedDisplayIDs(fetcher ?? modelContext)
+        self.createSave = createSave
     }
 
     // MARK: - Task Creation
@@ -63,7 +69,8 @@ final class TaskService {
         type: TaskType,
         projectID: UUID,
         metadata: [String: String]? = nil,
-        priority: TaskPriority = .medium
+        priority: TaskPriority = .medium,
+        milestone: Milestone? = nil
     ) async throws -> TransitTask {
         let descriptor = FetchDescriptor<Project>(
             predicate: #Predicate { $0.id == projectID }
@@ -77,12 +84,16 @@ final class TaskService {
             type: type,
             project: project,
             metadata: metadata,
-            priority: priority
+            priority: priority,
+            milestone: milestone
         )
     }
 
-    /// Creates a new task in `.idea` status. Attempts to allocate a permanent
-    /// display ID from CloudKit; falls back to provisional on failure.
+    /// Creates a new task in `.idea` status. The optional milestone is validated
+    /// and attached before insertion so the aggregate is persisted in one save.
+    /// Attempts to allocate a permanent display ID from CloudKit; falls back to
+    /// provisional on failure. `createSave` is injectable for surface-level
+    /// persistence failure tests.
     @discardableResult
     func createTask(
         name: String,
@@ -91,7 +102,8 @@ final class TaskService {
         project: Project,
         metadata: [String: String]? = nil,
         priority: TaskPriority = .medium,
-        save: (ModelContext) throws -> Void = { try $0.save() }
+        milestone: Milestone? = nil,
+        save: ((ModelContext) throws -> Void)? = nil
     ) async throws -> TransitTask {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
@@ -124,6 +136,10 @@ final class TaskService {
             displayID = .provisional
         }
 
+        if let milestone, milestone.project?.id != project.id {
+            throw Error.milestoneProjectMismatch
+        }
+
         let task = TransitTask(
             name: trimmedName,
             description: description,
@@ -134,8 +150,9 @@ final class TaskService {
             priority: priority
         )
         StatusEngine.initializeNewTask(task)
+        task.milestone = milestone
 
-        try modelContext.insertOrDelete(task, save: save)
+        try modelContext.insertOrDelete(task, save: save ?? createSave)
         return task
     }
 

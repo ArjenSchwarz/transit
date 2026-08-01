@@ -26,8 +26,7 @@ extension AddTaskSheet {
         do {
             try await Self.persist(
                 draft: draft,
-                taskService: taskService,
-                milestoneService: milestoneService
+                taskService: taskService
             )
             dismiss()
         } catch {
@@ -45,36 +44,20 @@ extension AddTaskSheet {
         let milestone: Milestone?
     }
 
-    /// Persists a new task and optionally assigns a milestone. Extracted as a
+    /// Persists a new task and optional milestone as one aggregate. Extracted as a
     /// static helper because the SwiftUI view layer cannot be invoked directly
     /// from tests.
-    ///
-    /// When milestone assignment fails after `createTask` has already saved
-    /// the task, the newly-created task is deleted before rethrowing so the
-    /// operation is atomic from the user's perspective. Matches the cleanup
-    /// pattern used by `CreateTaskIntent` and MCP `create_task` [T-558,
-    /// T-855].
     static func persist(
         draft: TaskDraft,
-        taskService: TaskService,
-        milestoneService: MilestoneService
+        taskService: TaskService
     ) async throws {
-        let task = try await taskService.createTask(
+        _ = try await taskService.createTask(
             name: draft.name,
             description: draft.description,
             type: draft.type,
             projectID: draft.projectID,
-            priority: draft.priority
+            priority: draft.priority,
+            milestone: draft.milestone
         )
-        guard let milestone = draft.milestone else { return }
-        do {
-            try milestoneService.setMilestone(milestone, on: task)
-        } catch {
-            // Avoid leaving an orphaned task in the store when the milestone
-            // cannot be attached. `deleteTask` is best-effort: if it also
-            // fails we still surface the original assignment error.
-            try? taskService.deleteTask(task)
-            throw error
-        }
     }
 }

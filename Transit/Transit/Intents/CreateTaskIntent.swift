@@ -141,23 +141,11 @@ struct CreateTaskIntent: AppIntent {
                 type: taskType,
                 project: project,
                 metadata: IntentHelpers.stringMetadata(from: json["metadata"]),
-                priority: priority
+                priority: priority,
+                milestone: resolvedMilestone
             )
         } catch {
             return IntentError.invalidInput(hint: "Task creation failed").json
-        }
-
-        // Assign pre-resolved milestone [req 13.6]
-        // Safety: resolveMilestone already verified the milestone exists and belongs to the
-        // correct project, so setMilestone should only fail on an unexpected persistence error.
-        // On failure, delete the task to avoid orphans [T-558], matching MCP create_task behavior.
-        if let resolvedMilestone {
-            do {
-                try milestoneService?.setMilestone(resolvedMilestone, on: task)
-            } catch {
-                try? taskService.deleteTask(task)
-                return IntentError.internalError(hint: "Failed to assign milestone").json
-            }
         }
 
         return buildResponse(task)

@@ -317,20 +317,11 @@ final class MCPToolHandler {
                 type: taskType,
                 project: project,
                 metadata: IntentHelpers.stringMetadata(from: args["metadata"]),
-                priority: priority
+                priority: priority,
+                milestone: resolvedMilestone
             )
         } catch {
             return errorResult("Task creation failed: \(error)")
-        }
-
-        if let milestone = resolvedMilestone {
-            do {
-                try milestoneService.setMilestone(milestone, on: task)
-            } catch {
-                // Pre-validation should prevent this, but clean up the task on unexpected failures.
-                try? taskService.deleteTask(task)
-                return errorResult("Failed to set milestone: \(error)")
-            }
         }
 
         var response: [String: Any] = [
