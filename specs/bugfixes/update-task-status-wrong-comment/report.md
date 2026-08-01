@@ -38,11 +38,13 @@ When MCP `update_task_status` atomically changes a status and creates a comment,
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Services/TaskService.swift` — `updateStatus` now returns the optional `Comment` created inside its atomic save closure.
+- `Transit/Transit/Services/TaskService.swift` — `updateStatus` now returns the optional `Comment` created inside its atomic save operation. Its save operation is injectable for failure coverage, and a failed save deletes the newly inserted comment before rolling back task state so a later save cannot persist a ghost record.
 - `Transit/Transit/MCP/MCPToolHandler.swift` — `handleUpdateStatus` serializes that exact object; the timestamp-based `appendCommentDetails` refetch was removed, and both MCP comment mutation responses share one serializer.
-- `Transit/TransitTests/MCPToolHandlerCommentTests.swift` — added a future-dated existing-comment regression that compares the response UUID with the persisted comment created by the request.
+- `Transit/TransitTests/TaskServiceTests.swift` — directly verifies the returned service object matches the persisted comment UUID.
+- `Transit/TransitTests/TaskServiceStatusCommentFailureTests.swift` — verifies save failure restores status and permanently removes the insertion.
+- `Transit/TransitTests/MCPToolHandlerCommentTests.swift` — verifies the future-dated comment cannot replace the response identity and that save failure produces an MCP error without persisting status or comment state.
 
-**Approach rationale:** Mutation identity is known at creation time and should be propagated directly. Returning `Comment?` is minimal, preserves atomicity, and leaves existing callers source-compatible through `@discardableResult`.
+**Approach rationale:** Mutation identity is known at creation time and should be propagated directly. Returning `Comment?` is minimal, preserves atomicity, and leaves existing callers source-compatible through `@discardableResult`. Explicit insertion cleanup is required in addition to rollback because SwiftData rollback does not reliably unregister newly inserted models.
 
 **Alternatives considered:**
 - Fetch by expected content/author after saving — rejected because those fields are not unique and concurrent comments may match.
@@ -62,9 +64,12 @@ When MCP `update_task_status` atomically changes a status and creates a comment,
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Services/TaskService.swift` | Return the exact comment created by the atomic status update |
+| `Transit/Transit/Services/TaskService.swift` | Return the exact comment and clean up the inserted model when an atomic save fails |
 | `Transit/Transit/MCP/MCPToolHandler.swift` | Serialize the returned comment directly and share comment response serialization |
-| `Transit/TransitTests/MCPToolHandlerCommentTests.swift` | Add the future-dated regression test |
+| `Transit/TransitTests/TaskServiceTests.swift` | Verify the returned service object has the persisted comment UUID |
+| `Transit/TransitTests/TaskServiceStatusCommentFailureTests.swift` | Verify save-failure cleanup, status rollback, and no later ghost persistence |
+| `Transit/TransitTests/MCPTestHelpers.swift` | Inject status-save behavior for MCP failure-path coverage |
+| `Transit/TransitTests/MCPToolHandlerCommentTests.swift` | Cover future-dated identity selection and MCP save-failure behavior |
 | `CHANGELOG.md` | Document the user-visible fix under Unreleased |
 | `specs/bugfixes/update-task-status-wrong-comment/report.md` | Record the investigation, resolution, and verification |
 
@@ -73,13 +78,16 @@ When MCP `update_task_status` atomically changes a status and creates a comment,
 **Automated:**
 - [x] Regression test fails before the fix (returned future-dated comment UUID differed from the created comment UUID)
 - [x] Regression test passes after the fix as part of the macOS unit suite
-- [x] `make test-quick` passes: 1,609 passed, 0 failed, 0 skipped
-- [x] `make test` passes: 1,576 passed, 0 failed, 0 skipped
+- [x] `make test-quick` passes after adding the identity and save-failure regressions
+- [x] `make test` passes after the final shared-service changes
 - [x] `make lint` passes, including the SwiftData ownership guard and strict SwiftLint
 - [ ] `make test-ui`: 15 passed and 6 unrelated UI navigation/data-maintenance tests failed; all six failed again in a targeted retry. The change set contains no UI production or UI test changes.
 
 **Manual verification:**
-- The regression compares the response comment UUID, content, and author with the newly persisted comment, proving the future-dated record is not returned.
+- `CommentService.addComment` returns the model it inserts; its existing success test compares that UUID with the fetched record.
+- `TaskService.updateStatus` now has a direct assertion that its returned UUID equals the persisted comment UUID.
+- The MCP future-dated regression compares the response UUID with the newly persisted record and explicitly rejects the skewed peer UUID.
+- Injected save failures prove both the service and MCP paths restore the original status, expose the error, remove the inserted comment, and do not resurrect it on a later save.
 
 ## Prevention
 

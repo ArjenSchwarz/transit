@@ -40,6 +40,7 @@ final class TaskService {
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
     private let createSave: (ModelContext) throws -> Void
+    private let statusSave: (ModelContext) throws -> Void
 
     /// Committed display IDs feeding the allocator's collision guard. Reads through
     /// an injectable seam only so tests can simulate an unreadable store (T-1621);
@@ -50,12 +51,14 @@ final class TaskService {
         modelContext: ModelContext,
         displayIDAllocator: DisplayIDAllocator,
         fetcher: (any ModelFetching)? = nil,
-        createSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
+        createSave: @escaping (ModelContext) throws -> Void = { try $0.save() },
+        statusSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
     ) {
         self.modelContext = modelContext
         self.displayIDAllocator = displayIDAllocator
         self.usedDisplayIDs = UsedDisplayIDs(fetcher ?? modelContext)
         self.createSave = createSave
+        self.statusSave = statusSave
     }
 
     // MARK: - Task Creation
@@ -187,12 +190,11 @@ final class TaskService {
         let hasComment = comment.map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? false
         guard statusChanged || hasComment else { return nil }
 
-        if statusChanged {
-            StatusEngine.applyTransition(task: task, to: newStatus)
-        }
-
         var createdComment: Comment?
-        try modelContext.saveOrRollback(save: save) {
+        do {
+            if statusChanged {
+                StatusEngine.applyTransition(task: task, to: newStatus)
+            }
             if let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                let commentAuthor, let commentService {
                 createdComment = try commentService.addComment(
@@ -203,6 +205,18 @@ final class TaskService {
                     save: nil
                 )
             }
+            if save {
+                try statusSave(modelContext)
+            }
+        } catch {
+            // A status update is an update, but its optional comment is a create.
+            // Delete the inserted model before rolling back so a failed save cannot
+            // leave a ghost comment that a later unrelated save would persist.
+            if let createdComment {
+                modelContext.delete(createdComment)
+            }
+            modelContext.safeRollback()
+            throw error
         }
         return createdComment
     }

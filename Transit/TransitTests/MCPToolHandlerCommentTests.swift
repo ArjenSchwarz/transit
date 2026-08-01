@@ -67,9 +67,38 @@ struct MCPToolHandlerCommentTests {
         let comments = try env.commentService.fetchComments(for: task.id)
         let createdComment = try #require(comments.first { $0.content == "Created by this call" })
 
+        #expect(comments.count == 2)
         #expect(returnedComment["id"] as? String == createdComment.id.uuidString)
+        #expect(returnedComment["id"] as? String != futureComment.id.uuidString)
         #expect(returnedComment["content"] as? String == "Created by this call")
         #expect(returnedComment["authorName"] as? String == "CurrentAgent")
+    }
+
+    @Test func updateStatusWithCommentSaveFailureReturnsErrorAndRollsBack() async throws {
+        let env = try MCPTestHelpers.makeEnv(
+            taskStatusSave: { _ in throw SaveFailure.simulated }
+        )
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let task = try await env.taskService.createTask(
+            name: "Task", description: nil, type: .feature, project: project
+        )
+        let displayId = try #require(task.permanentDisplayId)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "update_task_status",
+            arguments: [
+                "displayId": displayId, "status": "planning",
+                "comment": "Must not survive", "authorName": "CurrentAgent"
+            ]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorText(response).contains("Status update failed"))
+        #expect(task.status == .idea)
+        #expect(try env.commentService.fetchComments(for: task.id).isEmpty)
+
+        try env.context.save()
+        #expect(try env.commentService.fetchComments(for: task.id).isEmpty)
     }
 
     @Test func updateStatusNoOpWithoutCommentOmitsCommentDetails() async throws {
