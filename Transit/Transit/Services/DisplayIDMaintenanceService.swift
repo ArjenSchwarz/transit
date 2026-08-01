@@ -281,6 +281,12 @@ final class DisplayIDMaintenanceService {
         } catch {
             return .failed(GroupFailure(code: .allocationFailed, message: error.localizedDescription))
         }
+        // Allocation suspends, so the committed-ID probe above can expire while
+        // waiting. Re-probe after the final await and adjacent to the write; a
+        // skipped counter value is safer than overwriting a peer repair (T-2019).
+        guard lookup.storedTaskDisplayId(id: loser.id) == displayId else {
+            return .failed(GroupFailure(code: .staleId, message: "Display ID changed since scan"))
+        }
         loserTask.permanentDisplayId = newId
         do {
             try modelContext.saveOrRollback()
@@ -341,6 +347,12 @@ final class DisplayIDMaintenanceService {
                 break
             }
 
+            // `allocateNextID` is the final suspension point. Validate the
+            // committed loser again before mutating the scan-time object (T-2019).
+            guard lookup.storedMilestoneDisplayId(id: loser.id) == displayId else {
+                failure = GroupFailure(code: .staleId, message: "Display ID changed since scan")
+                break
+            }
             let previousId = displayId
             loserMilestone.permanentDisplayId = newId
             do {

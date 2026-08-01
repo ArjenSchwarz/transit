@@ -1,7 +1,7 @@
 # Bugfix Report: Duplicate Cleanup Stale-ID Check Expires During Allocation
 
 **Date:** 2026-08-01
-**Status:** Investigating
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -66,6 +66,17 @@ The initial stale-ID check occurs before an asynchronous allocation await. Its r
 
 ## Resolution for the Issue
 
+**Changes made:**
+- `Transit/Transit/Services/DisplayIDMaintenanceService.swift` — after task allocation returns, re-probe `storedTaskDisplayId` immediately before assigning the new ID. A missing or changed committed ID returns `.staleId` before mutation, save, or audit-comment creation.
+- `Transit/Transit/Services/DisplayIDMaintenanceService.swift` — apply the equivalent post-allocation `storedMilestoneDisplayId` probe before milestone mutation/save.
+- `Transit/TransitTests/DisplayIDMaintenanceServiceReassignTests.swift` — add a deterministic counter-store gate plus task and milestone peer-update regressions.
+
+**Approach rationale:** The existing transient-context lookup is already the established SwiftData mechanism for bypassing the main context's registered-object cache. Repeating that probe after `allocateNextID` returns places validation after the final suspension point and directly beside the mutation. There is no `await` between the second probe and save, so MainActor code cannot interleave another local mutation in that final window. The allocated ID is deliberately skipped on a stale result; consuming one counter value is safer than overwriting a peer repair.
+
+**Alternatives considered:**
+- **Rely on the pre-allocation probe:** Rejected because its result expires across the allocation await; this is the defect.
+- **Hold the allocator's in-process gate through save:** Rejected because the peer writer may be another context/process/device and does not participate in that gate.
+- **Add a database compare-and-swap for the model property:** SwiftData exposes no conditional update primitive for this CloudKit-backed model. The adjacent committed-store probe is the smallest compatible safeguard.
 
 ## Regression Test
 
@@ -75,7 +86,7 @@ The initial stale-ID check occurs before an asynchronous allocation await. Its r
 - `taskPeerUpdateDuringAllocationIsPreservedWithoutAuditComment`
 - `milestonePeerUpdateDuringAllocationIsPreserved`
 
-**What they verify:** A peer update committed while allocation is deterministically suspended causes cleanup to return `staleId`, make no reassignment, preserve the peer ID, and, for tasks, emit no audit comment.
+**What they verify:** `AllocationGatedCounterStore` parks the loser's allocation after the maintenance counter fence. A peer context commits a replacement ID while cleanup is parked. On resume, cleanup must return `staleId`, make no reassignment, preserve the peer ID, and, for tasks, emit no audit comment.
 
 **Run command:** `make test-quick`
 
@@ -83,17 +94,24 @@ The initial stale-ID check occurs before an asynchronous allocation await. Its r
 
 | File | Change |
 |------|--------|
-| `Transit/TransitTests/DisplayIDMaintenanceServiceReassignTests.swift` | Gated task and milestone race regressions |
-| `Transit/Transit/Services/DisplayIDMaintenanceService.swift` | Pending post-allocation committed-ID probes |
+| `Transit/Transit/Services/DisplayIDMaintenanceService.swift` | Post-allocation committed-ID probes for task and milestone losers |
+| `Transit/TransitTests/DisplayIDMaintenanceServiceReassignTests.swift` | Deterministic gated task and milestone race regressions |
+| `docs/agent-notes/display-id-maintenance.md` | Documents that stale-ID validation must run again after allocation |
+| `CHANGELOG.md` | Unreleased T-2019 fix entry |
 | `specs/bugfixes/duplicate-cleanup-stale-id-check-expires-during-allocation/report.md` | Investigation, resolution, and verification record |
 
 ## Verification
 
 **Automated:**
 - [x] Regression tests fail before the fix (`make test-quick`; both gated cases recorded as failed in the xcresult)
-- [ ] Regression tests pass after the fix
-- [ ] Full macOS unit suite passes
-- [ ] SwiftLint and repository validation guards pass
+- [x] Regression tests pass after the fix
+- [x] Full macOS unit suite passes (`make test-quick`: 1,567 tests, 0 failures)
+- [x] SwiftLint and repository ownership validation pass (`make lint`)
+- [ ] Full iOS/UI validation passes — blocked by unrelated UI test failures described below
+
+**Validation blockers:**
+- `make test`: 1,130 passed, 3 failed; every failure was in `TransitUITests` (`testClearAll`, `testEditViewPreservesTaskMilestone`, `testDataMaintenanceGoldenPath`). All unit tests passed.
+- `make test-ui`: 15 passed, 6 failed. In addition to the three above, settings tests could not find `dashboard.settingsButton` because it appeared under the toolbar's `More` overflow, and the data-maintenance test encountered duplicated/nested accessibility elements for `dataMaintenance.confirmButton`. Device-service/debugger warnings also appeared during the simulator run. None of these paths or views changed in T-2019.
 
 **Manual verification:** Not applicable; the deterministic gated tests model the required interleaving directly.
 
