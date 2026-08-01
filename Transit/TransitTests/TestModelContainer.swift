@@ -7,6 +7,8 @@ import SwiftData
 /// Construct this fixture at the test boundary instead of returning a bare
 /// ModelContext from helper functions. Containers are also retained centrally
 /// so even an accidentally temporary fixture cannot orphan an escaped context.
+/// The explicit `newContainer()` escape hatch is not registered; its caller must
+/// retain that container while any derived contexts remain in use.
 @MainActor
 struct TestModelContainer {
     let container: ModelContainer

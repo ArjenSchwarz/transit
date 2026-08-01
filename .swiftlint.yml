@@ -7,6 +7,9 @@ excluded:
   - specs
 
 custom_rules:
+  # Tuple/setup helpers that return services plus ModelContext remain safe because
+  # TestModelContainer centrally retains every fixture-created container. This
+  # rule forbids the direct context-only factory shape that caused T-2003.
   unsafe_test_model_context_factory:
     included: "Transit/TransitTests/.*\\.swift"
     name: "Unsafe SwiftData test context factory"
