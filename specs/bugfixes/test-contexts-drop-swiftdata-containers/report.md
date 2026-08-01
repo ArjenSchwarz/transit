@@ -48,11 +48,14 @@ A `ModelContext` was treated as if it owned its `ModelContainer`. It does not pr
 - `CLAUDE.md` and `docs/agent-notes/technical-constraints.md` — documented the owning-fixture rule and removed stale `newContext()` guidance.
 - `scripts/validate_test_model_container_ownership.py`, `tests/validation/`, and `Makefile` — added an executable ownership boundary that rejects raw container construction/factories and proves unsafe bare, tuple, and environment forms fail while owning forms pass.
 
-**Approach rationale:** A container-owning fixture preserves each test's isolated in-memory store while making ownership explicit at the call site. Central container retention is a defensive backstop for existing setup structs and the two size-constrained tests that extract a temporary fixture's context.
+**Approach rationale:** A container-owning fixture preserves each test's isolated in-memory store while making ownership explicit at direct call sites. Central container retention is intentionally load-bearing for existing helpers that return service/context tuples or temporarily extract only `context`; those APIs remain safe even when they do not forward the fixture. The process-lifetime array is the accepted bounded-memory tradeoff that also protects future accidental owner drops.
+
+The executable validator replaces the earlier SwiftLint regex because a single regex could not reliably distinguish comments and string literals from executable interpolation, recognize aliases and inferred constructors, or prove that the sole raw construction and unconditional retention append remain in the same initializer. The validator uses a small position-preserving lexical scan plus accepted/unsafe fixtures for those boundaries. It requires `python3`, which is provided by the Xcode developer toolchain already required to build Transit (`xcrun --find python3`), and runs as a prerequisite of both `make lint` and `make lint-fix`.
 
 **Alternatives considered:**
 - Return a `(ModelContainer, ModelContext)` tuple — callers can discard the container and recreate the bug.
 - Wrap every test body in a closure — lifetime-safe but much more invasive, especially for setup structs that escape helper boundaries.
+- Keep a SwiftLint-only regex — rejected after it missed tuple/inferred/lexical shapes and could not validate the fixture implementation's construction/retention structure.
 - Change production code — rejected because the defect is isolated to test fixture ownership.
 
 ## Regression Test
