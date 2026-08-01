@@ -68,7 +68,7 @@ final class DisplayIDAllocator: @unchecked Sendable {
     /// on the CounterStore's compare-and-swap.
     ///
     /// Must only be accessed from @MainActor callers (see note above).
-    private var allocationGate: AllocationGate = .init()
+    private let allocationGate: AllocationGate
 
     /// IDs this process has already handed out but whose owners may not yet have
     /// committed them to the local store. The caller's `usedIDs` closure only
@@ -79,10 +79,20 @@ final class DisplayIDAllocator: @unchecked Sendable {
     /// window (T-1395). Only mutated while holding the gate, on @MainActor.
     private var issuedIDs: Set<Int> = []
 
-    init(store: CounterStore, retryLimit: Int = 5, isCloudSyncActive: Bool = true) {
+    init(
+        store: CounterStore,
+        retryLimit: Int = 5,
+        isCloudSyncActive: Bool = true,
+        onWaiterQueued: (@Sendable () -> Void)? = nil,
+        onWaiterCancelled: (@Sendable () -> Void)? = nil
+    ) {
         self.counterStore = store
         self.retryLimit = max(1, retryLimit)
         self.isCloudSyncActive = isCloudSyncActive
+        self.allocationGate = AllocationGate(
+            onWaiterQueued: onWaiterQueued,
+            onWaiterCancelled: onWaiterCancelled
+        )
     }
 
     convenience init(
@@ -258,6 +268,10 @@ final class DisplayIDAllocator: @unchecked Sendable {
 /// sequentially even when many callers race.
 private actor AllocationGate {
     private var isLocked = false
+    /// Test-only lifecycle observers make the queued-cancellation regression
+    /// deterministic. Production callers leave both nil.
+    private let onWaiterQueued: (@Sendable () -> Void)?
+    private let onWaiterCancelled: (@Sendable () -> Void)?
     /// FIFO queue of suspended callers, keyed by a monotonically increasing id so
     /// a cancelled caller can locate and remove its own continuation without
     /// disturbing arrival order. `Bool` is the acquisition outcome handed to the
@@ -266,7 +280,24 @@ private actor AllocationGate {
     private var waiters: [(id: UInt64, continuation: CheckedContinuation<Bool, Never>)] = []
     private var nextWaiterID: UInt64 = 0
 
+    init(
+        onWaiterQueued: (@Sendable () -> Void)? = nil,
+        onWaiterCancelled: (@Sendable () -> Void)? = nil
+    ) {
+        self.onWaiterQueued = onWaiterQueued
+        self.onWaiterCancelled = onWaiterCancelled
+    }
+
     /// Runs `body` while holding the lock. Other callers queue until it returns.
+    ///
+    /// Cancellation is checked after acquisition, before `body` starts. That
+    /// closes the two windows the waiter-queue handling below does not cover: a
+    /// caller that is already cancelled when it takes an uncontended lock, and a
+    /// caller that is cancelled while `release()` is handing it the lock (T-1765).
+    /// The check deliberately sits *after* `acquire()` — an equivalent pre-acquire
+    /// check would be redundant (both windows still end in this check) and would
+    /// stop cancelled callers from ever reaching the waiter queue, leaving the
+    /// queued-waiter path below untestable.
     ///
     /// Acquisition is cancellation-aware: if the calling Task is cancelled while
     /// suspended in the waiter queue, its continuation is removed and resumed
@@ -274,12 +305,13 @@ private actor AllocationGate {
     /// "continuation leaked" check on teardown). A waiter that is cancelled out of
     /// the queue never held the lock, so `run` throws `CancellationError` without
     /// calling `release` — the lock is never lost. If cancellation races and loses
-    /// (the lock was already handed to this waiter via `release`), the waiter keeps
-    /// the lock, runs `body`, and releases normally.
+    /// (the lock was already handed to this waiter via `release`), the post-acquire
+    /// check observes it, and `defer` still releases the lock without running `body`.
     func run<T: Sendable>(_ body: @Sendable () async throws -> T) async throws -> T {
         let acquired = await acquire()
         guard acquired else { throw CancellationError() }
         defer { release() }
+        try Task.checkCancellation()
         return try await body()
     }
 
@@ -295,6 +327,7 @@ private actor AllocationGate {
         return await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 waiters.append((id: id, continuation: continuation))
+                onWaiterQueued?()
             }
         } onCancel: {
             Task { await self.cancelWaiter(id: id) }
@@ -308,6 +341,7 @@ private actor AllocationGate {
     private func cancelWaiter(id: UInt64) {
         guard let index = waiters.firstIndex(where: { $0.id == id }) else { return }
         let waiter = waiters.remove(at: index)
+        onWaiterCancelled?()
         waiter.continuation.resume(returning: false)
     }
 

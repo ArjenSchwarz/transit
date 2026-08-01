@@ -4,6 +4,7 @@ import SwiftData
 /// Coordinates task creation, status changes, and lookups. Uses StatusEngine
 /// for all status transitions and DisplayIDAllocator for display ID assignment.
 @MainActor @Observable
+// swiftlint:disable:next type_body_length
 final class TaskService {
 
     enum Error: Swift.Error, LocalizedError, Equatable {
@@ -142,6 +143,12 @@ final class TaskService {
         } catch {
             displayID = .provisional
         }
+
+        // Counter stores are not required to cooperate with Swift cancellation.
+        // Re-check after allocation handling and immediately before constructing
+        // and inserting the model so a successfully allocated ID cannot turn a
+        // cancelled operation into a persisted task (T-1765).
+        try Task.checkCancellation()
 
         let task = TransitTask(
             name: trimmedName,

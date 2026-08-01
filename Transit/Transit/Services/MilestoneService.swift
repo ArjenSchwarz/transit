@@ -75,6 +75,12 @@ final class MilestoneService {
             displayID = .provisional
         }
 
+        // Counter stores are not required to cooperate with Swift cancellation.
+        // Re-check after allocation handling and before any post-await model work
+        // so a successfully allocated ID cannot turn a cancelled operation into a
+        // persisted milestone (T-1765).
+        try Task.checkCancellation()
+
         // Re-check uniqueness after the allocation await. The check above ran
         // before this method suspended, so a concurrent create could have
         // committed the same name in the meantime (T-1764). CloudKit-backed
