@@ -62,7 +62,7 @@ final class MCPToolHandler {
         let response: JSONRPCResponse
         switch request.method {
         case "initialize":
-            response = handleInitialize(id: request.id)
+            response = handleInitialize(id: request.id, params: request.params)
         case "ping":
             response = JSONRPCResponse.success(id: request.id, result: EmptyResult())
         case "tools/list":
@@ -85,14 +85,93 @@ final class MCPToolHandler {
 
     // MARK: - Initialize
 
-    private func handleInitialize(id: JSONRPCId?) -> JSONRPCResponse {
+    private static let latestSupportedProtocolVersion = "2025-03-26"
+    private static let supportedProtocolVersions: Set<String> = [latestSupportedProtocolVersion]
+
+    private struct InvalidInitializeParams: Error {
+        let message: String
+    }
+
+    private func handleInitialize(id: JSONRPCId?, params: AnyCodable?) -> JSONRPCResponse {
+        guard let params else {
+            return invalidInitializeParams(id: id, message: "Missing initialize params")
+        }
+        guard let dict = params.value as? [String: Any] else {
+            return invalidInitializeParams(id: id, message: "Initialize params must be an object")
+        }
+
+        let requestedProtocolVersion: String
+        do {
+            requestedProtocolVersion = try initializeProtocolVersion(in: dict)
+            try validateInitializeCapabilities(in: dict)
+            try validateInitializeClientInfo(in: dict)
+        } catch {
+            return invalidInitializeParams(id: id, message: error.message)
+        }
+
+        let protocolVersion = Self.supportedProtocolVersions.contains(requestedProtocolVersion)
+            ? requestedProtocolVersion
+            : Self.latestSupportedProtocolVersion
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         let result = MCPInitializeResult(
-            protocolVersion: "2025-03-26",
+            protocolVersion: protocolVersion,
             capabilities: MCPServerCapabilities(tools: MCPToolsCapability()),
             serverInfo: MCPServerInfo(name: "transit", version: version)
         )
         return JSONRPCResponse.success(id: id, result: result)
+    }
+
+    private func initializeProtocolVersion(
+        in params: [String: Any]
+    ) throws(InvalidInitializeParams) -> String {
+        guard params["protocolVersion"] != nil else {
+            throw InvalidInitializeParams(message: "Missing protocolVersion")
+        }
+        guard let protocolVersion = params["protocolVersion"] as? String else {
+            throw InvalidInitializeParams(message: "protocolVersion must be a string")
+        }
+        return protocolVersion
+    }
+
+    private func validateInitializeCapabilities(
+        in params: [String: Any]
+    ) throws(InvalidInitializeParams) {
+        guard params["capabilities"] != nil else {
+            throw InvalidInitializeParams(message: "Missing capabilities")
+        }
+        guard params["capabilities"] is [String: Any] else {
+            throw InvalidInitializeParams(message: "capabilities must be an object")
+        }
+    }
+
+    private func validateInitializeClientInfo(
+        in params: [String: Any]
+    ) throws(InvalidInitializeParams) {
+        guard params["clientInfo"] != nil else {
+            throw InvalidInitializeParams(message: "Missing clientInfo")
+        }
+        guard let clientInfo = params["clientInfo"] as? [String: Any] else {
+            throw InvalidInitializeParams(message: "clientInfo must be an object")
+        }
+        guard clientInfo["name"] != nil else {
+            throw InvalidInitializeParams(message: "Missing clientInfo.name")
+        }
+        guard clientInfo["name"] is String else {
+            throw InvalidInitializeParams(message: "clientInfo.name must be a string")
+        }
+        guard clientInfo["version"] != nil else {
+            throw InvalidInitializeParams(message: "Missing clientInfo.version")
+        }
+        guard clientInfo["version"] is String else {
+            throw InvalidInitializeParams(message: "clientInfo.version must be a string")
+        }
+        if clientInfo["title"] != nil, !(clientInfo["title"] is String) {
+            throw InvalidInitializeParams(message: "clientInfo.title must be a string")
+        }
+    }
+
+    private func invalidInitializeParams(id: JSONRPCId?, message: String) -> JSONRPCResponse {
+        JSONRPCResponse.error(id: id, code: JSONRPCErrorCode.invalidParams, message: message)
     }
 
     // MARK: - Tools List

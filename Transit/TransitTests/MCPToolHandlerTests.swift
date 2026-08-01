@@ -10,9 +10,16 @@ struct MCPToolHandlerTests {
 
     // MARK: - Initialize
 
-    @Test func initializeReturnsServerInfo() async throws {
+    @Test func initializeReturnsServerInfoForSupportedProtocolVersion() async throws {
         let env = try MCPTestHelpers.makeEnv()
-        let response = try #require(await env.handler.handle(MCPTestHelpers.request(method: "initialize")))
+        let response = try #require(await env.handler.handle(MCPTestHelpers.request(
+            method: "initialize",
+            params: [
+                "protocolVersion": "2025-03-26",
+                "capabilities": [:] as [String: Any],
+                "clientInfo": ["name": "Transit Tests", "version": "1.0"]
+            ]
+        )))
 
         let data = try JSONEncoder().encode(response)
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])

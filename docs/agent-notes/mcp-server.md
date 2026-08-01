@@ -97,6 +97,10 @@ Gotchas:
 
 `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`
 
+### Initialize handshake validation (T-1778)
+
+`initialize` requires an object `params` containing string `protocolVersion`, object `capabilities`, and object `clientInfo`. `clientInfo.name` and `clientInfo.version` are required strings; optional `clientInfo.title` must also be a string. Missing fields and object/array method-parameter mismatches return JSON-RPC `invalidParams` (`-32602`); scalar or null top-level `params` violate the JSON-RPC request shape and return `invalidRequest` (`-32600`). Transit currently supports only `2025-03-26`: that version is echoed when requested, while any unsupported requested version receives the latest advertised supported version (`2025-03-26`) per the MCP lifecycle negotiation rule.
+
 ## JSON-RPC Batch Envelopes (T-1834)
 
 `POST /mcp` accepts either one `JSONRPCRequest` or a non-empty JSON-RPC batch. `MCPServer.decodeIncomingRequest` preserves invalid batch members so each produces its own `-32600` response, while an empty batch produces one standalone `-32600` object as required by JSON-RPC 2.0.

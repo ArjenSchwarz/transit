@@ -228,13 +228,20 @@ final class MCPServer {
     }
 
     /// Structural checks that `JSONRPCRequest` intentionally leaves lenient.
-    /// In particular, a missing `jsonrpc` member decodes to `""` so the handler
-    /// can preserve T-1106's detailed version error, but a present non-string
-    /// member is not a valid Request object at all.
+    /// A missing `jsonrpc` member decodes to `""` so the handler can preserve
+    /// T-1106's detailed version error, but a present non-string member is not
+    /// a valid Request object. Likewise, present `params` must be the structured
+    /// object or array required by JSON-RPC 2.0 §4.2.
     nonisolated private static func isValidRequestObjectShape(
         _ object: [String: Any]
     ) -> Bool {
-        object["jsonrpc"] == nil || object["jsonrpc"] is String
+        guard object["jsonrpc"] == nil || object["jsonrpc"] is String else {
+            return false
+        }
+        guard let params = object["params"] else {
+            return true
+        }
+        return params is [String: Any] || params is [Any]
     }
 
     nonisolated private static func decodeRequestObject(
