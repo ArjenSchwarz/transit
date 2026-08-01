@@ -96,7 +96,7 @@ All business logic lives in `Services/`, not in views:
 - **DisplayIDAllocator** — CloudKit counter with optimistic locking, provisional ID fallback when offline. Separate instances for tasks and milestones (different counter records).
 - **TaskService** (`@MainActor @Observable`) — task CRUD, status changes, abandon/restore. Typed `Error` enum.
 - **ProjectService** (`@MainActor @Observable`) — project CRUD, case-insensitive name lookup with ambiguity detection
-- **MilestoneService** (`@MainActor @Observable`) — milestone CRUD, status changes, task assignment validation (project match), name uniqueness within project
+- **MilestoneService** (`@MainActor @Observable`) — milestone CRUD, status changes, task assignment validation (project match), fail-closed name lookup, and deterministic post-sync duplicate-name reconciliation
 - **CommentService** (`@MainActor @Observable`) — comment CRUD on tasks, resolves task references across contexts
 - **SyncManager** — CloudKit sync preference via UserDefaults; toggle takes effect on next launch
 - **ContainerFactory** — creates ModelContainer with graceful fallback to in-memory on error
@@ -125,7 +125,7 @@ Intents exposed as Shortcuts, each accepting/returning structured JSON via `@Par
 - **AddCommentIntent** — add comment to a task
 - **GenerateReportIntent** — generate markdown report of completed/abandoned tasks
 
-Error responses are JSON-encoded in the return string (not thrown) so CLI callers get parseable output. Error codes: `TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`, `INVALID_PRIORITY`, `INVALID_INPUT`, `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `MILESTONE_PROJECT_MISMATCH`, `INTERNAL_ERROR`.
+Error responses are JSON-encoded in the return string (not thrown) so CLI callers get parseable output. Error codes: `TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`, `INVALID_PRIORITY`, `INVALID_INPUT`, `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `AMBIGUOUS_MILESTONE`, `MILESTONE_PROJECT_MISMATCH`, `INTERNAL_ERROR`.
 
 **Visual intents** (in `Intents/Visual/`) use native App Intent entities and queries for Shortcuts UI integration: `AddTaskIntent`, `FindTasksIntent`.
 

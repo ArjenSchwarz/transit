@@ -76,11 +76,11 @@ The implementation follows existing Transit patterns throughout:
 
 **Display ID allocation**: The `CloudKitCounterStore` (private class inside `DisplayIDAllocator.swift`) was parameterised to accept a `recordName` parameter through the public convenience init. The default `"global-counter"` preserves backward compatibility. Two allocator instances coexist without interference since they operate on different counter records.
 
-**TOCTOU in name uniqueness**: `createMilestone` checks uniqueness before the async display ID allocation. In a concurrent environment, two identical-name milestones could be created simultaneously. Acceptable for a single-user app where the window is negligibly small.
+**Name uniqueness under CloudKit**: `createMilestone` checks before and after async display-ID allocation, closing the in-process MainActor race. Cross-device writes remain eventually consistent: disconnected peers can create UUID-distinct records with the same normalized project/name. `findByName` fails closed with `.ambiguousName`, and post-sync lifecycle maintenance deterministically renames duplicate losers with UUID-derived suffixes while preserving records and task assignments (T-1938, Decision 10).
 
 **Save semantics in setMilestone**: The `setMilestone(_:on:)` method modifies the object graph but does NOT call `modelContext.save()`. Callers are responsible for saving. MCP handlers and intent helpers save explicitly. The TaskEditView saves in both branches (status change or explicit save). AddTaskSheet explicitly saves after assignment.
 
-**Milestone promotion**: `promoteProvisionalMilestones()` uses the same stop-on-first-failure pattern as task promotion. Milestones created offline get provisional IDs, and promotion runs on connectivity restore (via `ConnectivityMonitor.onRestore`) and app foregrounding (via `ScenePhaseModifier`).
+**Milestone promotion and reconciliation**: `promoteProvisionalMilestones()` first reconciles synced duplicate names, then uses the same stop-on-first-failure pattern as task promotion. It defers reconciliation when the shared context has unrelated unsaved edits. Milestones created offline get provisional IDs. Maintenance runs on connectivity restore and app foregrounding; `ScenePhaseModifier` also observes milestone name changes so CloudKit imports that finish after those hooks trigger reconciliation.
 
 ### Architecture Impact
 

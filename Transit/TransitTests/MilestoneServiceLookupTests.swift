@@ -85,14 +85,14 @@ struct MilestoneServiceLookupTests {
         let project = makeProject(in: context)
         _ = try await service.createMilestone(name: "v1.0", description: nil, project: project)
 
-        let found = service.findByName("V1.0", in: project)
+        let found = try service.findByName("V1.0", in: project)
         #expect(found?.name == "v1.0")
     }
 
     @Test func findByNameReturnsNilWhenNotFound() throws {
         let (service, context) = try makeService()
         let project = makeProject(in: context)
-        #expect(service.findByName("nonexistent", in: project) == nil)
+        #expect(try service.findByName("nonexistent", in: project) == nil)
     }
 
     // MARK: - milestonesForProject

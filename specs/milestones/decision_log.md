@@ -295,3 +295,44 @@ Changing a property to a method touches every call site (~10 files) for no funct
 - Two ways to format (property and method) — minimal confusion since the property is just sugar
 
 ---
+
+## Decision 10: Reconcile Cross-Device Name Conflicts
+
+**Date**: 2026-08-01
+**Status**: accepted
+
+### Context
+
+CloudKit-backed SwiftData cannot enforce unique attributes. Two disconnected devices can therefore each create a UUID-distinct milestone with the same normalized name in one project, and CloudKit merges both records without a conflict. Local service checks and MainActor serialization cannot prevent this distributed race.
+
+### Decision
+
+Treat duplicate-name states as valid sync input. Name lookup fails closed when several milestones match. Existing lifecycle sync hooks deterministically keep the oldest record's original name (UUID tie-break) and rename every other match with a UUID-derived suffix, preserving all records and task assignments. Do not add a direct CloudKit name-reservation protocol in this repository scope.
+
+### Rationale
+
+Fail-closed lookup immediately prevents arbitrary mutation. Deterministic renaming lets every device converge without deleting user data or guessing how descriptions, statuses, or task assignments should merge. A reservation record keyed by `(projectID, normalizedName)` would add a second direct-CloudKit subsystem, make offline creation unavailable or provisional, and still need reconciliation for existing data and offline conflicts. That complexity is disproportionate for a single-user app.
+
+### Alternatives Considered
+
+- **CloudKit reservation records**: Atomically claim normalized project/name keys before creation - Rejected because offline creation cannot synchronously reserve a key, direct CloudKit records would require lifecycle and migration machinery, and conflict reconciliation remains necessary.
+- **Merge and delete duplicate milestones**: Reassign tasks to one winner and delete the rest - Rejected because status, description, completion, and user intent cannot be merged safely without data loss.
+- **Report ambiguity only**: Require manual repair - Rejected because the invalid state would persist and continue breaking name-based automation.
+
+### Consequences
+
+**Positive:**
+- Name-based operations never target an arbitrary record.
+- Reconciliation is deterministic, idempotent, and preserves milestone/task data.
+- No new CloudKit schema or online-only creation dependency is introduced.
+
+**Negative:**
+- A duplicate milestone may be automatically renamed with a long UUID suffix.
+- Reconciliation is eventual and runs on launch, foreground, connectivity restoration, or observed milestone-name imports rather than as a CloudKit transaction.
+- Maintenance defers while the shared context has unsaved changes and retries on a later lifecycle trigger.
+
+### Impact
+
+`MilestoneService`, all name-based MCP/App Intent callers, the lifecycle promotion hook, automation error codes, and cross-context tests implement this policy.
+
+---

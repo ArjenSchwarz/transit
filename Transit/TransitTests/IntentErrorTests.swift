@@ -42,6 +42,11 @@ struct IntentErrorTests {
         #expect(error.code == "INVALID_INPUT")
     }
 
+    @Test func ambiguousMilestoneCode() {
+        let error = IntentError.ambiguousMilestone(hint: "Multiple milestones match")
+        #expect(error.code == "AMBIGUOUS_MILESTONE")
+    }
+
     // MARK: - Hint Property
 
     @Test func hintReturnsAssociatedValue() {

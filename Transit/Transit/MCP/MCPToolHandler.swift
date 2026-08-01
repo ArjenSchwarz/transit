@@ -291,10 +291,18 @@ final class MCPToolHandler {
             guard let milestoneName = args["milestone"] as? String else {
                 return errorResult("milestone must be a string")
             }
-            guard let milestone = milestoneService.findByName(milestoneName, in: project) else {
-                return errorResult("No milestone named '\(milestoneName)' in project '\(project.name)'")
+            do {
+                guard let milestone = try milestoneService.findByName(milestoneName, in: project) else {
+                    return errorResult("No milestone named '\(milestoneName)' in project '\(project.name)'")
+                }
+                resolvedMilestone = milestone
+            } catch MilestoneService.Error.ambiguousName {
+                return errorResult(
+                    "Multiple milestones named '\(milestoneName)' exist in project '\(project.name)'"
+                )
+            } catch {
+                return errorResult("Failed to look up milestone: \(error)")
             }
-            resolvedMilestone = milestone
         }
 
         // Reject non-string description: as? String silently drops
@@ -456,18 +464,30 @@ final class MCPToolHandler {
                   !milestoneName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if let projectFilter {
                 // Scoped to a single project — at most one milestone matches
-                if case .success(let project) = projectService.findProject(id: projectFilter),
-                   let milestone = milestoneService.findByName(milestoneName, in: project) {
-                    milestoneFilter = [milestone.id]
-                } else {
+                guard case .success(let project) = projectService.findProject(id: projectFilter) else {
                     return textResult(IntentHelpers.encodeJSONArray([]))
+                }
+                do {
+                    guard let milestone = try milestoneService.findByName(milestoneName, in: project) else {
+                        return textResult(IntentHelpers.encodeJSONArray([]))
+                    }
+                    milestoneFilter = [milestone.id]
+                } catch MilestoneService.Error.ambiguousName {
+                    return errorResult(
+                        "Multiple milestones named '\(milestoneName)' exist in project '\(project.name)'"
+                    )
+                } catch {
+                    return errorResult("Failed to look up milestone: \(error)")
                 }
             } else {
                 // No project filter — collect ALL milestones with this name across projects
                 let allMilestones = (try? milestoneService.fetchAllMilestones()) ?? []
                 let matchingIds = Set(
                     allMilestones
-                        .filter { $0.name.localizedCaseInsensitiveCompare(milestoneName) == .orderedSame }
+                        .filter {
+                            MilestoneNamePolicy.normalized($0.name)
+                                == MilestoneNamePolicy.normalized(milestoneName)
+                        }
                         .map(\.id)
                 )
                 if matchingIds.isEmpty {

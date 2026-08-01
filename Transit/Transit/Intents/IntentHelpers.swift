@@ -130,6 +130,8 @@ nonisolated enum IntentHelpers {
             .milestoneNotFound(hint: "No matching milestone found")
         case .duplicateName:
             .duplicateMilestoneName(hint: "A milestone with this name already exists in the project")
+        case .ambiguousName:
+            .ambiguousMilestone(hint: "Multiple milestones with this name exist in the project")
         case .duplicateDisplayID:
             .internalError(hint: "A duplicate milestone identifier was detected")
         case .projectRequired:
@@ -282,12 +284,20 @@ nonisolated enum IntentHelpers {
                 }
                 return .failure(.invalidInput(hint: "Project required for name-based lookup"))
             }
-            guard let found = milestoneService.findByName(name, in: project) else {
-                return .failure(.milestoneNotFound(
-                    hint: "No milestone named '\(name)' in project '\(project.name)'"
+            do {
+                guard let found = try milestoneService.findByName(name, in: project) else {
+                    return .failure(.milestoneNotFound(
+                        hint: "No milestone named '\(name)' in project '\(project.name)'"
+                    ))
+                }
+                return .success(found)
+            } catch MilestoneService.Error.ambiguousName {
+                return .failure(.ambiguousMilestone(
+                    hint: "Multiple milestones named '\(name)' exist in project '\(project.name)'"
                 ))
+            } catch {
+                return .failure(.internalError(hint: "Failed to look up milestone: \(error)"))
             }
-            return .success(found)
         }
     }
 
@@ -416,25 +426,39 @@ nonisolated enum IntentHelpers {
                 ).json
             }
         } else if let milestoneName = json["milestone"] as? String {
-            guard let project = task.project else {
-                return IntentError.invalidInput(
-                    hint: "Task must belong to a project before assigning a milestone"
-                ).json
-            }
-            guard let milestone = milestoneService.findByName(milestoneName, in: project) else {
-                return IntentError.milestoneNotFound(
-                    hint: "No milestone named '\(milestoneName)' in project '\(project.name)'"
-                ).json
-            }
-            do {
-                try milestoneService.setMilestone(milestone, on: task)
-            } catch let error as MilestoneService.Error {
-                return mapMilestoneError(error).json
-            } catch {
-                return IntentError.invalidInput(hint: "Failed to assign milestone").json
-            }
+            return assignMilestone(named: milestoneName, to: task, using: milestoneService)
         }
         return nil
+    }
+
+    @MainActor
+    private static func assignMilestone(
+        named name: String,
+        to task: TransitTask,
+        using milestoneService: MilestoneService
+    ) -> String? {
+        guard let project = task.project else {
+            return IntentError.invalidInput(
+                hint: "Task must belong to a project before assigning a milestone"
+            ).json
+        }
+        do {
+            guard let milestone = try milestoneService.findByName(name, in: project) else {
+                return IntentError.milestoneNotFound(
+                    hint: "No milestone named '\(name)' in project '\(project.name)'"
+                ).json
+            }
+            try milestoneService.setMilestone(milestone, on: task)
+            return nil
+        } catch MilestoneService.Error.ambiguousName {
+            return IntentError.ambiguousMilestone(
+                hint: "Multiple milestones named '\(name)' exist in project '\(project.name)'"
+            ).json
+        } catch let error as MilestoneService.Error {
+            return mapMilestoneError(error).json
+        } catch {
+            return IntentError.invalidInput(hint: "Failed to assign milestone").json
+        }
     }
 }
 // swiftlint:enable type_body_length file_length

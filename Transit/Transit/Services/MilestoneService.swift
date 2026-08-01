@@ -186,6 +186,17 @@ final class MilestoneService {
         isPromotingMilestones = true
         defer { isPromotingMilestones = false }
 
+        // CloudKit merges UUID-distinct records rather than enforcing the
+        // project/name invariant. Repair duplicates imported since the last
+        // lifecycle pass before doing display-ID maintenance (T-1938).
+        do {
+            try reconcileDuplicateNames()
+        } catch {
+            // A later launch/foreground/connectivity pass retries. Do not continue
+            // with an unreadable or unsavable store and mask the maintenance failure.
+            return
+        }
+
         let descriptor = FetchDescriptor<Milestone>(
             predicate: #Predicate { $0.permanentDisplayId == nil },
             sortBy: [SortDescriptor(\.creationDate, order: .forward)]
@@ -242,16 +253,38 @@ final class MilestoneService {
         return first
     }
 
-    func findByName(_ name: String, in project: Project) -> Milestone? {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    /// Finds exactly one case-insensitive name match in a project.
+    ///
+    /// Duplicate names can arrive through CloudKit even though local creation is
+    /// guarded. Never select `.first`: name-addressed callers must report the
+    /// ambiguity and require a stable UUID/display ID until reconciliation runs.
+    func findByName(_ name: String, in project: Project) throws -> Milestone? {
+        let normalized = MilestoneNamePolicy.normalized(name)
         let projectID = project.id
         let descriptor = FetchDescriptor<Milestone>(
             predicate: #Predicate { $0.project?.id == projectID }
         )
-        let milestones = (try? modelContext.fetch(descriptor)) ?? []
-        return milestones.first {
-            $0.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+        let matches = try modelContext.fetch(descriptor).filter {
+            MilestoneNamePolicy.normalized($0.name) == normalized
         }
+        guard let match = matches.first else { return nil }
+        guard matches.count == 1 else { throw Error.ambiguousName }
+        return match
+    }
+
+    // MARK: - Post-sync maintenance
+
+    /// Restores project-scoped name uniqueness after CloudKit imports records
+    /// independently created on different devices.
+    ///
+    /// The oldest record keeps its original name (UUID breaks timestamp ties).
+    /// Every other record receives a deterministic UUID-derived suffix. Renaming,
+    /// rather than deleting or merging, preserves descriptions, statuses, display
+    /// IDs, and task assignments. The UUID also lets every device converge on the
+    /// same names independently. Returns the number of records renamed.
+    @discardableResult
+    func reconcileDuplicateNames() throws -> Int {
+        try MilestoneNameReconciler(modelContext: modelContext).reconcile()
     }
 
     func milestonesForProject(_ project: Project, status: MilestoneStatus? = nil) -> [Milestone] {
@@ -299,7 +332,7 @@ final class MilestoneService {
     func milestoneNameExists(
         _ name: String, in project: Project, excluding milestoneId: UUID? = nil
     ) throws -> Bool {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = MilestoneNamePolicy.normalized(name)
         let projectID = project.id
         let descriptor = FetchDescriptor<Milestone>(
             predicate: #Predicate { $0.project?.id == projectID }
@@ -307,9 +340,10 @@ final class MilestoneService {
         let milestones = try fetcher.fetch(descriptor)
         return milestones.contains { milestone in
             if let milestoneId, milestone.id == milestoneId { return false }
-            return milestone.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+            return MilestoneNamePolicy.normalized(milestone.name) == normalized
         }
     }
+
 }
 
 // MARK: - Errors
@@ -320,6 +354,7 @@ extension MilestoneService {
         case invalidName
         case milestoneNotFound
         case duplicateName
+        case ambiguousName
         case duplicateDisplayID
         case projectRequired
         case projectMismatch
@@ -332,6 +367,8 @@ extension MilestoneService {
                 "The specified milestone could not be found."
             case .duplicateName:
                 "A milestone with this name already exists in the project."
+            case .ambiguousName:
+                "Multiple milestones with this name exist in the project."
             case .duplicateDisplayID:
                 "A duplicate milestone identifier was detected."
             case .projectRequired:
