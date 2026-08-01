@@ -110,6 +110,13 @@ final class TaskService {
             throw Error.invalidName
         }
 
+        // Keep this validation at the aggregate boundary even though automation
+        // surfaces pre-validate resolved milestones: direct UI and future callers
+        // must not allocate an ID or insert a cross-project relationship.
+        if let milestone, milestone.project?.id != project.id {
+            throw Error.milestoneProjectMismatch
+        }
+
         let displayID: DisplayID
         do {
             // Pass a closure so the set of display IDs already committed locally
@@ -134,10 +141,6 @@ final class TaskService {
             throw DisplayIDAllocator.Error.usedIDLookupFailed(description: description)
         } catch {
             displayID = .provisional
-        }
-
-        if let milestone, milestone.project?.id != project.id {
-            throw Error.milestoneProjectMismatch
         }
 
         let task = TransitTask(
