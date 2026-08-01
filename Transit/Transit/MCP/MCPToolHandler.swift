@@ -484,7 +484,10 @@ final class MCPToolHandler {
                 let allMilestones = (try? milestoneService.fetchAllMilestones()) ?? []
                 let matchingIds = Set(
                     allMilestones
-                        .filter { $0.name.localizedCaseInsensitiveCompare(milestoneName) == .orderedSame }
+                        .filter {
+                            MilestoneNamePolicy.normalized($0.name)
+                                == MilestoneNamePolicy.normalized(milestoneName)
+                        }
                         .map(\.id)
                 )
                 if matchingIds.isEmpty {
