@@ -26,4 +26,27 @@ extension TaskEditView {
 
         return milestones
     }
+
+    /// The milestone a rebased draft should select, or `nil` when none fits.
+    ///
+    /// A rebase merges each field independently, so an external project move can
+    /// land alongside a preserved milestone edit made against the *old* project.
+    /// Decision 6 — moving project clears the milestone — settles that pairing:
+    /// a milestone from another project is dropped rather than carried into a
+    /// draft whose next save `MilestoneService.setMilestone` would reject as a
+    /// project mismatch, leaving the editor unable to save at all.
+    ///
+    /// `candidates` are the only milestones a rebased ID can name: the user's
+    /// current selection and the one now on the task.
+    static func rebasedMilestone(
+        milestoneID: UUID?,
+        projectID: UUID?,
+        candidates: [Milestone?]
+    ) -> Milestone? {
+        guard let milestoneID else { return nil }
+
+        return candidates
+            .compactMap { $0 }
+            .first { $0.id == milestoneID && $0.project?.id == projectID }
+    }
 }

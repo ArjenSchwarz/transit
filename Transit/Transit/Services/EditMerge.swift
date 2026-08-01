@@ -23,6 +23,12 @@ protocol EditSnapshot: Equatable {
 
     /// Whether this snapshot and `other` hold different values for `field`.
     func differs(from other: Self, in field: Field) -> Bool
+
+    /// Returns a copy with one field taken from `other`.
+    ///
+    /// This lets the shared merge rebuild a draft from live values while
+    /// overlaying only fields still owned by the user.
+    func replacing(_ field: Field, withValueFrom other: Self) -> Self
 }
 
 /// Three-way comparison deciding what an editor save should write.
@@ -37,6 +43,12 @@ protocol EditSnapshot: Equatable {
 struct EditMerge<Snapshot: EditSnapshot>: Equatable {
     typealias Field = Snapshot.Field
 
+    /// Snapshots are retained because conflict choices authorize exact values,
+    /// not every conflict that happens to exist when the button is handled.
+    let original: Snapshot
+    let edited: Snapshot
+    let live: Snapshot
+
     /// Fields the user changed. Only these are written.
     let changedFields: Set<Field>
 
@@ -50,6 +62,10 @@ struct EditMerge<Snapshot: EditSnapshot>: Equatable {
     var hasConflicts: Bool { !conflictingFields.isEmpty }
 
     init(original: Snapshot, edited: Snapshot, live: Snapshot) {
+        self.original = original
+        self.edited = edited
+        self.live = live
+
         var changed: Set<Field> = []
         var conflicting: Set<Field> = []
 
@@ -69,6 +85,34 @@ struct EditMerge<Snapshot: EditSnapshot>: Equatable {
 
     func changed(_ field: Field) -> Bool {
         changedFields.contains(field)
+    }
+
+    /// A draft rebased onto `live` for "Use Updated Values".
+    ///
+    /// Starting from all live values refreshes fields the user never touched.
+    /// Only genuine user edits without conflicts are overlaid; conflicting edits
+    /// are deliberately replaced by the live values the user chose to use.
+    var rebasedEdited: Snapshot {
+        changedFields
+            .subtracting(conflictingFields)
+            .reduce(live) { snapshot, field in
+                snapshot.replacing(field, withValueFrom: edited)
+            }
+    }
+
+    /// Whether the current conflicts are exactly the ones shown by an alert.
+    ///
+    /// Matching field names is insufficient: an external writer may change the
+    /// same field again while the alert is open. Consent covers the original,
+    /// edited, and live values for each shown conflict and nothing else.
+    func hasSameConflictSnapshot(as shown: Self) -> Bool {
+        guard conflictingFields == shown.conflictingFields else { return false }
+
+        return conflictingFields.allSatisfy { field in
+            !original.differs(from: shown.original, in: field)
+                && !edited.differs(from: shown.edited, in: field)
+                && !live.differs(from: shown.live, in: field)
+        }
     }
 
     /// Conflicting field labels in declaration order, for the conflict alert.

@@ -64,7 +64,7 @@ struct TaskEditView: View {
         }
         .taskEditConflictAlert(
             conflict: $pendingConflict,
-            keepMine: { save(overwritingConflicts: true) },
+            keepMine: { save(consentingTo: $0) },
             useTheirs: { adoptLiveValues(for: $0) }
         )
     }
@@ -321,45 +321,37 @@ extension TaskEditView {
         )
     }
 
-    /// Persists the user's edits.
-    ///
-    /// Only fields the user actually changed are written, so a concurrent MCP or
-    /// CloudKit write to a *different* field survives (T-1798). When both sides
-    /// changed the *same* field the save stops and asks;
-    /// `overwritingConflicts` carries the user's answer back in.
-    fileprivate func save(overwritingConflicts: Bool = false) {
-        guard let originalSnapshot else { return }
-
-        let edited = editedSnapshot()
-        guard !edited.name.isEmpty else { return }
-
-        let merge = TaskEditMerge(
+    fileprivate func currentMerge() -> TaskEditMerge? {
+        guard let originalSnapshot else { return nil }
+        return TaskEditMerge(
             original: originalSnapshot,
-            edited: edited,
+            edited: editedSnapshot(),
             live: TaskEditSnapshot(task: task)
         )
+    }
 
-        // Nothing to write. Saving anyway is exactly how the stale form used to
-        // revert other writers' changes.
+    /// Saves only when any conflict consent still matches the shown values.
+    fileprivate func save(consentingTo shownConflict: TaskEditMerge? = nil) {
+        guard let merge = currentMerge(), !merge.edited.name.isEmpty else { return }
         guard merge.hasChanges else {
             dismissAll()
             return
         }
 
-        if merge.hasConflicts, !overwritingConflicts {
-            pendingConflict = merge
-            return
+        if merge.hasConflicts {
+            guard let shownConflict, merge.hasSameConflictSnapshot(as: shownConflict) else {
+                presentEditConflict(merge, in: $pendingConflict, replacingShownAlert: shownConflict != nil)
+                return
+            }
         }
 
+        pendingConflict = nil
         do {
-            // Every mutation defers persistence. The single save inside
-            // `saveOrRollback` makes the edit atomic — all of it lands or none
-            // of it does.
             try modelContext.saveOrRollback {
                 let applier = TaskEditApplier(taskService: taskService, milestoneService: milestoneService)
                 try applier.apply(
                     merge,
-                    edited: edited,
+                    edited: merge.edited,
                     to: task,
                     project: selectedProject,
                     milestone: selectedMilestone
@@ -371,27 +363,30 @@ extension TaskEditView {
         }
     }
 
-    /// Drops the user's edits to the conflicting fields in favour of the values
-    /// now on the task, and re-baselines so untouched fields stay untouched and
-    /// the user's other edits stay pending.
-    ///
-    /// The editor deliberately stays open and nothing is saved: the point is to
-    /// show the user what the other writer did before they commit to anything.
-    fileprivate func adoptLiveValues(for merge: TaskEditMerge) {
-        for field in merge.conflictingFields {
-            switch field {
-            case .name: name = task.name
-            case .description: taskDescription = task.taskDescription ?? ""
-            case .type: selectedType = task.type
-            case .priority: selectedPriority = task.priority
-            case .status: selectedStatus = task.status
-            case .project: selectedProjectID = task.project?.id
-            case .milestone: selectedMilestone = task.milestone
-            case .metadata: metadata = task.metadata
-            }
+    fileprivate func adoptLiveValues(for shownConflict: TaskEditMerge) {
+        guard let merge = currentMerge() else { return }
+        guard !merge.hasConflicts || merge.hasSameConflictSnapshot(as: shownConflict) else {
+            presentEditConflict(merge, in: $pendingConflict, replacingShownAlert: true)
+            return
         }
 
-        originalSnapshot = TaskEditSnapshot(task: task)
+        let rebased = merge.rebasedEdited
+        // The rebased ID can only originate from the edited selection or live
+        // task, and is dropped when it does not belong to the rebased project.
+        let rebasedMilestone = Self.rebasedMilestone(
+            milestoneID: rebased.milestoneID,
+            projectID: rebased.projectID,
+            candidates: [selectedMilestone, task.milestone]
+        )
+        name = rebased.name
+        taskDescription = rebased.description
+        selectedType = rebased.type
+        selectedPriority = rebased.priority
+        selectedStatus = rebased.status
+        selectedProjectID = rebased.projectID
+        selectedMilestone = rebasedMilestone
+        metadata = rebased.metadata
+        originalSnapshot = merge.live
         pendingConflict = nil
     }
 }

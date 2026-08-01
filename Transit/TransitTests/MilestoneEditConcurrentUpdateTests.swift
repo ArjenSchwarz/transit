@@ -219,7 +219,7 @@ struct MilestoneEditConflictDetectionTests {
         form.description = "Rewritten by the user"
 
         let merge = try #require(form.merge(against: milestone))
-        form.adoptLiveValues(for: merge, from: milestone)
+        form.adoptLiveValues(for: merge)
 
         #expect(form.name == "Renamed elsewhere")
         #expect(form.description == "Rewritten by the user")
@@ -227,6 +227,63 @@ struct MilestoneEditConflictDetectionTests {
         let rebased = try #require(form.merge(against: milestone))
         #expect(rebased.changedFields == [.description])
         #expect(rebased.hasConflicts == false)
+    }
+
+    /// "Use Updated Values" refreshes every field the user did not genuinely
+    /// edit. An external description change alongside the name conflict must be
+    /// visible in the rebased form rather than becoming a stale user edit.
+    @Test func adoptingLiveValuesRefreshesUntouchedExternalField() async throws {
+        let env = try MilestoneEditTestEnv.make()
+        let milestone = try await env.makeMilestone()
+        var form = env.loadedForm(for: milestone)
+
+        try env.milestoneService.updateMilestone(
+            milestone,
+            name: "Renamed elsewhere",
+            description: "Rewritten elsewhere"
+        )
+        form.name = "Renamed by the user"
+
+        let merge = try #require(form.merge(against: milestone))
+        form.adoptLiveValues(for: merge)
+
+        #expect(form.name == "Renamed elsewhere")
+        #expect(form.description == "Rewritten elsewhere")
+
+        let rebased = try #require(form.merge(against: milestone))
+        #expect(rebased.hasChanges == false)
+        #expect(rebased.hasConflicts == false)
+    }
+
+    /// Alert consent is scoped to the exact shown conflict snapshot. If a
+    /// second writer changes the shown name again and also conflicts on the
+    /// description while the alert is open, the old consent is invalid.
+    @Test func changedConflictSnapshotInvalidatesAlertConsent() async throws {
+        let env = try MilestoneEditTestEnv.make()
+        let milestone = try await env.makeMilestone()
+        var form = env.loadedForm(for: milestone)
+
+        form.name = "Renamed by the user"
+        form.description = "Rewritten by the user"
+
+        try env.milestoneService.updateMilestone(milestone, name: "First external name", description: nil)
+        let shown = try #require(form.merge(against: milestone))
+        #expect(shown.conflictingFields == [.name])
+
+        try env.milestoneService.updateMilestone(milestone, name: "Second external name", description: nil)
+        let changedValue = try #require(form.merge(against: milestone))
+        #expect(changedValue.conflictingFields == [.name])
+        #expect(changedValue.hasSameConflictSnapshot(as: shown) == false)
+
+        try env.milestoneService.updateMilestone(
+            milestone,
+            name: nil,
+            description: "Rewritten elsewhere"
+        )
+        let current = try #require(form.merge(against: milestone))
+
+        #expect(current.conflictingFields == [.name, .description])
+        #expect(current.hasSameConflictSnapshot(as: shown) == false)
     }
 
     /// The alert names the fields and both choices.

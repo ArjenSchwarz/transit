@@ -29,7 +29,7 @@ struct MilestoneEditView: View {
             .editConflictAlert(
                 subject: "Milestone",
                 conflict: $pendingConflict,
-                keepMine: { saveExisting(overwritingConflicts: true) },
+                keepMine: { saveExisting(consentingTo: $0) },
                 useTheirs: { adoptLiveValues(for: $0) }
             )
     }
@@ -135,13 +135,9 @@ struct MilestoneEditView: View {
         }
     }
 
-    /// Persists the user's edits to an existing milestone.
-    ///
-    /// Only fields the user actually changed are written, so a concurrent MCP or
-    /// CloudKit write to a *different* field survives (T-1817). When both sides
-    /// changed the *same* field the save stops and asks; `overwritingConflicts`
-    /// carries the user's answer back in.
-    private func saveExisting(overwritingConflicts: Bool = false) {
+    /// Persists the user's edits to an existing milestone. Consent, when
+    /// present, applies only to the exact conflict field values shown.
+    private func saveExisting(consentingTo shownConflict: MilestoneEditMerge? = nil) {
         guard let milestone, let merge = form.merge(against: milestone) else { return }
 
         // Nothing to write. Saving anyway is exactly how the stale form used to
@@ -151,14 +147,17 @@ struct MilestoneEditView: View {
             return
         }
 
-        if merge.hasConflicts, !overwritingConflicts {
-            pendingConflict = merge
-            return
+        if merge.hasConflicts {
+            guard let shownConflict, merge.hasSameConflictSnapshot(as: shownConflict) else {
+                presentEditConflict(merge, in: $pendingConflict, replacingShownAlert: shownConflict != nil)
+                return
+            }
         }
 
+        pendingConflict = nil
         do {
             let applier = MilestoneEditApplier(milestoneService: milestoneService)
-            try applier.apply(merge, edited: form.edited, to: milestone)
+            try applier.apply(merge, edited: merge.edited, to: milestone)
         } catch {
             errorMessage = error.localizedDescription
             return
@@ -185,13 +184,17 @@ struct MilestoneEditView: View {
         }
     }
 
-    /// Loads the external values for the conflicting fields and re-baselines.
-    ///
-    /// The editor deliberately stays open and nothing is saved: the point is to
-    /// show the user what the other writer did before they commit to anything.
-    private func adoptLiveValues(for merge: MilestoneEditMerge) {
-        guard let milestone else { return }
-        form.adoptLiveValues(for: merge, from: milestone)
+    /// Recomputes before using external values. Changed conflict fields or
+    /// values cause a new alert; otherwise the form performs a complete safe
+    /// rebase and remains open for review.
+    private func adoptLiveValues(for shownConflict: MilestoneEditMerge) {
+        guard let milestone, let merge = form.merge(against: milestone) else { return }
+        guard !merge.hasConflicts || merge.hasSameConflictSnapshot(as: shownConflict) else {
+            presentEditConflict(merge, in: $pendingConflict, replacingShownAlert: true)
+            return
+        }
+
+        form.adoptLiveValues(for: merge)
         pendingConflict = nil
     }
 }
