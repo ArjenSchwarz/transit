@@ -13,7 +13,7 @@ extension View {
     /// shared with the project and milestone editors (T-1798, T-1817).
     func taskEditConflictAlert(
         conflict: Binding<TaskEditMerge?>,
-        keepMine: @escaping () -> Void,
+        keepMine: @escaping (TaskEditMerge) -> Void,
         useTheirs: @escaping (TaskEditMerge) -> Void
     ) -> some View {
         editConflictAlert(

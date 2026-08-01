@@ -165,6 +165,17 @@ struct ProjectEditConflictDetectionTests {
             name: "Second external name",
             description: project.projectDescription,
             gitRepo: project.gitRepo,
+            colorHex: project.colorHex
+        )
+        let changedValue = try #require(form.merge(against: project))
+        #expect(changedValue.conflictingFields == [.name])
+        #expect(changedValue.hasSameConflictSnapshot(as: shown) == false)
+
+        try env.projectService.updateProject(
+            project,
+            name: project.name,
+            description: project.projectDescription,
+            gitRepo: project.gitRepo,
             colorHex: "0000FF"
         )
         let current = try #require(form.merge(against: project))

@@ -29,7 +29,7 @@ struct ProjectEditView: View {
             .editConflictAlert(
                 subject: "Project",
                 conflict: $pendingConflict,
-                keepMine: { saveExisting(overwritingConflicts: true) },
+                keepMine: { saveExisting(consentingTo: $0) },
                 useTheirs: { adoptLiveValues(for: $0) }
             )
     }
@@ -178,13 +178,9 @@ extension ProjectEditView {
         }
     }
 
-    /// Persists the user's edits to an existing project.
-    ///
-    /// Only fields the user actually changed are written, so a concurrent MCP or
-    /// CloudKit write to a *different* field survives (T-1817). When both sides
-    /// changed the *same* field the save stops and asks; `overwritingConflicts`
-    /// carries the user's answer back in.
-    fileprivate func saveExisting(overwritingConflicts: Bool = false) {
+    /// Persists the user's edits to an existing project. Consent, when present,
+    /// applies only to the exact conflict field values shown by that alert.
+    fileprivate func saveExisting(consentingTo shownConflict: ProjectEditMerge? = nil) {
         guard let project, let merge = form.merge(against: project) else { return }
 
         // Nothing to write. Saving anyway is exactly how the stale form used to
@@ -194,14 +190,17 @@ extension ProjectEditView {
             return
         }
 
-        if merge.hasConflicts, !overwritingConflicts {
-            pendingConflict = merge
-            return
+        if merge.hasConflicts {
+            guard let shownConflict, merge.hasSameConflictSnapshot(as: shownConflict) else {
+                presentConflict(merge, replacingShownAlert: shownConflict != nil)
+                return
+            }
         }
 
+        pendingConflict = nil
         do {
             let applier = ProjectEditApplier(projectService: projectService)
-            try applier.apply(merge, edited: form.edited, to: project)
+            try applier.apply(merge, edited: merge.edited, to: project)
         } catch ProjectMutationError.invalidName {
             errorMessage = "Project name cannot be empty."
             return
@@ -240,12 +239,30 @@ extension ProjectEditView {
         dismiss()
     }
 
-    /// Loads the external values for the conflicting fields and re-baselines.
-    ///
-    /// The editor deliberately stays open and nothing is saved: the point is to
-    /// show the user what the other writer did before they commit to anything.
-    fileprivate func adoptLiveValues(for merge: ProjectEditMerge) {
-        guard let project else { return }
+    /// Re-presents a changed conflict after the current alert has dismissed.
+    fileprivate func presentConflict(_ merge: ProjectEditMerge, replacingShownAlert: Bool) {
+        guard replacingShownAlert else {
+            pendingConflict = merge
+            return
+        }
+
+        pendingConflict = nil
+        Task { @MainActor in
+            await Task.yield()
+            pendingConflict = merge
+        }
+    }
+
+    /// Recomputes before using external values. Changed conflict fields or
+    /// values cause a new alert; otherwise the form performs a complete safe
+    /// rebase and remains open for review.
+    fileprivate func adoptLiveValues(for shownConflict: ProjectEditMerge) {
+        guard let project, let merge = form.merge(against: project) else { return }
+        guard !merge.hasConflicts || merge.hasSameConflictSnapshot(as: shownConflict) else {
+            presentConflict(merge, replacingShownAlert: true)
+            return
+        }
+
         form.adoptLiveValues(for: merge, from: project)
         pendingConflict = nil
     }

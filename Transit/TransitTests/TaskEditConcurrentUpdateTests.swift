@@ -335,6 +335,14 @@ struct TaskEditConflictDetectionTests {
         #expect(shown.conflictingFields == [.name])
 
         try env.taskService.updateTask(task, name: "Second MCP name")
+        let changedValue = TaskEditMerge(
+            original: baseline,
+            edited: edited,
+            live: TaskEditSnapshot(task: task)
+        )
+        #expect(changedValue.conflictingFields == [.name])
+        #expect(changedValue.hasSameConflictSnapshot(as: shown) == false)
+
         try env.taskService.updateStatus(task: task, to: .done)
         let current = TaskEditMerge(original: baseline, edited: edited, live: TaskEditSnapshot(task: task))
 

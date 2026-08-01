@@ -96,6 +96,22 @@ nonisolated struct TaskEditSnapshot: EditSnapshot {
         case .metadata: metadata != other.metadata
         }
     }
+
+    /// Returns a copy with `field` taken from `other`.
+    func replacing(_ field: TaskEditField, withValueFrom other: TaskEditSnapshot) -> TaskEditSnapshot {
+        var copy = self
+        switch field {
+        case .name: copy.name = other.name
+        case .description: copy.description = other.description
+        case .type: copy.type = other.type
+        case .priority: copy.priority = other.priority
+        case .status: copy.status = other.status
+        case .project: copy.projectID = other.projectID
+        case .milestone: copy.milestoneID = other.milestoneID
+        case .metadata: copy.metadata = other.metadata
+        }
+        return copy
+    }
 }
 
 // MARK: - Merge

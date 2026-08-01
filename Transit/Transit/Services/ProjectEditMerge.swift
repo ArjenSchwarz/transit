@@ -70,6 +70,18 @@ nonisolated struct ProjectEditSnapshot: EditSnapshot {
         case .color: colorHex != other.colorHex
         }
     }
+
+    /// Returns a copy with `field` taken from `other`.
+    func replacing(_ field: ProjectEditField, withValueFrom other: ProjectEditSnapshot) -> ProjectEditSnapshot {
+        var copy = self
+        switch field {
+        case .name: copy.name = other.name
+        case .description: copy.description = other.description
+        case .gitRepo: copy.gitRepo = other.gitRepo
+        case .color: copy.colorHex = other.colorHex
+        }
+        return copy
+    }
 }
 
 // MARK: - Merge
@@ -163,18 +175,15 @@ struct ProjectEditForm {
         return ProjectEditMerge(original: original, edited: edited, live: ProjectEditSnapshot(project: project))
     }
 
-    /// Drops the user's edits to the conflicting fields in favour of the values
-    /// now on the project, and re-baselines so untouched fields stay untouched
-    /// and the user's other edits stay pending.
-    mutating func adoptLiveValues(for merge: ProjectEditMerge, from project: Project) {
-        for field in merge.conflictingFields {
-            switch field {
-            case .name: name = project.name
-            case .description: description = project.projectDescription
-            case .gitRepo: gitRepo = project.gitRepo ?? ""
-            case .color: colorHex = ProjectEditSnapshot.normalizedHex(project.colorHex)
-            }
-        }
-        original = ProjectEditSnapshot(project: project)
+    /// Rebuilds the whole draft on the live snapshot shown by the resolved
+    /// merge. Starting from live refreshes untouched external changes; only
+    /// genuine non-conflicting user edits remain overlaid.
+    mutating func adoptLiveValues(for merge: ProjectEditMerge, from _: Project) {
+        let rebased = merge.rebasedEdited
+        name = rebased.name
+        description = rebased.description
+        gitRepo = rebased.gitRepo
+        colorHex = rebased.colorHex
+        original = merge.live
     }
 }

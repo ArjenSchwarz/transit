@@ -270,9 +270,14 @@ struct MilestoneEditConflictDetectionTests {
         let shown = try #require(form.merge(against: milestone))
         #expect(shown.conflictingFields == [.name])
 
+        try env.milestoneService.updateMilestone(milestone, name: "Second external name", description: nil)
+        let changedValue = try #require(form.merge(against: milestone))
+        #expect(changedValue.conflictingFields == [.name])
+        #expect(changedValue.hasSameConflictSnapshot(as: shown) == false)
+
         try env.milestoneService.updateMilestone(
             milestone,
-            name: "Second external name",
+            name: nil,
             description: "Rewritten elsewhere"
         )
         let current = try #require(form.merge(against: milestone))

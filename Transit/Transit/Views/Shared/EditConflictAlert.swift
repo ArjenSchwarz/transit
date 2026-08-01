@@ -28,7 +28,7 @@ extension EditMerge {
 struct EditConflictAlert<Snapshot: EditSnapshot>: ViewModifier {
     let subject: String
     @Binding var conflict: EditMerge<Snapshot>?
-    let keepMine: () -> Void
+    let keepMine: (EditMerge<Snapshot>) -> Void
     let useTheirs: (EditMerge<Snapshot>) -> Void
 
     func body(content: Content) -> some View {
@@ -40,7 +40,7 @@ struct EditConflictAlert<Snapshot: EditSnapshot>: ViewModifier {
             ),
             presenting: conflict
         ) { merge in
-            Button("Keep My Changes", role: .destructive) { keepMine() }
+            Button("Keep My Changes", role: .destructive) { keepMine(merge) }
             Button("Use Updated Values", role: .cancel) { useTheirs(merge) }
         } message: { merge in
             Text(merge.conflictDescription(subject: subject))
@@ -52,7 +52,7 @@ extension View {
     func editConflictAlert<Snapshot: EditSnapshot>(
         subject: String,
         conflict: Binding<EditMerge<Snapshot>?>,
-        keepMine: @escaping () -> Void,
+        keepMine: @escaping (EditMerge<Snapshot>) -> Void,
         useTheirs: @escaping (EditMerge<Snapshot>) -> Void
     ) -> some View {
         modifier(

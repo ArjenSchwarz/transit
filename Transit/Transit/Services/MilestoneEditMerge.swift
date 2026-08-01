@@ -42,6 +42,19 @@ nonisolated struct MilestoneEditSnapshot: EditSnapshot {
         case .description: description != other.description
         }
     }
+
+    /// Returns a copy with `field` taken from `other`.
+    func replacing(
+        _ field: MilestoneEditField,
+        withValueFrom other: MilestoneEditSnapshot
+    ) -> MilestoneEditSnapshot {
+        var copy = self
+        switch field {
+        case .name: copy.name = other.name
+        case .description: copy.description = other.description
+        }
+        return copy
+    }
 }
 
 // MARK: - Merge
@@ -125,16 +138,13 @@ struct MilestoneEditForm {
         )
     }
 
-    /// Drops the user's edits to the conflicting fields in favour of the values
-    /// now on the milestone, and re-baselines so untouched fields stay untouched
-    /// and the user's other edits stay pending.
-    mutating func adoptLiveValues(for merge: MilestoneEditMerge, from milestone: Milestone) {
-        for field in merge.conflictingFields {
-            switch field {
-            case .name: name = milestone.name
-            case .description: description = milestone.milestoneDescription ?? ""
-            }
-        }
-        original = MilestoneEditSnapshot(milestone: milestone)
+    /// Rebuilds the whole draft on the live snapshot shown by the resolved
+    /// merge. Starting from live refreshes untouched external changes; only
+    /// genuine non-conflicting user edits remain overlaid.
+    mutating func adoptLiveValues(for merge: MilestoneEditMerge, from _: Milestone) {
+        let rebased = merge.rebasedEdited
+        name = rebased.name
+        description = rebased.description
+        original = merge.live
     }
 }

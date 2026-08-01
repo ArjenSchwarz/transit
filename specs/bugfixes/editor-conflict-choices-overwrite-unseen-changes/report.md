@@ -1,7 +1,7 @@
 # Bugfix Report: Editor Conflict Choices Can Overwrite Unseen External Changes
 
 **Date:** 2026-08-01
-**Status:** In Progress
+**Status:** Fixed
 **Ticket:** T-1935
 
 ## Description of the Issue
@@ -57,16 +57,13 @@ The conflict flow treats both rebasing and overwrite consent as field-set operat
 
 ## Resolution for the Issue
 
-In progress.
+`EditMerge` now retains the original, edited, and live snapshots. Its shared `rebasedEdited` value starts from the complete live snapshot and overlays only user-changed, non-conflicting fields. **Use Updated Values** therefore refreshes every untouched or conflicting field while preserving only genuine non-conflicting local edits.
 
-**Planned changes:**
-- Retain original, edited, and live snapshots in `EditMerge`.
-- Build rebased drafts from the full live snapshot, overlaying only genuine non-conflicting user edits.
-- Validate both alert actions against the exact conflicting field values shown.
-- Recompute immediately before either action and present the current conflicts when the snapshot changed.
-- Pass the shown merge into the **Keep My Changes** callback instead of using a Boolean bypass.
+`hasSameConflictSnapshot(as:)` scopes consent to the exact conflict field set and original, edited, and live values shown in the alert. Both alert callbacks now receive that shown merge. Task, project, and milestone editors recompute immediately before either action; they proceed only if the current conflicts still match, otherwise they dismiss and re-present the current conflict snapshot after yielding to SwiftUI's alert lifecycle. The former `overwritingConflicts: Bool` bypass was removed.
 
-**Approach rationale:** Keeping the policy in the shared merge layer gives all editors identical behavior and makes both race and rebase invariants directly testable.
+Task, project, and milestone snapshots implement per-field replacement for shared rebasing. Each editor adopts the entire rebased draft and advances its baseline to the current live snapshot. Task milestone rebasing resolves the rebased milestone ID from the selected and current-live milestone candidates.
+
+**Approach rationale:** Keeping snapshot identity and rebase policy in the shared merge layer gives all editors identical behavior and makes both race and rebase invariants directly testable.
 
 **Alternatives considered:**
 - Refresh only known untouched fields in each view — rejected because three hand-written policies would drift and still lack snapshot consent.
@@ -80,41 +77,47 @@ In progress.
 - `Transit/TransitTests/ProjectEditConflictDetectionTests.swift`
 - `Transit/TransitTests/MilestoneEditConcurrentUpdateTests.swift`
 
-**Tests:** Each editor has a multi-field rebase regression and an alert-race regression. They verify that untouched live fields refresh, genuine non-conflicting user edits remain pending, and changed/new conflict values invalidate the shown alert snapshot.
+**Tests:** Each editor has a multi-field rebase regression and an alert-race regression. They verify that untouched live fields refresh, genuine non-conflicting user edits remain pending, and both a changed value for the same conflict field set and a newly added conflict invalidate the shown alert snapshot.
 
-**Red phase:** `make test-quick` fails while compiling `ProjectEditConflictDetectionTests.swift` because `ProjectEditMerge` has no `hasSameConflictSnapshot(as:)` member. This confirms the required consent-scoping behavior is absent before implementation.
+**Red phase:** `make test-quick` failed while compiling `ProjectEditConflictDetectionTests.swift` because `ProjectEditMerge` had no `hasSameConflictSnapshot(as:)` member. This confirmed the required consent-scoping behavior was absent before implementation.
 
-**Run command:** `make test-quick`
+**Green command:** `make test-quick`
 
 ## Affected Files
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Services/EditMerge.swift` | Planned shared snapshot retention, rebase, and consent validation |
-| `Transit/Transit/Services/TaskEditMerge.swift` | Planned task snapshot field-copy support |
-| `Transit/Transit/Services/ProjectEditMerge.swift` | Planned complete project form rebase |
-| `Transit/Transit/Services/MilestoneEditMerge.swift` | Planned complete milestone form rebase |
-| `Transit/Transit/Views/Shared/EditConflictAlert.swift` | Planned shown-merge callback for both actions |
-| `Transit/Transit/Views/TaskDetail/TaskEditView.swift` | Planned exact consent and full rebase wiring |
-| `Transit/Transit/Views/Settings/ProjectEditView.swift` | Planned exact consent and revalidation |
-| `Transit/Transit/Views/Settings/MilestoneEditView.swift` | Planned exact consent and revalidation |
-| Editor merge test files | Multi-field and alert-race regressions |
+| `Transit/Transit/Services/EditMerge.swift` | Retain snapshots and provide shared safe rebasing and exact consent validation |
+| `Transit/Transit/Services/TaskEditMerge.swift` | Add task snapshot field replacement for shared rebasing |
+| `Transit/Transit/Services/ProjectEditMerge.swift` | Add project field replacement and complete-form rebase |
+| `Transit/Transit/Services/MilestoneEditMerge.swift` | Add milestone field replacement and complete-form rebase |
+| `Transit/Transit/Views/Shared/EditConflictAlert.swift` | Pass the shown merge to both alert actions |
+| `Transit/Transit/Views/TaskDetail/TaskEditConflictAlert.swift` | Forward the shown task merge to keep-mine handling |
+| `Transit/Transit/Views/TaskDetail/TaskEditView.swift` | Recompute and validate both choices; adopt the complete rebased task draft |
+| `Transit/Transit/Views/Settings/ProjectEditView.swift` | Recompute and validate both choices; re-alert on changed conflicts |
+| `Transit/Transit/Views/Settings/MilestoneEditView.swift` | Recompute and validate both choices; re-alert on changed conflicts |
+| `Transit/TransitTests/TaskEditConcurrentUpdateTests.swift` | Add task multi-field rebase and alert-race regressions |
+| `Transit/TransitTests/ProjectEditConflictDetectionTests.swift` | Add project multi-field rebase and alert-race regressions |
+| `Transit/TransitTests/MilestoneEditConcurrentUpdateTests.swift` | Add milestone multi-field rebase and alert-race regressions |
+| `CHANGELOG.md` | Document the T-1935 fix |
+| This report | Record investigation, implementation, and verification |
 
 ## Verification
 
 **Automated:**
-- [ ] Regression tests pass
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] `make test-quick` — passed after the final regression assertions.
+- [x] `make lint` — passed, including strict SwiftLint and the SwiftData ownership guard. `TaskEditView.swift` remains at the 400-line limit.
+- [ ] `make test` — attempted twice. The first clean build and warmed retry each hit the 20-minute command timeout. The latest run built the app, launched the iPhone 17 simulator, and showed a large number of passing tests (including new project conflict tests) with no reported failure before timeout, but it did not emit a final suite result.
+- [ ] `make test-ui` — not started because unrelated T-2019 and T-1768 `make test` processes remained active for more than 25 minutes on the same iPhone 17 simulator and another worktree began `make test-ui`. Those other agents' processes were intentionally left untouched.
 
-**Manual verification:**
-- Pending implementation.
+**Manual verification:** Not performed; the merge invariants and all six task/project/milestone scenarios are exercised by the green macOS unit suite.
 
 ## Prevention
 
 - Treat conflict consent as authorization for exact values, not a Boolean permission to overwrite arbitrary future conflicts.
 - Rebase editable drafts by starting from the latest live snapshot and overlaying only known user-owned edits.
 - Keep conflict policy in the shared merge layer so all editors remain behaviorally aligned.
+- Keep same-field-value and newly-added-field alert races as separate regression assertions.
 
 ## Related
 
