@@ -214,28 +214,57 @@ struct CreateTaskIntent: AppIntent {
         }
 
         if let milestoneDisplayId {
-            do {
-                let milestone = try milestoneService.findByDisplayID(milestoneDisplayId)
-                guard milestone.project?.id == project.id else {
-                    return (nil, IntentHelpers.mapMilestoneError(.projectMismatch).json)
-                }
-                return (milestone, nil)
-            } catch let error as MilestoneService.Error {
-                return (nil, IntentHelpers.mapMilestoneError(error).json)
-            } catch {
-                return (nil, IntentError.milestoneNotFound(
-                    hint: "No milestone with displayId \(milestoneDisplayId)"
-                ).json)
+            return resolveMilestone(
+                displayId: milestoneDisplayId, in: project, using: milestoneService
+            )
+        }
+        if let milestoneName {
+            return resolveMilestone(named: milestoneName, in: project, using: milestoneService)
+        }
+        return (nil, nil)
+    }
+
+    private static func resolveMilestone(
+        displayId: Int,
+        in project: Project,
+        using milestoneService: MilestoneService
+    ) -> (milestone: Milestone?, error: String?) {
+        do {
+            let milestone = try milestoneService.findByDisplayID(displayId)
+            guard milestone.project?.id == project.id else {
+                return (nil, IntentHelpers.mapMilestoneError(.projectMismatch).json)
             }
-        } else if let milestoneName {
-            guard let milestone = milestoneService.findByName(milestoneName, in: project) else {
+            return (milestone, nil)
+        } catch let error as MilestoneService.Error {
+            return (nil, IntentHelpers.mapMilestoneError(error).json)
+        } catch {
+            return (nil, IntentError.milestoneNotFound(
+                hint: "No milestone with displayId \(displayId)"
+            ).json)
+        }
+    }
+
+    private static func resolveMilestone(
+        named name: String,
+        in project: Project,
+        using milestoneService: MilestoneService
+    ) -> (milestone: Milestone?, error: String?) {
+        do {
+            guard let milestone = try milestoneService.findByName(name, in: project) else {
                 return (nil, IntentError.milestoneNotFound(
-                    hint: "No milestone named '\(milestoneName)' in project '\(project.name)'"
+                    hint: "No milestone named '\(name)' in project '\(project.name)'"
                 ).json)
             }
             return (milestone, nil)
+        } catch MilestoneService.Error.ambiguousName {
+            return (nil, IntentError.ambiguousMilestone(
+                hint: "Multiple milestones named '\(name)' exist in project '\(project.name)'"
+            ).json)
+        } catch {
+            return (nil, IntentError.internalError(
+                hint: "Failed to look up milestone: \(error)"
+            ).json)
         }
-        return (nil, nil)
     }
 
     /// Parses the optional `priority` field. Absent -> `.medium`;

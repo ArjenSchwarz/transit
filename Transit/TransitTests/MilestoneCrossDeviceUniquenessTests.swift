@@ -18,6 +18,22 @@ struct MilestoneCrossDeviceUniquenessTests {
         let secondMilestoneID: UUID
     }
 
+    private func makeTask(
+        named name: String,
+        project: Project,
+        milestone: Milestone,
+        displayID: Int
+    ) -> TransitTask {
+        let task = TransitTask(
+            name: name,
+            type: .feature,
+            project: project,
+            displayID: .permanent(displayID)
+        )
+        task.milestone = milestone
+        return task
+    }
+
     private func makeSyncedDuplicateEnvironment() throws -> Environment {
         let container = try TestModelContainer.newContainer()
 
@@ -35,7 +51,11 @@ struct MilestoneCrossDeviceUniquenessTests {
             project: project,
             displayID: .permanent(1)
         )
+        first.creationDate = Date(timeIntervalSince1970: 1)
         firstDevice.insert(first)
+        firstDevice.insert(makeTask(
+            named: "Device A task", project: project, milestone: first, displayID: 10
+        ))
         try firstDevice.save()
 
         let secondDevice = ModelContext(container)
@@ -50,7 +70,11 @@ struct MilestoneCrossDeviceUniquenessTests {
             project: importedProject,
             displayID: .permanent(2)
         )
+        second.creationDate = Date(timeIntervalSince1970: 2)
         secondDevice.insert(second)
+        secondDevice.insert(makeTask(
+            named: "Device B task", project: importedProject, milestone: second, displayID: 11
+        ))
         try secondDevice.save()
 
         return Environment(
@@ -79,9 +103,9 @@ struct MilestoneCrossDeviceUniquenessTests {
         let descriptor = FetchDescriptor<Project>(predicate: #Predicate { $0.id == projectID })
         let project = try #require(try receivingDevice.fetch(descriptor).first)
 
-        // Broken behavior: this returns whichever matching row SwiftData happens to
-        // fetch first, making name-addressed mutation and assignment nondeterministic.
-        #expect(service.findByName("BETA", in: project) == nil)
+        #expect(throws: MilestoneService.Error.ambiguousName) {
+            try service.findByName("BETA", in: project)
+        }
     }
 
     @Test func postSyncMaintenanceReconcilesNamesWithoutDeletingRecords() async throws {
@@ -101,6 +125,18 @@ struct MilestoneCrossDeviceUniquenessTests {
             environment.firstMilestoneID,
             environment.secondMilestoneID
         ])
+        #expect(
+            milestones.first { $0.id == environment.firstMilestoneID }?.name == "Beta",
+            "The deterministic oldest winner must keep its original name"
+        )
+
+        let tasks = try receivingDevice.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.count == 2)
+        #expect(Set(tasks.compactMap { $0.milestone?.id }) == [
+            environment.firstMilestoneID,
+            environment.secondMilestoneID
+        ], "Reconciliation must preserve both task assignments")
+        #expect(try service.reconcileDuplicateNames() == 0, "Reconciliation must be idempotent")
     }
 
     @Test func mcpCreateTaskReportsAmbiguousMilestoneName() async throws {

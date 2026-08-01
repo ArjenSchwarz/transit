@@ -185,4 +185,4 @@ This feature adds milestones to the data model, services, UI, MCP tools, App Int
 6. <a name="13.6"></a>The `Transit: Create Task` intent SHALL accept an optional `milestone` parameter
 7. <a name="13.7"></a>The `Transit: Query Tasks` intent SHALL accept an optional `milestone` filter parameter
 8. <a name="13.8"></a>Milestone operations SHALL use the same JSON input/output pattern and error codes as existing intents
-9. <a name="13.9"></a>Error codes SHALL include: `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `MILESTONE_PROJECT_MISMATCH`
+9. <a name="13.9"></a>Error codes SHALL include: `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `AMBIGUOUS_MILESTONE`, `MILESTONE_PROJECT_MISMATCH`

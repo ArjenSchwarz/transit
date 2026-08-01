@@ -190,7 +190,7 @@ final class MilestoneService {
 
     func findByID(_ id: UUID) throws -> Milestone
     func findByDisplayID(_ displayId: Int) throws -> Milestone
-    func findByName(_ name: String, in project: Project) -> Milestone?
+    func findByName(_ name: String, in project: Project) throws -> Milestone?
     func milestonesForProject(_ project: Project, status: MilestoneStatus? = nil) -> [Milestone]
     func milestoneNameExists(_ name: String, in project: Project, excluding: UUID? = nil) -> Bool
 }
@@ -203,10 +203,10 @@ final class MilestoneService {
 - `updateStatus`: updates `statusRawValue`, `lastStatusChangeDate`, sets/clears `completionDate` based on terminal status. **Throws on save failure with rollback** (same pattern as `TaskService.updateStatus`, per T-150 fix). No StatusEngine needed — the three-state lifecycle is simple enough to inline.
 - `deleteMilestone`: shows confirmation of affected task count, deletes from context, saves. SwiftData handles nullifying task associations.
 - `setMilestone(_:on:)`: validates `task.project != nil`, validates `milestone.project?.id == task.project?.id` (throws `.projectMismatch` on mismatch), sets `task.milestone`. All milestone assignment flows (views, MCP, intents) go through this method.
-- `promoteProvisionalMilestones()`: queries milestones with `permanentDisplayId == nil`, allocates IDs via the dedicated allocator. Same pattern as `DisplayIDAllocator.promoteProvisionalTasks` but for milestones.
+- `promoteProvisionalMilestones()`: first runs deterministic duplicate-name reconciliation for CloudKit-imported conflicts, then queries milestones with `permanentDisplayId == nil` and allocates IDs via the dedicated allocator. Same promotion pattern as `DisplayIDAllocator.promoteProvisionalTasks`.
 - Lookup methods use `FetchDescriptor` with `#Predicate` on the Milestone side (never traversing `Project.milestones` to-many), same pattern as `TaskService`.
 
-**Known limitation:** Name uniqueness check in `createMilestone` has a TOCTOU window during the async display ID allocation. In a single-user app, concurrent creation of identically-named milestones in the same project is extremely unlikely. Acceptable tradeoff.
+**Cross-device uniqueness policy:** Local creation rechecks names after asynchronous display-ID allocation, but CloudKit can still merge UUID-distinct, same-name records created while devices are disconnected. `findByName` therefore throws on multiple matches instead of choosing arbitrarily. Lifecycle sync hooks plus SwiftData milestone-name observation deterministically preserve the oldest name and rename other records with UUID-derived suffixes, retaining all records and task assignments. Strict prevention would require a direct CloudKit `(projectID, normalizedName)` reservation protocol, which cannot guarantee offline availability and would still require reconciliation after conflicts; that coordination is outside the repository-appropriate scope for this single-user app (Decision 10).
 
 ### 2.2 DisplayIDAllocator Changes
 

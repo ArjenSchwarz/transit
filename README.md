@@ -60,7 +60,7 @@ Transit exposes App Intents accessible via the Shortcuts app or `shortcuts run` 
 - **Transit: Add Comment** — add a comment to a task
 - **Transit: Generate Report** — produce a markdown report of completed tasks
 
-All intents accept a JSON string input and return a JSON string response, including structured error codes (`TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`, `INVALID_INPUT`, `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `MILESTONE_PROJECT_MISMATCH`, `INTERNAL_ERROR`).
+All intents accept a JSON string input and return a JSON string response, including structured error codes (`TASK_NOT_FOUND`, `PROJECT_NOT_FOUND`, `AMBIGUOUS_PROJECT`, `INVALID_STATUS`, `INVALID_TYPE`, `INVALID_INPUT`, `MILESTONE_NOT_FOUND`, `DUPLICATE_MILESTONE_NAME`, `AMBIGUOUS_MILESTONE`, `MILESTONE_PROJECT_MISMATCH`, `INTERNAL_ERROR`).
 
 ## MCP Server (macOS)
 

@@ -5,10 +5,19 @@ import SwiftUI
 /// triggers display ID promotion on app launch and return to foreground.
 struct ScenePhaseModifier: ViewModifier {
     @Environment(\.scenePhase) private var scenePhase
+    @Query private var milestones: [Milestone]
 
     let displayIDAllocator: DisplayIDAllocator
     let milestoneService: MilestoneService
     let modelContext: ModelContext
+
+    private var milestoneNameFingerprint: String {
+        milestones.map {
+            "\($0.id.uuidString)|\($0.project?.id.uuidString ?? "orphan")|\($0.name)"
+        }
+        .sorted()
+        .joined(separator: "\u{1F}")
+    }
 
     func body(content: Content) -> some View {
         content
@@ -23,6 +32,11 @@ struct ScenePhaseModifier: ViewModifier {
                         await milestoneService.promoteProvisionalMilestones()
                     }
                 }
+            }
+            .onChange(of: milestoneNameFingerprint) {
+                // CloudKit imports may complete after launch/foreground hooks. Query
+                // observation provides the post-sync pass; reconciliation is idempotent.
+                try? milestoneService.reconcileDuplicateNames()
             }
     }
 }

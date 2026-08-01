@@ -1,7 +1,7 @@
 # Bugfix Report: Cross-Device Milestone Name Uniqueness
 
 **Date:** 2026-08-01
-**Status:** Investigating
+**Status:** Fixed
 **Ticket:** T-1938
 
 ## Description of the Issue
@@ -45,13 +45,19 @@ The service-layer uniqueness invariant is local, while the data is multi-writer 
 
 ## Resolution for the Issue
 
-Pending implementation.
+**Changes made:**
+- `MilestoneService.findByName` now fetches all normalized project-scoped matches and throws `.ambiguousName` instead of selecting `.first` when several exist.
+- All direct MCP and App Intent callers catch ambiguity. App Intents return the distinct `AMBIGUOUS_MILESTONE` code; MCP tools return an explicit multiple-match error and do not mutate data.
+- `MilestoneNameReconciler` uses locale-stable normalization, keeps the oldest milestone's original name (UUID tie-break), and renames every loser with a deterministic full-UUID suffix. It preserves descriptions, status, display IDs, records, and task assignments, avoids generated-name collisions, and is idempotent.
+- Reconciliation runs through existing launch/foreground/connectivity maintenance and through `ScenePhaseModifier` milestone-name observation, covering CloudKit imports that complete after lifecycle hooks. It defers while the shared context has unrelated unsaved changes.
+- Milestone requirements/design/implementation, Decision 10, README, CLAUDE.md, and agent notes document the behavior and new error contract.
 
-The proposed repository-appropriate scope is to:
-- make project-scoped name lookup fail closed when more than one match exists and propagate a distinct ambiguity report through every caller;
-- deterministically keep one original name and rename other synced records with UUID-derived suffixes, preserving records, descriptions, statuses, and task assignments;
-- run reconciliation from existing post-sync lifecycle hooks;
-- document why direct CloudKit reservation is not introduced for this single-user app and why reconciliation remains required even if reservation is added later.
+**Approach rationale:** Fail-closed lookup removes the immediate wrong-record risk. Deterministic renaming restores the uniqueness invariant without guessing how to merge or delete user data, and every device can independently converge on the same result.
+
+**Alternatives considered:**
+- **CloudKit `(projectID, normalizedName)` reservation records** — not chosen because offline creation cannot synchronously reserve a name, this would add a second direct-CloudKit subsystem, and reconciliation would still be required for offline conflicts and existing data.
+- **Merge and delete duplicates** — rejected because milestone descriptions, statuses, completion state, and task assignments cannot be merged without potentially losing user intent.
+- **Ambiguity reporting only** — rejected because it prevents wrong writes but leaves the invalid state unresolved.
 
 ## Regression Test
 
@@ -68,15 +74,30 @@ The proposed repository-appropriate scope is to:
 
 ## Affected Files
 
-Pending implementation.
+| File | Change |
+|------|--------|
+| `Transit/Transit/Services/MilestoneService.swift` | Throw on ambiguous name lookup and invoke reconciliation from lifecycle maintenance |
+| `Transit/Transit/Services/MilestoneNameReconciler.swift` | Add deterministic, data-preserving duplicate-name repair and shared normalization |
+| `Transit/Transit/Views/ScenePhaseModifier.swift` | Observe imported milestone-name changes and trigger post-sync reconciliation |
+| `Transit/Transit/Intents/IntentError.swift` | Add `AMBIGUOUS_MILESTONE` |
+| `Transit/Transit/Intents/IntentHelpers.swift` | Propagate ambiguity through shared resolution/assignment callers |
+| `Transit/Transit/Intents/CreateTaskIntent.swift` | Reject ambiguous milestone assignment during task creation |
+| `Transit/Transit/Intents/TaskUpdateValidator.swift` | Reject ambiguous milestone assignment during task updates |
+| `Transit/Transit/MCP/MCPToolHandler.swift` | Reject ambiguity in create/query task name paths |
+| `Transit/TransitTests/MilestoneCrossDeviceUniquenessTests.swift` | Add cross-context CloudKit simulation, preservation, idempotence, and MCP regressions |
+| `Transit/TransitTests/MilestoneServiceLookupTests.swift` | Adopt the throwing lookup contract |
+| `Transit/TransitTests/IntentErrorTests.swift` | Cover the new intent error code |
+| `specs/milestones/*`, `README.md`, `CLAUDE.md`, `docs/agent-notes/milestones.md` | Document the behavior, tradeoff, lifecycle, and error contract |
 
 ## Verification
 
 **Automated:**
-- [x] Regression tests fail before the fix (`xcodebuild ... -only-testing:TransitTests/MilestoneCrossDeviceUniquenessTests`; all three tests failed as expected)
-- [ ] Regression test passes after the fix
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression tests failed before the fix (`xcodebuild ... -only-testing:TransitTests/MilestoneCrossDeviceUniquenessTests`; all three tests failed as expected)
+- [x] Targeted regression suite passes after the fix (3/3 tests)
+- [x] macOS unit suite passes (`make test-quick`)
+- [x] Full iOS simulator suite passes (`make test`)
+- [x] UI suite passes (`make test-ui`)
+- [x] SwiftLint passes (`make lint`)
 
 ## Prevention
 

@@ -10,6 +10,7 @@ nonisolated enum IntentError: Error {
     case invalidInput(hint: String)
     case milestoneNotFound(hint: String)
     case duplicateMilestoneName(hint: String)
+    case ambiguousMilestone(hint: String)
     case milestoneProjectMismatch(hint: String)
     case internalError(hint: String)
 
@@ -24,6 +25,7 @@ nonisolated enum IntentError: Error {
         case .invalidInput: "INVALID_INPUT"
         case .milestoneNotFound: "MILESTONE_NOT_FOUND"
         case .duplicateMilestoneName: "DUPLICATE_MILESTONE_NAME"
+        case .ambiguousMilestone: "AMBIGUOUS_MILESTONE"
         case .milestoneProjectMismatch: "MILESTONE_PROJECT_MISMATCH"
         case .internalError: "INTERNAL_ERROR"
         }
@@ -40,6 +42,7 @@ nonisolated enum IntentError: Error {
              .invalidInput(let hint),
              .milestoneNotFound(let hint),
              .duplicateMilestoneName(let hint),
+             .ambiguousMilestone(let hint),
              .milestoneProjectMismatch(let hint),
              .internalError(let hint):
             hint

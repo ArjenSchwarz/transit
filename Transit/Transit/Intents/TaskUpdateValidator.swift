@@ -304,12 +304,20 @@ enum TaskUpdateValidator {
         guard let project = task.project else {
             return .failure(.projectRequiredForMilestone)
         }
-        guard let milestone = milestoneService.findByName(name, in: project) else {
-            return .failure(.milestoneNotFound(
-                message: "No milestone named '\(name)' in project '\(project.name)'"
+        do {
+            guard let milestone = try milestoneService.findByName(name, in: project) else {
+                return .failure(.milestoneNotFound(
+                    message: "No milestone named '\(name)' in project '\(project.name)'"
+                ))
+            }
+            return projectMatched(milestone: milestone, task: task)
+        } catch MilestoneService.Error.ambiguousName {
+            return .failure(.ambiguousMilestoneName(
+                message: "Multiple milestones named '\(name)' exist in project '\(project.name)'"
             ))
+        } catch {
+            return .failure(.invalidInput("Failed to look up milestone: \(error)"))
         }
-        return projectMatched(milestone: milestone, task: task)
     }
 
     /// Validates that a resolved milestone's project matches the task's project.
@@ -396,6 +404,7 @@ enum TaskUpdateValidationError: Error {
     case invalidInput(String)
     case invalidPriority(String)
     case milestoneNotFound(message: String)
+    case ambiguousMilestoneName(message: String)
     case duplicateMilestoneDisplayID(message: String)
     case milestoneProjectMismatch
     case projectRequiredForMilestone
@@ -408,6 +417,7 @@ enum TaskUpdateValidationError: Error {
         case .invalidInput(let message),
              .invalidPriority(let message),
              .milestoneNotFound(let message),
+             .ambiguousMilestoneName(let message),
              .duplicateMilestoneDisplayID(let message):
             return message
         case .milestoneProjectMismatch:
@@ -428,6 +438,8 @@ enum TaskUpdateValidationError: Error {
             return .invalidPriority(hint: hint)
         case .milestoneNotFound(let message):
             return .milestoneNotFound(hint: message)
+        case .ambiguousMilestoneName(let message):
+            return .ambiguousMilestone(hint: message)
         case .duplicateMilestoneDisplayID(let message):
             return .internalError(hint: message)
         case .milestoneProjectMismatch:
