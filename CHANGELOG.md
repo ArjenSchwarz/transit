@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Added failing route-level regression coverage for T-1834, documenting that the MCP Streamable HTTP endpoint rejects valid JSON-RPC batches instead of dispatching each request/notification, omitting notification responses, preserving response arrays, returning HTTP 202 for all-notification batches, and rejecting batched `initialize` calls.
+
 - SwiftData test fixtures now retain their backing `ModelContainer` for the full test lifetime (T-2003). `TestModelContainer` is a container-owning fixture instead of a bare-context factory, 207 context-acquisition call sites across 92 test files were migrated, and bespoke context helpers in task-entity, task-creation-result, and report tests now delegate to the shared fixture. An escaped-context lifetime regression plus an executable ownership guard with positive/negative fixtures prevent raw container/context factories from recurring.
 
 - Cross-device milestone name conflicts no longer make name-based operations target an arbitrary record (T-1938). `MilestoneService.findByName` now throws on multiple project-scoped matches; all MCP and App Intent callers report the ambiguity (`AMBIGUOUS_MILESTONE` for intents). Launch/foreground/connectivity maintenance deterministically keeps the oldest milestone name and renames other UUID-distinct records with UUID-derived suffixes, preserving records and task assignments. Cross-context tests simulate CloudKit imports and verify ambiguity reporting, reconciliation, idempotence, and data preservation.
