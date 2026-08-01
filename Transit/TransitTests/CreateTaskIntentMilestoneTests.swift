@@ -16,7 +16,9 @@ struct CreateTaskIntentMilestoneTests {
         let context: ModelContext
     }
 
-    private func makeServices() throws -> Services {
+    private func makeServices(
+        createSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
+    ) throws -> Services {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
         let taskStore = InMemoryCounterStore()
@@ -24,7 +26,11 @@ struct CreateTaskIntentMilestoneTests {
         let milestoneStore = InMemoryCounterStore()
         let milestoneAllocator = DisplayIDAllocator(store: milestoneStore)
         return Services(
-            task: TaskService(modelContext: context, displayIDAllocator: taskAllocator),
+            task: TaskService(
+                modelContext: context,
+                displayIDAllocator: taskAllocator,
+                createSave: createSave
+            ),
             milestone: MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator),
             project: ProjectService(modelContext: context),
             context: context
@@ -96,6 +102,38 @@ struct CreateTaskIntentMilestoneTests {
         #expect(parsed["taskId"] is String)
         let milestoneInfo = parsed["milestone"] as? [String: Any]
         #expect(milestoneInfo?["name"] as? String == "v1.0")
+    }
+
+    @Test func createTaskWithMilestoneSaveFailureIsAtomic() async throws {
+        var expectedMilestoneID: UUID?
+        let svc = try makeServices { context in
+            let pendingTasks = try context.fetch(FetchDescriptor<TransitTask>())
+            #expect(pendingTasks.count == 1)
+            #expect(pendingTasks.first?.milestone?.id == expectedMilestoneID)
+            throw SaveFailure.simulated
+        }
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        expectedMilestoneID = milestone.id
+
+        let input = """
+        {"name":"Atomic Task","type":"bug","project":"\(project.name)","milestoneDisplayId":1}
+        """
+        let result = await CreateTaskIntent.execute(
+            input: input,
+            taskService: svc.task,
+            projectService: svc.project,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(try svc.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+        try svc.context.save()
+        #expect(
+            try svc.context.fetch(FetchDescriptor<TransitTask>()).isEmpty,
+            "A later save must not resurrect a failed aggregate create [T-1768]"
+        )
     }
 
     @Test func createTaskWithUnknownMilestoneReturnsMilestoneNotFound() async throws {

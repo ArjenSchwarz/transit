@@ -36,13 +36,19 @@ struct AddTaskSheetSaveErrorTests {
         return (service, context)
     }
 
-    private func makeServices() throws -> Services {
+    private func makeServices(
+        createSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
+    ) throws -> Services {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
         let taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         return Services(
-            task: TaskService(modelContext: context, displayIDAllocator: taskAllocator),
+            task: TaskService(
+                modelContext: context,
+                displayIDAllocator: taskAllocator,
+                createSave: createSave
+            ),
             milestone: MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator),
             context: context
         )
@@ -189,6 +195,46 @@ struct AddTaskSheetSaveErrorTests {
         let descriptor = FetchDescriptor<TransitTask>()
         let tasks = try svc.context.fetch(descriptor)
         #expect(tasks.isEmpty, "Task must not remain in the database when milestone assignment fails [T-855]")
+    }
+
+    /// T-1768: the requested milestone must be attached before the only create
+    /// save. A failed save must remove the entire aggregate so a later save
+    /// cannot resurrect a task the sheet reported as failed.
+    @Test func persistWithMilestoneIsAtomicWhenCreateSaveFails() async throws {
+        var expectedMilestoneID: UUID?
+        let svc = try makeServices { context in
+            let pendingTasks = try context.fetch(FetchDescriptor<TransitTask>())
+            #expect(pendingTasks.count == 1)
+            #expect(pendingTasks.first?.milestone?.id == expectedMilestoneID)
+            throw SaveFailure.simulated
+        }
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        expectedMilestoneID = milestone.id
+
+        let draft = AddTaskSheet.TaskDraft(
+            name: "Atomic Task",
+            description: nil,
+            type: .bug,
+            priority: .medium,
+            projectID: project.id,
+            milestone: milestone
+        )
+
+        await #expect(throws: SaveFailure.self) {
+            try await AddTaskSheet.persist(
+                draft: draft,
+                taskService: svc.task,
+                milestoneService: svc.milestone
+            )
+        }
+
+        #expect(try svc.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+        try svc.context.save()
+        #expect(
+            try svc.context.fetch(FetchDescriptor<TransitTask>()).isEmpty,
+            "A later save must not resurrect a failed aggregate create [T-1768]"
+        )
     }
 
     /// Verifies the happy-path: when a valid milestone in the same project is

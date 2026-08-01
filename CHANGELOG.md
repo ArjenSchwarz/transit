@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - The MCP Streamable HTTP endpoint now accepts non-empty JSON-RPC request/notification batches for advertised protocol `2025-03-26` (T-1834). It decodes each member independently, dispatches requests and notifications sequentially, omits notification responses, preserves response-array semantics, returns HTTP 202 with no body for all-notification batches, emits per-member `-32600` errors for invalid entries, handles empty batches as one invalid-request object, and rejects lifecycle-invalid batched `initialize` calls. Route-level regression tests cover each behavior and unchanged single-request responses.
+- Regression coverage for T-1768 now exercises MCP `create_task`, `CreateTaskIntent`, and `AddTaskSheet.persist` through an aggregate-create save seam, requiring the requested milestone to be attached before persistence and a failed save to leave no task that a later unrelated save can resurrect.
 
 - SwiftData test fixtures now retain their backing `ModelContainer` for the full test lifetime (T-2003). `TestModelContainer` is a container-owning fixture instead of a bare-context factory, 207 context-acquisition call sites across 92 test files were migrated, and bespoke context helpers in task-entity, task-creation-result, and report tests now delegate to the shared fixture. An escaped-context lifetime regression plus an executable ownership guard with positive/negative fixtures prevent raw container/context factories from recurring.
 
