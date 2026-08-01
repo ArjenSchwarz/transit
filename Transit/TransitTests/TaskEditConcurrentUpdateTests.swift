@@ -290,6 +290,58 @@ struct TaskEditConflictDetectionTests {
         #expect(merge.conflictingFieldNames == ["Name", "Type", "Status"])
     }
 
+    /// "Use Updated Values" rebuilds the whole draft from the latest task,
+    /// preserving only genuine non-conflicting user edits. Untouched external
+    /// changes must not remain stale and become accidental edits after rebase.
+    @Test func adoptingLiveValuesRefreshesUntouchedFieldsAndKeepsCleanEdits() async throws {
+        let env = try TaskEditTestEnv.make()
+        let task = try await env.makeTask()
+        let baseline = TaskEditSnapshot(task: task)
+
+        try env.taskService.updateTask(task, name: "Renamed by MCP", type: .bug)
+        try env.taskService.updateStatus(task: task, to: .done)
+
+        var edited = baseline
+        edited.name = "Renamed by the user"
+        edited.priority = .high
+
+        let merge = TaskEditMerge(original: baseline, edited: edited, live: TaskEditSnapshot(task: task))
+        let rebased = merge.rebasedEdited
+
+        #expect(rebased.name == "Renamed by MCP")
+        #expect(rebased.type == .bug)
+        #expect(rebased.status == .done)
+        #expect(rebased.priority == .high)
+
+        let afterRebase = TaskEditMerge(original: merge.live, edited: rebased, live: merge.live)
+        #expect(afterRebase.changedFields == [.priority])
+        #expect(afterRebase.hasConflicts == false)
+    }
+
+    /// Keep-mine consent applies only to the exact conflict values shown. If an
+    /// external writer changes a shown value and introduces another conflict
+    /// while the alert is open, the current merge must require a new alert.
+    @Test func changedConflictSnapshotInvalidatesAlertConsent() async throws {
+        let env = try TaskEditTestEnv.make()
+        let task = try await env.makeTask()
+        let baseline = TaskEditSnapshot(task: task)
+
+        var edited = baseline
+        edited.name = "Renamed by the user"
+        edited.status = .planning
+
+        try env.taskService.updateTask(task, name: "First MCP name")
+        let shown = TaskEditMerge(original: baseline, edited: edited, live: TaskEditSnapshot(task: task))
+        #expect(shown.conflictingFields == [.name])
+
+        try env.taskService.updateTask(task, name: "Second MCP name")
+        try env.taskService.updateStatus(task: task, to: .done)
+        let current = TaskEditMerge(original: baseline, edited: edited, live: TaskEditSnapshot(task: task))
+
+        #expect(current.conflictingFields == [.name, .status])
+        #expect(current.hasSameConflictSnapshot(as: shown) == false)
+    }
+
     /// Metadata is compared by value, so an external metadata write conflicts
     /// with a user metadata edit rather than being silently overwritten.
     @Test func metadataConflictIsDetected() async throws {
