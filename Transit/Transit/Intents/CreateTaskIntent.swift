@@ -224,6 +224,7 @@ struct CreateTaskIntent: AppIntent {
         return (nil, nil)
     }
 
+    @MainActor
     private static func resolveMilestone(
         displayId: Int,
         in project: Project,
@@ -244,6 +245,7 @@ struct CreateTaskIntent: AppIntent {
         }
     }
 
+    @MainActor
     private static func resolveMilestone(
         named name: String,
         in project: Project,

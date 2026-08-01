@@ -139,6 +139,7 @@ struct MilestoneCrossDeviceUniquenessTests {
         #expect(try service.reconcileDuplicateNames() == 0, "Reconciliation must be idempotent")
     }
 
+    #if os(macOS)
     @Test func mcpCreateTaskReportsAmbiguousMilestoneName() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context, name: "Transit")
@@ -171,4 +172,5 @@ struct MilestoneCrossDeviceUniquenessTests {
         #expect(try MCPTestHelpers.errorText(response).contains("Multiple milestones named"))
         #expect(try env.taskService.fetchAllTasks().isEmpty)
     }
+    #endif
 }
