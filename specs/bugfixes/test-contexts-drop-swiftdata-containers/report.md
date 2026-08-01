@@ -46,6 +46,7 @@ A `ModelContext` was treated as if it owned its `ModelContainer`. It does not pr
 - `Transit/TransitTests/TaskEntityTests.swift`, `TaskCreationResultTests.swift`, and `ReportLogicTestHelpers.swift` — removed bespoke local-container/context-only factories and delegated to shared test support.
 - 89 additional `TransitTests` files — migrated all remaining direct and wrapper-based context acquisition to `TestModelContainer`.
 - `CLAUDE.md` and `docs/agent-notes/technical-constraints.md` — documented the owning-fixture rule and removed stale `newContext()` guidance.
+- `.swiftlint.yml` — added an error-level custom rule forbidding context-only SwiftData test factories and the removed `newContext()` API.
 
 **Approach rationale:** A container-owning fixture preserves each test's isolated in-memory store while making ownership explicit at the call site. Central container retention is a defensive backstop for existing setup structs and the two size-constrained tests that extract a temporary fixture's context.
 
@@ -57,9 +58,9 @@ A `ModelContext` was treated as if it owned its `ModelContainer`. It does not pr
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/TestModelContainerLifetimeTests.swift`
-**Test name:** `fixtureRetainsBackingContainerForItsFullUse`
+**Test name:** `escapedContextKeepsBackingContainerAvailableForItsFullUse`
 
-**What it verifies:** The fixture exposes both owner and context, the backing container remains available through model insertion/property access, and the fixture can be explicitly held through the end of use.
+**What it verifies:** A helper can let its local fixture go out of scope and return only the context; the centrally retained backing container remains available through subsequent model insertion and property access.
 
 **Run command:** `make test-quick PIPE_PRETTY=`
 
@@ -72,14 +73,15 @@ A `ModelContext` was treated as if it owned its `ModelContainer`. It does not pr
 | 92 migrated test/helper files | 207 context-acquisition call sites moved to the fixture API |
 | `CLAUDE.md` | Updated test-infrastructure guidance |
 | `docs/agent-notes/technical-constraints.md` | Corrected SwiftData container-lifetime rule |
+| `.swiftlint.yml` | Automated recurrence prevention for context-only factories |
 | `CHANGELOG.md` | Recorded T-2003 fix |
 
 ## Verification
 
 **Automated:**
-- [x] Regression test passes as part of `make test-quick PIPE_PRETTY=`
+- [x] Escaped-context regression passes as part of `make test-quick PIPE_PRETTY=`
 - [x] Complete macOS unit suite passes via `make test-quick PIPE_PRETTY=`
-- [x] SwiftLint passes via `make lint`
+- [x] SwiftLint passes via `make lint`, including the new unsafe-factory custom rule
 - [x] Static searches find zero `newContext()`, `makeReportTestContext()`, local-container-to-context returns, or context-only helper return declarations
 - [ ] Full iOS scheme passes: all unit tests completed successfully, then unrelated UI tests `testClearAll` and `testEditViewPreservesTaskMilestone` failed and the runner hung retrying simulator launches with `DebuggerLLDB.DebuggerVersionStore.StoreError` / `no debugger version`; the hung run was terminated after preserving its log
 

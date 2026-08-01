@@ -6,10 +6,6 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct TaskCreationResultTests {
-    private func makeTestContainer() throws -> TestModelContainer {
-        try TestModelContainer()
-    }
-
     private func makeTask(
         in context: ModelContext,
         name: String = "Task",
@@ -26,7 +22,7 @@ struct TaskCreationResultTests {
     }
 
     @Test func fromTaskMapsRequiredFields() throws {
-        let testContainer = try makeTestContainer()
+        let testContainer = try TestModelContainer()
         let context = testContainer.context
         let task = makeTask(in: context, name: "Map me", type: .bug, displayID: 33)
 
@@ -42,7 +38,7 @@ struct TaskCreationResultTests {
     }
 
     @Test func fromTaskThrowsWhenProjectIsMissing() throws {
-        let testContainer = try makeTestContainer()
+        let testContainer = try TestModelContainer()
         let context = testContainer.context
         let task = makeTask(in: context)
         task.project = nil
@@ -57,7 +53,7 @@ struct TaskCreationResultTests {
     // the task name (not the project name) so the user sees the task that was
     // just created. The project name belongs in the subtitle as context.
     @Test func displayRepresentationUsesTaskNameAsTitle() throws {
-        let testContainer = try makeTestContainer()
+        let testContainer = try TestModelContainer()
         let context = testContainer.context
         let task = makeTask(in: context, name: "Investigate flaky test", type: .bug, displayID: 42)
 

@@ -5,3 +5,11 @@ excluded:
   - build
   - DerivedData
   - specs
+
+custom_rules:
+  unsafe_test_model_context_factory:
+    included: "Transit/TransitTests/.*\\.swift"
+    name: "Unsafe SwiftData test context factory"
+    regex: 'func\s+\w+\([^)]*\)\s*(?:async\s+)?throws\s*->\s*ModelContext|TestModelContainer\.newContext\s*\('
+    message: "Return TestModelContainer, not a bare ModelContext whose container can be dropped."
+    severity: error

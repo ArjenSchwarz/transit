@@ -5,10 +5,6 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct TaskEntityTests {
-    private func makeTestContainer() throws -> TestModelContainer {
-        try TestModelContainer()
-    }
-
     private func makeTask(
         in context: ModelContext,
         name: String = "Task",
@@ -25,7 +21,7 @@ struct TaskEntityTests {
     }
 
     @Test func fromTaskMapsRequiredFields() throws {
-        let testContainer = try makeTestContainer()
+        let testContainer = try TestModelContainer()
         let context = testContainer.context
         let task = makeTask(in: context, name: "Map me", type: .bug, displayID: 33)
 
@@ -43,7 +39,7 @@ struct TaskEntityTests {
     }
 
     @Test func fromTaskThrowsWhenProjectIsMissing() throws {
-        let testContainer = try makeTestContainer()
+        let testContainer = try TestModelContainer()
         let context = testContainer.context
         let task = makeTask(in: context)
         task.project = nil

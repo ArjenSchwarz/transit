@@ -12,6 +12,9 @@ struct TestModelContainer {
     let container: ModelContainer
     let context: ModelContext
 
+    // Intentionally retained for the test process lifetime. Do not clear this
+    // while escaped contexts may still be in use; bounded test-only memory is
+    // the tradeoff that makes accidental temporary fixture extraction safe.
     private static var retainedContainers: [ModelContainer] = []
 
     init() throws {

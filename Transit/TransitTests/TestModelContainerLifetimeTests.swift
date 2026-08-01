@@ -5,12 +5,21 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct TestModelContainerLifetimeTests {
-    @Test func fixtureRetainsBackingContainerForItsFullUse() throws {
-        let fixture = try TestModelContainer()
-        let context = fixture.context
-        weak var container = fixture.container
+    private final class WeakContainerReference {
+        weak var value: ModelContainer?
+    }
 
-        #expect(container != nil)
+    private func makeEscapedContext() throws -> (ModelContext, WeakContainerReference) {
+        let fixture = try TestModelContainer()
+        let containerReference = WeakContainerReference()
+        containerReference.value = fixture.container
+        return (fixture.context, containerReference)
+    }
+
+    @Test func escapedContextKeepsBackingContainerAvailableForItsFullUse() throws {
+        let (context, containerReference) = try makeEscapedContext()
+
+        #expect(containerReference.value != nil)
 
         let project = Project(
             name: "Lifetime probe",
@@ -21,7 +30,6 @@ struct TestModelContainerLifetimeTests {
         context.insert(project)
 
         #expect(project.name == "Lifetime probe")
-        #expect(container != nil)
-        withExtendedLifetime(fixture) {}
+        #expect(containerReference.value != nil)
     }
 }
