@@ -72,7 +72,7 @@ The handler dispatch, protocol wire types, existing tests, implementation histor
 **Automated:**
 - [x] `make test-quick` passes: final `.xcresult` reports 1,595 tests passed, 0 failed; all eight initialize handshake regression tests passed.
 - [x] `make lint` passes.
-- [ ] `make test` did not complete: the five-minute `run_silent` limit expired during UI tests after all displayed iOS unit tests passed. Six unrelated UI tests had already failed (`testClearAll`, `testEditViewPreservesTaskMilestone`, `testSettingsHasBackChevron`, `testSettingsWithNoProjectsShowsCreatePrompt`, `testTappingGearPushesSettingsView`, and `testDataMaintenanceGoldenPath`) while another worktree was testing concurrently against the same simulator.
+- [ ] `make test` completed, but direct `.xcresult` inspection reports 1,140 tests passed and 6 unrelated UI tests failed: `testClearAll`, `testEditViewPreservesTaskMilestone`, `testSettingsHasBackChevron`, `testSettingsWithNoProjectsShowsCreatePrompt`, `testTappingGearPushesSettingsView`, and `testDataMaintenanceGoldenPath`. The Makefile pipeline returned exit 0 despite the failed result bundle, so the bundle—not the shell status—is authoritative. Another worktree began using the same simulator during this retry; all six failures match the earlier contended run.
 
 **Manual verification:**
 - [x] Compared response behavior with the MCP 2025-03-26 lifecycle initialization and version-negotiation requirements.
