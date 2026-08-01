@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var categoryHistory: [SettingsCategory] = [.general]
     @State private var historyIndex = 0
     @State private var isNavigatingHistory = false
+    @State private var mcpLifecycleRequest: Task<Void, Never>?
     #endif
 
     var body: some View {
@@ -312,6 +313,28 @@ extension SettingsView {
         }
     }
 
+    fileprivate func scheduleMCPEnabled(_ enabled: Bool) {
+        mcpLifecycleRequest?.cancel()
+        let port = mcpSettings.port
+        mcpLifecycleRequest = Task { @MainActor in
+            guard !Task.isCancelled else { return }
+            if enabled {
+                await mcpServer.start(port: port)
+            } else {
+                await mcpServer.stop()
+            }
+        }
+    }
+
+    fileprivate func scheduleMCPRestart() {
+        mcpLifecycleRequest?.cancel()
+        let port = mcpSettings.port
+        mcpLifecycleRequest = Task { @MainActor in
+            guard !Task.isCancelled else { return }
+            await mcpServer.restart(port: port)
+        }
+    }
+
     fileprivate var macOSMCPSection: some View {
         @Bindable var settings = mcpSettings
         return LiquidGlassSection {
@@ -321,11 +344,10 @@ extension SettingsView {
                         .labelsHidden()
                         .toggleStyle(.switch)
                         .onChange(of: mcpSettings.isEnabled) { _, enabled in
+                            scheduleMCPEnabled(enabled)
                             if enabled {
-                                mcpServer.start(port: mcpSettings.port)
                                 syncManager.startHeartbeat(context: modelContext)
                             } else {
-                                mcpServer.stop()
                                 syncManager.stopHeartbeat()
                             }
                         }
@@ -335,8 +357,7 @@ extension SettingsView {
                         TextField("", value: $settings.port, format: .number)
                             .frame(width: 80)
                             .onSubmit {
-                                mcpServer.stop()
-                                mcpServer.start(port: mcpSettings.port)
+                                scheduleMCPRestart()
                             }
                     }
                     FormRow("Status", labelWidth: Self.labelWidth) {

@@ -7,9 +7,20 @@ import NIOFoundationCompat
 @MainActor @Observable
 final class MCPServer {
 
+    private enum DesiredState: Equatable {
+        case stopped
+        case invalidPort(Int)
+        case running(port: Int, runID: Int)
+    }
+
     private let toolHandler: MCPToolHandler
+    private var desiredState: DesiredState = .stopped
+    private var lifecycleTask: Task<Void, Never>?
     private var serverTask: Task<Void, Never>?
-    private var generation = 0
+    private var activePort: Int?
+    private var activeRunID: Int?
+    private var nextRunID = 0
+    private var serverGeneration = 0
 
     private(set) var isRunning = false
 
@@ -23,29 +34,128 @@ final class MCPServer {
     init(toolHandler: MCPToolHandler) {
         self.toolHandler = toolHandler
     }
+}
 
-    func start(port: Int) {
-        guard !isRunning else { return }
+extension MCPServer {
+    /// Starts the server unless the same port is already active or requested.
+    /// Repeated requests join one reconciliation pass instead of launching
+    /// competing Hummingbird applications.
+    func start(port: Int) async {
+        await request(runningState(port: port, forceRestart: false))
+    }
 
-        // Reject out-of-range ports before attempting to bind. The OS treats
-        // these as errors asynchronously (or, for 0, silently picks a random
-        // port), neither of which is useful for a fixed local endpoint.
+    /// Replaces the current listener even when the port is unchanged. The old
+    /// service task is cancelled and awaited before the replacement can bind.
+    func restart(port: Int) async {
+        await request(runningState(port: port, forceRestart: true))
+    }
+
+    /// Stops the server and returns only after Hummingbird has released its
+    /// listener. A newer request can supersede this one while teardown awaits.
+    func stop() async {
+        await request(.stopped)
+    }
+
+    private func runningState(port: Int, forceRestart: Bool) -> DesiredState {
         guard MCPSettings.isValidPort(port) else {
+            return .invalidPort(port)
+        }
+
+        if !forceRestart {
+            if case .running(let requestedPort, let runID) = desiredState,
+               requestedPort == port {
+                return .running(port: port, runID: runID)
+            }
+            if activePort == port, let activeRunID, serverTask != nil {
+                return .running(port: port, runID: activeRunID)
+            }
+        }
+
+        nextRunID += 1
+        return .running(port: port, runID: nextRunID)
+    }
+
+    private func request(_ state: DesiredState) async {
+        desiredState = state
+        if lifecycleTask == nil {
+            lifecycleTask = Task { @MainActor [weak self] in
+                await self?.reconcileLifecycle()
+            }
+        }
+        let currentLifecycleTask = lifecycleTask
+        await currentLifecycleTask?.value
+    }
+
+    /// Applies only the latest requested state. Requests arriving while old
+    /// listener teardown is suspended overwrite stale intermediate states and
+    /// are picked up by the next loop iteration.
+    private func reconcileLifecycle() async {
+        while true {
+            let target = desiredState
+            switch target {
+            case .stopped:
+                await tearDownCurrentServer()
+                if desiredState == target {
+                    startError = nil
+                }
+
+            case .invalidPort(let port):
+                await tearDownCurrentServer()
+                if desiredState == target {
+                    startError = "Port \(port) is invalid. Use a value between "
+                        + "\(MCPSettings.validPortRange.lowerBound) and "
+                        + "\(MCPSettings.validPortRange.upperBound)."
+                }
+
+            case .running(let port, let runID):
+                if activePort != port || activeRunID != runID || serverTask == nil {
+                    await tearDownCurrentServer()
+                    if desiredState == target {
+                        launchServer(port: port, runID: runID)
+                    }
+                }
+            }
+
+            guard desiredState == target else { continue }
+            lifecycleTask = nil
+            return
+        }
+    }
+
+    private func tearDownCurrentServer() async {
+        guard let currentServerTask = serverTask else {
+            activePort = nil
+            activeRunID = nil
             isRunning = false
-            startError = "Port \(port) is invalid. Use a value between "
-                + "\(MCPSettings.validPortRange.lowerBound) and "
-                + "\(MCPSettings.validPortRange.upperBound)."
             return
         }
 
-        generation += 1
-        let currentGeneration = generation
+        // Invalidate the completion callback before cancellation. Awaiting the
+        // task is the resource fence: runService does not return until its
+        // graceful-shutdown handler has released the listening channel.
+        serverGeneration += 1
+        serverTask = nil
+        activePort = nil
+        activeRunID = nil
+        isRunning = false
+        currentServerTask.cancel()
+        await currentServerTask.value
+    }
+
+    private func launchServer(port: Int, runID: Int) {
+        serverGeneration += 1
+        let currentGeneration = serverGeneration
+        activePort = port
+        activeRunID = runID
         isRunning = true
         startError = nil
 
         let handler = toolHandler
         let setNotRunning = { @MainActor [weak self] (failure: String?) in
-            guard let self, self.generation == currentGeneration else { return }
+            guard let self, self.serverGeneration == currentGeneration else { return }
+            self.serverTask = nil
+            self.activePort = nil
+            self.activeRunID = nil
             self.isRunning = false
             if let failure {
                 self.startError = failure
@@ -60,8 +170,8 @@ final class MCPServer {
             )
 
             // A bind failure surfaces here (e.g. the port is already in use).
-            // `CancellationError` is the expected path when `stop()` cancels the
-            // task and must not be reported as a failure.
+            // CancellationError is expected when serialized teardown cancels
+            // and then awaits this task.
             var failure: String?
             do {
                 try await app.runService()
@@ -74,6 +184,9 @@ final class MCPServer {
             await setNotRunning(failure)
         }
     }
+}
+
+extension MCPServer {
 
     /// Builds the Hummingbird router for the single `POST /mcp` endpoint.
     /// `nonisolated` because under `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`
@@ -151,13 +264,6 @@ final class MCPServer {
             return Response(status: .accepted)
         }
         return jsonResponse(responses)
-    }
-
-    func stop() {
-        serverTask?.cancel()
-        serverTask = nil
-        isRunning = false
-        startError = nil
     }
 
     // MARK: - Helpers

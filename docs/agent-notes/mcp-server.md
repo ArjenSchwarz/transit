@@ -30,7 +30,7 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 
 1. **MCP protocol types** (`MCPTypes.swift`): All marked `nonisolated` and `Sendable` to opt out of the project's default `@MainActor` isolation. Without this, `Encodable`/`Decodable` conformances become MainActor-isolated and can't be used from NIO threads.
 2. **MCPToolHandler**: `@MainActor` class — holds service references, handles tool dispatch.
-3. **MCPServer**: `@MainActor @Observable` for SwiftUI environment. Runs Hummingbird in `Task.detached`. Route handler calls `await handler.handle(request)` — Swift concurrency automatically hops to MainActor.
+3. **MCPServer**: `@MainActor @Observable` for SwiftUI environment. A single desired-state lifecycle task serializes start/stop/restart requests; teardown cancels and awaits the detached Hummingbird service task before any replacement bind. Rapid requests coalesce to the latest target state. The listener itself still runs in `Task.detached`, and route handlers call `await handler.handle(request)` to hop to MainActor.
 4. **AnyCodable**: Uses `@unchecked Sendable` because it wraps `Any`.
 
 ## Tools Exposed

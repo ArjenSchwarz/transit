@@ -18,7 +18,7 @@ struct MCPServerLifecycleTests {
         let server = MCPServer(toolHandler: env.handler)
         let port = try availableLoopbackPort()
 
-        server.start(port: port)
+        await server.start(port: port)
         try #require(await waitUntilServing(port: port), "Initial listener did not start")
 
         // Awaiting stop must mean teardown is complete, not merely requested.
@@ -35,18 +35,17 @@ struct MCPServerLifecycleTests {
         let server = MCPServer(toolHandler: env.handler)
         let port = try availableLoopbackPort()
 
-        server.start(port: port)
+        await server.start(port: port)
         try #require(await waitUntilServing(port: port), "Initial listener did not start")
 
-        server.stop()
-        server.start(port: port)
+        await server.restart(port: port)
 
         #expect(
             await waitUntilServing(port: port),
             "Same-port restart must not race listener shutdown: \(server.startError ?? "no error")"
         )
         #expect(server.startError == nil)
-        server.stop()
+        await server.stop()
     }
 
     @Test func rapidOffOnRequestsCoalesceWithoutAddressInUse() async throws {
@@ -54,13 +53,20 @@ struct MCPServerLifecycleTests {
         let server = MCPServer(toolHandler: env.handler)
         let port = try availableLoopbackPort()
 
-        server.start(port: port)
+        await server.start(port: port)
         try #require(await waitUntilServing(port: port), "Initial listener did not start")
 
+        var requests: [Task<Void, Never>] = []
         for _ in 0..<8 {
-            server.stop()
-            server.start(port: port)
+            requests.append(Task { @MainActor in await server.stop() })
+            requests.append(Task { @MainActor in await server.start(port: port) })
         }
+        for request in requests {
+            await request.value
+        }
+        // Make the final desired state explicit; the burst above is allowed to
+        // coalesce intermediate requests, but must not leave an old bind alive.
+        await server.start(port: port)
 
         #expect(
             await waitUntilServing(port: port),
@@ -68,7 +74,7 @@ struct MCPServerLifecycleTests {
         )
         #expect(server.isRunning)
         #expect(server.startError == nil)
-        server.stop()
+        await server.stop()
     }
 
     private func waitUntilServing(

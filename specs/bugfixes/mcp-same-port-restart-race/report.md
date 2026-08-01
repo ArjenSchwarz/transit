@@ -1,7 +1,7 @@
 # Bugfix Report: MCP Same-Port Restart Race
 
 **Date:** 2026-08-02
-**Status:** In Progress
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -46,13 +46,26 @@ The lifecycle tracks task identity for UI generation safety but does not own lis
 
 ## Resolution for the Issue
 
-Pending implementation.
+**Changes made:**
+- `Transit/Transit/MCP/MCPServer.swift` — made start/stop/restart async and routed them through one desired-state reconciliation task. Teardown invalidates stale callbacks, cancels the active Hummingbird task, and awaits its completion before a replacement listener can bind. Repeated requests overwrite stale intermediate states.
+- `Transit/Transit/Views/Settings/SettingsView.swift` — owns one cancellable lifecycle waiter, submits enabled-state changes asynchronously, and uses the explicit same-port `restart(port:)` operation on port submission.
+- `Transit/Transit/TransitApp.swift` — awaits the serialized startup operation from the scene task.
+- `Transit/TransitTests/MCPServerLifecycleTests.swift` — exercises real loopback listener release, same-port restart, and overlapping rapid off/on requests.
+- `Transit/TransitTests/MCPServerStartFailureTests.swift` — awaits the async lifecycle API while preserving invalid-port and error-clearing coverage.
+
+**Approach rationale:** A single desired-state reconciliation loop owns the socket lifecycle. This provides the required cancellation-and-join resource fence while allowing requests arriving during teardown to replace stale targets instead of creating additional listener tasks.
+
+**Alternatives considered:**
+- Add a fixed delay between stop and start — rejected because socket teardown time is not deterministic.
+- Keep generation guards only — rejected because they suppress stale UI updates but do not serialize OS socket ownership.
+- Queue every request independently — rejected because bursts would perform unnecessary stop/start cycles instead of converging on the latest state.
 
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/MCPServerLifecycleTests.swift`
 
 **Test names:**
+- `stopReturnsOnlyAfterListenerReleasesPort`
 - `samePortRestartWaitsForOldListenerTeardown`
 - `rapidOffOnRequestsCoalesceWithoutAddressInUse`
 
@@ -64,20 +77,28 @@ Pending implementation.
 
 | File | Change |
 |------|--------|
+| `Transit/Transit/MCP/MCPServer.swift` | Async serialized and coalescing listener lifecycle |
+| `Transit/Transit/Views/Settings/SettingsView.swift` | Safe enabled/restart task integration |
+| `Transit/Transit/TransitApp.swift` | Awaited app-launch startup |
 | `Transit/TransitTests/MCPServerLifecycleTests.swift` | Live loopback regression coverage |
-| `Transit/Transit/MCP/MCPServer.swift` | Pending serialized lifecycle implementation |
-| `Transit/Transit/Views/Settings/SettingsView.swift` | Pending safe restart integration |
+| `Transit/TransitTests/MCPServerStartFailureTests.swift` | Async lifecycle API coverage |
+| `docs/agent-notes/mcp-server.md` | Serialized lifecycle architecture note |
+| `CHANGELOG.md` | Unreleased fix entry |
 | `specs/bugfixes/mcp-same-port-restart-race/report.md` | Investigation and verification record |
+| `specs/bugfixes/mcp-same-port-restart-race/implementation.md` | Three-level implementation explanation |
 
 ## Verification
 
 **Automated:**
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Focused `MCPServerLifecycleTests` pass
+- [x] `make test-quick` passes
+- [x] `make test` passes
+- [x] `make test-ui` passes
+- [x] `make build` passes for iOS and macOS
+- [x] `make lint` passes
 
 **Manual verification:**
-- Pending implementation.
+- The live-loopback regression starts Hummingbird on an ephemeral port, immediately verifies the port is bindable after awaited stop, restarts on the same port, and issues overlapping off/on requests. All paths remain reachable with no address-in-use error.
 
 ## Prevention
 

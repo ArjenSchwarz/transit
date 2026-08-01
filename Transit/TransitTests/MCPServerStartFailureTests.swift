@@ -17,11 +17,10 @@ import Testing
 ///   and records a descriptive `startError` instead of just flipping `isRunning`.
 /// - Starting with a valid, available port clears any prior error.
 ///
-/// `start(port:)` clears `startError` synchronously before launching the
-/// detached service task, so a successful restart clearing a prior error is
-/// not covered here: asserting it would require an actual socket bind, which is
-/// flaky in CI. The synchronous clear is exercised indirectly via the
-/// invalid-port tests (which observe the post-clear error being re-set).
+/// Invalid-port state is applied before the async lifecycle call returns. A
+/// successful valid-port restart now uses a real loopback listener and is
+/// covered by `MCPServerLifecycleTests` rather than assumed from synchronous
+/// state mutation.
 @MainActor @Suite(.serialized)
 struct MCPServerStartFailureTests {
 
@@ -49,38 +48,38 @@ struct MCPServerStartFailureTests {
 
     // MARK: - Server start surfaces invalid-port failures
 
-    @Test func startWithInvalidPortDoesNotRunAndSetsError() throws {
+    @Test func startWithInvalidPortDoesNotRunAndSetsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let server = MCPServer(toolHandler: env.handler)
 
-        server.start(port: 70000)
+        await server.start(port: 70000)
 
         #expect(!server.isRunning)
         #expect(server.startError != nil)
-        server.stop()
+        await server.stop()
     }
 
-    @Test func startWithInvalidPortDoesNotLeaveRunningTrue() throws {
+    @Test func startWithInvalidPortDoesNotLeaveRunningTrue() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let server = MCPServer(toolHandler: env.handler)
 
-        server.start(port: 0)
+        await server.start(port: 0)
 
         #expect(!server.isRunning)
         #expect(server.startError != nil)
-        server.stop()
+        await server.stop()
     }
 
     // MARK: - Stop clears error state
 
-    @Test func stopClearsStartError() throws {
+    @Test func stopClearsStartError() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let server = MCPServer(toolHandler: env.handler)
 
-        server.start(port: 70000)
+        await server.start(port: 70000)
         #expect(server.startError != nil)
 
-        server.stop()
+        await server.stop()
         #expect(server.startError == nil)
     }
 }
