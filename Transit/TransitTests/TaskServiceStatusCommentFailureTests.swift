@@ -17,7 +17,7 @@ struct TaskServiceStatusCommentFailureTests {
         let commentService = CommentService(modelContext: context)
         let project = Project(
             name: "Test Project",
-            description: nil,
+            description: "",
             gitRepo: nil,
             colorHex: "#FF0000"
         )

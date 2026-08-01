@@ -156,6 +156,27 @@ without any save attempt (T-650).
 
 `ConnectivityMonitor.onRestore` is typed as `@MainActor @Sendable` (not just `@Sendable`) because the closure captures MainActor-isolated state (ModelContext) and Swift 6.3 enforces sendability checks on captured values.
 
+## Cross-Device Display ID Promotion Guarantee
+
+After `allocateNextID` returns, task and milestone promotion re-read the record's
+committed `permanentDisplayId` through a transient `ModelContext` immediately
+before mutating the registered model (T-2020). If the record is missing, the
+probe fails, or a peer ID has merged into the local store, promotion fails
+closed: it does not mutate or save that record. The already-allocated counter
+value is deliberately skipped because reusing it could create a duplicate.
+
+This closes the peer-merge-during-allocation window, but it is **not an atomic
+cross-device compare-and-set**. SwiftData exposes no conditional update for one
+model field, no public per-object refresh API, and no transaction spanning its
+CloudKit-managed record plus the directly managed counter record. Two devices
+can still both complete their final local nil probes before either assignment
+has merged, then save different IDs; CloudKit conflict resolution may select one
+later. A full ownership design would require a deployed direct-CloudKit
+reservation keyed by model type + UUID, atomically created with the counter
+advance so every promoter receives the same ID. That reservation still cannot
+be atomically committed with SwiftData's model write, so it must be durable and
+idempotent across retries.
+
 ## Test File Imports
 
 With `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, test files must explicitly `import Foundation` to use `Date`, `UUID`, `JSONSerialization`, etc. These aren't automatically available in the test target even though the app module imports them.
