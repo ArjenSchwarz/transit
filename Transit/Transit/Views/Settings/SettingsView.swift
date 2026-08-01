@@ -28,7 +28,6 @@ struct SettingsView: View {
     @State private var categoryHistory: [SettingsCategory] = [.general]
     @State private var historyIndex = 0
     @State private var isNavigatingHistory = false
-    @State private var mcpLifecycleRequest: Task<Void, Never>?
     #endif
 
     var body: some View {
@@ -313,27 +312,23 @@ extension SettingsView {
         }
     }
 
-    fileprivate func scheduleMCPEnabled(_ enabled: Bool) {
-        // Cancelling only skips a stale Settings task that has not submitted
-        // yet. MCPServer's desired state supersedes requests already in flight.
-        mcpLifecycleRequest?.cancel()
-        let port = mcpSettings.port
-        mcpLifecycleRequest = Task { @MainActor in
-            guard !Task.isCancelled else { return }
-            if enabled {
-                await mcpServer.start(port: port)
-            } else {
-                await mcpServer.stop()
-            }
-        }
+    fileprivate enum MCPLifecycleRequest {
+        case start
+        case stop
+        case restart
     }
 
-    fileprivate func scheduleMCPRestart() {
-        mcpLifecycleRequest?.cancel()
+    /// Submits a lifecycle request without tracking it. `MCPServer` already
+    /// coalesces overlapping requests onto its latest desired state, so the
+    /// view has nothing useful to cancel.
+    fileprivate func scheduleMCP(_ request: MCPLifecycleRequest) {
         let port = mcpSettings.port
-        mcpLifecycleRequest = Task { @MainActor in
-            guard !Task.isCancelled else { return }
-            await mcpServer.restart(port: port)
+        Task { @MainActor in
+            switch request {
+            case .start: await mcpServer.start(port: port)
+            case .stop: await mcpServer.stop()
+            case .restart: await mcpServer.restart(port: port)
+            }
         }
     }
 
@@ -346,7 +341,7 @@ extension SettingsView {
                         .labelsHidden()
                         .toggleStyle(.switch)
                         .onChange(of: mcpSettings.isEnabled) { _, enabled in
-                            scheduleMCPEnabled(enabled)
+                            scheduleMCP(enabled ? .start : .stop)
                             if enabled {
                                 syncManager.startHeartbeat(context: modelContext)
                             } else {
@@ -359,7 +354,7 @@ extension SettingsView {
                         TextField("", value: $settings.port, format: .number)
                             .frame(width: 80)
                             .onSubmit {
-                                scheduleMCPRestart()
+                                scheduleMCP(.restart)
                             }
                     }
                     FormRow("Status", labelWidth: Self.labelWidth) {

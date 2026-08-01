@@ -21,6 +21,7 @@ Claude Code ←→ HTTP POST /mcp (localhost:3141) ←→ MCPServer ←→ MCPTo
 - `Transit/Transit/MCP/MCPToolHandler.swift` — Tool dispatch, handler methods, helpers
 - `Transit/Transit/MCP/MCPToolDefinitions.swift` — Tool schema definitions (extracted for file length)
 - `Transit/Transit/MCP/MCPServer.swift` — Hummingbird server lifecycle and HTTP routing
+- `Transit/Transit/MCP/MCPServerLifecycleConfiguration.swift` — bounded shutdown and no-signal `ServiceGroup` policy
 - `Transit/Transit/MCP/MCPServerDecodeTypes.swift` — request decode outcome types shared by the route and decoder
 - `Transit/Transit/MCP/MCPOriginValidator.swift` — transport-level `Origin`/`Host` validation
 - `Transit/TransitTests/MCPToolHandlerTests.swift` — Unit tests
@@ -31,7 +32,7 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 
 1. **MCP protocol types** (`MCPTypes.swift`): All marked `nonisolated` and `Sendable` to opt out of the project's default `@MainActor` isolation. Without this, `Encodable`/`Decodable` conformances become MainActor-isolated and can't be used from NIO threads.
 2. **MCPToolHandler**: `@MainActor` class — holds service references, handles tool dispatch.
-3. **MCPServer**: `@MainActor @Observable` for SwiftUI environment. A single desired-state lifecycle task serializes start/stop/restart requests. Each active listener retains both its Hummingbird `ServiceGroup` and detached run task; teardown calls `triggerGracefulShutdown()` and then awaits the run task before any replacement bind. Cancelling and awaiting the task is insufficient because Service Lifecycle's cancellation path cancels children instead of invoking Hummingbird's listener-closing `Server.shutdownGracefully()`. Rapid requests coalesce to the latest target state, and route handlers call `await handler.handle(request)` to hop to MainActor.
+3. **MCPServer**: `@MainActor @Observable` for SwiftUI environment. A single desired-state lifecycle task serializes start/stop/restart requests. Each active listener retains both its Hummingbird `ServiceGroup` and detached run task; teardown calls `triggerGracefulShutdown()` and then awaits the run task before any replacement bind. Cancelling and awaiting the task is insufficient because Service Lifecycle's cancellation path cancels children instead of invoking Hummingbird's listener-closing `Server.shutdownGracefully()`. Two configuration choices matter: `maximumGracefulShutdownDuration` is set so an in-flight request that never completes cannot suspend `run()` forever and wedge the single lifecycle task, and `gracefulShutdownSignals` is left empty because `runService()`'s SIGTERM/SIGINT default permanently changes the whole process's signal disposition — undesirable in a GUI app, and unnecessary since teardown is driven by `triggerGracefulShutdown()`. Requests that arrive while teardown is suspended overwrite the pending target rather than queueing, so a burst converges on the latest state. Route handlers call `await handler.handle(request)` to hop to MainActor.
 4. **AnyCodable**: Uses `@unchecked Sendable` because it wraps `Any`.
 
 ## Tools Exposed
@@ -110,9 +111,12 @@ Batch dispatch is sequential on the MainActor to keep mutations against the shar
 
 ## Dependencies
 
-- **Hummingbird 2.x** — Transit's first (and only) external SPM dependency
+- **Hummingbird 2.x** — Transit's only *declared* external SPM dependency
 - Added via Xcode SPM integration in project.pbxproj
-- Also pulls in SwiftNIO transitively
+- Also pulls in SwiftNIO and swift-service-lifecycle transitively
+- `MCPServer.swift` imports `ServiceLifecycle` directly (for `ServiceGroup`), so
+  that transitive module is effectively a source-level dependency even though it
+  is not declared as a package product on the target
 
 ## Entitlements
 

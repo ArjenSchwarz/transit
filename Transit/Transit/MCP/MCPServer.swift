@@ -4,7 +4,6 @@ import Hummingbird
 import NIOCore
 import NIOFoundationCompat
 import ServiceLifecycle
-import UnixSignals
 
 @MainActor @Observable
 final class MCPServer {
@@ -29,7 +28,7 @@ final class MCPServer {
     private var nextRunID = 0
     private var serverGeneration = 0
 
-    private(set) var isRunning = false
+    var isRunning: Bool { activeServer != nil }
 
     /// A human-readable reason the server is not running, or `nil` when the
     /// server is running or was stopped intentionally. Set when the configured
@@ -130,18 +129,18 @@ extension MCPServer {
     }
 
     private func tearDownCurrentServer() async {
-        guard let currentServer = activeServer else {
-            isRunning = false
-            return
-        }
+        guard let currentServer = activeServer else { return }
 
         // Task cancellation only cancels ServiceGroup's child tasks; it does
         // not invoke Hummingbird Server.shutdownGracefully(), so task completion
         // is not a listener-release fence. Trigger the group's graceful path,
-        // then await its run task before permitting a replacement bind.
+        // then await its run task before permitting a replacement bind. The
+        // generation bump must precede the trigger: if the detached task has
+        // not reached `run()` yet, the group jumps to `.finished` and `run()`
+        // throws `alreadyFinished`, which the fenced callback must not report
+        // as a start failure for a server the caller just asked to stop.
         serverGeneration += 1
         activeServer = nil
-        isRunning = false
         await currentServer.serviceGroup.triggerGracefulShutdown()
         await currentServer.task.value
     }
@@ -149,14 +148,12 @@ extension MCPServer {
     private func launchServer(port: Int, runID: Int) {
         serverGeneration += 1
         let currentGeneration = serverGeneration
-        isRunning = true
         startError = nil
 
         let handler = toolHandler
         let setNotRunning = { @MainActor [weak self] (failure: String?) in
             guard let self, self.serverGeneration == currentGeneration else { return }
             self.activeServer = nil
-            self.isRunning = false
             if let failure {
                 self.startError = failure
             }
@@ -167,13 +164,14 @@ extension MCPServer {
                 address: .hostname("127.0.0.1", port: port)
             )
         )
-        let serviceGroup = ServiceGroup(
-            configuration: .init(
-                services: [app],
-                gracefulShutdownSignals: [.sigterm, .sigint],
-                logger: app.logger
-            )
+        // No unix signal traps (`runService()` would install SIGTERM/SIGINT by
+        // default): they change the process's signal disposition permanently,
+        // and teardown here is driven by `triggerGracefulShutdown()`.
+        let configuration = MCPServerLifecycleConfiguration.make(
+            services: [app],
+            logger: app.logger
         )
+        let serviceGroup = ServiceGroup(configuration: configuration)
         let task = Task.detached {
             var failure: String?
             do {
