@@ -73,7 +73,9 @@ The initial provisional-state fetch expires across asynchronous allocation. Both
 - `Transit/Transit/Services/DisplayIDRecordLookup.swift` — added throwing, fail-closed task and milestone probes that return true only for an existing committed provisional record.
 - `Transit/Transit/Services/DisplayIDAllocator.swift` — task promotion now probes after allocation and skips mutation/save when a peer ID exists; save recovery resets only the exact ID this run assigned.
 - `Transit/Transit/Services/MilestoneService.swift` — applies the same post-allocation ownership check and selective recovery to milestones.
-- `Transit/TransitTests/ConcurrentPromotionTests.swift` — added deterministic two-context/allocation regressions for both record types.
+- `Transit/TransitTests/CrossDevicePromotionTests.swift` — deterministic two-context/allocation regressions for both record types, including unrelated dirty-state preservation and a second lifecycle pass that consumes no further counter value.
+- `Transit/TransitTests/PromotionPreconditionTests.swift` — task/milestone regressions for records deleted while allocation is suspended; each path consumes the in-flight value once, performs no stale save, and leaks no value on a later pass.
+- `Transit/TransitTests/PromotionRollbackTests.swift` — symmetric selective-recovery tests prove a failed save does not clear a different in-memory ID.
 - `Transit/TransitTests/TestModelContainer.swift` — generalized the existing allocation gate as shared test support; duplicate-maintenance tests continue to park their third counter read.
 
 **Approach rationale:** The transient probe is the strongest schema-neutral check SwiftData exposes. It runs after the final suspension point and immediately before the MainActor mutation/save, closes the demonstrated peer-merge window, fails closed on missing/unreadable state, and does not require a CloudKit production-schema deployment.
@@ -87,13 +89,20 @@ The initial provisional-state fetch expires across asynchronous allocation. Both
 
 ## Regression Test
 
-**Test file:** `Transit/TransitTests/ConcurrentPromotionTests.swift`
+**Test files:**
+- `Transit/TransitTests/CrossDevicePromotionTests.swift`
+- `Transit/TransitTests/PromotionPreconditionTests.swift`
+- `Transit/TransitTests/PromotionRollbackTests.swift`
 
-**Test names:**
+**Focused test names:**
 - `taskPeerPromotionDuringAllocationIsPreserved`
 - `milestonePeerPromotionDuringAllocationIsPreserved`
+- `deletedTaskIsSkippedAfterAllocation`
+- `deletedMilestoneIsSkippedAfterAllocation`
+- `failedTaskPromotionPreservesDifferentInMemoryID`
+- `failedMilestonePromotionPreservesDifferentInMemoryID`
 
-**What they verify:** A controlled counter gate suspends allocation while a second context commits a permanent ID for the same UUID. Promotion must preserve the peer value after resuming.
+**What they verify:** The gated two-context tests suspend allocation while a second context commits a permanent ID or deletes the same UUID, then prove promotion performs no stale save. The peer-ID cases additionally prove unrelated dirty UI state remains unsaved and a later lifecycle pass consumes no second counter value. The selective-recovery tests exercise the exact-value guard and prove a failed save does not clear a different in-memory ID. These are deterministic local-store simulations of a CloudKit merge; they do not create a cross-device CloudKit transaction or close the documented simultaneous-probe race.
 
 **Run command:** `make test-quick`
 
@@ -101,7 +110,9 @@ The initial provisional-state fetch expires across asynchronous allocation. Both
 
 | File | Change |
 |------|--------|
-| `Transit/TransitTests/ConcurrentPromotionTests.swift` | Controlled two-context regressions for tasks and milestones |
+| `Transit/TransitTests/CrossDevicePromotionTests.swift` | Controlled two-context regressions for tasks and milestones, dirty-state isolation, and later-pass counter stability |
+| `Transit/TransitTests/PromotionPreconditionTests.swift` | Controlled deletion-during-allocation regressions for both record types |
+| `Transit/TransitTests/PromotionRollbackTests.swift` | Selective save-failure recovery coverage for both record types |
 | `Transit/TransitTests/TestModelContainer.swift` | Shared configurable allocation gate |
 | `Transit/TransitTests/DisplayIDMaintenanceServiceReassignTests.swift` | Reuse shared gate at the existing third-load suspension point |
 | `Transit/Transit/Services/DisplayIDRecordLookup.swift` | Fail-closed committed provisional-state probes |
@@ -115,7 +126,7 @@ The initial provisional-state fetch expires across asynchronous allocation. Both
 **Automated:**
 - [x] Regression tests fail before the fix (`make test-quick`; both named T-2020 cases reported failed in the test output)
 - [x] Regression tests pass after the fix (`make test-quick`)
-- [x] Full macOS unit suite passes (`make test-quick`: 1,610 passed, 0 failed)
+- [x] Full macOS unit suite passes (`make test-quick`: 1,614 passed, 0 failed)
 - [x] All unit tests in the iOS combined run pass (`make test`: 1,149 passed overall; the only 3 failures were unrelated UI tests)
 - [x] Linters/validators pass (`make lint`, including the SwiftData ownership guard)
 - [ ] Full iOS/UI suite passes — blocked by unrelated existing UI failures below
@@ -124,7 +135,7 @@ The initial provisional-state fetch expires across asynchronous allocation. Both
 - `make test`: 1,149 passed, 3 failed. Failures were `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`; there were zero non-UI failure markers.
 - `make test-ui`: 15 passed, 6 failed. It repeated the three failures above and also failed three Settings navigation cases. The xcresult shows `dashboard.settingsButton` in the toolbar's **More** overflow for `testSettingsHasBackChevron`; the other two Settings cases failed their existing assertions. No changed file implements these UI paths.
 
-**Manual verification:** Not applicable; deterministic context/allocation tests pin the required interleaving.
+**Physical-device verification:** Not run. The controlled tests use independent `ModelContext` instances on one retained local store to deterministically model a peer change that has already reached the receiving device's store. They prove the post-allocation local-store guard, dirty-state behavior, deletion handling, and later-pass counter stability; they do not exercise CloudKit transport timing or the residual simultaneous-probe race.
 
 ## Prevention
 

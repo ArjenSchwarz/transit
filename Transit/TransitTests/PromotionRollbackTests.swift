@@ -127,4 +127,45 @@ struct PromotionRollbackTests {
         #expect(milestone2.permanentDisplayId == nil)
         #expect(milestone2.displayID == .provisional)
     }
+
+    @Test func failedTaskPromotionPreservesDifferentInMemoryID() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let allocator = DisplayIDAllocator(store: InMemoryCounterStore(initialNextDisplayID: 100))
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "#000000")
+        context.insert(project)
+        let task = TransitTask(
+            name: "Peer wins", type: .feature, project: project, displayID: .provisional
+        )
+        context.insert(task)
+        try context.save()
+
+        await allocator.promoteProvisionalTasks(in: context, save: { _ in
+            task.permanentDisplayId = 900
+            throw SaveFailure.simulated
+        })
+
+        #expect(task.permanentDisplayId == 900,
+                "Recovery must not clear an ID different from the one this pass assigned")
+    }
+
+    @Test func failedMilestonePromotionPreservesDifferentInMemoryID() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let allocator = DisplayIDAllocator(store: InMemoryCounterStore(initialNextDisplayID: 100))
+        let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "#000000")
+        context.insert(project)
+        let milestone = Milestone(name: "Peer wins", project: project, displayID: .provisional)
+        context.insert(milestone)
+        try context.save()
+
+        await service.promoteProvisionalMilestones(save: { _ in
+            milestone.permanentDisplayId = 901
+            throw SaveFailure.simulated
+        })
+
+        #expect(milestone.permanentDisplayId == 901,
+                "Milestone recovery must preserve a different merged ID")
+    }
 }
