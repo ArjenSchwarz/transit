@@ -49,6 +49,9 @@ struct DisplayIDMaintenanceServiceReassignTests {
 
         func loadCounter() async throws -> DisplayIDAllocator.CounterSnapshot {
             loadCount += 1
+            // Calls 1 and 2 come from `advanceCounterIfNeeded`: its threshold
+            // check and reported snapshot. Call 3 is `allocateLocked` reading the
+            // loser's candidate, which is the suspension point this test needs.
             if loadCount == 3 {
                 allocationStarted = true
                 allocationStartedContinuation?.resume()
