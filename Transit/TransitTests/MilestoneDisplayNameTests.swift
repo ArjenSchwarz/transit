@@ -6,8 +6,8 @@ import Testing
 @MainActor @Suite(.serialized)
 struct MilestoneDisplayNameTests {
 
-    private func makeContext() throws -> ModelContext {
-        try TestModelContainer.newContext()
+    private func makeTestContainer() throws -> TestModelContainer {
+        try TestModelContainer()
     }
 
     private func makeProject(in context: ModelContext, name: String) -> Project {
@@ -20,7 +20,8 @@ struct MilestoneDisplayNameTests {
 
     @Test("displayName includes project name when project exists")
     func displayNameWithProject() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context, name: "Prism")
         let milestone = Milestone(name: "Beta 1", project: project, displayID: .permanent(1))
         context.insert(milestone)
@@ -30,7 +31,8 @@ struct MilestoneDisplayNameTests {
 
     @Test("displayName falls back to milestone name when project is nil")
     func displayNameWithoutProject() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context, name: "Temp")
         let milestone = Milestone(name: "Beta 1", project: project, displayID: .permanent(2))
         context.insert(milestone)

@@ -23,7 +23,8 @@ struct MilestoneFilterMenuTests {
     }
 
     @Test func availableMilestonesScopedToSelectedProjects() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: allocator)
 

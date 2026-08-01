@@ -3,16 +3,8 @@ import SwiftData
 @testable import Transit
 
 @MainActor
-func makeReportTestContext() throws -> ModelContext {
-    let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self])
-    let config = ModelConfiguration(
-        "ReportLogicTests-\(UUID().uuidString)",
-        schema: schema,
-        isStoredInMemoryOnly: true,
-        cloudKitDatabase: .none
-    )
-    let container = try ModelContainer(for: schema, configurations: [config])
-    return ModelContext(container)
+func makeReportTestContainer() throws -> TestModelContainer {
+    try TestModelContainer()
 }
 
 /// Creates a task, inserts it into the context, and transitions it to a terminal status.

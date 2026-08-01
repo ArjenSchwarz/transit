@@ -14,7 +14,8 @@ import Testing
 struct PromotionRollbackTests {
 
     @Test func promoteProvisionalTasksFailedSavePreservesUnrelatedUnsavedEdits() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore(initialNextDisplayID: 100)
         let allocator = DisplayIDAllocator(store: store, retryLimit: 1)
 
@@ -42,7 +43,8 @@ struct PromotionRollbackTests {
     }
 
     @Test func promoteProvisionalMilestonesFailedSavePreservesUnrelatedUnsavedEdits() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore(initialNextDisplayID: 50)
         let allocator = DisplayIDAllocator(store: store, retryLimit: 1)
         let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: allocator)
@@ -66,7 +68,8 @@ struct PromotionRollbackTests {
     }
 
     @Test func promoteProvisionalTasksStopsOnAllocatorFailure() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore(initialNextDisplayID: 100)
         await store.enqueueSaveOutcomes([
             .success,
@@ -96,7 +99,8 @@ struct PromotionRollbackTests {
     }
 
     @Test func promoteProvisionalMilestonesStopsOnAllocatorFailure() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore(initialNextDisplayID: 50)
         await store.enqueueSaveOutcomes([
             .success,

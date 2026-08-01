@@ -9,8 +9,8 @@ struct QueryTasksIntentMilestoneTests {
 
     // MARK: - Helpers
 
-    private func makeContext() throws -> ModelContext {
-        try TestModelContainer.newContext()
+    private func makeTestContainer() throws -> TestModelContainer {
+        try TestModelContainer()
     }
 
     @discardableResult
@@ -57,7 +57,8 @@ struct QueryTasksIntentMilestoneTests {
     // MARK: - Milestone Filter
 
     @Test func filterByMilestoneDisplayId() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let milestone = makeMilestone(in: context, name: "v1.0", project: project, displayId: 1)
         makeTask(in: context, name: "In milestone", project: project, milestone: milestone, displayId: 10)
@@ -80,7 +81,8 @@ struct QueryTasksIntentMilestoneTests {
     }
 
     @Test func filterByMilestoneName() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let milestone = makeMilestone(in: context, name: "v1.0", project: project, displayId: 1)
         makeTask(in: context, name: "In milestone", project: project, milestone: milestone, displayId: 10)
@@ -103,7 +105,8 @@ struct QueryTasksIntentMilestoneTests {
     }
 
     @Test func taskResponseIncludesMilestoneInfo() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let milestone = makeMilestone(in: context, name: "v1.0", project: project, displayId: 1)
         makeTask(in: context, name: "Task", project: project, milestone: milestone, displayId: 10)
@@ -127,7 +130,8 @@ struct QueryTasksIntentMilestoneTests {
     }
 
     @Test func taskWithoutMilestoneOmitsMilestoneField() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         makeTask(in: context, name: "Task", project: project, displayId: 10)
 
@@ -155,7 +159,8 @@ struct QueryTasksIntentMilestoneTests {
     /// `MCPToolHandler.handleQueryTasks` behavior, which already routes through
     /// `MilestoneService.findByDisplayID` and surfaces `INTERNAL_ERROR` on duplicates.
     @Test func filterByMilestoneDisplayIdRejectsDuplicates() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let milestoneA = makeMilestone(in: context, name: "v1.0", project: project, displayId: 7)
         let milestoneB = makeMilestone(in: context, name: "v1.0-alt", project: project, displayId: 7)
@@ -185,7 +190,8 @@ struct QueryTasksIntentMilestoneTests {
     /// must return an empty array (consistent with other lookup paths that treat unknown
     /// display IDs as "no results").
     @Test func filterByMilestoneDisplayIdReturnsEmptyWhenUnknown() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let milestone = makeMilestone(in: context, name: "v1.0", project: project, displayId: 1)
         makeTask(in: context, name: "In milestone", project: project, milestone: milestone, displayId: 10)

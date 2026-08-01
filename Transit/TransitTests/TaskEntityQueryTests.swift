@@ -5,26 +5,21 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct TaskEntityQueryTests {
+    @MainActor
     private struct TestEnv {
-        let context: ModelContext
+        let testContainer: TestModelContainer
         let taskService: TaskService
+
+        var context: ModelContext { testContainer.context }
     }
 
     private func makeEnv() throws -> TestEnv {
-        let schema = Schema([Project.self, TransitTask.self, Milestone.self])
-        let config = ModelConfiguration(
-            "TaskEntityQueryTests-\(UUID().uuidString)",
-            schema: schema,
-            isStoredInMemoryOnly: true,
-            cloudKitDatabase: .none
-        )
-        let container = try ModelContainer(for: schema, configurations: [config])
-        let context = ModelContext(container)
+        let testContainer = try TestModelContainer()
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         return TestEnv(
-            context: context,
-            taskService: TaskService(modelContext: context, displayIDAllocator: allocator)
+            testContainer: testContainer,
+            taskService: TaskService(modelContext: testContainer.context, displayIDAllocator: allocator)
         )
     }
 

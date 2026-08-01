@@ -11,7 +11,8 @@ struct ReportLogicGroupingTests {
 
     @Test("Tasks are grouped by project")
     func tasksGroupedByProject() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let projA = makeTestProject(name: "Alpha", context: ctx)
         let projB = makeTestProject(name: "Beta", context: ctx)
@@ -31,7 +32,8 @@ struct ReportLogicGroupingTests {
 
     @Test("Projects sorted alphabetically case-insensitive")
     func projectsSortedCaseInsensitive() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let projZ = makeTestProject(name: "Zebra", context: ctx)
         let projA = makeTestProject(name: "alpha", context: ctx)
@@ -51,7 +53,8 @@ struct ReportLogicGroupingTests {
 
     @Test("Tasks sorted by completionDate ascending")
     func tasksSortedByCompletionDate() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -78,7 +81,8 @@ struct ReportLogicGroupingTests {
 
     @Test("Tasks with nil completionDate sort by lastStatusChangeDate among peers")
     func tasksSortedByEffectiveDateMixed() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -115,7 +119,8 @@ struct ReportLogicGroupingTests {
 
     @Test("Tasks with same completionDate sorted by permanentDisplayId, nil last")
     func tasksSortedByDisplayIdTiebreak() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -142,7 +147,8 @@ struct ReportLogicGroupingTests {
 
     @Test("UUID tiebreaker when completionDate and displayId match")
     func tasksSortedByUUIDFallback() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -171,7 +177,8 @@ struct ReportLogicFilterTests {
 
     @Test("Only terminal tasks (done/abandoned) are included")
     func onlyTerminalTasksIncluded() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -196,7 +203,8 @@ struct ReportLogicFilterTests {
 
     @Test("Terminal tasks with nil completionDate fall back to lastStatusChangeDate")
     func nilCompletionDateFallsBackToLastStatusChangeDate() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -218,7 +226,8 @@ struct ReportLogicFilterTests {
 
     @Test("Terminal tasks with nil completionDate use lastStatusChangeDate for date range filtering")
     func nilCompletionDateUsesLastStatusChangeDateForRange() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -237,7 +246,8 @@ struct ReportLogicFilterTests {
 
     @Test("Terminal task with nil completionDate gets lastStatusChangeDate as completionDate in report")
     func nilCompletionDateReportTaskUsesLastStatusChangeDate() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -255,7 +265,8 @@ struct ReportLogicFilterTests {
 
     @Test("Orphan tasks with nil project are excluded")
     func orphanTasksExcluded() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -275,7 +286,8 @@ struct ReportLogicFilterTests {
 
     @Test("Summary counts correct for done and abandoned")
     func summaryCounts() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -294,7 +306,8 @@ struct ReportLogicFilterTests {
 
     @Test("Abandoned tasks marked as isAbandoned in ReportTask")
     func abandonedTaskIdentification() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -319,7 +332,8 @@ struct ReportLogicFilterTests {
 
     @Test("Provisional displayId uses DisplayID.formatted")
     func provisionalDisplayId() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -337,7 +351,8 @@ struct ReportLogicFilterTests {
 
     @Test("Permanent displayId uses DisplayID.formatted")
     func permanentDisplayId() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 

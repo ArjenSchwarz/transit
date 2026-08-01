@@ -14,8 +14,8 @@ struct SafeRollbackTests {
 
     // MARK: - Helpers
 
-    private func makeContext() throws -> ModelContext {
-        try TestModelContainer.newContext()
+    private func makeTestContainer() throws -> TestModelContainer {
+        try TestModelContainer()
     }
 
     private func makeProject(
@@ -51,7 +51,8 @@ struct SafeRollbackTests {
     // MARK: - Project re-faulting
 
     @Test func safeRollbackRevertsProjectProperties() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         try context.save()
 
@@ -73,7 +74,8 @@ struct SafeRollbackTests {
     // MARK: - Task re-faulting
 
     @Test func safeRollbackRevertsTaskProperties() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = makeTask(project: project, in: context)
         try context.save()
@@ -92,7 +94,8 @@ struct SafeRollbackTests {
     }
 
     @Test func safeRollbackRevertsTaskStatusChange() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = makeTask(project: project, in: context)
         try context.save()
@@ -109,7 +112,8 @@ struct SafeRollbackTests {
     // MARK: - Milestone re-faulting
 
     @Test func safeRollbackRevertsMilestoneProperties() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
 
         let milestone = Milestone(
@@ -137,7 +141,8 @@ struct SafeRollbackTests {
     // MARK: - Comment re-faulting
 
     @Test func safeRollbackRevertsCommentDeletion() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = makeTask(project: project, in: context)
 
@@ -166,7 +171,8 @@ struct SafeRollbackTests {
     // MARK: - Multi-entity atomicity
 
     @Test func safeRollbackRevertsMultipleEntityMutationsAtomically() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(name: "Original Project", in: context)
         let task = makeTask(name: "Original Task", project: project, in: context)
 
@@ -198,7 +204,8 @@ struct SafeRollbackTests {
     // MARK: - Metadata re-faulting
 
     @Test func safeRollbackRevertsTaskMetadata() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(
             name: "Task",
@@ -223,8 +230,8 @@ struct SafeRollbackTests {
     // MARK: - SyncHeartbeat re-faulting (T-777)
 
     @Test func safeRollbackRevertsSyncHeartbeatProperties() throws {
-        let context = try makeContext()
-
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let heartbeat = SyncHeartbeat()
         context.insert(heartbeat)
         try context.save()

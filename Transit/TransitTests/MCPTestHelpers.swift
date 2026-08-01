@@ -19,7 +19,8 @@ struct MCPTestEnv {
 enum MCPTestHelpers {
 
     static func makeEnv() throws -> MCPTestEnv {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let taskStore = InMemoryCounterStore()
         let taskAllocator = DisplayIDAllocator(store: taskStore)
         let taskService = TaskService(modelContext: context, displayIDAllocator: taskAllocator)

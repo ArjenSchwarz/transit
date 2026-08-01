@@ -1,0 +1,3 @@
+func describeUnsafeContainer() throws -> String {
+    "container: \(try ModelContainer(for: Schema([])))"
+}

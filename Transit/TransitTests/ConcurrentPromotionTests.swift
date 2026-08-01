@@ -29,7 +29,8 @@ struct ConcurrentPromotionTests {
         // suspension point inside promoteProvisionalTasks, which is not worth
         // the production-code complexity. The guard is tested indirectly via
         // the GuardResetsAfterFailure/Completion tests below.
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore(initialNextDisplayID: 10)
         let allocator = DisplayIDAllocator(store: store, retryLimit: 3)
 
@@ -55,7 +56,8 @@ struct ConcurrentPromotionTests {
     @Test func taskPromotionGuardResetsAfterCompletion() async throws {
         // After a completed promotion, the guard must reset so new
         // provisional tasks created later can be promoted.
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore(initialNextDisplayID: 1)
         let allocator = DisplayIDAllocator(store: store, retryLimit: 3)
 
@@ -87,7 +89,8 @@ struct ConcurrentPromotionTests {
     @Test func taskPromotionGuardResetsAfterFailure() async throws {
         // After a failed promotion (save error), the guard must reset so a
         // subsequent call can retry.
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore(initialNextDisplayID: 1)
         let allocator = DisplayIDAllocator(store: store, retryLimit: 3)
 
@@ -118,7 +121,8 @@ struct ConcurrentPromotionTests {
         // Verifies that a second sequential promotion call does not allocate
         // duplicate IDs. See taskPromotionSecondCallIsNoOp for the rationale
         // on why this does not exercise the guard directly.
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore(initialNextDisplayID: 20)
         let allocator = DisplayIDAllocator(store: store, retryLimit: 3)
         let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
@@ -142,7 +146,8 @@ struct ConcurrentPromotionTests {
     }
 
     @Test func milestonePromotionGuardResetsAfterCompletion() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore(initialNextDisplayID: 1)
         let allocator = DisplayIDAllocator(store: store, retryLimit: 3)
         let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
@@ -170,7 +175,8 @@ struct ConcurrentPromotionTests {
     }
 
     @Test func milestonePromotionGuardResetsAfterFailure() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore(initialNextDisplayID: 1)
         let allocator = DisplayIDAllocator(store: store, retryLimit: 3)
         let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)

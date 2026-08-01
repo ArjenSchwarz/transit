@@ -14,7 +14,8 @@ struct GenerateReportIntentTests {
     }
 
     private func makeEnv() throws -> TestEnv {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let store = InMemoryCounterStore()
         return TestEnv(
             context: ctx,

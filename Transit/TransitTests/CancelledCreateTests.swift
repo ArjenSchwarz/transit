@@ -93,7 +93,8 @@ struct CancelledCreateTests {
     /// A task create that is cancelled while queued behind a gate-holding create
     /// must throw `CancellationError` and must NOT persist any (provisional) task.
     @Test func cancelledTaskCreateDoesNotPersistProvisionalRecord() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = GatedCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         let service = TaskService(modelContext: context, displayIDAllocator: allocator)
@@ -139,7 +140,8 @@ struct CancelledCreateTests {
     /// A milestone create that is cancelled while queued behind a gate-holding
     /// create must throw `CancellationError` and must NOT persist any record.
     @Test func cancelledMilestoneCreateDoesNotPersistProvisionalRecord() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = GatedCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)

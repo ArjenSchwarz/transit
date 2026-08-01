@@ -18,7 +18,8 @@ struct ReportMilestoneSummaryTests {
 
     @Test("Milestone-only project group reports milestone done count, not zero")
     func milestoneOnlyGroupReportsMilestoneDone() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "MilestoneOnly", context: ctx)
 
@@ -39,7 +40,8 @@ struct ReportMilestoneSummaryTests {
 
     @Test("Abandoned milestone counted in abandonedMilestoneCount")
     func abandonedMilestoneCounted() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -62,7 +64,8 @@ struct ReportMilestoneSummaryTests {
 
     @Test("Top-level totals include milestone counts")
     func topLevelTotalsIncludeMilestones() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 

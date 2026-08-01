@@ -24,7 +24,7 @@ struct BoolAsIntIdRejectionTests {
     }
 
     private func makeIntentServices() throws -> IntentServices {
-        let context = try TestModelContainer.newContext()
+        let context = try TestModelContainer().context
         let taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         return IntentServices(

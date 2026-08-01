@@ -9,7 +9,8 @@ struct MilestoneServiceTests {
     // MARK: - Helpers
 
     private func makeService() throws -> (MilestoneService, ModelContext) {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
@@ -92,7 +93,8 @@ struct MilestoneServiceTests {
     }
 
     @Test func createMilestoneWithProvisionalIDOnAllocatorFailure() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore()
         await store.enqueueSaveOutcomes([.failure(DisplayIDAllocator.Error.retriesExhausted)])
         let allocator = DisplayIDAllocator(store: store, retryLimit: 1)

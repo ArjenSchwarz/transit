@@ -31,7 +31,8 @@ struct EffectivePriorityInvariantTests {
     }
 
     private func makeServices() throws -> Services {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         return Services(

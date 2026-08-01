@@ -15,7 +15,8 @@ struct TransitTaskPriorityTests {
     // MARK: - Default
 
     @Test func defaultPriorityRawValueIsMedium() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .provisional)
 
@@ -26,7 +27,8 @@ struct TransitTaskPriorityTests {
     // MARK: - Accessor fallback (effective-priority invariant)
 
     @Test func emptyRawValueReadsAsMedium() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .provisional)
 
@@ -35,7 +37,8 @@ struct TransitTaskPriorityTests {
     }
 
     @Test func unrecognizedRawValueReadsAsMedium() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .provisional)
 
@@ -46,7 +49,8 @@ struct TransitTaskPriorityTests {
     // MARK: - Setter
 
     @Test func setterWritesRawValue() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .provisional)
 
@@ -60,7 +64,8 @@ struct TransitTaskPriorityTests {
     // MARK: - Init param
 
     @Test func initParamSetsPriorityRawValue() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(
             name: "Task", type: .feature, project: project, displayID: .provisional, priority: .high

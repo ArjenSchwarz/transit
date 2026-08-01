@@ -19,7 +19,8 @@ struct NonIntegerMilestoneDisplayIdTests {
     }
 
     private func makeIntentServices() throws -> IntentServices {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         return IntentServices(

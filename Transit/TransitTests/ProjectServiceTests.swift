@@ -9,7 +9,7 @@ struct ProjectServiceTests {
     // MARK: - Helpers
 
     private func makeService() throws -> (ProjectService, ModelContext) {
-        let context = try TestModelContainer.newContext()
+        let context = try TestModelContainer().context
         let service = ProjectService(modelContext: context)
         return (service, context)
     }

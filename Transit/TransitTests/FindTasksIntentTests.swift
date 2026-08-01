@@ -45,7 +45,8 @@ struct FindTasksIntentTests {
     }
 
     private func makeEnv() throws -> TestEnv {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         return TestEnv(

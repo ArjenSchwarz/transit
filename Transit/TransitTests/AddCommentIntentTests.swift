@@ -13,7 +13,8 @@ struct AddCommentIntentTests {
     }
 
     private func makeServices() throws -> TestServices {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         return TestServices(

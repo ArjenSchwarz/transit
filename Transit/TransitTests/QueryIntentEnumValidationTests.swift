@@ -24,7 +24,8 @@ struct QueryIntentEnumValidationTests {
     }
 
     private func makeTaskServices() throws -> TaskServices {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         return TaskServices(
@@ -36,7 +37,8 @@ struct QueryIntentEnumValidationTests {
     }
 
     private func makeMilestoneServices() throws -> MilestoneServices {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         return MilestoneServices(

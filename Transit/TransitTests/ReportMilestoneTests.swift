@@ -13,7 +13,8 @@ struct ReportMilestoneTests {
 
     @Test("Completed milestones included in report grouped by project")
     func completedMilestonesIncluded() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Alpha", context: ctx)
 
@@ -38,7 +39,8 @@ struct ReportMilestoneTests {
 
     @Test("Abandoned milestones marked as isAbandoned")
     func abandonedMilestonesMarked() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -59,7 +61,8 @@ struct ReportMilestoneTests {
 
     @Test("Open milestones excluded from report")
     func openMilestonesExcluded() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -78,7 +81,8 @@ struct ReportMilestoneTests {
 
     @Test("Milestones without completionDate fall back to lastStatusChangeDate")
     func milestonesWithoutCompletionDateFallBack() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -100,7 +104,8 @@ struct ReportMilestoneTests {
 
     @Test("Milestone with nil completionDate excluded when lastStatusChangeDate is out of range")
     func milestoneNilCompletionDateOutOfRangeExcluded() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -122,7 +127,8 @@ struct ReportMilestoneTests {
 
     @Test("Milestone taskCount reflects assigned tasks")
     func milestoneTaskCount() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -147,7 +153,8 @@ struct ReportMilestoneTests {
 
     @Test("Project group created for milestone-only project (no tasks)")
     func milestoneOnlyProjectGroup() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "MilestoneOnly", context: ctx)
 
@@ -169,7 +176,8 @@ struct ReportMilestoneTests {
 
     @Test("No milestones results in empty milestones array")
     func emptyMilestones() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -184,7 +192,8 @@ struct ReportMilestoneTests {
 
     @Test("Task milestoneName populated when task has milestone")
     func taskMilestoneNamePopulated() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -203,7 +212,8 @@ struct ReportMilestoneTests {
 
     @Test("Task milestoneName nil when task has no milestone")
     func taskMilestoneNameNil() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 

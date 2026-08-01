@@ -36,7 +36,9 @@ struct FallbackStorageIntentRejectionTests {
             ? FallbackOutcomeFixture.degraded
             : FallbackOutcomeFixture.makeHealthy()
 
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+
+        let context = testContainer.context
         let taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let commentService = CommentService(modelContext: context)

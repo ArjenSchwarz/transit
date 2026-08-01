@@ -1,0 +1,38 @@
+struct Service {
+    init(modelContext: ModelContext) {}
+}
+
+func makeFixture() throws -> TestModelContainer {
+    try TestModelContainer()
+}
+
+func makeServiceAndOwner() throws -> (Service, TestModelContainer) {
+    let fixture = try TestModelContainer()
+    return (Service(modelContext: fixture.context), fixture)
+}
+
+struct Environment {
+    let fixture: TestModelContainer
+    let context: ModelContext
+    let service: Service
+}
+
+func makeEnvironment() throws -> Environment {
+    let fixture = try TestModelContainer()
+    return Environment(
+        fixture: fixture,
+        context: fixture.context,
+        service: Service(modelContext: fixture.context)
+    )
+}
+
+// Ownership-like text in comments and strings is documentation, not code.
+let ordinaryText = "ModelContainer(for: Schema([]))"
+let rawText = #"TestModelContainer.newContext() and ModelContainer.init(for:)"#
+let multilineText = """
+ModelContainer(for: Schema([]))
+"""
+let interpolatedSafeValue = "fixture: \(String(describing: TestModelContainer.self))"
+/* Nested comments are also ignored:
+   /* ModelContainer(for: Schema([])) */
+*/

@@ -78,7 +78,8 @@ struct ConcurrentDisplayIDCreationTests {
     /// allocator so the two never share `issuedID` state. Each test exercises only
     /// one entity type, so the allocators are independent in practice.
     private func makeServices(makeStore: () -> DisplayIDAllocator.CounterStore) throws -> Services {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let taskAllocator = DisplayIDAllocator(store: makeStore())
         let milestoneAllocator = DisplayIDAllocator(store: makeStore())
         return Services(

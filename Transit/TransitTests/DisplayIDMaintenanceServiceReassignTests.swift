@@ -24,7 +24,8 @@ struct DisplayIDMaintenanceServiceReassignTests {
         milestoneCounterStart: Int = 1,
         clock: @escaping () -> Date = { Date(timeIntervalSince1970: 1_700_000_000) }
     ) throws -> TestEnv {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let taskStore = InMemoryCounterStore(initialNextDisplayID: taskCounterStart)
         let milestoneStore = InMemoryCounterStore(initialNextDisplayID: milestoneCounterStart)
         let taskAllocator = DisplayIDAllocator(store: taskStore)

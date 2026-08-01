@@ -22,7 +22,8 @@ struct DisplayIDMaintenanceIntentsTests {
 
     /// Builds a maintenance service backed by an isolated in-memory context.
     private func makeIntentEnv() throws -> IntentEnv {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let commentService = CommentService(modelContext: context)

@@ -2,18 +2,23 @@ import Foundation
 import SwiftData
 @testable import Transit
 
-/// Provides isolated in-memory ModelContexts for tests.
+/// Owns an isolated in-memory ModelContainer and its ModelContext for tests.
+///
+/// Construct this fixture at the test boundary instead of returning a bare
+/// ModelContext from helper functions. Every container is retained centrally,
+/// including custom-schema fixtures used by multi-context tests, so no public
+/// raw-container factory can bypass the ownership guarantee.
 @MainActor
-enum TestModelContainer {
-    /// Returns a fresh ModelContext backed by its own in-memory container to
-    /// avoid cross-test state leakage between suites.
-    static func newContext() throws -> ModelContext {
-        let container = try newContainer()
-        return ModelContext(container)
-    }
+struct TestModelContainer {
+    let container: ModelContainer
+    let context: ModelContext
 
-    /// Returns a fresh in-memory ModelContainer for tests needing multiple contexts on one store.
-    static func newContainer() throws -> ModelContainer {
+    // Intentionally retained for the test process lifetime. Do not clear this
+    // while escaped contexts may still be in use; bounded test-only memory is
+    // the tradeoff that makes accidental temporary fixture extraction safe.
+    private static var retainedContainers: [ModelContainer] = []
+
+    init() throws {
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
         let config = ModelConfiguration(
             "TransitTests-\(UUID().uuidString)",
@@ -21,7 +26,16 @@ enum TestModelContainer {
             isStoredInMemoryOnly: true,
             cloudKitDatabase: .none
         )
-        return try ModelContainer(for: schema, configurations: [config])
+        try self.init(schema: schema, configurations: [config])
+    }
+
+    /// Creates a retained fixture for tests that need a custom schema or
+    /// multiple contexts sharing one store.
+    init(schema: Schema, configurations: [ModelConfiguration]) throws {
+        let container = try ModelContainer(for: schema, configurations: configurations)
+        self.container = container
+        self.context = ModelContext(container)
+        Self.retainedContainers.append(container)
     }
 
     /// Performs a rollback and forces re-faulting of all @Model objects.

@@ -54,7 +54,8 @@ struct DisplayIDMaintenanceServiceScanTests {
     // MARK: - Tests
 
     @Test func emptyContextReturnsEmptyGroups() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let service = makeService(context: context)
 
         let report = try service.scanDuplicates()
@@ -63,7 +64,8 @@ struct DisplayIDMaintenanceServiceScanTests {
     }
 
     @Test func twoTasksSharingDisplayIdReportedOnce() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         _ = makeTask(in: context, project: project, name: "A", displayId: 5,
                      creationDate: Date(timeIntervalSince1970: 1000))
@@ -81,7 +83,8 @@ struct DisplayIDMaintenanceServiceScanTests {
     }
 
     @Test func twoMilestonesSharingDisplayIdReportedOnce() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         _ = makeMilestone(in: context, project: project, name: "M-Old", displayId: 3,
                           creationDate: Date(timeIntervalSince1970: 1000))
@@ -99,7 +102,8 @@ struct DisplayIDMaintenanceServiceScanTests {
     }
 
     @Test func provisionalRecordsExcluded() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         _ = makeTask(in: context, project: project, name: "A", displayId: nil)
         _ = makeTask(in: context, project: project, name: "B", displayId: nil)
@@ -115,7 +119,8 @@ struct DisplayIDMaintenanceServiceScanTests {
     }
 
     @Test func taskAndMilestoneSharingIntegerIsNotADuplicate() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         _ = makeTask(in: context, project: project, name: "T-5", displayId: 5)
         _ = makeMilestone(in: context, project: project, name: "M-5", displayId: 5)
@@ -128,7 +133,8 @@ struct DisplayIDMaintenanceServiceScanTests {
     }
 
     @Test func oldestCreationDateWins() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let oldId = UUID()
         let newId = UUID()
@@ -151,7 +157,8 @@ struct DisplayIDMaintenanceServiceScanTests {
     }
 
     @Test func uuidAscendingTiebreakerWhenCreationDateEqual() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let date = Date(timeIntervalSince1970: 1000)
         let uuidA = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
@@ -171,7 +178,8 @@ struct DisplayIDMaintenanceServiceScanTests {
     }
 
     @Test func projectNilYieldsNoProjectLiteral() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let orphan1 = makeTask(in: context, project: project, name: "Orphan1", displayId: 11)
         let orphan2 = makeTask(in: context, project: project, name: "Orphan2", displayId: 11)
@@ -190,7 +198,8 @@ struct DisplayIDMaintenanceServiceScanTests {
     }
 
     @Test func groupsOrderedByAscendingDisplayId() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         _ = makeTask(in: context, project: project, name: "A1", displayId: 7)
         _ = makeTask(in: context, project: project, name: "A2", displayId: 7)
@@ -208,7 +217,8 @@ struct DisplayIDMaintenanceServiceScanTests {
     }
 
     @Test func winnerFirstOrderingPreservedAcrossManyLosers() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let winnerId = UUID()
         _ = makeTask(in: context, project: project, name: "Loser1", displayId: 4,

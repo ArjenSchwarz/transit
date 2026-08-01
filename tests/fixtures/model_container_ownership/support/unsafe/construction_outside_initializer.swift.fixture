@@ -1,0 +1,16 @@
+struct TestModelContainer {
+    let container: ModelContainer
+    let context: ModelContext
+    private static var retainedContainers: [ModelContainer] = []
+
+    private static var freshContainer: ModelContainer {
+        try! ModelContainer(for: Schema([]))
+    }
+
+    init() {
+        let container = Self.freshContainer
+        self.container = container
+        self.context = ModelContext(container)
+        Self.retainedContainers.append(container)
+    }
+}

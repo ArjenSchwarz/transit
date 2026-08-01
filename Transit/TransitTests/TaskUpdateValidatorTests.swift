@@ -23,7 +23,8 @@ struct TaskUpdateValidatorTests {
     }
 
     private func makeServices() throws -> Services {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let taskStore = InMemoryCounterStore()
         let taskAllocator = DisplayIDAllocator(store: taskStore)
         let milestoneStore = InMemoryCounterStore()

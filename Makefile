@@ -57,12 +57,16 @@ help:
 # reproducible across interactive, CI, and sandboxed runs.
 SWIFTLINT_CACHE = .swiftlint-cache
 
+.PHONY: test-model-container-ownership-guard
+test-model-container-ownership-guard:
+	bash tests/validation/test_model_container_ownership_guard.sh
+
 .PHONY: lint
-lint:
+lint: test-model-container-ownership-guard
 	swiftlint lint --strict --cache-path $(SWIFTLINT_CACHE)
 
 .PHONY: lint-fix
-lint-fix:
+lint-fix: test-model-container-ownership-guard
 	swiftlint lint --fix --strict --cache-path $(SWIFTLINT_CACHE)
 
 # Building

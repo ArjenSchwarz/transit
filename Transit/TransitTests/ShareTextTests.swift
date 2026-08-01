@@ -6,8 +6,8 @@ import Testing
 @MainActor @Suite(.serialized)
 struct ShareTextTests {
 
-    private func makeContext() throws -> ModelContext {
-        try TestModelContainer.newContext()
+    private func makeTestContainer() throws -> TestModelContainer {
+        try TestModelContainer()
     }
 
     private func makeProject(in context: ModelContext, name: String = "My Project") -> Project {
@@ -19,7 +19,8 @@ struct ShareTextTests {
     // MARK: - Header
 
     @Test func shareTextIncludesDisplayIDNameAndType() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(name: "Fix login", type: .bug, project: project, displayID: .permanent(42))
         context.insert(task)
@@ -29,7 +30,8 @@ struct ShareTextTests {
     }
 
     @Test func shareTextUsesProvisionalDisplayID() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(name: "Research caching", type: .research, project: project, displayID: .provisional)
         context.insert(task)
@@ -41,7 +43,8 @@ struct ShareTextTests {
     // MARK: - Project
 
     @Test func shareTextIncludesProjectName() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context, name: "Transit")
         let task = TransitTask(name: "Add share", type: .feature, project: project, displayID: .permanent(1))
         context.insert(task)
@@ -52,7 +55,8 @@ struct ShareTextTests {
     // MARK: - Description
 
     @Test func shareTextIncludesDescription() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(
             name: "Task",
@@ -67,7 +71,8 @@ struct ShareTextTests {
     }
 
     @Test func shareTextOmitsEmptyDescription() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(name: "Task", description: nil, type: .chore, project: project, displayID: .permanent(1))
         context.insert(task)
@@ -79,7 +84,8 @@ struct ShareTextTests {
     // MARK: - Metadata
 
     @Test func shareTextIncludesMetadataSortedByKey() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(
             name: "Task",
@@ -101,7 +107,8 @@ struct ShareTextTests {
     }
 
     @Test func shareTextOmitsMetadataWhenEmpty() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .permanent(1))
         context.insert(task)
@@ -114,7 +121,8 @@ struct ShareTextTests {
     // MARK: - Milestone
 
     @Test func shareTextIncludesMilestoneWhenAssigned() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let milestone = Milestone(name: "v1.0 Release", project: project, displayID: .permanent(3))
         context.insert(milestone)
@@ -127,7 +135,8 @@ struct ShareTextTests {
     }
 
     @Test func shareTextOmitsMilestoneWhenNil() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(name: "Add feature", type: .feature, project: project, displayID: .permanent(7))
         context.insert(task)
@@ -137,7 +146,8 @@ struct ShareTextTests {
     }
 
     @Test func shareTextMilestoneAppearsAfterProject() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context, name: "Transit")
         let milestone = Milestone(name: "Beta", project: project, displayID: .permanent(1))
         context.insert(milestone)
@@ -154,7 +164,8 @@ struct ShareTextTests {
     // MARK: - Comments (T-86 regression)
 
     @Test func shareTextIncludesComments() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .permanent(10))
         context.insert(task)
@@ -170,7 +181,8 @@ struct ShareTextTests {
     }
 
     @Test func shareTextOmitsCommentsSectionWhenEmpty() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .permanent(10))
         context.insert(task)
@@ -180,7 +192,8 @@ struct ShareTextTests {
     }
 
     @Test func shareTextIncludesNewlyAddedComment() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let service = CommentService(modelContext: context)
         let task = TransitTask(name: "Bug report", type: .bug, project: project, displayID: .permanent(86))
@@ -202,7 +215,8 @@ struct ShareTextTests {
     // MARK: - Full format
 
     @Test func shareTextFullFormat() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context, name: "Transit")
         let task = TransitTask(
             name: "Add share button",

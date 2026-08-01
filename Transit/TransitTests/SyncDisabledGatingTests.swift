@@ -65,7 +65,8 @@ struct SyncDisabledGatingTests {
 
     @Test
     func promoteProvisionalTasks_withCloudSyncInactive_leavesTasksProvisional() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let store = InMemoryCounterStore(initialNextDisplayID: 1)
         let allocator = DisplayIDAllocator(store: store, isCloudSyncActive: false)
@@ -83,7 +84,8 @@ struct SyncDisabledGatingTests {
 
     @Test
     func promoteProvisionalMilestones_withCloudSyncInactive_leavesMilestonesProvisional() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let store = InMemoryCounterStore(initialNextDisplayID: 1)
         let allocator = DisplayIDAllocator(store: store, isCloudSyncActive: false)
@@ -104,7 +106,8 @@ struct SyncDisabledGatingTests {
 
     @Test
     func createTask_withCloudSyncInactive_assignsProvisionalID() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let store = InMemoryCounterStore(initialNextDisplayID: 1)
         let allocator = DisplayIDAllocator(store: store, isCloudSyncActive: false)
@@ -121,7 +124,8 @@ struct SyncDisabledGatingTests {
 
     @Test
     func createMilestone_withCloudSyncInactive_assignsProvisionalID() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let store = InMemoryCounterStore(initialNextDisplayID: 1)
         let allocator = DisplayIDAllocator(store: store, isCloudSyncActive: false)
@@ -140,7 +144,8 @@ struct SyncDisabledGatingTests {
 
     @Test
     func reassignDuplicates_withCloudSyncInactive_neverTouchesCounterStore() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         let taskStore = InMemoryCounterStore(initialNextDisplayID: 1)
         let milestoneStore = InMemoryCounterStore(initialNextDisplayID: 1)

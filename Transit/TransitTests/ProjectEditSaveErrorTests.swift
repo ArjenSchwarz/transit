@@ -15,8 +15,8 @@ struct ProjectEditSaveErrorTests {
 
     // MARK: - Helpers
 
-    private func makeContext() throws -> ModelContext {
-        try TestModelContainer.newContext()
+    private func makeTestContainer() throws -> TestModelContainer {
+        try TestModelContainer()
     }
 
     private func makeProject(
@@ -36,7 +36,8 @@ struct ProjectEditSaveErrorTests {
     // MARK: - Rollback restores project properties after failed save
 
     @Test func rollbackRevertsNameChangeOnProject() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         try context.save()
 
@@ -50,7 +51,8 @@ struct ProjectEditSaveErrorTests {
     }
 
     @Test func rollbackRevertsDescriptionChangeOnProject() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         try context.save()
 
@@ -62,7 +64,8 @@ struct ProjectEditSaveErrorTests {
     }
 
     @Test func rollbackRevertsAllPropertyChangesOnProject() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         try context.save()
 
@@ -86,7 +89,8 @@ struct ProjectEditSaveErrorTests {
     }
 
     @Test func rollbackRevertsGitRepoRemoval() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let project = makeProject(in: context)
         try context.save()
 

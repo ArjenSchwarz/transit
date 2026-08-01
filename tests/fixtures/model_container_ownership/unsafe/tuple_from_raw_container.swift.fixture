@@ -1,0 +1,5 @@
+func makeService() throws -> (Service, ModelContext) {
+    let container = try TestModelContainer.newContainer()
+    let context = ModelContext(container)
+    return (Service(modelContext: context), context)
+}

@@ -11,7 +11,8 @@ import Testing
 struct MilestoneServiceSameStatusTests {
 
     private func makeService() throws -> (MilestoneService, ModelContext) {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)

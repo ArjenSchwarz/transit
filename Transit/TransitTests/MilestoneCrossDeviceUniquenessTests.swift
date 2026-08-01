@@ -12,7 +12,7 @@ import Testing
 struct MilestoneCrossDeviceUniquenessTests {
 
     private struct Environment {
-        let container: ModelContainer
+        let testContainer: TestModelContainer
         let projectID: UUID
         let firstMilestoneID: UUID
         let secondMilestoneID: UUID
@@ -35,7 +35,8 @@ struct MilestoneCrossDeviceUniquenessTests {
     }
 
     private func makeSyncedDuplicateEnvironment() throws -> Environment {
-        let container = try TestModelContainer.newContainer()
+        let testContainer = try TestModelContainer()
+        let container = testContainer.container
 
         let firstDevice = ModelContext(container)
         let project = Project(
@@ -78,7 +79,7 @@ struct MilestoneCrossDeviceUniquenessTests {
         try secondDevice.save()
 
         return Environment(
-            container: container,
+            testContainer: testContainer,
             projectID: project.id,
             firstMilestoneID: first.id,
             secondMilestoneID: second.id
@@ -97,7 +98,7 @@ struct MilestoneCrossDeviceUniquenessTests {
 
     @Test func nameLookupDoesNotChooseAnArbitrarySyncedDuplicate() throws {
         let environment = try makeSyncedDuplicateEnvironment()
-        let receivingDevice = ModelContext(environment.container)
+        let receivingDevice = ModelContext(environment.testContainer.container)
         let service = makeService(in: receivingDevice)
         let projectID = environment.projectID
         let descriptor = FetchDescriptor<Project>(predicate: #Predicate { $0.id == projectID })
@@ -110,7 +111,7 @@ struct MilestoneCrossDeviceUniquenessTests {
 
     @Test func postSyncMaintenanceReconcilesNamesWithoutDeletingRecords() async throws {
         let environment = try makeSyncedDuplicateEnvironment()
-        let receivingDevice = ModelContext(environment.container)
+        let receivingDevice = ModelContext(environment.testContainer.container)
         let service = makeService(in: receivingDevice)
 
         // App launch, foregrounding, and connectivity restoration already invoke this

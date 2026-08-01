@@ -9,7 +9,8 @@ struct CommentServiceTests {
     // MARK: - Helpers
 
     private func makeService() throws -> (CommentService, ModelContext) {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let service = CommentService(modelContext: context)
         return (service, context)
     }
@@ -192,13 +193,13 @@ struct CommentServiceTests {
             isStoredInMemoryOnly: true,
             cloudKitDatabase: .none
         )
-        let container = try ModelContainer(for: schema, configurations: [config])
+        let testContainer = try TestModelContainer(schema: schema, configurations: [config])
 
         // "mainContext" — analogous to the @Query context in the view layer
-        let mainContext = container.mainContext
+        let mainContext = testContainer.container.mainContext
 
         // "serviceContext" — analogous to the separate ModelContext the service uses
-        let serviceContext = ModelContext(container)
+        let serviceContext = ModelContext(testContainer.container)
         let service = CommentService(modelContext: serviceContext)
 
         // Create a task in mainContext (simulating @Query producing the task)
