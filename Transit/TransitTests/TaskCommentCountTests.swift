@@ -16,8 +16,8 @@ struct TaskCommentCountTests {
 
     // MARK: - Helpers
 
-    private func makeContext() throws -> ModelContext {
-        try TestModelContainer.newContext()
+    private func makeTestContainer() throws -> TestModelContainer {
+        try TestModelContainer()
     }
 
     private func makeTask(in context: ModelContext) -> TransitTask {
@@ -31,7 +31,8 @@ struct TaskCommentCountTests {
     // MARK: - Relationship count
 
     @Test func commentsRelationshipCount_returnsZeroWhenNoComments() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let task = makeTask(in: context)
         try context.save()
 
@@ -39,7 +40,8 @@ struct TaskCommentCountTests {
     }
 
     @Test func commentsRelationshipCount_reflectsAddedComments() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let task = makeTask(in: context)
 
         let comment1 = Comment(content: "First", authorName: "Alice", isAgent: false, task: task)
@@ -52,7 +54,8 @@ struct TaskCommentCountTests {
     }
 
     @Test func commentsRelationshipCount_decreasesAfterDeletion() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let task = makeTask(in: context)
 
         let comment1 = Comment(content: "Keep", authorName: "Alice", isAgent: false, task: task)

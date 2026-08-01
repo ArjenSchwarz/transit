@@ -14,7 +14,8 @@ struct ProjectEditTestEnv {
     let applier: ProjectEditApplier
 
     static func make() throws -> ProjectEditTestEnv {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let projectService = ProjectService(modelContext: context)
         return ProjectEditTestEnv(
             context: context,

@@ -1,7 +1,7 @@
 # Bugfix Report: Test Contexts Drop Their SwiftData Containers
 
 **Date:** 2026-08-01
-**Status:** Investigating
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -40,37 +40,58 @@ A `ModelContext` was treated as if it owned its `ModelContainer`. It does not pr
 
 ## Resolution for the Issue
 
-Pending implementation.
+**Changes made:**
+- `Transit/TransitTests/TestModelContainer.swift` — replaced `newContext()` with a fixture that owns both `ModelContainer` and `ModelContext`; created containers are centrally retained so temporary fixture extraction cannot orphan a store.
+- `Transit/TransitTests/TestModelContainerLifetimeTests.swift` — added an API/lifetime regression covering model access through the owning fixture.
+- `Transit/TransitTests/TaskEntityTests.swift`, `TaskCreationResultTests.swift`, and `ReportLogicTestHelpers.swift` — removed bespoke local-container/context-only factories and delegated to shared test support.
+- 89 additional `TransitTests` files — migrated all remaining direct and wrapper-based context acquisition to `TestModelContainer`.
+- `CLAUDE.md` and `docs/agent-notes/technical-constraints.md` — documented the owning-fixture rule and removed stale `newContext()` guidance.
+
+**Approach rationale:** A container-owning fixture preserves each test's isolated in-memory store while making ownership explicit at the call site. Central container retention is a defensive backstop for existing setup structs and the two size-constrained tests that extract a temporary fixture's context.
+
+**Alternatives considered:**
+- Return a `(ModelContainer, ModelContext)` tuple — callers can discard the container and recreate the bug.
+- Wrap every test body in a closure — lifetime-safe but much more invasive, especially for setup structs that escape helper boundaries.
+- Change production code — rejected because the defect is isolated to test fixture ownership.
 
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/TestModelContainerLifetimeTests.swift`
 **Test name:** `fixtureRetainsBackingContainerForItsFullUse`
 
-**What it verifies:** The backing container remains available while the escaped context and its models are still in use.
+**What it verifies:** The fixture exposes both owner and context, the backing container remains available through model insertion/property access, and the fixture can be explicitly held through the end of use.
 
-**Run command:** `make test-quick`
+**Run command:** `make test-quick PIPE_PRETTY=`
 
 ## Affected Files
 
-Pending implementation inventory.
+| File group | Change |
+|------|--------|
+| `Transit/TransitTests/TestModelContainer.swift` | Owning fixture API and defensive process-lifetime retention |
+| `Transit/TransitTests/TestModelContainerLifetimeTests.swift` | Regression coverage |
+| 92 migrated test/helper files | 207 context-acquisition call sites moved to the fixture API |
+| `CLAUDE.md` | Updated test-infrastructure guidance |
+| `docs/agent-notes/technical-constraints.md` | Corrected SwiftData container-lifetime rule |
+| `CHANGELOG.md` | Recorded T-2003 fix |
 
 ## Verification
 
 **Automated:**
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
-- [ ] No unsafe context-only helper calls remain
+- [x] Regression test passes as part of `make test-quick PIPE_PRETTY=`
+- [x] Complete macOS unit suite passes via `make test-quick PIPE_PRETTY=`
+- [x] SwiftLint passes via `make lint`
+- [x] Static searches find zero `newContext()`, `makeReportTestContext()`, local-container-to-context returns, or context-only helper return declarations
+- [ ] Full iOS scheme passes: all unit tests completed successfully, then unrelated UI tests `testClearAll` and `testEditViewPreservesTaskMilestone` failed and the runner hung retrying simulator launches with `DebuggerLLDB.DebuggerVersionStore.StoreError` / `no debugger version`; the hung run was terminated after preserving its log
 
 **Manual verification:**
-- Review every migrated fixture/helper to confirm container ownership crosses the same boundary as its context.
+- Reviewed representative direct callers, helper wrappers, report fixtures, MCP setup, and all three ticket-named bespoke helpers.
+- Confirmed the diff contains test support/tests/docs only; production sources are unchanged.
 
 ## Prevention
 
-- Expose one test-support fixture that owns both `ModelContainer` and `ModelContext`.
-- Do not add helpers that return a bare `ModelContext` created from a local container.
-- Keep a regression/static inventory that makes reintroduction visible.
+- Construct `TestModelContainer` at test/setup boundaries and derive its `context`; do not expose context-only factories.
+- Keep `TestModelContainer`'s central retention backstop for setup structs that expose services/contexts without forwarding the fixture.
+- Run the static unsafe-helper searches during future test-infrastructure changes.
 
 ## Related
 

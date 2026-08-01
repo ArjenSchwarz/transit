@@ -20,7 +20,8 @@ struct DataMaintenanceResultCollisionTests {
     }
 
     private func makeEnv() throws -> TestEnv {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore(initialNextDisplayID: 1))
         let milestoneAllocator = DisplayIDAllocator(
             store: InMemoryCounterStore(initialNextDisplayID: 1)

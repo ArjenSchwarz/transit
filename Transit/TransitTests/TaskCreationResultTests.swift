@@ -6,16 +6,8 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct TaskCreationResultTests {
-    private func makeContext() throws -> ModelContext {
-        let schema = Schema([Project.self, TransitTask.self, Milestone.self])
-        let config = ModelConfiguration(
-            "TaskCreationResultTests-\(UUID().uuidString)",
-            schema: schema,
-            isStoredInMemoryOnly: true,
-            cloudKitDatabase: .none
-        )
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
+    private func makeTestContainer() throws -> TestModelContainer {
+        try TestModelContainer()
     }
 
     private func makeTask(
@@ -34,7 +26,8 @@ struct TaskCreationResultTests {
     }
 
     @Test func fromTaskMapsRequiredFields() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let task = makeTask(in: context, name: "Map me", type: .bug, displayID: 33)
 
         let result = try TaskCreationResult.from(task)
@@ -49,7 +42,8 @@ struct TaskCreationResultTests {
     }
 
     @Test func fromTaskThrowsWhenProjectIsMissing() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let task = makeTask(in: context)
         task.project = nil
 
@@ -63,7 +57,8 @@ struct TaskCreationResultTests {
     // the task name (not the project name) so the user sees the task that was
     // just created. The project name belongs in the subtitle as context.
     @Test func displayRepresentationUsesTaskNameAsTitle() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let task = makeTask(in: context, name: "Investigate flaky test", type: .bug, displayID: 42)
 
         let result = try TaskCreationResult.from(task)

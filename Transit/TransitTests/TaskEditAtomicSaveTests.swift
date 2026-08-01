@@ -12,7 +12,8 @@ struct TaskEditAtomicSaveTests {
     // MARK: - Helpers
 
     private func makeService() throws -> (TaskService, ModelContext) {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         let service = TaskService(modelContext: context, displayIDAllocator: allocator)

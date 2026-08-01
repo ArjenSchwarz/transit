@@ -14,7 +14,8 @@ struct ProjectServiceUpdateTests {
     // MARK: - Helpers
 
     private func makeService() throws -> (ProjectService, ModelContext) {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let service = ProjectService(modelContext: context)
         return (service, context)
     }

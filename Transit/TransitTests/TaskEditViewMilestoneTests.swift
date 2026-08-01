@@ -7,7 +7,8 @@ import Testing
 struct TaskEditViewMilestoneTests {
 
     private func makeMilestoneService() throws -> (MilestoneService, ModelContext) {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
         return (service, context)

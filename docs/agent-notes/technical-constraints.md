@@ -89,16 +89,23 @@ For report generation, use `fetchTerminalTasks()` / `fetchTerminalMilestones()` 
 
 ## SwiftData Test Container
 
-Creating multiple `ModelContainer` instances for the same schema in one process causes `loadIssueModelContainer` errors. The app's CloudKit entitlements trigger auto-discovery of `@Model` types at test host launch, conflicting with test containers.
+A `ModelContext` does not safely keep its `ModelContainer`/store alive for later model access. Never create a container in a helper and return only its context or models; ARC can release the backing store and cause nondeterministic SwiftData `SIGTRAP`/`EXC_BREAKPOINT` crashes.
 
-**Solution**: Use a shared `TestModelContainer` singleton that creates one container with:
-1. An explicit `Schema([Project.self, TransitTask.self])`
-2. A named `ModelConfiguration` with `cloudKitDatabase: .none`
+**Solution**: Construct the container-owning `TestModelContainer` fixture at the test boundary:
+
+```swift
+let testContainer = try TestModelContainer()
+let context = testContainer.context
+```
+
+The fixture creates a fresh container with:
+1. An explicit `Schema` containing all five models
+2. A uniquely named `ModelConfiguration` with `cloudKitDatabase: .none`
 3. `isStoredInMemoryOnly: true`
 
-All three are required. Without `cloudKitDatabase: .none`, it conflicts with the CloudKit-enabled default store. Without the explicit `Schema`, the `cloudKitDatabase: .none` parameter crashes.
+All three are required. Without `cloudKitDatabase: .none`, it conflicts with the CloudKit-enabled default store. Without the explicit `Schema`, the `cloudKitDatabase: .none` parameter crashes. The fixture retains both container and context, and test support centrally retains created containers so accidentally extracting a temporary fixture's context cannot orphan its store.
 
-Each test gets a fresh `ModelContext` via `TestModelContainer.newContext()` for isolation.
+Tests that intentionally need multiple contexts on one store may call `TestModelContainer.newContainer()` but must retain that returned container for the full test lifetime.
 
 Test files that use SwiftData need `@Suite(.serialized)` to avoid concurrent access issues.
 

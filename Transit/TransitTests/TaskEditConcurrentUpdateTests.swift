@@ -16,7 +16,8 @@ struct TaskEditTestEnv {
     let project: Project
 
     static func make() throws -> TaskEditTestEnv {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let taskService = TaskService(
             modelContext: context,
             displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())

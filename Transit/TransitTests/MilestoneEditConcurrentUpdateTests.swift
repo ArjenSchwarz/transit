@@ -15,7 +15,8 @@ struct MilestoneEditTestEnv {
     let project: Project
 
     static func make() throws -> MilestoneEditTestEnv {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let milestoneService = MilestoneService(
             modelContext: context,
             displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())

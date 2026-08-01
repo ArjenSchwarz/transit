@@ -17,7 +17,8 @@ struct UpdateMilestoneClearDescIntentTests {
     }
 
     private func makeServices() throws -> Services {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
         return Services(
             milestone: MilestoneService(modelContext: context, displayIDAllocator: allocator),

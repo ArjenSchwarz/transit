@@ -26,7 +26,8 @@ struct ModelContextSaveHelpersTests {
     // MARK: - saveOrRollback
 
     @Test func saveOrRollbackPersistsMutation() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try makePersistedProject(in: context)
 
         try context.saveOrRollback { project.name = "Renamed" }
@@ -36,7 +37,8 @@ struct ModelContextSaveHelpersTests {
     }
 
     @Test func saveOrRollbackRevertsContextWhenMutationThrows() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try makePersistedProject(in: context)
 
         #expect(throws: SaveFailure.self) {
@@ -50,7 +52,8 @@ struct ModelContextSaveHelpersTests {
     }
 
     @Test func saveOrRollbackWithSaveFalseAppliesMutationWithoutPersisting() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try makePersistedProject(in: context)
 
         try context.saveOrRollback(save: false) { project.name = "Renamed" }
@@ -62,7 +65,8 @@ struct ModelContextSaveHelpersTests {
     }
 
     @Test func saveOrRollbackWithSaveFalseStillRevertsWhenMutationThrows() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try makePersistedProject(in: context)
 
         #expect(throws: SaveFailure.self) {
@@ -78,7 +82,8 @@ struct ModelContextSaveHelpersTests {
     // MARK: - insertOrDelete
 
     @Test func insertOrDeletePersistsModelOnSuccess() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try makePersistedProject(in: context)
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .permanent(1))
 
@@ -89,7 +94,8 @@ struct ModelContextSaveHelpersTests {
     }
 
     @Test func insertOrDeleteRemovesInsertedModelOnSaveFailure() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try makePersistedProject(in: context)
         let task = TransitTask(name: "Ghost", type: .feature, project: project, displayID: .permanent(1))
 
@@ -107,7 +113,8 @@ struct ModelContextSaveHelpersTests {
     /// inserted model, *not* by rolling the context back. A rollback here would
     /// also discard the user's unrelated unsaved edits on the shared main context.
     @Test func insertOrDeleteFailurePreservesUnrelatedUnsavedEdits() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try makePersistedProject(in: context)
         let task = TransitTask(name: "Ghost", type: .feature, project: project, displayID: .permanent(1))
 

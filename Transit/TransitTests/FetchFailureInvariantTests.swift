@@ -37,7 +37,8 @@ struct FetchFailureInvariantTests {
     // MARK: - T-1614: project name uniqueness
 
     @Test func projectCreateWithUnreadableStoreDoesNotCommitDuplicateName() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let working = ProjectService(modelContext: context)
         try working.createProject(name: "Transit", description: "", gitRepo: nil, colorHex: "#FF0000")
 
@@ -54,7 +55,8 @@ struct FetchFailureInvariantTests {
     }
 
     @Test func projectRenameWithUnreadableStoreDoesNotCommitDuplicateName() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let working = ProjectService(modelContext: context)
         try working.createProject(name: "Transit", description: "", gitRepo: nil, colorHex: "#FF0000")
         let orbit = try working.createProject(name: "Orbit", description: "", gitRepo: nil, colorHex: "#00FF00")
@@ -73,7 +75,8 @@ struct FetchFailureInvariantTests {
     // MARK: - T-1614: milestone name uniqueness
 
     @Test func milestoneCreateWithUnreadableStoreDoesNotCommitDuplicateName() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let project = try ProjectService(modelContext: context)
             .createProject(name: "Transit", description: "", gitRepo: nil, colorHex: "#FF0000")
@@ -94,7 +97,8 @@ struct FetchFailureInvariantTests {
     }
 
     @Test func milestoneRenameWithUnreadableStoreDoesNotCommitDuplicateName() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let project = try ProjectService(modelContext: context)
             .createProject(name: "Transit", description: "", gitRepo: nil, colorHex: "#FF0000")
@@ -131,7 +135,8 @@ struct FetchFailureInvariantTests {
     }
 
     @Test func taskCreateWithUnreadableStoreDoesNotReissueCommittedDisplayID() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try seedTaskHoldingID5(in: context)
         let allocator = DisplayIDAllocator(store: InMemoryCounterStore(initialNextDisplayID: 5))
 
@@ -153,7 +158,8 @@ struct FetchFailureInvariantTests {
     }
 
     @Test func taskCreateWithReadableStoreStillSkipsPastTheInUseID() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try seedTaskHoldingID5(in: context)
         let allocator = DisplayIDAllocator(store: InMemoryCounterStore(initialNextDisplayID: 5))
 
@@ -167,7 +173,8 @@ struct FetchFailureInvariantTests {
     }
 
     @Test func milestonePromotionWithUnreadableStoreDoesNotReissueCommittedDisplayID() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try ProjectService(modelContext: context)
             .createProject(name: "Transit", description: "", gitRepo: nil, colorHex: "#FF0000")
         let committed = Milestone(name: "v1.0", description: nil, project: project, displayID: .permanent(5))
@@ -193,7 +200,8 @@ struct FetchFailureInvariantTests {
     }
 
     @Test func taskPromotionWithUnreadableStoreDoesNotReissueCommittedDisplayID() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try seedTaskHoldingID5(in: context)
         let provisional = TransitTask(
             name: "Pending", description: nil, type: .bug, project: project, displayID: .provisional
@@ -218,7 +226,8 @@ struct FetchFailureInvariantTests {
     }
 
     @Test func taskPromotionWithReadableStoreStillPromotesPastTheInUseID() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = try seedTaskHoldingID5(in: context)
         let provisional = TransitTask(
             name: "Pending", description: nil, type: .bug, project: project, displayID: .provisional

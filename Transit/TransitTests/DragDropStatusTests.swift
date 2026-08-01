@@ -21,7 +21,8 @@ struct DragDropStatusTests {
     private func makeServiceAndTask(
         status: TaskStatus
     ) throws -> (service: TaskService, task: TransitTask) {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         let service = TaskService(modelContext: context, displayIDAllocator: allocator)

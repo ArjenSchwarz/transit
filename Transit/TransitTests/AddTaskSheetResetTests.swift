@@ -31,7 +31,8 @@ struct AddTaskSheetResetTests {
 
     @Test("Default project picks the first project when none selected")
     func defaultProjectPicksFirstWhenNil() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let alpha = makeProject(name: "Alpha", in: context)
         let beta = makeProject(name: "Beta", in: context)
         let projects = [alpha, beta]
@@ -42,7 +43,8 @@ struct AddTaskSheetResetTests {
 
     @Test("Default project keeps current selection when it still exists")
     func defaultProjectKeepsCurrentWhenValid() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let alpha = makeProject(name: "Alpha", in: context)
         let beta = makeProject(name: "Beta", in: context)
         let projects = [alpha, beta]
@@ -53,7 +55,8 @@ struct AddTaskSheetResetTests {
 
     @Test("Default project falls back to first when current project no longer exists")
     func defaultProjectFallsBackWhenCurrentMissing() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let alpha = makeProject(name: "Alpha", in: context)
         let projects = [alpha]
 

@@ -5,16 +5,8 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct TaskEntityTests {
-    private func makeContext() throws -> ModelContext {
-        let schema = Schema([Project.self, TransitTask.self, Milestone.self])
-        let config = ModelConfiguration(
-            "TaskEntityTests-\(UUID().uuidString)",
-            schema: schema,
-            isStoredInMemoryOnly: true,
-            cloudKitDatabase: .none
-        )
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return ModelContext(container)
+    private func makeTestContainer() throws -> TestModelContainer {
+        try TestModelContainer()
     }
 
     private func makeTask(
@@ -33,7 +25,8 @@ struct TaskEntityTests {
     }
 
     @Test func fromTaskMapsRequiredFields() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let task = makeTask(in: context, name: "Map me", type: .bug, displayID: 33)
 
         let entity = try TaskEntity.from(task)
@@ -50,7 +43,8 @@ struct TaskEntityTests {
     }
 
     @Test func fromTaskThrowsWhenProjectIsMissing() throws {
-        let context = try makeContext()
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
         let task = makeTask(in: context)
         task.project = nil
 

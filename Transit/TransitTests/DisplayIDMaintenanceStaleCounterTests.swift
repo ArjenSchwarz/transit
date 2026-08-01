@@ -62,7 +62,8 @@ struct DisplayIDMaintenanceStaleCounterTests {
         taskStore: any DisplayIDAllocator.CounterStore,
         milestoneStore: any DisplayIDAllocator.CounterStore
     ) throws -> TestEnv {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let service = DisplayIDMaintenanceService(
             modelContext: context,
             taskAllocator: DisplayIDAllocator(store: taskStore),

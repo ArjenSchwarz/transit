@@ -2,14 +2,23 @@ import Foundation
 import SwiftData
 @testable import Transit
 
-/// Provides isolated in-memory ModelContexts for tests.
+/// Owns an isolated in-memory ModelContainer and its ModelContext for tests.
+///
+/// Construct this fixture at the test boundary instead of returning a bare
+/// ModelContext from helper functions. Containers are also retained centrally
+/// so even an accidentally temporary fixture cannot orphan an escaped context.
 @MainActor
-enum TestModelContainer {
-    /// Returns a fresh ModelContext backed by its own in-memory container to
-    /// avoid cross-test state leakage between suites.
-    static func newContext() throws -> ModelContext {
-        let container = try newContainer()
-        return ModelContext(container)
+struct TestModelContainer {
+    let container: ModelContainer
+    let context: ModelContext
+
+    private static var retainedContainers: [ModelContainer] = []
+
+    init() throws {
+        let container = try Self.newContainer()
+        self.container = container
+        self.context = ModelContext(container)
+        Self.retainedContainers.append(container)
     }
 
     /// Returns a fresh in-memory ModelContainer for tests needing multiple contexts on one store.

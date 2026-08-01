@@ -9,7 +9,8 @@ struct CommentServiceTests {
     // MARK: - Helpers
 
     private func makeService() throws -> (CommentService, ModelContext) {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let service = CommentService(modelContext: context)
         return (service, context)
     }

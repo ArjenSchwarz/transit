@@ -9,7 +9,8 @@ struct ReportLogicDateRangeTests {
 
     @Test("Today filter includes only tasks completed today")
     func todayFilter() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 
@@ -31,7 +32,8 @@ struct ReportLogicDateRangeTests {
 
     @Test("Yesterday filter includes only tasks completed yesterday")
     func yesterdayFilter() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let calendar = Calendar.current
         let project = makeTestProject(name: "Project", context: ctx)
@@ -52,7 +54,8 @@ struct ReportLogicDateRangeTests {
 
     @Test("This week filter includes tasks from current week")
     func thisWeekFilter() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let calendar = Calendar.current
         let project = makeTestProject(name: "Project", context: ctx)
@@ -74,7 +77,8 @@ struct ReportLogicDateRangeTests {
 
     @Test("Last week filter includes tasks from previous week")
     func lastWeekFilter() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let calendar = Calendar.current
         let project = makeTestProject(name: "Project", context: ctx)
@@ -96,7 +100,8 @@ struct ReportLogicDateRangeTests {
 
     @Test("This month filter includes tasks from current month")
     func thisMonthFilter() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let calendar = Calendar.current
         let project = makeTestProject(name: "Project", context: ctx)
@@ -118,7 +123,8 @@ struct ReportLogicDateRangeTests {
 
     @Test("Last month filter includes tasks from previous month")
     func lastMonthFilter() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let calendar = Calendar.current
         let project = makeTestProject(name: "Project", context: ctx)
@@ -142,7 +148,8 @@ struct ReportLogicDateRangeTests {
 
     @Test("This year filter includes tasks from current year")
     func thisYearFilter() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let calendar = Calendar.current
         let project = makeTestProject(name: "Project", context: ctx)
@@ -164,7 +171,8 @@ struct ReportLogicDateRangeTests {
 
     @Test("Last year filter includes tasks from previous year")
     func lastYearFilter() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let calendar = Calendar.current
         let project = makeTestProject(name: "Project", context: ctx)
@@ -190,7 +198,8 @@ struct ReportLogicDateRangeTests {
 
     @Test("Yesterday boundary: start included, start of today excluded")
     func yesterdayBoundary() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let calendar = Calendar.current
         let project = makeTestProject(name: "Project", context: ctx)
@@ -221,7 +230,8 @@ struct ReportLogicDateRangeTests {
 
     @Test("Last week boundary: start included, this week start excluded")
     func lastWeekBoundary() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let calendar = Calendar.current
         let project = makeTestProject(name: "Project", context: ctx)
@@ -246,7 +256,8 @@ struct ReportLogicDateRangeTests {
 
     @Test("Empty result when no tasks match the date range")
     func emptyResultForMismatchedRange() throws {
-        let ctx = try makeReportTestContext()
+        let testContainer = try makeReportTestContainer()
+        let ctx = testContainer.context
         let now = reportTestNow
         let project = makeTestProject(name: "Project", context: ctx)
 

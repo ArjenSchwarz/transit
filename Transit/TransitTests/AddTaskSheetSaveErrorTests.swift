@@ -28,7 +28,8 @@ struct AddTaskSheetSaveErrorTests {
     }
 
     private func makeService() throws -> (TaskService, ModelContext) {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = InMemoryCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         let service = TaskService(modelContext: context, displayIDAllocator: allocator)
@@ -36,7 +37,8 @@ struct AddTaskSheetSaveErrorTests {
     }
 
     private func makeServices() throws -> Services {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         return Services(

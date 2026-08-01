@@ -18,7 +18,8 @@ struct IntentHelpersTaskUpdateResponseDictTests {
     }
 
     private func makeFixture(includeProject: Bool = true) throws -> Fixture {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let project = Project(
             name: "Test Project", description: "A test project", gitRepo: nil, colorHex: "#FF0000"
         )

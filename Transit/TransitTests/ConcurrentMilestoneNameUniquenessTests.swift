@@ -121,7 +121,8 @@ struct ConcurrentMilestoneNameUniquenessTests {
     /// holder is parked in allocation, so the check is already stale by the time the
     /// contender resumes — it must re-check before inserting.
     @Test func interleavedCreatesWithSameNameRejectTheSecond() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = GatedCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
@@ -161,7 +162,8 @@ struct ConcurrentMilestoneNameUniquenessTests {
     /// The re-check must not over-reject: two overlapping creates with *different*
     /// names in the same project both belong in the store.
     @Test func interleavedCreatesWithDifferentNamesBothSucceed() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = GatedCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
@@ -194,7 +196,8 @@ struct ConcurrentMilestoneNameUniquenessTests {
     /// project-scoped: the same name in two different projects is legal even when the
     /// creates interleave.
     @Test func interleavedCreatesWithSameNameInDifferentProjectsBothSucceed() async throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
         let store = GatedCounterStore()
         let allocator = DisplayIDAllocator(store: store)
         let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
