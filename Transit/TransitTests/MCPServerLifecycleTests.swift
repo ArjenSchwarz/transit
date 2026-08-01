@@ -48,6 +48,29 @@ struct MCPServerLifecycleTests {
         await server.stop()
     }
 
+    @Test func differentPortRestartReleasesOldListenerBeforeBindingNewOne() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let server = MCPServer(toolHandler: env.handler)
+        let oldPort = try availableLoopbackPort()
+        var newPort = try availableLoopbackPort()
+        while newPort == oldPort {
+            newPort = try availableLoopbackPort()
+        }
+
+        await server.start(port: oldPort)
+        try #require(await waitUntilServing(port: oldPort), "Initial listener did not start")
+
+        await server.restart(port: newPort)
+
+        #expect(bindLoopbackPort(oldPort) == nil, "Restart must release the old port")
+        #expect(
+            await waitUntilServing(port: newPort),
+            "Different-port restart did not bind the replacement: \(server.startError ?? "no error")"
+        )
+        #expect(server.startError == nil)
+        await server.stop()
+    }
+
     @Test func rapidOffOnRequestsCoalesceWithoutAddressInUse() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let server = MCPServer(toolHandler: env.handler)

@@ -58,6 +58,6 @@ Lifecycle ownership is now contained in `MCPServer`; UI code requests outcomes r
 
 ## Completeness Assessment
 
-- **Fully implemented:** async start/stop/restart, cancellation plus awaited teardown, stale-callback fencing, latest-state coalescing, safe Settings and app-start integration, invalid-port behavior, live same-port and rapid-toggle regressions.
+- **Fully implemented:** async start/stop/restart, cancellation plus awaited teardown, stale-callback fencing, latest-state coalescing, safe Settings and app-start integration, invalid-port behavior, and live listener-release, same-port, different-port, and rapid-toggle regressions.
 - **Partially implemented:** none.
 - **Missing:** none for T-1826’s scope. Listener readiness is still represented optimistically, but that is existing behavior outside this ticket and bind failures remain surfaced through `startError`.

@@ -67,9 +67,10 @@ The lifecycle tracks task identity for UI generation safety but does not own lis
 **Test names:**
 - `stopReturnsOnlyAfterListenerReleasesPort`
 - `samePortRestartWaitsForOldListenerTeardown`
+- `differentPortRestartReleasesOldListenerBeforeBindingNewOne`
 - `rapidOffOnRequestsCoalesceWithoutAddressInUse`
 
-**What they verify:** A real loopback Hummingbird listener remains reachable after same-port restart and after a burst of off/on requests, with no address-in-use start error.
+**What they verify:** A real loopback Hummingbird listener releases its old port before stop/restart returns, remains reachable after same-port and different-port restart, and converges after a burst of off/on requests without an address-in-use start error.
 
 **Run command:** `make test-quick`
 

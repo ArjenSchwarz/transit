@@ -314,6 +314,8 @@ extension SettingsView {
     }
 
     fileprivate func scheduleMCPEnabled(_ enabled: Bool) {
+        // Cancelling only skips a stale Settings task that has not submitted
+        // yet. MCPServer's desired state supersedes requests already in flight.
         mcpLifecycleRequest?.cancel()
         let port = mcpSettings.port
         mcpLifecycleRequest = Task { @MainActor in
