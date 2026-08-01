@@ -3,15 +3,32 @@ import Foundation
 import Hummingbird
 import NIOCore
 import NIOFoundationCompat
+import ServiceLifecycle
 
 @MainActor @Observable
 final class MCPServer {
 
-    private let toolHandler: MCPToolHandler
-    private var serverTask: Task<Void, Never>?
-    private var generation = 0
+    private enum DesiredState: Equatable {
+        case stopped
+        case invalidPort(Int)
+        case running(port: Int, runID: Int)
+    }
 
-    private(set) var isRunning = false
+    private struct ActiveServer {
+        let port: Int
+        let runID: Int
+        let serviceGroup: ServiceGroup
+        let task: Task<Void, Never>
+    }
+
+    private let toolHandler: MCPToolHandler
+    private var desiredState: DesiredState = .stopped
+    private var lifecycleTask: Task<Void, Never>?
+    private var activeServer: ActiveServer?
+    private var nextRunID = 0
+    private var serverGeneration = 0
+
+    var isRunning: Bool { activeServer != nil }
 
     /// A human-readable reason the server is not running, or `nil` when the
     /// server is running or was stopped intentionally. Set when the configured
@@ -23,62 +40,163 @@ final class MCPServer {
     init(toolHandler: MCPToolHandler) {
         self.toolHandler = toolHandler
     }
+}
 
-    func start(port: Int) {
-        guard !isRunning else { return }
+extension MCPServer {
+    /// Starts the server unless the same port is already active or requested.
+    /// Repeated requests join one reconciliation pass instead of launching
+    /// competing Hummingbird applications.
+    func start(port: Int) async {
+        await request(runningState(port: port, forceRestart: false))
+    }
 
-        // Reject out-of-range ports before attempting to bind. The OS treats
-        // these as errors asynchronously (or, for 0, silently picks a random
-        // port), neither of which is useful for a fixed local endpoint.
+    /// Replaces the current listener even when the port is unchanged. The old
+    /// service group shuts down gracefully before the replacement can bind.
+    func restart(port: Int) async {
+        await request(runningState(port: port, forceRestart: true))
+    }
+
+    /// Stops the server and returns only after Hummingbird has gracefully
+    /// released its listener. A newer request can supersede this one meanwhile.
+    func stop() async {
+        await request(.stopped)
+    }
+
+    private func runningState(port: Int, forceRestart: Bool) -> DesiredState {
         guard MCPSettings.isValidPort(port) else {
-            isRunning = false
-            startError = "Port \(port) is invalid. Use a value between "
-                + "\(MCPSettings.validPortRange.lowerBound) and "
-                + "\(MCPSettings.validPortRange.upperBound)."
-            return
+            return .invalidPort(port)
         }
 
-        generation += 1
-        let currentGeneration = generation
-        isRunning = true
+        if !forceRestart {
+            if case .running(let requestedPort, let runID) = desiredState,
+               requestedPort == port {
+                return .running(port: port, runID: runID)
+            }
+            if let activeServer, activeServer.port == port {
+                return .running(port: port, runID: activeServer.runID)
+            }
+        }
+
+        nextRunID += 1
+        return .running(port: port, runID: nextRunID)
+    }
+
+    private func request(_ state: DesiredState) async {
+        desiredState = state
+        if lifecycleTask == nil {
+            lifecycleTask = Task { @MainActor [weak self] in
+                await self?.reconcileLifecycle()
+            }
+        }
+        let currentLifecycleTask = lifecycleTask
+        await currentLifecycleTask?.value
+    }
+
+    /// Applies only the latest requested state. Requests arriving while old
+    /// listener teardown is suspended overwrite stale intermediate states and
+    /// are picked up by the next loop iteration.
+    private func reconcileLifecycle() async {
+        while true {
+            let target = desiredState
+            switch target {
+            case .stopped:
+                await tearDownCurrentServer()
+                if desiredState == target {
+                    startError = nil
+                }
+
+            case .invalidPort(let port):
+                await tearDownCurrentServer()
+                if desiredState == target {
+                    startError = "Port \(port) is invalid. Use a value between "
+                        + "\(MCPSettings.validPortRange.lowerBound) and "
+                        + "\(MCPSettings.validPortRange.upperBound)."
+                }
+
+            case .running(let port, let runID):
+                if activeServer?.port != port || activeServer?.runID != runID {
+                    await tearDownCurrentServer()
+                    if desiredState == target {
+                        launchServer(port: port, runID: runID)
+                    }
+                }
+            }
+
+            guard desiredState == target else { continue }
+            lifecycleTask = nil
+            return
+        }
+    }
+
+    private func tearDownCurrentServer() async {
+        guard let currentServer = activeServer else { return }
+
+        // Task cancellation only cancels ServiceGroup's child tasks; it does
+        // not invoke Hummingbird Server.shutdownGracefully(), so task completion
+        // is not a listener-release fence. Trigger the group's graceful path,
+        // then await its run task before permitting a replacement bind. The
+        // generation bump must precede the trigger: if the detached task has
+        // not reached `run()` yet, the group jumps to `.finished` and `run()`
+        // throws `alreadyFinished`, which the fenced callback must not report
+        // as a start failure for a server the caller just asked to stop.
+        serverGeneration += 1
+        activeServer = nil
+        await currentServer.serviceGroup.triggerGracefulShutdown()
+        await currentServer.task.value
+    }
+
+    private func launchServer(port: Int, runID: Int) {
+        serverGeneration += 1
+        let currentGeneration = serverGeneration
         startError = nil
 
         let handler = toolHandler
         let setNotRunning = { @MainActor [weak self] (failure: String?) in
-            guard let self, self.generation == currentGeneration else { return }
-            self.isRunning = false
+            guard let self, self.serverGeneration == currentGeneration else { return }
+            self.activeServer = nil
             if let failure {
                 self.startError = failure
             }
         }
-        serverTask = Task.detached {
-            let app = Application(
-                router: Self.makeRouter(handler: handler),
-                configuration: .init(
-                    address: .hostname("127.0.0.1", port: port)
-                )
+        let app = Application(
+            router: Self.makeRouter(handler: handler),
+            configuration: .init(
+                address: .hostname("127.0.0.1", port: port)
             )
-
-            // A bind failure surfaces here (e.g. the port is already in use).
-            // `CancellationError` is the expected path when `stop()` cancels the
-            // task and must not be reported as a failure.
+        )
+        // No unix signal traps (`runService()` would install SIGTERM/SIGINT by
+        // default): they change the process's signal disposition permanently,
+        // and teardown here is driven by `triggerGracefulShutdown()`.
+        let configuration = MCPServerLifecycleConfiguration.make(
+            services: [app],
+            logger: app.logger
+        )
+        let serviceGroup = ServiceGroup(configuration: configuration)
+        let task = Task.detached {
             var failure: String?
             do {
-                try await app.runService()
-            } catch is CancellationError {
-                failure = nil
+                try await serviceGroup.run()
             } catch {
                 failure = "Could not start server on port \(port): "
                     + error.localizedDescription
             }
             await setNotRunning(failure)
         }
+        activeServer = ActiveServer(
+            port: port,
+            runID: runID,
+            serviceGroup: serviceGroup,
+            task: task
+        )
     }
+}
+
+extension MCPServer {
 
     /// Builds the Hummingbird router for the single `POST /mcp` endpoint.
-    /// `nonisolated` because under `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`
-    /// `MCPServer` is `@MainActor` by default, but this is called from the
-    /// detached (non-main-actor) task in `start(port:)`.
+    /// `nonisolated` keeps transport construction independent of MainActor;
+    /// route callbacks execute on Hummingbird/NIO and hop to MainActor only
+    /// when dispatching through `MCPToolHandler`.
     nonisolated static func makeRouter(handler: MCPToolHandler) -> Router<BasicRequestContext> {
         let router = Router()
         router.post("mcp") { request, _ -> Response in
@@ -153,28 +271,7 @@ final class MCPServer {
         return jsonResponse(responses)
     }
 
-    func stop() {
-        serverTask?.cancel()
-        serverTask = nil
-        isRunning = false
-        startError = nil
-    }
-
     // MARK: - Helpers
-
-    /// Result of decoding an incoming body as one JSON-RPC request or a batch.
-    nonisolated enum DecodeOutcome: Sendable {
-        case success(JSONRPCRequest)
-        case batch([BatchElement])
-        case failure(JSONRPCResponse)
-    }
-
-    /// One member of a non-empty JSON-RPC batch. Invalid members stay in the
-    /// sequence so the route can emit one -32600 response for each of them.
-    nonisolated enum BatchElement: Sendable {
-        case request(JSONRPCRequest)
-        case invalid
-    }
 
     /// Decode an incoming request body as a single JSON-RPC request or a
     /// non-empty JSON-RPC batch, distinguishing transport-level parse failures

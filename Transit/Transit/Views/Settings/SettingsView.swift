@@ -312,6 +312,26 @@ extension SettingsView {
         }
     }
 
+    fileprivate enum MCPLifecycleRequest {
+        case start
+        case stop
+        case restart
+    }
+
+    /// Submits a lifecycle request without tracking it. `MCPServer` already
+    /// coalesces overlapping requests onto its latest desired state, so the
+    /// view has nothing useful to cancel.
+    fileprivate func scheduleMCP(_ request: MCPLifecycleRequest) {
+        let port = mcpSettings.port
+        Task { @MainActor in
+            switch request {
+            case .start: await mcpServer.start(port: port)
+            case .stop: await mcpServer.stop()
+            case .restart: await mcpServer.restart(port: port)
+            }
+        }
+    }
+
     fileprivate var macOSMCPSection: some View {
         @Bindable var settings = mcpSettings
         return LiquidGlassSection {
@@ -321,11 +341,10 @@ extension SettingsView {
                         .labelsHidden()
                         .toggleStyle(.switch)
                         .onChange(of: mcpSettings.isEnabled) { _, enabled in
+                            scheduleMCP(enabled ? .start : .stop)
                             if enabled {
-                                mcpServer.start(port: mcpSettings.port)
                                 syncManager.startHeartbeat(context: modelContext)
                             } else {
-                                mcpServer.stop()
                                 syncManager.stopHeartbeat()
                             }
                         }
@@ -335,8 +354,7 @@ extension SettingsView {
                         TextField("", value: $settings.port, format: .number)
                             .frame(width: 80)
                             .onSubmit {
-                                mcpServer.stop()
-                                mcpServer.start(port: mcpSettings.port)
+                                scheduleMCP(.restart)
                             }
                     }
                     FormRow("Status", labelWidth: Self.labelWidth) {

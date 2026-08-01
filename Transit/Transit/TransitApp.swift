@@ -208,7 +208,7 @@ struct TransitApp: App {
             #if os(macOS)
             .environment(mcpSettings)
             .environment(mcpServer)
-            .task { startMCPServerIfEnabled() }
+            .task { await startMCPServerIfEnabled() }
             #endif
             .task { seedUITestDataIfNeeded() }
             .alert(
@@ -281,10 +281,10 @@ struct TransitApp: App {
     // MARK: - MCP Server
 
     #if os(macOS)
-    private func startMCPServerIfEnabled() {
+    private func startMCPServerIfEnabled() async {
         // Skip MCP server in unit test host to avoid port conflicts across test runs
         guard mcpSettings.isEnabled, !Self.isUnitTestHost else { return }
-        mcpServer.start(port: mcpSettings.port)
+        await mcpServer.start(port: mcpSettings.port)
         syncManager.startHeartbeat(context: container.mainContext)
     }
     #endif
