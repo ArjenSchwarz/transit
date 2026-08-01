@@ -5,24 +5,19 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct ProjectEntityTests {
+    @MainActor
     private struct TestEnv {
-        let context: ModelContext
+        let testContainer: TestModelContainer
         let projectService: ProjectService
+
+        var context: ModelContext { testContainer.context }
     }
 
     private func makeEnv() throws -> TestEnv {
-        let schema = Schema([Project.self, TransitTask.self, Milestone.self])
-        let config = ModelConfiguration(
-            "ProjectEntityTests-\(UUID().uuidString)",
-            schema: schema,
-            isStoredInMemoryOnly: true,
-            cloudKitDatabase: .none
-        )
-        let container = try ModelContainer(for: schema, configurations: [config])
-        let context = ModelContext(container)
+        let testContainer = try TestModelContainer()
         return TestEnv(
-            context: context,
-            projectService: ProjectService(modelContext: context)
+            testContainer: testContainer,
+            projectService: ProjectService(modelContext: testContainer.context)
         )
     }
 
