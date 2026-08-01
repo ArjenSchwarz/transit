@@ -127,7 +127,8 @@ struct CreateTaskIntentMilestoneTests {
         )
 
         let parsed = try parseJSON(result)
-        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        // A storage failure is retryable, so it must not be reported as a bad request.
+        #expect(parsed["error"] as? String == "INTERNAL_ERROR")
         #expect(try svc.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
         try svc.context.save()
         #expect(
