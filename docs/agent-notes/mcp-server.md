@@ -97,6 +97,12 @@ Gotchas:
 
 `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`
 
+## JSON-RPC Batch Envelopes (T-1834)
+
+`POST /mcp` accepts either one `JSONRPCRequest` or a non-empty JSON-RPC batch. `MCPServer.decodeIncomingRequest` preserves invalid batch members so each produces its own `-32600` response, while an empty batch produces one standalone `-32600` object as required by JSON-RPC 2.0.
+
+Batch dispatch is sequential on the MainActor to keep mutations against the shared SwiftData context deterministic. Responses to request members remain inside an array even when notifications are omitted. A batch containing only notifications returns HTTP 202 with no body; notifications still execute their method/tool path before the result is discarded. Batched `initialize` requests are rejected with `-32600` because MCP 2025-03-26 requires initialization to be a standalone request. Single requests continue to return one response object.
+
 ## Dependencies
 
 - **Hummingbird 2.x** — Transit's first (and only) external SPM dependency
