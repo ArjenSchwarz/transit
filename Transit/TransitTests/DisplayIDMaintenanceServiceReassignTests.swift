@@ -29,6 +29,8 @@ struct DisplayIDMaintenanceServiceReassignTests {
     private func makeGatedEnv(gateTasks: Bool) throws -> GatedTestEnv {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
+        // Reads 1–2 are the maintenance counter fence; read 3 is the
+        // loser's allocation, which is the T-2019 suspension point.
         let gateStore = AllocationGatedCounterStore(gatedLoadNumber: 3)
         let taskAllocator: DisplayIDAllocator
         let milestoneAllocator: DisplayIDAllocator
