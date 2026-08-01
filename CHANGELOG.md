@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Investigation report and failing cross-context regression coverage for T-1938, reproducing arbitrary milestone name lookup, absent post-sync duplicate-name reconciliation, and MCP task creation against an ambiguous milestone name.
+
 ### Fixed
 
 - Task mutation surfaces no longer hide duplicate task display IDs behind a not-found error (T-1837). `TaskService.findByDisplayID` already threw `duplicateDisplayID` when several tasks share a `permanentDisplayId` (possible under CloudKit, which cannot enforce uniqueness), but MCP `update_task_status` / `update_task` / `add_comment`, `UpdateStatusIntent`, `IntentHelpers.resolveTask`, and the visual `AddCommentIntent` all collapsed it into `TASK_NOT_FOUND` / "Provide either displayId or taskId", so operators could not tell missing data from store corruption needing display-ID maintenance. Duplicates now report `INTERNAL_ERROR` with the hint `Duplicate task identifier for displayId N` (App Intents — matching the milestone paths and the T-1097 `QueryTasksIntent` fix) or an `isError` result reading `Duplicate task identifier detected for displayId N` (MCP — matching the milestone tools). MCP `query_tasks` uses the same wording instead of leaking `Lookup failed: duplicateDisplayID`. No new error code was introduced. The three MCP call sites now share `resolveTaskArgument`, `UpdateStatusIntent` routes through `IntentHelpers.resolveTask` instead of its own copy of the mapping, and `VisualIntentError` gains a `duplicateIdentifier` case (code `INTERNAL_ERROR`). Regression coverage in `DuplicateTaskDisplayIDIntentTests` and `MCPDuplicateTaskDisplayIDTests`.
