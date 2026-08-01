@@ -31,32 +31,33 @@ The MCP server lifecycle and every caller were inspected using the repository hi
 
 ## Discovered Root Cause
 
-The lifecycle tracks task identity for UI generation safety but does not own listener teardown as an asynchronous, serialized operation.
+The lifecycle coordinator serialized task completion but used the wrong shutdown signal. Swift Service Lifecycle handles parent task cancellation by cancelling its task group; Hummingbird closes the listening channel in `Server.shutdownGracefully()`, which is driven by the service group's graceful-shutdown manager instead.
 
 **Defect type:** Race condition / asynchronous resource lifecycle.
 
 **Five Whys:**
-1. Why does the replacement bind fail? The old listener can still own the port.
-2. Why can it still own the port? Task cancellation is cooperative and Hummingbird closes the listener asynchronously.
-3. Why does rebinding proceed before close completes? `stop()` discards the task without awaiting its result.
-4. Why can Settings trigger that ordering? It calls `stop()` and `start()` synchronously with no lifecycle boundary.
-5. Why do repeated requests worsen it? There is no single-flight reconciliation loop that coalesces requests to the latest desired server state.
+1. Why can the replacement bind fail after awaited teardown? The old listening channel can still own the port.
+2. Why can it still own the port after the wrapper task was cancelled and awaited? Awaiting cancellation proves task termination, not that Hummingbird's graceful listener-close path ran.
+3. Why does cancellation not run that path? `ServiceGroup` responds to task cancellation with `group.cancelAll()`.
+4. Where is listener closure guaranteed? Hummingbird's `Server.shutdownGracefully()`, reached when `ServiceGroup.triggerGracefulShutdown()` signals the service's graceful-shutdown manager.
+5. Why did review miss it? The implementation assumed `Application.runService()` completion itself was the socket ownership fence without verifying the dependency's distinct cancellation and graceful-shutdown branches.
 
-**Contributing factors:** `isRunning` is optimistic at task launch, and the generation guard prevents stale state changes but cannot serialize ownership of an OS socket.
+**Contributing factors:** `isRunning` is optimistic at task launch, and generation guards prevent stale state changes but cannot release an OS socket.
 
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/MCP/MCPServer.swift` — made start/stop/restart async and routed them through one desired-state reconciliation task. Teardown invalidates stale callbacks, cancels the active Hummingbird task, and awaits its completion before a replacement listener can bind. Repeated requests overwrite stale intermediate states.
+- `Transit/Transit/MCP/MCPServer.swift` — retains an `ActiveServer` containing the Hummingbird `ServiceGroup`, run task, port, and logical run ID. Teardown invalidates stale callbacks, calls `triggerGracefulShutdown()`, and awaits the exact group run task before a replacement can bind. No fixed delay or polling is used for teardown.
 - `Transit/Transit/Views/Settings/SettingsView.swift` — owns one cancellable lifecycle waiter, submits enabled-state changes asynchronously, and uses the explicit same-port `restart(port:)` operation on port submission.
 - `Transit/Transit/TransitApp.swift` — awaits the serialized startup operation from the scene task.
-- `Transit/TransitTests/MCPServerLifecycleTests.swift` — exercises real loopback listener release, same-port restart, and overlapping rapid off/on requests.
+- `Transit/TransitTests/MCPServerLifecycleTests.swift` — exercises real loopback listener release, 20 serialized same-port restart repetitions, different-port restart, and overlapping rapid off/on requests.
 - `Transit/TransitTests/MCPServerStartFailureTests.swift` — awaits the async lifecycle API while preserving invalid-port and error-clearing coverage.
 
-**Approach rationale:** A single desired-state reconciliation loop owns the socket lifecycle. This provides the required cancellation-and-join resource fence while allowing requests arriving during teardown to replace stale targets instead of creating additional listener tasks.
+**Approach rationale:** The desired-state loop serializes logical transitions, while explicit `ServiceGroup` ownership supplies the correct resource fence: signal graceful shutdown, then await `run()` completion. Requests arriving during teardown still replace stale targets rather than creating competing listeners.
 
 **Alternatives considered:**
 - Add a fixed delay between stop and start — rejected because socket teardown time is not deterministic.
+- Cancel and await `Application.runService()` — rejected because Service Lifecycle's cancellation branch is distinct from Hummingbird's graceful listener-close branch.
 - Keep generation guards only — rejected because they suppress stale UI updates but do not serialize OS socket ownership.
 - Queue every request independently — rejected because bursts would perform unnecessary stop/start cycles instead of converging on the latest state.
 
@@ -78,7 +79,8 @@ The lifecycle tracks task identity for UI generation safety but does not own lis
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/MCP/MCPServer.swift` | Async serialized and coalescing listener lifecycle |
+| `Transit/Transit/MCP/MCPServer.swift` | Async serialized lifecycle with explicit `ServiceGroup` graceful teardown |
+| `Transit/Transit/MCP/MCPServerDecodeTypes.swift` | Decode helper types extracted to preserve the source file length limit |
 | `Transit/Transit/Views/Settings/SettingsView.swift` | Safe enabled/restart task integration |
 | `Transit/Transit/TransitApp.swift` | Awaited app-launch startup |
 | `Transit/TransitTests/MCPServerLifecycleTests.swift` | Live loopback regression coverage |
@@ -103,7 +105,8 @@ The lifecycle tracks task identity for UI generation safety but does not own lis
 
 ## Prevention
 
-- Treat cancellation plus awaiting task completion as one listener teardown operation.
+- Verify framework cancellation and graceful-shutdown paths separately; task completion is not automatically a resource-release guarantee.
+- Retain the Hummingbird `ServiceGroup`, call `triggerGracefulShutdown()`, and await its `run()` task before rebinding.
 - Route all start/stop/restart requests through one serialized desired-state coordinator.
 - Keep UI callers from composing lifecycle primitives into unsafe stop/start sequences.
 

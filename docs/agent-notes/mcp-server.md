@@ -21,6 +21,7 @@ Claude Code ←→ HTTP POST /mcp (localhost:3141) ←→ MCPServer ←→ MCPTo
 - `Transit/Transit/MCP/MCPToolHandler.swift` — Tool dispatch, handler methods, helpers
 - `Transit/Transit/MCP/MCPToolDefinitions.swift` — Tool schema definitions (extracted for file length)
 - `Transit/Transit/MCP/MCPServer.swift` — Hummingbird server lifecycle and HTTP routing
+- `Transit/Transit/MCP/MCPServerDecodeTypes.swift` — request decode outcome types shared by the route and decoder
 - `Transit/Transit/MCP/MCPOriginValidator.swift` — transport-level `Origin`/`Host` validation
 - `Transit/TransitTests/MCPToolHandlerTests.swift` — Unit tests
 
@@ -30,7 +31,7 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 
 1. **MCP protocol types** (`MCPTypes.swift`): All marked `nonisolated` and `Sendable` to opt out of the project's default `@MainActor` isolation. Without this, `Encodable`/`Decodable` conformances become MainActor-isolated and can't be used from NIO threads.
 2. **MCPToolHandler**: `@MainActor` class — holds service references, handles tool dispatch.
-3. **MCPServer**: `@MainActor @Observable` for SwiftUI environment. A single desired-state lifecycle task serializes start/stop/restart requests; teardown cancels and awaits the detached Hummingbird service task before any replacement bind. Rapid requests coalesce to the latest target state. The listener itself still runs in `Task.detached`, and route handlers call `await handler.handle(request)` to hop to MainActor.
+3. **MCPServer**: `@MainActor @Observable` for SwiftUI environment. A single desired-state lifecycle task serializes start/stop/restart requests. Each active listener retains both its Hummingbird `ServiceGroup` and detached run task; teardown calls `triggerGracefulShutdown()` and then awaits the run task before any replacement bind. Cancelling and awaiting the task is insufficient because Service Lifecycle's cancellation path cancels children instead of invoking Hummingbird's listener-closing `Server.shutdownGracefully()`. Rapid requests coalesce to the latest target state, and route handlers call `await handler.handle(request)` to hop to MainActor.
 4. **AnyCodable**: Uses `@unchecked Sendable` because it wraps `Any`.
 
 ## Tools Exposed
