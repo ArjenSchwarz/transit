@@ -21,7 +21,7 @@ The investigation followed the four-phase systematic debugging workflow.
 - **Phase 1 — overview:** Expected cancellation to abort before any SwiftData insertion. Actual behavior persists a record when cancellation is not observed by a suspension point.
 - **Phase 2 — inspection:** `AllocationGate.acquire()` grants a free lock without checking cancellation; `AllocationGate.run` starts its body after acquisition without checking cancellation; `TaskService.createTask` and `MilestoneService.createMilestone` do not inspect cancellation after `allocateNextID` returns.
 - **Phase 3 — root cause:** Cancellation was treated as an outcome emitted by the queued-waiter cancellation handler rather than cooperative state that every successful path must inspect.
-- **Phase 4 — proposed solution:** Check cancellation before gate acquisition and again after acquisition before running the body. Check once more in both create services after allocation handling and before model construction/insertion. Preserve `insertOrDelete` so save-failure cleanup remains selective and does not reintroduce SwiftData rollback resurrection bugs.
+- **Phase 4 — proposed solution:** Check cancellation after gate acquisition, before running the body. Check again in both create services after allocation handling and before model construction/insertion. Preserve `insertOrDelete` so save-failure cleanup remains selective and does not reintroduce SwiftData rollback resurrection bugs.
 
 **Symptoms examined:** Pre-cancelled uncontended operations and cancellation during a non-cooperative but successful counter allocation.
 
@@ -49,17 +49,24 @@ The investigation followed the four-phase systematic debugging workflow.
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Services/DisplayIDAllocator.swift:285-289` - `AllocationGate.run` checks cancellation before acquisition and again after acquiring the lock but before invoking the body; the existing `defer` releases an acquired lock when the second check throws.
-- `Transit/Transit/Services/TaskService.swift:150` - Re-checks cancellation after permanent/provisional allocation handling and immediately before task construction and insertion.
+- `Transit/Transit/Services/DisplayIDAllocator.swift:292` - `AllocationGate.run` checks cancellation after acquiring the lock but before invoking the body; the existing `defer` releases the acquired lock when the check throws.
+- `Transit/Transit/Services/TaskService.swift:151` - Re-checks cancellation after permanent/provisional allocation handling and immediately before task construction and insertion.
 - `Transit/Transit/Services/MilestoneService.swift:82` - Re-checks cancellation after allocation handling and before the synchronous uniqueness re-check and insertion.
-- `Transit/TransitTests/CancelledCreateTests.swift` - Adds deterministic pre-cancelled uncontended and cancellation-during-successful-allocation regressions for both entity types while retaining the existing contended-gate cases.
+- `Transit/Transit/Services/TaskService.swift:7` - Adds a targeted `type_body_length` suppression. The added check pushes the type body to 253 counted lines against SwiftLint's default 250 warning threshold, and `make lint` runs `--strict`. Matches existing precedent in `DisplayIDMaintenanceService.swift` and `MCPToolHandler.swift`.
+- `Transit/TransitTests/CancelledCreateTests.swift` - Adds deterministic pre-cancelled uncontended and cancellation-during-successful-allocation regressions for both entity types, and strengthens the retained contended-gate cases to prove a waiter entered and was removed from the gate queue before the holder is released.
 
-**Approach rationale:** The gate checks prevent cancelled work from entering a newly acquired allocation critical section, while the service checks protect the persistence boundary when a counter store completes successfully without observing cancellation. Together they cover both dependency-level and operation-level responsibility. The existing `modelContext.insertOrDelete` calls remain unchanged, preserving selective cleanup on save failure instead of introducing a context-wide rollback. If cancellation arrives after `saveCounter` succeeds, the allocated display ID is intentionally left unused; the sequence may contain a gap, matching existing save-failure behavior and preferring a skipped number over a ghost record.
+**Approach rationale:** The gate check prevents cancelled work from entering a newly acquired allocation critical section, while the service checks protect the persistence boundary when a counter store completes successfully without observing cancellation. Together they cover both dependency-level and operation-level responsibility. The existing `modelContext.insertOrDelete` calls remain unchanged, preserving selective cleanup on save failure instead of introducing a context-wide rollback. If cancellation arrives after `saveCounter` succeeds, the allocated display ID is intentionally left unused; the sequence may contain a gap, matching existing save-failure behavior and preferring a skipped number over a ghost record.
+
+The gate check is placed *after* `acquire()` rather than before it. A pre-acquire check was written first and then removed during pre-push review: it is redundant (both the uncontended and hand-off windows still terminate at the post-acquire check), and it prevents an already-cancelled caller from ever entering the waiter queue, which silently disabled the T-1426 regressions for the queued-waiter path. This was confirmed empirically — with a pre-acquire check present, replacing `guard acquired else { throw CancellationError() }` with a `fatalError` left all six tests green; without it, the two contended tests hit that path. Coverage of both gate windows now holds: removing the post-acquire check fails the two pre-cancelled tests, and removing the queued-waiter guard fails the two contended tests.
+
+`AllocationGate.run` is shared by every `allocateNextID` caller, so the new check also affects display-ID promotion (`DisplayIDAllocator.promoteProvisionalTasks`, `MilestoneService.promoteProvisionalMilestones`) and duplicate cleanup (`DisplayIDMaintenanceService`). A cancelled pass there now aborts at the current record instead of continuing to allocate — the intended behavior, since those loops already `break` on error and retry on the next pass. One rough edge is accepted: `DisplayIDMaintenanceService` maps the thrown `CancellationError` into a `GroupFailure(code: .allocationFailed)` whose message renders as `The operation couldn't be completed. (Swift.CancellationError error 1.)`. That envelope is only produced for a caller that has already been cancelled and therefore discards the result, so it is left for a separate ticket rather than widened into this bugfix.
 
 **Alternatives considered:**
-- Check only inside `AllocationGate` after the body returns - Rejected because create services own the irreversible insertion boundary and should independently reject cancellation after any allocator implementation returns.
+- Check cancellation before gate acquisition as well - Rejected as redundant, and it removes test reachability of the queued-waiter cancellation path (see above).
+- Check only inside `AllocationGate` after the body returns - Rejected because create services own the irreversible insertion boundary and should independently reject cancellation after any allocator implementation returns. The gate is also bypassed entirely when iCloud sync is off (`allocateNextID` throws `.cloudSyncInactive` before the gate and the services fall back to a provisional ID), so the service checks are the only cancellation guard on that path.
 - Rely on counter stores to throw cancellation - Rejected because Swift cancellation is cooperative and protocol implementations may legitimately use non-throwing continuations or external APIs that still complete successfully.
 - Roll back the context after insertion - Rejected because cancellation can be checked before insertion, and SwiftData rollback is not reliable cleanup for newly inserted models and could discard unrelated shared-context edits.
+- Extract the duplicated allocate-or-fall-back-to-provisional block shared by `TaskService` and `MilestoneService` into `DisplayIDAllocator` - Real duplication (~30 lines, now edited in lockstep for the third time across T-1395, T-1426, T-1765), but rejected for this bugfix as an unrelated refactor of two service hot paths. Worth a follow-up ticket; it would also retire the `type_body_length` suppression.
 
 ## Regression Test
 
@@ -79,8 +86,8 @@ The investigation followed the four-phase systematic debugging workflow.
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Services/DisplayIDAllocator.swift` | Cancellation checks before gate acquisition and before allocation body execution |
-| `Transit/Transit/Services/TaskService.swift` | Post-allocation cancellation check before insertion |
+| `Transit/Transit/Services/DisplayIDAllocator.swift` | Cancellation check after gate acquisition, before allocation body execution |
+| `Transit/Transit/Services/TaskService.swift` | Post-allocation cancellation check before insertion; `type_body_length` suppression |
 | `Transit/Transit/Services/MilestoneService.swift` | Post-allocation cancellation check before uniqueness re-check/insertion |
 | `Transit/TransitTests/CancelledCreateTests.swift` | Four cancellation regressions and successful-allocation instrumentation |
 

@@ -3,6 +3,38 @@ import SwiftData
 import Testing
 @testable import Transit
 
+/// Observes the allocation gate's queued-waiter lifecycle. The tests wait for
+/// both events before releasing the holder, so cancellation cannot pass merely
+/// by short-circuiting before it reaches the waiter queue.
+private actor WaiterQueueProbe {
+    private var hasQueuedWaiter = false
+    private var hasRemovedWaiter = false
+    private var queuedContinuation: CheckedContinuation<Void, Never>?
+    private var removedContinuation: CheckedContinuation<Void, Never>?
+
+    func recordQueuedWaiter() {
+        hasQueuedWaiter = true
+        queuedContinuation?.resume()
+        queuedContinuation = nil
+    }
+
+    func recordRemovedWaiter() {
+        hasRemovedWaiter = true
+        removedContinuation?.resume()
+        removedContinuation = nil
+    }
+
+    func waitUntilWaiterQueued() async {
+        guard !hasQueuedWaiter else { return }
+        await withCheckedContinuation { queuedContinuation = $0 }
+    }
+
+    func waitUntilWaiterRemoved() async {
+        guard !hasRemovedWaiter else { return }
+        await withCheckedContinuation { removedContinuation = $0 }
+    }
+}
+
 /// Regression tests for cancelled task and milestone creates (T-1426, T-1765).
 ///
 /// T-1426 covered cancellation while queued behind a contended allocation gate.
@@ -174,7 +206,12 @@ struct CancelledCreateTests {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
         let store = GatedCounterStore()
-        let allocator = DisplayIDAllocator(store: store)
+        let queueProbe = WaiterQueueProbe()
+        let allocator = DisplayIDAllocator(
+            store: store,
+            onWaiterQueued: { Task { await queueProbe.recordQueuedWaiter() } },
+            onWaiterCancelled: { Task { await queueProbe.recordRemovedWaiter() } }
+        )
         let service = TaskService(modelContext: context, displayIDAllocator: allocator)
         let project = makeProject(in: context)
 
@@ -192,7 +229,9 @@ struct CancelledCreateTests {
                 name: "Cancelled", description: nil, type: .feature, project: project
             )
         }
+        await queueProbe.waitUntilWaiterQueued()
         contender.cancel()
+        await queueProbe.waitUntilWaiterRemoved()
 
         await #expect(throws: CancellationError.self) {
             try await contender.value
@@ -278,7 +317,12 @@ struct CancelledCreateTests {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
         let store = GatedCounterStore()
-        let allocator = DisplayIDAllocator(store: store)
+        let queueProbe = WaiterQueueProbe()
+        let allocator = DisplayIDAllocator(
+            store: store,
+            onWaiterQueued: { Task { await queueProbe.recordQueuedWaiter() } },
+            onWaiterCancelled: { Task { await queueProbe.recordRemovedWaiter() } }
+        )
         let service = MilestoneService(modelContext: context, displayIDAllocator: allocator)
         let project = makeProject(in: context)
 
@@ -294,7 +338,9 @@ struct CancelledCreateTests {
                 name: "Cancelled", description: nil, project: project
             )
         }
+        await queueProbe.waitUntilWaiterQueued()
         contender.cancel()
+        await queueProbe.waitUntilWaiterRemoved()
 
         await #expect(throws: CancellationError.self) {
             try await contender.value
