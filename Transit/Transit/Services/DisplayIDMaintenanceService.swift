@@ -206,6 +206,11 @@ final class DisplayIDMaintenanceService {
         return await reassignMilestoneGroup(displayId: group.displayId, winner: winner, losers: losers)
     }
 
+    /// Message surfaced when a loser's committed display ID no longer matches the
+    /// scanned value — including when the record is gone. Reported by both the
+    /// pre-allocation and post-allocation probes.
+    static let staleIdMessage = "Display ID changed since scan"
+
     /// Message surfaced per group when duplicate cleanup is attempted with iCloud Sync
     /// off. Reassignment needs a fresh ID from the CloudKit counter, which is off limits
     /// in that mode (T-1797), so the run reports rather than silently doing nothing.
@@ -266,11 +271,8 @@ final class DisplayIDMaintenanceService {
         guard let loserTask = lookup.task(id: loser.id) else {
             return .failed(GroupFailure(code: .staleId, message: "Task not found"))
         }
-        guard let storedId = lookup.storedTaskDisplayId(id: loser.id) else {
-            return .failed(GroupFailure(code: .staleId, message: "Display ID changed since scan"))
-        }
-        if storedId != displayId {
-            return .failed(GroupFailure(code: .staleId, message: "Display ID changed since scan"))
+        guard lookup.storedTaskDisplayId(id: loser.id) == displayId else {
+            return .failed(GroupFailure(code: .staleId, message: Self.staleIdMessage))
         }
         let newId: Int
         do {
@@ -285,7 +287,7 @@ final class DisplayIDMaintenanceService {
         // waiting. Re-probe after the final await and adjacent to the write; a
         // skipped counter value is safer than overwriting a peer repair (T-2019).
         guard lookup.storedTaskDisplayId(id: loser.id) == displayId else {
-            return .failed(GroupFailure(code: .staleId, message: "Display ID changed since scan"))
+            return .failed(GroupFailure(code: .staleId, message: Self.staleIdMessage))
         }
         loserTask.permanentDisplayId = newId
         do {
@@ -328,12 +330,8 @@ final class DisplayIDMaintenanceService {
                 failure = GroupFailure(code: .staleId, message: "Milestone not found")
                 break
             }
-            guard let storedId = lookup.storedMilestoneDisplayId(id: loser.id) else {
-                failure = GroupFailure(code: .staleId, message: "Display ID changed since scan")
-                break
-            }
-            if storedId != displayId {
-                failure = GroupFailure(code: .staleId, message: "Display ID changed since scan")
+            guard lookup.storedMilestoneDisplayId(id: loser.id) == displayId else {
+                failure = GroupFailure(code: .staleId, message: Self.staleIdMessage)
                 break
             }
 
@@ -350,7 +348,7 @@ final class DisplayIDMaintenanceService {
             // `allocateNextID` is the final suspension point. Validate the
             // committed loser again before mutating the scan-time object (T-2019).
             guard lookup.storedMilestoneDisplayId(id: loser.id) == displayId else {
-                failure = GroupFailure(code: .staleId, message: "Display ID changed since scan")
+                failure = GroupFailure(code: .staleId, message: Self.staleIdMessage)
                 break
             }
             let previousId = displayId

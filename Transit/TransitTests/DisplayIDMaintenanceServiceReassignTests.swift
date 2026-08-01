@@ -28,7 +28,6 @@ struct DisplayIDMaintenanceServiceReassignTests {
         private var loadCount = 0
 
         private var allocationStarted = false
-        private var allocationStartedContinuation: CheckedContinuation<Void, Never>?
         private var allocationReleased = false
         private var allocationReleaseContinuation: CheckedContinuation<Void, Never>?
 
@@ -36,9 +35,20 @@ struct DisplayIDMaintenanceServiceReassignTests {
             self.nextDisplayID = initialNextDisplayID
         }
 
-        func waitUntilAllocationStarts() async {
-            if allocationStarted { return }
-            await withCheckedContinuation { allocationStartedContinuation = $0 }
+        /// Committed counter value. Callers assert on it to prove the gate parked
+        /// inside allocation rather than during the counter fence.
+        func currentNextDisplayID() -> Int { nextDisplayID }
+
+        /// Waits for the gated load to park, giving up at the deadline. Returning
+        /// `false` rather than parking forever means a changed counter-call
+        /// sequence fails the test instead of wedging the suite on a continuation
+        /// nobody resumes.
+        func waitUntilAllocationStarts(timeout: Duration = .seconds(10)) async -> Bool {
+            let deadline = ContinuousClock.now + timeout
+            while !allocationStarted && ContinuousClock.now < deadline {
+                try? await Task.sleep(for: .milliseconds(5))
+            }
+            return allocationStarted
         }
 
         func releaseAllocation() {
@@ -54,9 +64,6 @@ struct DisplayIDMaintenanceServiceReassignTests {
             // loser's candidate, which is the suspension point this test needs.
             if loadCount == 3 {
                 allocationStarted = true
-                allocationStartedContinuation?.resume()
-                allocationStartedContinuation = nil
-
                 if !allocationReleased {
                     await withCheckedContinuation { allocationReleaseContinuation = $0 }
                 }
@@ -138,7 +145,8 @@ struct DisplayIDMaintenanceServiceReassignTests {
         let maintenance = Task { @MainActor in
             await env.service.reassignDuplicates()
         }
-        await env.gateStore.waitUntilAllocationStarts()
+        #expect(await env.gateStore.waitUntilAllocationStarts(),
+                "Allocation never parked; the counter-call sequence changed")
         do {
             peerLoser.permanentDisplayId = 20
             try peerContext.save()
@@ -153,6 +161,10 @@ struct DisplayIDMaintenanceServiceReassignTests {
         let group = try #require(result.groups.first(where: { $0.type == .task }))
         #expect(group.failure?.code == .staleId)
         #expect(group.reassignments.isEmpty)
+        // 100 was allocated and then deliberately skipped. Also proves the gate
+        // parked inside allocation rather than during the counter fence.
+        #expect(await env.gateStore.currentNextDisplayID() == 101,
+                "Allocation must have completed and its counter value been skipped")
 
         let probe = ModelContext(env.context.container)
         let storedLoser = try #require(try probe.fetch(FetchDescriptor<TransitTask>(
@@ -184,7 +196,8 @@ struct DisplayIDMaintenanceServiceReassignTests {
         let maintenance = Task { @MainActor in
             await env.service.reassignDuplicates()
         }
-        await env.gateStore.waitUntilAllocationStarts()
+        #expect(await env.gateStore.waitUntilAllocationStarts(),
+                "Allocation never parked; the counter-call sequence changed")
         do {
             peerLoser.permanentDisplayId = 30
             try peerContext.save()
@@ -199,6 +212,8 @@ struct DisplayIDMaintenanceServiceReassignTests {
         let group = try #require(result.groups.first(where: { $0.type == .milestone }))
         #expect(group.failure?.code == .staleId)
         #expect(group.reassignments.isEmpty)
+        #expect(await env.gateStore.currentNextDisplayID() == 101,
+                "Allocation must have completed and its counter value been skipped")
 
         let probe = ModelContext(env.context.container)
         let storedLoser = try #require(try probe.fetch(FetchDescriptor<Milestone>(

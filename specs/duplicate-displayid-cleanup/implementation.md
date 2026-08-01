@@ -30,8 +30,9 @@ If you're scripting Transit, the same operations are available as Shortcuts (`Sc
 2. Reuse the same arrays to compute the per-type sampled max.
 3. Per type, call `CounterStore.advanceCounter(toAtLeast: sampledMax + 1)` (CAS-with-retry). A counter-advance failure aborts that type only — the other type still runs.
 4. Iterate groups (tasks first, ascending displayId). For each loser:
-   - Re-fetch the loser by UUID and check `permanentDisplayId == scanned value` (stale-ID guard, AC 2.3 / Decision 11).
+   - Read the loser's committed `permanentDisplayId` through a transient `ModelContext` and check it against the scanned value (stale-ID guard, AC 2.3 / Decision 12).
    - `allocateNextID()` via the existing `DisplayIDAllocator` (per-loser CloudKit round-trip).
+   - Repeat the committed-ID probe. `allocateNextID` suspends, so the first probe's result can expire; the second runs after the last `await` and immediately before the write (Decision 13). A mismatch records `stale-id`, writes nothing, and leaves the allocated counter value unused.
    - Save the new ID. On `save()` failure, `safeRollback()` and record `save-failed`.
    - For tasks only, append a `Comment` ("Transit Maintenance" / `isAgent=true` / body containing `T-<old>`, `T-<new>`, ISO date) via `CommentService.addComment(save:)` as a separate save. A comment-save failure becomes a `commentWarning` on the entry — the ID change persists.
 

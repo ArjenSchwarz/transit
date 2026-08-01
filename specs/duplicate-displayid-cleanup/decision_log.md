@@ -422,3 +422,51 @@ Just before the stale-ID comparison in each loser path, read the loser's committ
 - `Transit/TransitTests/TestModelContainer.swift` — added `newContainer()` to enable multi-context test setups.
 
 ---
+
+## Decision 13: Re-Probe the Committed Loser ID After Allocation
+
+**Date**: 2026-08-01
+**Status**: accepted
+
+### Context
+
+Decision 12 established *how* the stale-ID guard reads committed state: a transient `ModelContext` on the maintenance container, which bypasses the main context's registered-object snapshot. It did not address *when* that read happens. Both reassign paths probed the committed loser ID, then `await`ed `allocateNextID()`, then mutated and saved.
+
+`allocateNextID()` is a suspension point with a CloudKit round-trip, so the probe's result can expire before the write. A peer device or another local context can commit a different `permanentDisplayId` for that loser while allocation is parked. Cleanup then resumes, overwrites the peer value through its scan-time registered object, and — on the task path — appends an audit comment claiming a transition cleanup was no longer entitled to make (T-2019). AC 2.3 requires the re-fetch "immediately before writing a loser's new ID", which the pre-fix sequence did not satisfy.
+
+### Decision
+
+Each loser is probed twice through the same `DisplayIDRecordLookup` helpers: once before allocation, and again after `allocateNextID()` returns, immediately adjacent to the mutation and save with no `await` in between. A missing or mismatched committed value on the second probe reports `stale-id` and performs no mutation, no save, no reassignment entry, and no audit comment. The already-allocated counter value is deliberately skipped.
+
+### Rationale
+
+The final `await` is the only window in which committed state can change without the maintenance service observing it, so validation belongs after it. The pre-allocation probe is retained purely as an early-out: it avoids a CloudKit round-trip — and therefore avoids burning a counter value — when the loser is already known to be stale.
+
+Skipping one counter value is strictly cheaper than overwriting a peer's repair. Display IDs are only required to be unique and increasing (AC 2.2), never dense, and Decision 1 already accepts monotonic counter advance across failed groups.
+
+### Alternatives Considered
+
+- **Rely on the pre-allocation probe alone**: Keep the single existing check - Rejected because its result expires across the allocation await; that is the defect.
+- **Hold the allocator's in-process gate through the save**: Extend `DisplayIDAllocator`'s allocation gate to cover the maintenance write - Rejected because the competing writer is another context, process, or device and does not participate in an in-process gate; it would also couple maintenance to allocator internals for no added safety.
+- **Database-level compare-and-swap on `permanentDisplayId`**: Make the write conditional on the observed value - Rejected because SwiftData exposes no conditional-update primitive for a CloudKit-backed model.
+
+### Consequences
+
+**Positive:**
+- A peer repair landing during allocation is preserved rather than overwritten, on both record types.
+- Task history no longer records an audit comment for a reassignment that did not validly occur.
+- The implemented sequence now matches AC 2.3's "immediately before writing" wording.
+
+**Negative:**
+- A counter value is consumed and never used whenever the second probe fires, so counters can develop small gaps.
+- Two transient `ModelContext` constructions per loser instead of one, doubling the cost noted in Decision 12's consequences.
+- The probe and the save are still not atomic with respect to CloudKit merges. The race is narrowed to a main-actor-synchronous span rather than eliminated; only another process or device can still interleave.
+
+### Impact
+
+- `Transit/Transit/Services/DisplayIDMaintenanceService.swift` — post-allocation probes in `reassignTaskLoser` and `reassignMilestoneGroup`.
+- `Transit/TransitTests/DisplayIDMaintenanceServiceReassignTests.swift` — `AllocationGatedCounterStore` plus the two gated peer-update regressions.
+- Supersedes the per-loser step ordering in `design.md` step 5.1 and the matching walkthrough in `implementation.md`.
+- Full investigation record: `specs/bugfixes/duplicate-cleanup-stale-id-check-expires-during-allocation/report.md`.
+
+---

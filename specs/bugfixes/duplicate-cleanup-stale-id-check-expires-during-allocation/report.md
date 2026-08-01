@@ -97,6 +97,8 @@ The initial stale-ID check occurs before an asynchronous allocation await. Its r
 | `Transit/Transit/Services/DisplayIDMaintenanceService.swift` | Post-allocation committed-ID probes for task and milestone losers |
 | `Transit/TransitTests/DisplayIDMaintenanceServiceReassignTests.swift` | Deterministic gated task and milestone race regressions |
 | `docs/agent-notes/display-id-maintenance.md` | Documents that stale-ID validation must run again after allocation |
+| `specs/duplicate-displayid-cleanup/decision_log.md` | Decision 13 records the double probe and the deliberate counter skip |
+| `specs/duplicate-displayid-cleanup/implementation.md` | Per-loser walkthrough updated to the two-probe sequence |
 | `CHANGELOG.md` | Unreleased T-2019 fix entry |
 | `specs/bugfixes/duplicate-cleanup-stale-id-check-expires-during-allocation/report.md` | Investigation, resolution, and verification record |
 
@@ -124,5 +126,6 @@ The initial stale-ID check occurs before an asynchronous allocation await. Its r
 ## Related
 
 - T-2019 — this bug.
+- Decision 13 in `specs/duplicate-displayid-cleanup/decision_log.md` — the recorded decision, extending Decision 12.
 - T-1061 — introduced the transient committed-store stale-ID probe.
 - T-1766 — prevents maintenance allocation from returning an already-used display ID.
