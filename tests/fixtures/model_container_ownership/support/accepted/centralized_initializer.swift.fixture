@@ -1,0 +1,12 @@
+struct TestModelContainer {
+    let container: ModelContainer
+    let context: ModelContext
+    private static var retainedContainers: [ModelContainer] = []
+
+    init(schema: Schema, configurations: [ModelConfiguration]) throws {
+        let container = try ModelContainer(for: schema, configurations: configurations)
+        self.container = container
+        self.context = ModelContext(container)
+        Self.retainedContainers.append(container)
+    }
+}

@@ -1,0 +1,3 @@
+func makeBareContext() throws -> ModelContext {
+    try TestModelContainer().context
+}

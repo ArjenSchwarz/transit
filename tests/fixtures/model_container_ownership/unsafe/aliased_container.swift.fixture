@@ -1,0 +1,5 @@
+typealias TestStore = ModelContainer
+
+func makeAliasedContainer() throws -> TestStore {
+    try TestStore(for: Schema([]))
+}

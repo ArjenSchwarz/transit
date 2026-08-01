@@ -17,17 +17,40 @@ pass() {
     echo "PASS: $*"
 }
 
-python3 "$VALIDATOR" "$FIXTURES/accepted" >/dev/null \
-    || fail "owning fixture forms should pass"
-pass "owning fixture returns, tuples, and environments pass"
+expect_rejected() {
+    local fixture="$1"
+    shift
+    local output
+    local status
 
-for fixture in "$FIXTURES"/unsafe/*.swift.fixture; do
-    output="$(python3 "$VALIDATOR" "$fixture" 2>&1 || true)"
-    if ! grep -q "ownership validation failed" <<<"$output"; then
+    set +e
+    output="$(python3 "$VALIDATOR" "$@" "$fixture" 2>&1)"
+    status=$?
+    set -e
+
+    if [[ $status -ne 1 ]] || ! grep -q "ownership validation failed" <<<"$output"; then
         echo "$output" >&2
-        fail "unsafe fixture unexpectedly passed: $(basename "$fixture")"
+        fail "unsafe fixture did not produce an ownership violation: $(basename "$fixture") (exit $status)"
     fi
     pass "unsafe fixture rejected: $(basename "$fixture")"
+}
+
+python3 "$VALIDATOR" "$FIXTURES/accepted" >/dev/null \
+    || fail "owning fixture and lexical literal forms should pass"
+pass "owning fixture APIs and lexical literals pass"
+
+for fixture in "$FIXTURES"/unsafe/*.swift.fixture; do
+    expect_rejected "$fixture"
+done
+
+for fixture in "$FIXTURES"/support/accepted/*.swift.fixture; do
+    python3 "$VALIDATOR" --support-file "$fixture" "$fixture" >/dev/null \
+        || fail "valid support fixture unexpectedly failed: $(basename "$fixture")"
+    pass "valid support fixture accepted: $(basename "$fixture")"
+done
+
+for fixture in "$FIXTURES"/support/unsafe/*.swift.fixture; do
+    expect_rejected "$fixture" --support-file "$fixture"
 done
 
 python3 "$VALIDATOR" "$ROOT/Transit/TransitTests" >/dev/null \

@@ -25,3 +25,14 @@ func makeEnvironment() throws -> Environment {
         service: Service(modelContext: fixture.context)
     )
 }
+
+// Ownership-like text in comments and strings is documentation, not code.
+let ordinaryText = "ModelContainer(for: Schema([]))"
+let rawText = #"TestModelContainer.newContext() and ModelContainer.init(for:)"#
+let multilineText = """
+ModelContainer(for: Schema([]))
+"""
+let interpolatedSafeValue = "fixture: \(String(describing: TestModelContainer.self))"
+/* Nested comments are also ignored:
+   /* ModelContainer(for: Schema([])) */
+*/

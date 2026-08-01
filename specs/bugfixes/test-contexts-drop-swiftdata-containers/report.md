@@ -60,7 +60,7 @@ A `ModelContext` was treated as if it owned its `ModelContainer`. It does not pr
 **Test file:** `Transit/TransitTests/TestModelContainerLifetimeTests.swift`
 **Test name:** `escapedContextKeepsBackingContainerAvailableForItsFullUse`
 
-**What it verifies:** A helper can let its local fixture go out of scope and return only the context; the centrally retained backing container remains available through subsequent model insertion and property access.
+**What it verifies:** A helper can let its local fixture go out of scope and return only the context; the centrally retained backing container remains available for a save and a fetch through a fresh context on the same store.
 
 **Run command:** `make test-quick PIPE_PRETTY=`
 
@@ -73,7 +73,7 @@ A `ModelContext` was treated as if it owned its `ModelContainer`. It does not pr
 | 92 migrated test/helper files | 207 context-acquisition call sites moved to the fixture API |
 | `CLAUDE.md` | Updated test-infrastructure guidance |
 | `docs/agent-notes/technical-constraints.md` | Corrected SwiftData container-lifetime rule |
-| `.swiftlint.yml`, `Makefile`, `scripts/`, and `tests/` | Replaced the narrow regex with executable ownership validation and positive/negative fixtures |
+| `Makefile`, `scripts/`, and `tests/` | Replaced the narrow SwiftLint regex with executable ownership validation and positive/negative fixtures |
 | `CHANGELOG.md` | Recorded T-2003 fix |
 
 ## Verification

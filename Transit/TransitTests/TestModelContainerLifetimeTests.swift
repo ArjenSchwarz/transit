@@ -28,8 +28,13 @@ struct TestModelContainerLifetimeTests {
             colorHex: "#000000"
         )
         context.insert(project)
+        try context.save()
 
-        #expect(project.name == "Lifetime probe")
+        let retainedContainer = try #require(containerReference.value)
+        let verificationContext = ModelContext(retainedContainer)
+        let persistedProjects = try verificationContext.fetch(FetchDescriptor<Project>())
+
+        #expect(persistedProjects.contains { $0.name == "Lifetime probe" })
         #expect(containerReference.value != nil)
     }
 }
