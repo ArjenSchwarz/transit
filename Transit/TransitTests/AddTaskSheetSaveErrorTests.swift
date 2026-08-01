@@ -11,11 +11,9 @@ import Testing
 /// the fix depends on: that `createTask` errors propagate (are not silently swallowed)
 /// and that the task is not persisted when creation fails.
 ///
-/// Regression tests for T-855: AddTaskSheet must not leave an orphaned task when
-/// the milestone assignment that follows `createTask` fails. The fix mirrors the
-/// established cleanup pattern from `CreateTaskIntent` / MCP `create_task`
-/// (T-558): on `setMilestone` failure after `createTask` succeeded, delete the
-/// newly-created task before surfacing the error.
+/// Regression tests for T-855 and T-1768: AddTaskSheet must not leave an orphaned
+/// task when milestone validation or persistence fails. TaskService now attaches the
+/// optional milestone before insertion and persists the aggregate in one save.
 @MainActor @Suite(.serialized)
 struct AddTaskSheetSaveErrorTests {
 
@@ -36,13 +34,19 @@ struct AddTaskSheetSaveErrorTests {
         return (service, context)
     }
 
-    private func makeServices() throws -> Services {
+    private func makeServices(
+        createSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
+    ) throws -> Services {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
         let taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         let milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
         return Services(
-            task: TaskService(modelContext: context, displayIDAllocator: taskAllocator),
+            task: TaskService(
+                modelContext: context,
+                displayIDAllocator: taskAllocator,
+                createSave: createSave
+            ),
             milestone: MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator),
             context: context
         )
@@ -155,14 +159,10 @@ struct AddTaskSheetSaveErrorTests {
         #expect(tasks.first?.name == "Valid Task")
     }
 
-    // MARK: - T-855: Milestone assignment failure must not leave an orphan
+    // MARK: - Atomic milestone creation
 
-    /// Reproduces the orphan scenario in `AddTaskSheet.persist`: the user
-    /// selects a milestone, the task is created and saved, then `setMilestone`
-    /// rejects the assignment (here via a project-mismatch — an unlikely but
-    /// possible state if the milestone picker shows stale data). Before the
-    /// T-855 fix the catch path only surfaced an error to the UI and left the
-    /// newly-created task in the database.
+    /// A stale milestone from another project is rejected before TaskService inserts
+    /// the aggregate, so there is no persisted task to compensate for or clean up.
     @Test func persistRollsBackTaskWhenMilestoneFailsProjectMismatch() async throws {
         let svc = try makeServices()
         let projectA = makeProject(in: svc.context, name: "Project A")
@@ -178,17 +178,55 @@ struct AddTaskSheetSaveErrorTests {
             projectID: projectA.id,
             milestone: milestoneInB
         )
-        await #expect(throws: MilestoneService.Error.projectMismatch) {
+        await #expect(throws: TaskService.Error.milestoneProjectMismatch) {
             try await AddTaskSheet.persist(
                 draft: draft,
-                taskService: svc.task,
-                milestoneService: svc.milestone
+                taskService: svc.task
             )
         }
 
         let descriptor = FetchDescriptor<TransitTask>()
         let tasks = try svc.context.fetch(descriptor)
-        #expect(tasks.isEmpty, "Task must not remain in the database when milestone assignment fails [T-855]")
+        #expect(tasks.isEmpty, "Task must not be inserted when milestone validation fails")
+    }
+
+    /// T-1768: the requested milestone must be attached before the only create
+    /// save. A failed save must remove the entire aggregate so a later save
+    /// cannot resurrect a task the sheet reported as failed.
+    @Test func persistWithMilestoneIsAtomicWhenCreateSaveFails() async throws {
+        var expectedMilestoneID: UUID?
+        let svc = try makeServices { context in
+            let pendingTasks = try context.fetch(FetchDescriptor<TransitTask>())
+            #expect(pendingTasks.count == 1)
+            #expect(pendingTasks.first?.milestone?.id == expectedMilestoneID)
+            throw SaveFailure.simulated
+        }
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        expectedMilestoneID = milestone.id
+
+        let draft = AddTaskSheet.TaskDraft(
+            name: "Atomic Task",
+            description: nil,
+            type: .bug,
+            priority: .medium,
+            projectID: project.id,
+            milestone: milestone
+        )
+
+        await #expect(throws: SaveFailure.self) {
+            try await AddTaskSheet.persist(
+                draft: draft,
+                taskService: svc.task
+            )
+        }
+
+        #expect(try svc.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+        try svc.context.save()
+        #expect(
+            try svc.context.fetch(FetchDescriptor<TransitTask>()).isEmpty,
+            "A later save must not resurrect a failed aggregate create [T-1768]"
+        )
     }
 
     /// Verifies the happy-path: when a valid milestone in the same project is
@@ -208,8 +246,7 @@ struct AddTaskSheetSaveErrorTests {
         )
         try await AddTaskSheet.persist(
             draft: draft,
-            taskService: svc.task,
-            milestoneService: svc.milestone
+            taskService: svc.task
         )
 
         let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
@@ -234,8 +271,7 @@ struct AddTaskSheetSaveErrorTests {
         )
         try await AddTaskSheet.persist(
             draft: draft,
-            taskService: svc.task,
-            milestoneService: svc.milestone
+            taskService: svc.task
         )
 
         let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())

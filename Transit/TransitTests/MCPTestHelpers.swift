@@ -18,12 +18,18 @@ struct MCPTestEnv {
 @MainActor
 enum MCPTestHelpers {
 
-    static func makeEnv() throws -> MCPTestEnv {
+    static func makeEnv(
+        taskCreateSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
+    ) throws -> MCPTestEnv {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
         let taskStore = InMemoryCounterStore()
         let taskAllocator = DisplayIDAllocator(store: taskStore)
-        let taskService = TaskService(modelContext: context, displayIDAllocator: taskAllocator)
+        let taskService = TaskService(
+            modelContext: context,
+            displayIDAllocator: taskAllocator,
+            createSave: taskCreateSave
+        )
         let projectService = ProjectService(modelContext: context)
         let commentService = CommentService(modelContext: context)
         let milestoneStore = InMemoryCounterStore()

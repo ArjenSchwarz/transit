@@ -141,29 +141,36 @@ struct CreateTaskIntent: AppIntent {
                 type: taskType,
                 project: project,
                 metadata: IntentHelpers.stringMetadata(from: json["metadata"]),
-                priority: priority
+                priority: priority,
+                milestone: resolvedMilestone
             )
         } catch {
-            return IntentError.invalidInput(hint: "Task creation failed").json
-        }
-
-        // Assign pre-resolved milestone [req 13.6]
-        // Safety: resolveMilestone already verified the milestone exists and belongs to the
-        // correct project, so setMilestone should only fail on an unexpected persistence error.
-        // On failure, delete the task to avoid orphans [T-558], matching MCP create_task behavior.
-        if let resolvedMilestone {
-            do {
-                try milestoneService?.setMilestone(resolvedMilestone, on: task)
-            } catch {
-                try? taskService.deleteTask(task)
-                return IntentError.internalError(hint: "Failed to assign milestone").json
-            }
+            return mapCreateTaskError(error).json
         }
 
         return buildResponse(task)
     }
 
     // MARK: - Private Helpers
+
+    /// Maps a `createTask` failure onto an intent error code. Milestone attachment and
+    /// task creation now share one save, so this catch also covers what used to be a
+    /// separate `setMilestone` failure. Keep input-shaped service errors on their
+    /// specific codes and everything else (storage, allocator, cancellation) on
+    /// INTERNAL_ERROR, so CLI callers can still tell a bad request from a retryable
+    /// condition [T-1768].
+    private static func mapCreateTaskError(_ error: Swift.Error) -> IntentError {
+        switch error as? TaskService.Error {
+        case .invalidName:
+            .invalidInput(hint: "Task name cannot be empty")
+        case .projectNotFound:
+            .projectNotFound(hint: "The selected project could not be found")
+        case .milestoneProjectMismatch:
+            .milestoneProjectMismatch(hint: "Milestone and task must belong to the same project")
+        default:
+            .internalError(hint: "Task creation failed")
+        }
+    }
 
     @MainActor
     private static func buildResponse(_ task: TransitTask) -> String {
