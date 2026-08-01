@@ -19,6 +19,209 @@ struct DisplayIDMaintenanceServiceReassignTests {
         let project: Project
     }
 
+    /// Counter store that parks the loser's allocation after maintenance has
+    /// completed its two counter-fence reads. This pins the exact check-to-write
+    /// race from T-2019 without relying on scheduler timing.
+    private actor AllocationGatedCounterStore: DisplayIDAllocator.CounterStore {
+        private var nextDisplayID: Int
+        private var changeTag = 0
+        private var loadCount = 0
+
+        private var allocationStarted = false
+        private var allocationReleased = false
+        private var allocationReleaseContinuation: CheckedContinuation<Void, Never>?
+
+        init(initialNextDisplayID: Int = 100) {
+            self.nextDisplayID = initialNextDisplayID
+        }
+
+        /// Committed counter value. Callers assert on it to prove the gate parked
+        /// inside allocation rather than during the counter fence.
+        func currentNextDisplayID() -> Int { nextDisplayID }
+
+        /// Waits for the gated load to park, giving up at the deadline. Returning
+        /// `false` rather than parking forever means a changed counter-call
+        /// sequence fails the test instead of wedging the suite on a continuation
+        /// nobody resumes.
+        func waitUntilAllocationStarts(timeout: Duration = .seconds(10)) async -> Bool {
+            let deadline = ContinuousClock.now + timeout
+            while !allocationStarted && ContinuousClock.now < deadline {
+                try? await Task.sleep(for: .milliseconds(5))
+            }
+            return allocationStarted
+        }
+
+        func releaseAllocation() {
+            allocationReleased = true
+            allocationReleaseContinuation?.resume()
+            allocationReleaseContinuation = nil
+        }
+
+        func loadCounter() async throws -> DisplayIDAllocator.CounterSnapshot {
+            loadCount += 1
+            // Calls 1 and 2 come from `advanceCounterIfNeeded`: its threshold
+            // check and reported snapshot. Call 3 is `allocateLocked` reading the
+            // loser's candidate, which is the suspension point this test needs.
+            if loadCount == 3 {
+                allocationStarted = true
+                if !allocationReleased {
+                    await withCheckedContinuation { allocationReleaseContinuation = $0 }
+                }
+            }
+            return DisplayIDAllocator.CounterSnapshot(
+                nextDisplayID: nextDisplayID,
+                changeTag: "\(changeTag)"
+            )
+        }
+
+        func saveCounter(nextDisplayID: Int, expectedChangeTag: String?) async throws {
+            guard expectedChangeTag == "\(changeTag)" else {
+                throw DisplayIDAllocator.Error.conflict
+            }
+            self.nextDisplayID = nextDisplayID
+            changeTag += 1
+        }
+    }
+
+    private struct GatedTestEnv {
+        let context: ModelContext
+        let service: DisplayIDMaintenanceService
+        let gateStore: AllocationGatedCounterStore
+        let project: Project
+    }
+
+    private func makeGatedEnv(gateTasks: Bool) throws -> GatedTestEnv {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let gateStore = AllocationGatedCounterStore()
+        let taskAllocator: DisplayIDAllocator
+        let milestoneAllocator: DisplayIDAllocator
+        if gateTasks {
+            taskAllocator = DisplayIDAllocator(store: gateStore)
+            milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
+        } else {
+            taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
+            milestoneAllocator = DisplayIDAllocator(store: gateStore)
+        }
+        let service = DisplayIDMaintenanceService(
+            modelContext: context,
+            taskAllocator: taskAllocator,
+            milestoneAllocator: milestoneAllocator,
+            commentService: CommentService(modelContext: context)
+        )
+        let project = Project(name: "Test", description: "", gitRepo: nil, colorHex: "#FF0000")
+        context.insert(project)
+        return GatedTestEnv(
+            context: context,
+            service: service,
+            gateStore: gateStore,
+            project: project
+        )
+    }
+
+    /// Regression for T-2019: a peer update committed while task ID allocation
+    /// is suspended must win. Cleanup reports stale-id and emits no false audit.
+    @Test func taskPeerUpdateDuringAllocationIsPreservedWithoutAuditComment() async throws {
+        let env = try makeGatedEnv(gateTasks: true)
+        let loserId = UUID()
+        let winner = TransitTask(
+            name: "Winner", type: .feature, project: env.project, displayID: .permanent(5)
+        )
+        winner.creationDate = Date(timeIntervalSince1970: 1000)
+        let loser = TransitTask(
+            name: "Loser", type: .feature, project: env.project, displayID: .permanent(5)
+        )
+        loser.id = loserId
+        loser.creationDate = Date(timeIntervalSince1970: 2000)
+        env.context.insert(winner)
+        env.context.insert(loser)
+        try env.context.save()
+
+        let peerContext = ModelContext(env.context.container)
+        let peerLoser = try #require(try peerContext.fetch(FetchDescriptor<TransitTask>(
+            predicate: #Predicate { $0.id == loserId }
+        )).first)
+
+        let maintenance = Task { @MainActor in
+            await env.service.reassignDuplicates()
+        }
+        #expect(await env.gateStore.waitUntilAllocationStarts(),
+                "Allocation never parked; the counter-call sequence changed")
+        do {
+            peerLoser.permanentDisplayId = 20
+            try peerContext.save()
+        } catch {
+            await env.gateStore.releaseAllocation()
+            _ = await maintenance.value
+            throw error
+        }
+        await env.gateStore.releaseAllocation()
+
+        let result = await maintenance.value
+        let group = try #require(result.groups.first(where: { $0.type == .task }))
+        #expect(group.failure?.code == .staleId)
+        #expect(group.reassignments.isEmpty)
+        // 100 was allocated and then deliberately skipped. Also proves the gate
+        // parked inside allocation rather than during the counter fence.
+        #expect(await env.gateStore.currentNextDisplayID() == 101,
+                "Allocation must have completed and its counter value been skipped")
+
+        let probe = ModelContext(env.context.container)
+        let storedLoser = try #require(try probe.fetch(FetchDescriptor<TransitTask>(
+            predicate: #Predicate { $0.id == loserId }
+        )).first)
+        #expect(storedLoser.permanentDisplayId == 20, "Peer-assigned task ID must be preserved")
+        #expect(try probe.fetch(FetchDescriptor<Transit.Comment>()).isEmpty,
+                "Stale cleanup must not emit an audit comment for a change it did not make")
+    }
+
+    /// Milestone companion to the gated T-2019 task regression.
+    @Test func milestonePeerUpdateDuringAllocationIsPreserved() async throws {
+        let env = try makeGatedEnv(gateTasks: false)
+        let loserId = UUID()
+        let winner = Milestone(name: "Winner", project: env.project, displayID: .permanent(7))
+        winner.creationDate = Date(timeIntervalSince1970: 1000)
+        let loser = Milestone(name: "Loser", project: env.project, displayID: .permanent(7))
+        loser.id = loserId
+        loser.creationDate = Date(timeIntervalSince1970: 2000)
+        env.context.insert(winner)
+        env.context.insert(loser)
+        try env.context.save()
+
+        let peerContext = ModelContext(env.context.container)
+        let peerLoser = try #require(try peerContext.fetch(FetchDescriptor<Milestone>(
+            predicate: #Predicate { $0.id == loserId }
+        )).first)
+
+        let maintenance = Task { @MainActor in
+            await env.service.reassignDuplicates()
+        }
+        #expect(await env.gateStore.waitUntilAllocationStarts(),
+                "Allocation never parked; the counter-call sequence changed")
+        do {
+            peerLoser.permanentDisplayId = 30
+            try peerContext.save()
+        } catch {
+            await env.gateStore.releaseAllocation()
+            _ = await maintenance.value
+            throw error
+        }
+        await env.gateStore.releaseAllocation()
+
+        let result = await maintenance.value
+        let group = try #require(result.groups.first(where: { $0.type == .milestone }))
+        #expect(group.failure?.code == .staleId)
+        #expect(group.reassignments.isEmpty)
+        #expect(await env.gateStore.currentNextDisplayID() == 101,
+                "Allocation must have completed and its counter value been skipped")
+
+        let probe = ModelContext(env.context.container)
+        let storedLoser = try #require(try probe.fetch(FetchDescriptor<Milestone>(
+            predicate: #Predicate { $0.id == loserId }
+        )).first)
+        #expect(storedLoser.permanentDisplayId == 30, "Peer-assigned milestone ID must be preserved")
+    }
+
     private func makeEnv(
         taskCounterStart: Int = 1,
         milestoneCounterStart: Int = 1,
