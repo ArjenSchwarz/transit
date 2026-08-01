@@ -59,30 +59,28 @@ final class MCPToolHandler {
             )
         }
 
-        // Notifications omit the `id` member entirely (per JSON-RPC 2.0 §4.1).
-        // An explicit `"id": null` is a regular request and must receive a
-        // response with `id: null`, so we rely on the parsed notification
-        // flag rather than `request.id == nil`.
-        if request.isNotification {
-            return nil
-        }
-
+        let response: JSONRPCResponse
         switch request.method {
         case "initialize":
-            return handleInitialize(id: request.id)
+            response = handleInitialize(id: request.id)
         case "ping":
-            return JSONRPCResponse.success(id: request.id, result: EmptyResult())
+            response = JSONRPCResponse.success(id: request.id, result: EmptyResult())
         case "tools/list":
-            return handleToolsList(id: request.id)
+            response = handleToolsList(id: request.id)
         case "tools/call":
-            return await handleToolCall(id: request.id, params: request.params)
+            response = await handleToolCall(id: request.id, params: request.params)
         default:
-            return JSONRPCResponse.error(
+            response = JSONRPCResponse.error(
                 id: request.id,
                 code: JSONRPCErrorCode.methodNotFound,
                 message: "Unknown method: \(request.method)"
             )
         }
+
+        // Notifications are method calls whose results are intentionally
+        // discarded, not calls that should be skipped. This matters for
+        // state-changing tools/call notifications inside a JSON-RPC batch.
+        return request.isNotification ? nil : response
     }
 
     // MARK: - Initialize

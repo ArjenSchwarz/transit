@@ -87,6 +87,8 @@ struct MCPRequestDecodeErrorClassificationTests {
         switch response {
         case .success:
             Issue.record("Expected error response for invalid id type")
+        case .batch:
+            Issue.record("Expected single-request decode failure, not a batch")
         case .failure(let errorResponse):
             let encoded = try JSONEncoder().encode(errorResponse)
             let parsed = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
@@ -106,6 +108,8 @@ struct MCPRequestDecodeErrorClassificationTests {
             #expect(req.method == "ping")
             #expect(req.jsonrpc == "2.0")
             #expect(!req.isNotification)
+        case .batch:
+            Issue.record("Single request must not decode as a batch")
         case .failure:
             Issue.record("Well-formed request must decode successfully")
         }
@@ -118,6 +122,9 @@ struct MCPRequestDecodeErrorClassificationTests {
         switch result {
         case .success:
             Issue.record("Expected decode failure but request decoded successfully")
+            throw DecodeUnwrapError.unexpectedSuccess
+        case .batch:
+            Issue.record("Expected single-request decode failure, not a batch")
             throw DecodeUnwrapError.unexpectedSuccess
         case .failure(let response):
             let error = try #require(response.error, "Error response must carry a JSONRPCError")

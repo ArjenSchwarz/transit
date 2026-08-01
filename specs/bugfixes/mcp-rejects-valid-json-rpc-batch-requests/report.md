@@ -1,7 +1,7 @@
 # Bugfix Report: MCP Rejects Valid JSON-RPC Batch Requests
 
 **Date:** 2026-08-01
-**Status:** Investigating
+**Status:** Fixed
 **Transit ticket:** T-1834
 
 ## Description of the Issue
@@ -61,7 +61,17 @@ The MCP HTTP transport has no representation of a JSON-RPC batch envelope. Its d
 
 ## Resolution for the Issue
 
-Pending regression-test confirmation and implementation.
+**Changes made:**
+- `Transit/Transit/MCP/MCPServer.swift` now distinguishes single requests from non-empty batch envelopes, retains invalid members for per-element errors, handles empty batches as one invalid request, dispatches batch elements sequentially, rejects batched `initialize`, returns response arrays for batches, and returns HTTP 202 with no body when no responses remain.
+- `Transit/Transit/MCP/MCPToolHandler.swift` now executes valid notification method/tool paths before suppressing their response, rather than dropping notifications before dispatch.
+- JSON response encoding now accepts either a single `JSONRPCResponse` or `[JSONRPCResponse]` without changing single-request response shape.
+
+**Approach rationale:** Keeping envelope parsing and HTTP response-shape decisions in `MCPServer` preserves the existing request dispatcher while giving it the batch context needed for MCP lifecycle validation. Sequential dispatch is legal under JSON-RPC and avoids nondeterministic mutations on Transit's shared MainActor SwiftData context.
+
+**Alternatives considered:**
+- Decode a Codable single-or-array enum directly. Rejected because independently invalid batch members must survive decoding and produce their own `-32600` responses instead of failing the whole array.
+- Dispatch batch elements concurrently. Rejected because JSON-RPC does not require concurrency and deterministic ordering is safer for state-changing task tools sharing one model context.
+- Reject an entire batch when it contains `initialize`. Rejected because per-member handling preserves valid sibling requests while returning a lifecycle error for the invalid initialize member.
 
 ## Regression Test
 
@@ -70,12 +80,13 @@ Pending regression-test confirmation and implementation.
 **Tests:**
 - `mixedRequestAndNotificationBatchReturnsOnlyRequestResponses`
 - `allNotificationBatchReturnsAcceptedWithNoBody`
+- `toolCallNotificationIsDispatchedButGetsNoResponse`
 - `emptyBatchReturnsSingleInvalidRequestObject`
 - `invalidBatchMembersEachProduceAnErrorResponse`
 - `initializeInsideBatchIsRejectedWithoutRejectingOtherRequests`
 - `singleRequestStillReturnsAResponseObject`
 
-**What they verify:** Streamable HTTP status handling and externally visible JSON-RPC object-versus-array response semantics at the real Hummingbird router boundary.
+**What they verify:** Streamable HTTP status handling, notification side effects, lifecycle enforcement, and externally visible JSON-RPC object-versus-array response semantics at the real Hummingbird router boundary.
 
 **Run command:** `make test-quick`
 
@@ -83,21 +94,25 @@ Pending regression-test confirmation and implementation.
 
 | File | Change |
 |------|--------|
+| `Transit/Transit/MCP/MCPServer.swift` | Batch envelope decoding, dispatch, lifecycle validation, and response encoding |
+| `Transit/Transit/MCP/MCPToolHandler.swift` | Execute notifications while omitting their responses |
 | `Transit/TransitTests/MCPServerBatchRequestTests.swift` | Focused route-level regression coverage |
-| `Transit/Transit/MCP/MCPServer.swift` | Pending batch envelope decode, dispatch, and response encoding |
+| `Transit/TransitTests/MCPRequestDecodeErrorClassificationTests.swift` | Existing single-request decode assertions made exhaustive for batch outcomes |
+| `docs/agent-notes/mcp-server.md` | Batch semantics and maintenance guidance |
 | `specs/bugfixes/mcp-rejects-valid-json-rpc-batch-requests/report.md` | Investigation and resolution record |
+| `CHANGELOG.md` | User-visible T-1834 fix summary |
 
 ## Verification
 
 **Automated:**
-- [x] Regression tests fail before the fix: `make test-quick PIPE_PRETTY=''` discovered the new suite and failed exactly the four unsupported batch behaviours (mixed request/notification responses, all-notification HTTP 202, per-member invalid responses, and batched initialize). Empty-batch and unchanged single-request controls passed.
-- [ ] Regression tests pass after the fix
-- [ ] Full macOS unit test suite passes
-- [ ] SwiftLint passes
-- [ ] macOS build passes
+- [x] Regression tests fail before the fix: `make test-quick PIPE_PRETTY=''` discovered the new suite and failed exactly the unsupported batch behaviours. Empty-batch and unchanged single-request controls passed.
+- [x] Regression tests and the full macOS unit suite pass: `make test-quick`.
+- [x] SwiftLint and the model-container ownership guard pass: `make lint`.
+- [x] The affected macOS app builds: `make build-macos`.
+- [~] `make test` and `make test-ui` were attempted but could not produce a clean iOS result. Xcode repeatedly failed to connect to an attached device's `com.apple.mobile.notification_proxy`, emitted `DebuggerVersionStore` errors, and the commands hit the harness timeout. The UI run also reproduced six unrelated existing UI failures (`testClearAll`, `testEditViewPreservesTaskMilestone`, three Settings navigation tests, and `testDataMaintenanceGoldenPath`). T-1834 changes are macOS-only and the macOS suite is green.
 
 **Manual verification:**
-- Pending.
+- The route-level tests collect and inspect the real Hummingbird response body, confirming response arrays, null IDs for invalid members, content type, and empty HTTP 202 bodies without requiring a separately launched app process.
 
 ## Prevention
 

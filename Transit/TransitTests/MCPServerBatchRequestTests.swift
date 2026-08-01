@@ -7,6 +7,7 @@ import NIOConcurrencyHelpers
 import NIOCore
 import NIOEmbedded
 import NIOFoundationCompat
+import SwiftData
 import Testing
 @testable import Transit
 
@@ -50,6 +51,30 @@ struct MCPServerBatchRequestTests {
 
         #expect(response.status == .accepted)
         #expect(response.body.isEmpty)
+    }
+
+    @Test func toolCallNotificationIsDispatchedButGetsNoResponse() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let response = try await respond(handler: env.handler, body: """
+        [{
+          "jsonrpc":"2.0",
+          "method":"tools/call",
+          "params":{
+            "name":"create_task",
+            "arguments":{
+              "name":"Notification task",
+              "type":"bug",
+              "projectId":"\(project.id.uuidString)"
+            }
+          }
+        }]
+        """)
+
+        #expect(response.status == .accepted)
+        #expect(response.body.isEmpty)
+        let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.map(\.name) == ["Notification task"])
     }
 
     @Test func emptyBatchReturnsSingleInvalidRequestObject() async throws {
@@ -113,7 +138,14 @@ struct MCPServerBatchRequestTests {
 
     private func respond(body: String) async throws -> CapturedResponse {
         let env = try MCPTestHelpers.makeEnv()
-        let responder = MCPServer.makeRouter(handler: env.handler).buildResponder()
+        return try await respond(handler: env.handler, body: body)
+    }
+
+    private func respond(
+        handler: MCPToolHandler,
+        body: String
+    ) async throws -> CapturedResponse {
+        let responder = MCPServer.makeRouter(handler: handler).buildResponder()
         let request = Request(
             head: HTTPRequest(
                 method: .post,
