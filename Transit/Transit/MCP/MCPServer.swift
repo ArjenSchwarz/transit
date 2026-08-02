@@ -357,8 +357,7 @@ extension MCPServer {
     }
 
     /// Validates Origin and Host/authority before body access or dispatch.
-    /// This ordering is the MCP Streamable HTTP DNS-rebinding defence and must
-    /// remain first in every MCP route.
+    /// This MCP DNS-rebinding defence must remain first in every MCP route.
     nonisolated private static func isAllowedMCPRequest(_ request: Request) -> Bool {
         let origin = request.head.headerFields[.origin]
         return MCPOriginValidator.rejectionReason(
@@ -366,6 +365,7 @@ extension MCPServer {
             authority: request.head.authority
         ) == nil
     }
+
     /// Transport-level rejection, not JSON-RPC: fixed plain text avoids
     /// revealing whether Origin or Host validation failed to a prober.
     nonisolated private static func forbiddenResponse() -> Response {

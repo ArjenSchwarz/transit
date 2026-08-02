@@ -104,8 +104,9 @@ request. No lifecycle or POST handler code needs to change.
 - `getOnUnrelatedPathRemainsNotFound`
 
 **What it verifies:** The real Hummingbird router returns 405 and `Allow: POST`
-for GET on `/mcp`, keeps POST dispatch working, retains origin rejection on the
-new route, and continues returning 404 for an unrelated path.
+for GET on `/mcp`, keeps POST dispatch working, retains origin and host rejection
+on the new route, confirms unsupported HEAD/OPTIONS use the framework's 404
+fallback, and continues returning 404 for an unrelated path.
 
 **Run command:** `make test-quick`
 
@@ -115,6 +116,8 @@ new route, and continues returning 404 for an unrelated path.
 |------|--------|
 | `Transit/Transit/MCP/MCPServer.swift` | Explicit GET `/mcp` method response with origin validation. |
 | `Transit/TransitTests/MCPServerRouteTests.swift` | New route-level regression coverage. |
+| `docs/agent-notes/mcp-server.md` | MCP transport behavior and endpoint documentation. |
+| `specs/mcp-server/implementation.md` | MCP implementation architecture documentation. |
 | `specs/bugfixes/mcp-get-endpoint-returns-404-instead-of-405/report.md` | Investigation and resolution record. |
 | `CHANGELOG.md` | Unreleased fixed-entry for T-1835. |
 
@@ -122,7 +125,7 @@ new route, and continues returning 404 for an unrelated path.
 
 **Automated:**
 - [x] Regression tests fail before the fix, reproducing the incorrect 404 and missing endpoint method response.
-- [x] `make test-quick` passes after the fix, including all existing macOS unit tests and the four T-1835 route tests.
+- [x] `make test-quick` passes after the fix, including all existing macOS unit tests and the seven T-1835 route tests.
 - [x] `make lint` passes in strict mode.
 - [x] `make build-macos` passes for the affected macOS target.
 
