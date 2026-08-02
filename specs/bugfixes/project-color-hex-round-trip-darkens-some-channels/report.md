@@ -36,7 +36,7 @@ The investigation followed the systematic debugging workflow: establish the expe
 
 **Changes made:**
 - `Transit/Transit/Extensions/Color+Codable.swift:21-37` - Replaced truncating `Int(component * 255)` conversions with a shared `roundedByte` helper that rejects non-finite values, clamps components to `0...1`, rounds to the nearest byte, and then converts to `Int`.
-- `Transit/TransitTests/ColorHexRoundTripTests.swift:8-92` - Added all-byte RGB round-trip tests, deterministic just-below-boundary tests using explicit sRGB `Color.Resolved` values at Float precision, explicit lower/upper clamping coverage, and format/opacity assertions.
+- `Transit/TransitTests/ColorHexRoundTripTests.swift:8-105` - Added all-byte RGB round-trip tests, deterministic just-below-boundary tests using explicit sRGB `Color.Resolved` values at Float precision, explicit lower/upper clamping and non-finite fallback coverage, and format/opacity assertions.
 - `CHANGELOG.md` - Documented the fixed behavior and regression coverage.
 
 **Approach rationale:** Rounding after clamping directly addresses the numeric root cause while leaving `Color.resolve(in: EnvironmentValues())` in place. That preserves the existing platform-aware SwiftUI resolution path and avoids the UIColor/NSColor actor-isolation issues documented for this project. The six-digit uppercase RGB format and intentional omission of opacity remain unchanged.
@@ -48,9 +48,9 @@ The investigation followed the systematic debugging workflow: establish the expe
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/ColorHexRoundTripTests.swift`
-**Test name:** `everyRedByteRoundTripsWithoutDarkening`, `everyGreenByteRoundTripsWithoutDarkening`, `everyBlueByteRoundTripsWithoutDarkening`, `componentsJustBelowEveryByteBoundaryRoundToNearestByte`, `resolvedComponentsAreClampedBeforeRounding`
+**Test name:** `everyRedByteRoundTripsWithoutDarkening`, `everyGreenByteRoundTripsWithoutDarkening`, `everyBlueByteRoundTripsWithoutDarkening`, `componentsJustBelowEveryByteBoundaryRoundToNearestByte`, `resolvedComponentsAreClampedBeforeRounding`, `nonFiniteResolvedComponentsUseSafeZeroFallback`
 
-**What it verifies:** Every RGB byte value `0...255` survives `Color(hex:)`/`hexString` round-tripping, deterministic sRGB `Color.Resolved` components immediately below every byte boundary round to the intended byte, and out-of-range components clamp to the valid byte range. The format test verifies uppercase six-digit RGB without `#` and confirms opacity remains excluded.
+**What it verifies:** Every RGB byte value `0...255` survives `Color(hex:)`/`hexString` round-tripping, deterministic sRGB `Color.Resolved` components immediately below every byte boundary round to the intended byte, out-of-range components clamp to the valid byte range, and NaN/infinite components use the safe zero fallback. The format test verifies uppercase six-digit RGB without `#` and confirms opacity remains excluded.
 
 **Run command:** `make test-quick`
 
@@ -66,15 +66,15 @@ The investigation followed the systematic debugging workflow: establish the expe
 ## Verification
 
 **Automated:**
-- [x] Focused regression tests pass on macOS (`ColorHexRoundTripTests`, 6 tests)
-- [x] Focused regression tests pass on iOS Simulator (`ColorHexRoundTripTests`, 6 tests)
+- [x] Focused regression tests pass on macOS (`ColorHexRoundTripTests`, 7 tests)
+- [x] Focused regression tests pass on iOS Simulator (`ColorHexRoundTripTests`, 7 tests)
 - [x] macOS unit suite passes via `make test-quick`
 - [x] Linters/validators pass via `make lint` (0 violations)
 - [ ] Full iOS `make test` is not clean: unrelated UI tests `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, `TransitUITests.testSettingsHasBackChevron`, `TransitUITests.testSettingsWithNoProjectsShowsCreatePrompt`, `TransitUITests.testTappingGearPushesSettingsView`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath` failed after the app and unit tests built successfully.
 
 **Manual verification:**
 - The pre-fix targeted run failed the color regressions against the truncating implementation.
-- The post-fix targeted runs passed all six tests on both macOS and iOS, including every RGB byte value, all three channels immediately below each Float byte boundary, and lower/upper clamping.
+- The post-fix targeted runs passed all seven tests on both macOS and iOS, including every RGB byte value, all three channels immediately below each Float byte boundary, lower/upper clamping, and non-finite fallback handling.
 - The tests construct explicit sRGB `Color.Resolved` values at the framework's `Float` component precision, so the boundary assertions do not depend on one platform's incidental floating-point representation.
 
 ## Prevention

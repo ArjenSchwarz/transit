@@ -76,6 +76,19 @@ struct ColorHexRoundTripTests {
         #expect(color.hexString == "00FF80")
     }
 
+    @Test func nonFiniteResolvedComponentsUseSafeZeroFallback() {
+        let color = Color(
+            Color.Resolved(
+                colorSpace: .sRGB,
+                red: .nan,
+                green: .infinity,
+                blue: -.infinity
+            )
+        )
+
+        #expect(color.hexString == "000000")
+    }
+
     @Test func hexStringUsesUppercaseSixDigitRGBWithoutHashAndIgnoresAlpha() {
         let color = Color(
             .sRGB,
