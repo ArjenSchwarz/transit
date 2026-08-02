@@ -119,6 +119,23 @@ struct MCPServerBatchRequestTests {
         #expect(object["result"] == nil)
     }
 
+    @Test(arguments: [
+        "initialize", "ping", "tools/list", "tools/call",
+        "notifications/initialized", "unknown/method"
+    ])
+    func singleExplicitNullIdIsReturnedForEveryMethodPath(method: String) async throws {
+        let response = try await respond(
+            body: #"{"jsonrpc":"2.0","id":null,"method":"\#(method)"}"#
+        )
+
+        #expect(response.status == .ok)
+        let object = try #require(response.json as? [String: Any])
+        let error = try #require(object["error"] as? [String: Any])
+        #expect(error["code"] as? Int == JSONRPCErrorCode.invalidRequest)
+        #expect(object["id"] is NSNull)
+        #expect(object["result"] == nil)
+    }
+
     @Test func batchExplicitNullIdIsInvalidWhileStringAndIntegerIdsRemainValid() async throws {
         let response = try await respond(body: """
         [

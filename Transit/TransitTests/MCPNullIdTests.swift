@@ -52,6 +52,35 @@ struct MCPNullIdTests {
         #expect(response == nil, "Notifications (omitted id) must not produce a response")
     }
 
+    @Test(arguments: [
+        "initialize", "ping", "tools/list", "tools/call",
+        "notifications/initialized", "unknown/method"
+    ])
+    func handlerRejectsExplicitNullBeforeDispatchingAnyMethod(method: String) async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let json = Data(#"{"jsonrpc":"2.0","id":null,"method":"\#(method)"}"#.utf8)
+        let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
+
+        let response = try #require(await env.handler.handle(request))
+        let error = try #require(response.error)
+        #expect(error.code == JSONRPCErrorCode.invalidRequest)
+        #expect(response.result == nil)
+        #expect(response.id == nil)
+    }
+
+    @Test(arguments: [
+        "initialize", "ping", "tools/list", "tools/call",
+        "notifications/initialized", "unknown/method"
+    ])
+    func handlerOmitsResponseForMissingIdAcrossMethodPaths(method: String) async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let json = Data(#"{"jsonrpc":"2.0","method":"\#(method)"}"#.utf8)
+        let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
+
+        let response = await env.handler.handle(request)
+        #expect(response == nil, "Notifications must not produce a response")
+    }
+
     @Test func handlerReturnsResponsesForStringAndIntegerIds() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let stringRequest = try JSONDecoder().decode(
