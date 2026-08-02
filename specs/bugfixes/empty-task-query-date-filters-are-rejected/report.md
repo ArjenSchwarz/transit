@@ -1,7 +1,7 @@
 # Bugfix Report: Empty Task Query Date Filters Are Rejected
 
 **Date:** 2026-08-02
-**Status:** In Progress
+**Status:** Fixed
 **Ticket:** T-2036
 
 ## Description of the Issue
@@ -35,7 +35,19 @@ The investigation followed the systematic debugging workflow: inspect the raw JS
 
 ## Resolution for the Issue
 
-_To be completed after the implementation and verification pass._
+**Changes made:**
+- `Transit/Transit/Intents/QueryTasksIntent.swift` — During raw JSON preflight, record which recognized date-filter objects are genuinely empty; apply that marker after Codable decoding and skip date-format validation only for those objects. Non-empty objects continue through the existing strict parser and validation.
+- `Transit/Transit/Intents/QueryTasksIntent+FilterTypes.swift` — Keep the Codable filter models separate and add the transient `isEmptyObject` marker to `DateRangeFilter`.
+- `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` — Add regressions for each empty date-filter field and both fields together, asserting the complete seeded task set is returned.
+- `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift` — Add non-empty unknown-key regressions proving malformed date objects remain `INVALID_INPUT`.
+- `CHANGELOG.md` — Record the T-2036 fix under Unreleased.
+
+**Approach rationale:** The raw JSON dictionary is already inspected before Codable for top-level and nested null validation. Retaining only the emptiness bit at that boundary preserves the existing Codable/date-parser behavior, makes `{}` a no-op through the existing `flatMap(dateRange)` path, and prevents malformed non-empty objects from being mistaken for no filtering.
+
+**Alternatives considered:**
+- Treat every decoded date filter with no parsed range as a no-op — rejected because malformed non-empty objects would be accepted and could broaden queries.
+- Add custom Codable presence tracking for every nested field — rejected as unnecessary; only object emptiness needs to survive decoding for this contract.
+
 
 ## Regression Test
 
@@ -50,21 +62,25 @@ _To be completed after the implementation and verification pass._
 
 | File | Change |
 |------|--------|
-| `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` | Added failing regressions for both empty date-filter fields and the combined case. |
-| `specs/bugfixes/empty-task-query-date-filters-are-rejected/report.md` | Investigation checkpoint; resolution pending. |
+| `Transit/Transit/Intents/QueryTasksIntent.swift` | Preserved empty date-object presence before Codable and skipped validation only for valid empty no-op filters. |
+| `Transit/Transit/Intents/QueryTasksIntent+FilterTypes.swift` | Added the transient decoded date-filter emptiness marker and relocated filter models. |
+| `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` | Added regressions for both empty date-filter fields and the combined case, proving all seeded tasks are returned. |
+| `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift` | Added malformed non-empty unknown-key regressions. |
+| `specs/bugfixes/empty-task-query-date-filters-are-rejected/report.md` | Investigation and resolution record. |
+| `CHANGELOG.md` | Unreleased T-2036 fixed entry. |
 
 ## Verification
 
 **Automated:**
-- [x] Red regression run confirmed `emptyDateFilterObjectsReturnAllTasks` fails before the fix (`make test-quick`; test execution completed and reported the focused failure).
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Red regression run confirmed `emptyDateFilterObjectsReturnAllTasks` failed before the fix (`make test-quick`; focused test reported by the test runner).
+- [x] Regression and full macOS unit suite pass (`make test-quick`).
+- [x] Linters/validators pass (`make lint`; SwiftData ownership guard and SwiftLint report zero violations).
 
 **Manual verification:**
-- Existing T-1644 tests cover nested null rejection and malformed nested date-filter shapes.
-- Existing T-1799 and T-1819 regressions cover strict dates and reversed absolute ranges.
-- Existing open-bound and relative-precedence tests must remain unchanged and passing.
+- `emptyDateFilterObjectsReturnAllTasks` covers `completionDate: {}`, `lastStatusChangeDate: {}`, and both fields together, and compares the returned names with all three seeded tasks.
+- Existing T-1644 nested-null and malformed-shape tests continue to pass.
+- Existing T-1799 strict date, T-1819 reversed-range, open-bound, relative-precedence, and inclusive-range tests continue to pass.
+- New unknown-key cases return field-specific `Invalid <field> filter format` errors instead of being treated as no-op filters.
 
 ## Prevention
 
