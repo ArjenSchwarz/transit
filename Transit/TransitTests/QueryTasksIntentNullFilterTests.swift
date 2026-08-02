@@ -104,6 +104,55 @@ struct QueryTasksIntentNullFilterTests {
         try expectInvalidInput("{\"lastStatusChangeDate\":null}")
     }
 
+    @Test func nullCompletionDateRelativeIsRejected() throws {
+        try expectInvalidInput(
+            "{\"completionDate\":{\"relative\":null,\"from\":\"2026-01-01\",\"to\":\"2026-01-31\"}}"
+        )
+    }
+
+    @Test func nullCompletionDateFromIsRejected() throws {
+        try expectInvalidInput("{\"completionDate\":{\"from\":null,\"to\":\"2026-01-31\"}}")
+    }
+
+    @Test func nullCompletionDateToIsRejected() throws {
+        try expectInvalidInput("{\"completionDate\":{\"from\":\"2026-01-01\",\"to\":null}}")
+    }
+
+    @Test func nullLastStatusChangeDateRelativeIsRejected() throws {
+        try expectInvalidInput(
+            "{\"lastStatusChangeDate\":{\"relative\":null,\"from\":\"2026-01-01\",\"to\":\"2026-01-31\"}}"
+        )
+    }
+
+    @Test func nullLastStatusChangeDateFromIsRejected() throws {
+        try expectInvalidInput("{\"lastStatusChangeDate\":{\"from\":null,\"to\":\"2026-01-31\"}}")
+    }
+
+    @Test func nullLastStatusChangeDateToIsRejected() throws {
+        try expectInvalidInput("{\"lastStatusChangeDate\":{\"from\":\"2026-01-01\",\"to\":null}}")
+    }
+
+    @Test func scalarCompletionDateFilterIsRejected() throws {
+        try expectInvalidInput("{\"completionDate\":\"today\"}")
+    }
+
+    @Test func arrayLastStatusChangeDateFilterIsRejected() throws {
+        try expectInvalidInput("{\"lastStatusChangeDate\":[]}")
+    }
+
+    @Test func malformedNestedDateFiltersDoNotBroadenResults() throws {
+        let inputs = [
+            "{\"completionDate\":{\"from\":null,\"to\":\"2026-01-31\"}}",
+            "{\"lastStatusChangeDate\":{\"from\":\"2026-01-01\",\"to\":null}}",
+            "{\"completionDate\":\"today\"}",
+            "{\"lastStatusChangeDate\":[]}"
+        ]
+
+        for input in inputs {
+            try expectInvalidInput(input)
+        }
+    }
+
     @Test func nullMilestoneIsRejected() throws {
         try expectInvalidInput("{\"milestone\":null}")
     }
