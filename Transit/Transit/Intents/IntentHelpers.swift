@@ -164,11 +164,23 @@ nonisolated enum IntentHelpers {
             return .failure(.invalidInput(hint: invalidIdentifierHint(for: field)))
         } catch TaskService.Error.duplicateDisplayID {
             return .failure(.internalError(hint: duplicateTaskIdentifierHint(from: json)))
+        } catch TaskService.Error.taskNotFound {
+            return .failure(.taskNotFound(hint: taskNotFoundHint(from: json)))
         } catch {
             return .failure(.taskNotFound(
                 hint: "Provide either displayId (integer) or taskId (UUID)"
             ))
         }
+    }
+
+    /// Builds an actionable hint for a genuine task lookup miss. Display-ID
+    /// misses echo the supplied value as required by req 17.5; UUID misses
+    /// retain the established generic identifier hint.
+    static func taskNotFoundHint(from json: [String: Any]) -> String {
+        if let displayId = parseIntValue(json["displayId"]) {
+            return "No task with displayId \(displayId)"
+        }
+        return "Provide either displayId (integer) or taskId (UUID)"
     }
 
     /// Hint for a `displayId` matched by more than one task. CloudKit cannot enforce

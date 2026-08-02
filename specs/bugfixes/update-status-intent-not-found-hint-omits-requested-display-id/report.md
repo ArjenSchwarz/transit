@@ -1,7 +1,7 @@
 # Bugfix Report: Update Status Intent Not-Found Display-ID Hint
 
 **Date:** 2026-08-02
-**Status:** In Progress
+**Status:** Fixed
 **Ticket:** T-1803
 
 ## Description of the Issue
@@ -33,7 +33,17 @@
 
 ## Resolution for the Issue
 
-_To be completed after the fix is implemented._
+**Changes made:**
+- `Transit/Transit/Intents/IntentHelpers.swift` — Added an explicit `TaskService.Error.taskNotFound` mapping. Genuine misses with a valid `displayId` now return `No task with displayId N`; UUID misses retain `Provide either displayId (integer) or taskId (UUID)`. Malformed identifiers and duplicate display IDs continue through their existing `INVALID_INPUT` and `INTERNAL_ERROR` mappings, and unexpected lookup failures retain the prior generic not-found mapping.
+- `Transit/TransitTests/UpdateStatusIntentTests.swift` — Extended the display-ID not-found regression with an exact hint assertion and pinned the existing UUID not-found hint.
+- `CHANGELOG.md` — Added the T-1803 entry under Unreleased/Fixed.
+
+**Approach rationale:** Handle the dedicated not-found error in the shared resolver rather than changing `TaskService` or duplicating lookup logic in `UpdateStatusIntent`. The resolver already receives the original JSON, so it can echo only a successfully parsed display ID while preserving malformed-input validation, duplicate-ID classification, status validation, and mutation ordering.
+
+**Alternatives considered:**
+- Change `TaskService.Error.taskNotFound` to carry an identifier — rejected because the service is also used by non-JSON callers and the existing error contract does not need a presentation hint.
+- Reintroduce an inline resolver branch in `UpdateStatusIntent` — rejected because T-1837 centralized this mapping specifically to prevent App Intent lookup behavior from drifting.
+- Echo the raw `displayId` for every failure — rejected because malformed values must remain `INVALID_INPUT`, and storage/unknown failures must not be relabeled as a confirmed missing ID.
 
 ## Regression Test
 
@@ -57,13 +67,15 @@ _To be completed after the fix is implemented._
 
 **Automated:**
 - [x] Red-phase regression test fails before the fix (`unknownDisplayIdReturnsTaskNotFound`)
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression assertions pass in `make test-quick`
+- [x] `make test-quick` passes for the complete macOS `TransitTests` target, including existing malformed-identifier, duplicate-ID, status, and status/comment atomicity coverage
+- [x] `make lint` passes with 0 violations in 319 files, including the SwiftData ownership guard
+- [ ] `make test` — the iOS simulator suite built and ran, but three unrelated existing UI tests failed: `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`. No UI production or UI test files changed for T-1803; the Makefile pipeline also returned status 0 despite `xcodebuild` reporting these failures.
 
 **Manual verification:**
-- Confirmed `TaskService.resolveTask(from:)` throws `invalidIdentifier(field:)` for malformed present values and `duplicateDisplayID` remains separately mapped.
-- Confirmed status mutation occurs only after successful task resolution.
+- The exact display-ID assertion fails against the pre-fix generic hint and passes after the fix.
+- `TaskService.resolveTask(from:)` still rejects malformed present identifiers before lookup, and duplicate display IDs still map to `INTERNAL_ERROR`.
+- Resolution happens before `TaskService.updateStatus`, so not-found responses cannot mutate status; the existing macOS status/comment atomicity tests remain green.
 
 ## Prevention
 
