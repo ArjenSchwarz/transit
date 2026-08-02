@@ -39,6 +39,7 @@ The investigation followed the systematic debugging workflow: inspect the raw JS
 - `Transit/Transit/Intents/QueryTasksIntent.swift` — During raw JSON preflight, record which recognized date-filter objects are genuinely empty; apply that marker after Codable decoding and skip date-format validation only for those objects. Non-empty objects continue through the existing strict parser and validation.
 - `Transit/Transit/Intents/QueryTasksIntent+FilterTypes.swift` — Keep the Codable filter models separate and add the transient `isEmptyObject` marker to `DateRangeFilter`.
 - `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` — Add regressions for each empty date-filter field and both fields together, asserting the complete seeded task set is returned.
+- `Transit/TransitTests/QueryTasksIntentEmptyDateFilterTests.swift` — Add focused regressions proving empty filters compose with other filters and unknown nested keys remain ignored alongside valid bounds for both date fields.
 - `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift` — Add non-empty unknown-key regressions proving malformed date objects remain `INVALID_INPUT`.
 - `CHANGELOG.md` — Record the T-2036 fix under Unreleased.
 
@@ -51,10 +52,10 @@ The investigation followed the systematic debugging workflow: inspect the raw JS
 
 ## Regression Test
 
-**Test file:** `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift`
-**Test name:** `emptyDateFilterObjectsReturnAllTasks`
+**Test files:** `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` and `Transit/TransitTests/QueryTasksIntentEmptyDateFilterTests.swift`
+**Test names:** `emptyDateFilterObjectsReturnAllTasks`, `emptyDateFiltersRemainNoOpsWhenCombinedWithOtherFilters`, and `unknownNestedKeysDoNotChangeValidDateFilters`
 
-**What it verifies:** `completionDate: {}`, `lastStatusChangeDate: {}`, and both empty objects together are accepted as no-op filters and return the complete seeded task set.
+**What it verifies:** `completionDate: {}`, `lastStatusChangeDate: {}`, and both empty objects together are accepted as no-op filters and return the complete seeded task set. Empty filters do not override an unrelated status filter, and unknown nested keys remain ignored when a valid recognized date bound is present for either date field.
 
 **Run command:** `make test-quick`
 
@@ -65,6 +66,7 @@ The investigation followed the systematic debugging workflow: inspect the raw JS
 | `Transit/Transit/Intents/QueryTasksIntent.swift` | Preserved empty date-object presence before Codable and skipped validation only for valid empty no-op filters. |
 | `Transit/Transit/Intents/QueryTasksIntent+FilterTypes.swift` | Added the transient decoded date-filter emptiness marker and relocated filter models. |
 | `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` | Added regressions for both empty date-filter fields and the combined case, proving all seeded tasks are returned. |
+| `Transit/TransitTests/QueryTasksIntentEmptyDateFilterTests.swift` | Added composition and unknown-key compatibility regressions for both date fields. |
 | `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift` | Added malformed non-empty unknown-key regressions. |
 | `specs/bugfixes/empty-task-query-date-filters-are-rejected/report.md` | Investigation and resolution record. |
 | `CHANGELOG.md` | Unreleased T-2036 fixed entry. |
