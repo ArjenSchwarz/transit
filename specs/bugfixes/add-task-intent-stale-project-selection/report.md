@@ -44,7 +44,7 @@ The no-project check has higher precedence than selected-entity resolution. Beca
 
 **Changes made:**
 - `Transit/Transit/Intents/Visual/AddTaskIntent.swift` — Keeps the visual intent's project parameter required at the App Intents boundary, while the testable execution path represents an absent selection explicitly. A nil selection throws `.noProjects` only when the database is empty and otherwise throws `.invalidInput`; a supplied entity is resolved through `ProjectService.findProject` before task creation. A stale entity therefore throws `.projectNotFound` even when the current project store is empty.
-- `Transit/TransitTests/AddTaskIntentTests.swift` — Tightened stale-selection coverage to assert the exact associated enum value and verify that no task is persisted. Updated the empty-database/no-selection test to assert exact `.noProjects` and verify that no task is persisted, and covered missing selection with existing projects as invalid input.
+- `Transit/TransitTests/AddTaskIntentTests.swift` — Tightened stale-selection coverage to assert the exact associated enum value and verify that no task is persisted when the stale project was the only project or when another project remains. Updated the empty-database/no-selection test to assert exact `.noProjects` and verify that no task is persisted, and covered missing selection with existing projects as invalid input.
 - `CHANGELOG.md` — Added the T-1814 fix to the Unreleased Fixed section.
 
 **Approach rationale:** The App Intents parameter remains required, preserving the Shortcuts UI contract. The testable execution seam uses nil to represent an absent input: it reports `.noProjects` only when the store is empty and `.invalidInput` when projects exist. Resolving a supplied entity first preserves the identity of a stale Shortcut selection independently of how many projects remain. The existing task creation boundary remains after validation and resolution, so all failure cases are mutation-free.
@@ -57,9 +57,9 @@ The no-project check has higher precedence than selected-entity resolution. Beca
 ## Regression Test
 
 **Test file:** `Transit/Transit/TransitTests/AddTaskIntentTests.swift`
-**Test names:** `executeThrowsProjectNotFoundForStaleProjectSelection`, `executeThrowsNoProjectsWhenDatabaseIsEmpty`, and `executeThrowsInvalidInputForMissingProjectWhenProjectsExist`
+**Test names:** `executeThrowsProjectNotFoundForStaleProjectSelection`, `executeThrowsProjectNotFoundForStaleProjectSelectionWhenAnotherProjectRemains`, `executeThrowsNoProjectsWhenDatabaseIsEmpty`, and `executeThrowsInvalidInputForMissingProjectWhenProjectsExist`
 
-**What they verify:** A stale selected entity throws the exact `.projectNotFound("Selected project no longer exists.")` case after the selected project was the only project and was deleted, an absent selection in an empty store throws exact `.noProjects`, and an absent selection with existing projects throws exact `.invalidInput("Project is required.")`. Each failure path verifies that no task is created.
+**What they verify:** A stale selected entity throws the exact `.projectNotFound("Selected project no longer exists.")` case both after the selected project was the only project and after another project remains, an absent selection in an empty store throws exact `.noProjects`, and an absent selection with existing projects throws exact `.invalidInput("Project is required.")`. Each failure path verifies that no task is created.
 
 **Run command:** `make test-quick`
 
@@ -77,8 +77,8 @@ The no-project check has higher precedence than selected-entity resolution. Beca
 ## Verification
 
 **Automated:**
-- [x] Regression tests pass — `executeThrowsProjectNotFoundForStaleProjectSelection` asserts the exact `.projectNotFound` value, `executeThrowsNoProjectsWhenDatabaseIsEmpty` asserts exact `.noProjects`, and `executeThrowsInvalidInputForMissingProjectWhenProjectsExist` asserts exact `.invalidInput`; all three verify no task creation.
-- [x] Full macOS unit test suite passes — `make test-quick` result: 1,650 passed, 0 failed.
+- [x] Regression tests pass — `executeThrowsProjectNotFoundForStaleProjectSelection` and `executeThrowsProjectNotFoundForStaleProjectSelectionWhenAnotherProjectRemains` assert the exact `.projectNotFound` value for stale selections with zero and remaining projects, `executeThrowsNoProjectsWhenDatabaseIsEmpty` asserts exact `.noProjects`, and `executeThrowsInvalidInputForMissingProjectWhenProjectsExist` asserts exact `.invalidInput`; all four verify no task creation.
+- [x] Full macOS unit test suite passes — `make test-quick` result: 1,651 passed, 0 failed.
 - [~] Full iOS test suite executed — 1,184 passed, 3 failed; the failures are the documented pre-existing iOS 26.5 UI baseline (`TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`) and do not touch AddTaskIntent.
 - [~] UI tests executed — 18 passed, 3 failed; the same documented baseline failures occurred, with no AddTaskIntent UI regression.
 - [x] Linters/validators pass — `make lint` reports 0 violations and all ownership guard checks pass.
