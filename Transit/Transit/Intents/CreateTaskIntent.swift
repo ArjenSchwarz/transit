@@ -291,11 +291,20 @@ struct CreateTaskIntent: AppIntent {
     }
 
     private static func validateInput(_ json: [String: Any]) -> IntentError? {
-        guard let name = json["name"] as? String, !name.isEmpty else {
+        guard json["name"] != nil else {
             return .invalidInput(hint: "Missing required field: name")
         }
-        guard let typeString = json["type"] as? String else {
+        guard let name = json["name"] as? String else {
+            return .invalidInput(hint: "name must be a string")
+        }
+        guard !name.isEmpty else {
+            return .invalidInput(hint: "Missing required field: name")
+        }
+        guard json["type"] != nil else {
             return .invalidInput(hint: "Missing required field: type")
+        }
+        guard let typeString = json["type"] as? String else {
+            return .invalidInput(hint: "type must be a string")
         }
         guard TaskType(rawValue: typeString) != nil else {
             return .invalidType(hint: "Unknown type: \(typeString)")
