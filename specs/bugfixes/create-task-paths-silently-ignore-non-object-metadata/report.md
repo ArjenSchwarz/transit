@@ -1,7 +1,7 @@
 # Bugfix Report: Create Task Paths Silently Ignore Non-Object Metadata
 
 **Date:** 2026-08-02
-**Status:** Investigating
+**Status:** Fixed
 **Transit ticket:** T-1991
 
 ## Description of the Issue
@@ -67,7 +67,26 @@ assert no mutation on rejection.
 
 ## Resolution for the Issue
 
-_To be completed after the regression tests and implementation pass._
+**Changes made:**
+- `Transit/Transit/Intents/IntentHelpers.swift` - added `isMetadataObject` to validate the top-level container without changing the tolerant string-entry parser.
+- `Transit/Transit/Intents/CreateTaskIntent.swift` - rejects present non-object metadata with `INVALID_INPUT` and `metadata must be an object` before project resolution or task creation.
+- `Transit/Transit/MCP/MCPToolHandler.swift` - rejects present non-object metadata with an MCP tool error using the same field-specific message before mutation.
+- `Transit/TransitTests/CreateTaskMetadataShapeValidationTests.swift` - adds symmetric coverage for string, array, number, boolean, and null metadata values and asserts no task is inserted on either surface.
+- `CHANGELOG.md` - documents the T-1991 behavior change under Unreleased/Fixed.
+
+**Approach rationale:** Presence and container shape are validated separately
+from metadata extraction. This preserves omission behavior and keeps valid
+objects on the established `stringMetadata(from:)` path, where non-string
+entries are dropped under T-723 rather than coerced or rejected.
+
+**Alternatives considered:**
+- Make `stringMetadata(from:)` throw or return a new error type - rejected
+  because it would blur the existing parser's tolerant T-723 contract and
+  require changing unrelated callers.
+- Reject non-string values inside metadata objects - rejected because T-723
+  explicitly establishes that those values are dropped.
+- Coerce non-object values into strings - rejected because it would continue
+  losing the caller's intended structure and violate the object schema.
 
 ## Regression Test
 
@@ -88,7 +107,8 @@ valid object are dropped.
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/TransitTests/CreateTaskMetadataShapeValidationTests.swift` | Add symmetric regression and no-mutation coverage for both create paths. |
+| `Transit/TransitTests/CreateTaskMetadataShapeValidationTests.swift` | Add symmetric regression and no-mutation coverage for both create paths. |
+| `Transit/Transit/Intents/IntentHelpers.swift` | Add shared top-level metadata object-shape validation while preserving tolerant value filtering. |
 | `Transit/Transit/Intents/CreateTaskIntent.swift` | Add present-key metadata object validation. |
 | `Transit/Transit/MCP/MCPToolHandler.swift` | Add present-key metadata object validation. |
 | `CHANGELOG.md` | Add an unreleased fixed entry for T-1991. |
@@ -97,14 +117,18 @@ valid object are dropped.
 ## Verification
 
 **Automated:**
-- [ ] Regression tests fail before the fix and pass after it.
-- [ ] Full test suite passes.
-- [ ] Linters/validators pass.
+- [x] Regression tests fail before the fix and pass after it. The red
+  `make test-quick` run reported all six invalid-shape invocations as failing;
+  the focused post-fix suite passed.
+- [x] Full macOS unit suite passes via `make test-quick`, including both new
+  T-1991 tests and the existing omission/T-723 metadata tests.
+- [x] Linters/validators pass via `make lint` with 0 SwiftLint violations and
+  all SwiftData ownership guard checks passing.
 
 **Manual verification:**
-- [ ] Confirm omitted metadata still creates a task.
-- [ ] Confirm a valid object still preserves string values and drops
-  non-string values under T-723.
+- [x] Existing omission tests still pass for both create surfaces.
+- [x] Existing T-723 tests still pass: valid objects preserve string values and
+  drop non-string values.
 
 ## Prevention
 

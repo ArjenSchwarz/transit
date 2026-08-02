@@ -49,6 +49,13 @@ nonisolated enum IntentHelpers {
         return json
     }
 
+    /// Returns whether a present metadata value has the required JSON object shape.
+    /// This intentionally validates only the container; values inside a valid object continue to
+    /// follow the tolerant T-723 contract implemented by `stringMetadata(from:)`.
+    static func isMetadataObject(_ value: Any?) -> Bool {
+        value is [String: Any] || value is [String: String]
+    }
+
     /// Extracts string metadata entries from a JSON object value.
     /// Non-string values are ignored because task metadata is stored as `[String: String]`.
     static func stringMetadata(from value: Any?) -> [String: String]? {
