@@ -1,7 +1,7 @@
 # Bugfix Report: AddTaskIntent Stale Project Selection
 
 **Date:** 2026-08-02
-**Status:** In Progress
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -42,7 +42,17 @@ The no-project check has higher precedence than selected-entity resolution. Beca
 
 ## Resolution for the Issue
 
-<!-- Filled after the fix is implemented. -->
+**Changes made:**
+- `Transit/Transit/Intents/Visual/AddTaskIntent.swift` — Made the visual intent's project selection optional so an absent selection can be represented explicitly. The execution path now throws `.noProjects` only for a nil selection, then resolves a supplied entity through `ProjectService.findProject` before task creation. A stale entity therefore throws `.projectNotFound` even when the current project store is empty.
+- `Transit/TransitTests/AddTaskIntentTests.swift` — Tightened stale-selection coverage to assert the exact associated enum value and verify that no task is persisted. Updated the empty-database/no-selection test to assert `.noProjects` exactly and verify that no task is persisted.
+- `CHANGELOG.md` — Added the T-1814 fix to the Unreleased Fixed section.
+
+**Approach rationale:** A nil project is the unambiguous representation of no selection. Resolving a non-nil entity first preserves the identity of a stale Shortcut selection independently of how many projects remain. The existing task creation boundary remains after validation and resolution, so both failure cases are mutation-free.
+
+**Alternatives considered:**
+- Keep the early `hasAnyProjects()` guard and inspect the count after failure — rejected because an empty store cannot distinguish a deleted selected project from no selection.
+- Infer selection state from `ProjectEntity.id`, `projectId`, or `name` — rejected because those are serialized entity fields and should not carry control-flow meaning beyond the selected entity's UUID.
+- Add deletion tombstones to `ProjectService` — rejected because deletion can happen through sync or another context, and it would add state solely to compensate for an ambiguous API.
 
 ## Regression Test
 
@@ -59,18 +69,23 @@ The no-project check has higher precedence than selected-entity resolution. Beca
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/TransitTests/AddTaskIntentTests.swift` | Tightened stale-selection assertion and no-task assertion |
-| `specs/bugfixes/add-task-intent-stale-project-selection/report.md` | Investigation report |
+| `Transit/Transit/Intents/Visual/AddTaskIntent.swift` | Distinguish nil selection from stale selected entity before creating a task |
+| `Transit/TransitTests/AddTaskIntentTests.swift` | Exact error and no-mutation regressions for stale and empty selection cases |
+| `CHANGELOG.md` | Unreleased T-1814 fix entry |
+| `specs/bugfixes/add-task-intent-stale-project-selection/report.md` | Investigation, resolution, and verification record |
 
 ## Verification
 
 **Automated:**
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression test passes — `executeThrowsProjectNotFoundForStaleProjectSelection` asserts the exact `.projectNotFound` value and no task creation; `executeThrowsNoProjectsWhenDatabaseIsEmpty` asserts exact `.noProjects` for nil selection and no task creation.
+- [x] Full macOS unit test suite passes — `make test-quick` result: 1,649 passed, 0 failed.
+- [~] Full iOS test suite executed — 1,184 passed, 3 failed; the failures are the documented pre-existing iOS 26.5 UI baseline (`TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`) and do not touch AddTaskIntent.
+- [~] UI tests executed — 18 passed, 3 failed; the same documented baseline failures occurred, with no AddTaskIntent UI regression.
+- [x] Linters/validators pass — `make lint` reports 0 violations and all ownership guard checks pass.
+- [x] Builds pass for iOS and macOS — `make build` reports both Build Succeeded.
 
 **Manual verification:**
-- Not yet performed.
+- Not performed; automated tests cover both error classifications and mutation safety.
 
 ## Prevention
 

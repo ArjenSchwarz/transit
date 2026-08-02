@@ -134,29 +134,22 @@ struct AddTaskIntentTests {
 
     @Test func executeThrowsNoProjectsWhenDatabaseIsEmpty() async throws {
         let svc = try makeServices()
-        let fakeProject = ProjectEntity(
-            id: UUID().uuidString,
-            projectId: UUID(),
-            name: "Missing"
-        )
 
         do {
             _ = try await AddTaskIntent.execute(
                 name: "Task",
                 taskDescription: nil,
                 type: .feature,
-                project: fakeProject,
+                project: nil,
                 services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
             )
             Issue.record("Expected noProjects error")
         } catch let error as VisualIntentError {
-            switch error {
-            case .noProjects:
-                break
-            default:
-                Issue.record("Expected noProjects error, got \(error.code)")
-            }
+            #expect(error == .noProjects)
         }
+
+        let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty)
     }
 
     @Test func executeThrowsProjectNotFoundForStaleProjectSelection() async throws {
