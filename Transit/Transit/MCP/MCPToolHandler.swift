@@ -504,7 +504,13 @@ final class MCPToolHandler {
         }
         var projectFilter: UUID?
         if let pid = parsedProjectId {
-            projectFilter = pid
+            // A valid UUID is still an invalid project filter when no matching
+            // project exists. Resolve it before applying the in-memory filter so
+            // MCP matches the project-name and QueryTasksIntent contracts.
+            switch projectService.findProject(id: pid) {
+            case .success(let found): projectFilter = found.id
+            case .failure(let err): return errorResult(IntentHelpers.mapProjectLookupError(err).hint)
+            }
         } else if let name = args["project"] as? String,
                   !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             switch projectService.findProject(id: nil, name: name) {

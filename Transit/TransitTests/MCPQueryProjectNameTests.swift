@@ -49,6 +49,19 @@ struct MCPQueryProjectNameTests {
         #expect(try MCPTestHelpers.isError(response))
     }
 
+    @Test func queryWithMalformedProjectIdReturnsValidationError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["projectId": "not-a-uuid"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        let errorMessage = try MCPTestHelpers.errorText(response)
+        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+    }
+
     @Test func queryByNonexistentProjectIdMatchesIntentProjectNotFound() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let projectID = UUID()
