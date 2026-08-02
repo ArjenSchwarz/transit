@@ -1,7 +1,7 @@
 # Bugfix Report: QueryTasksIntent Accepts Reversed Absolute Date Ranges
 
 **Date:** 2026-08-02
-**Status:** In Progress
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -33,7 +33,18 @@ The shared date-filter path and the visual path were inspected before implementa
 
 ## Resolution for the Issue
 
-_To be completed after implementation._
+**Changes made:**
+- `Transit/Transit/Intents/Shared/Utilities/DateFilterHelpers.swift` - After strict parsing and invalid-endpoint checks, reject an absolute range only when both parsed endpoints exist and `fromDate > toDate`. Equal endpoints remain valid.
+- `Transit/TransitTests/DateFilterHelpersTests.swift` - Verify reversed ranges are rejected by the shared parser.
+- `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` - Verify both JSON date fields return `INVALID_INPUT` for reversed ranges and that an equal same-day range remains inclusive.
+- `Transit/TransitTests/FindTasksIntentTests.swift` - Verify the visual surface rejects an inverted `lastStatusChangeDate` custom range, complementing the existing completion-date regression.
+- `CHANGELOG.md` - Record the cross-surface validation fix and preserved behaviors.
+
+**Approach rationale:** Range ordering belongs at the shared parser boundary because QueryTasksIntent uses it for both date fields and the helper defines the absolute-range contract. The guard is strictly conditional on two parsed endpoints, so one-sided ranges, equal same-day ranges, relative precedence, and T-1799's strict parsing are unaffected. The visual surface retains its established `VisualIntentError` behavior.
+
+**Alternatives considered:**
+- Add ordering checks separately in `QueryTasksIntent` for each field - rejected because it duplicates shared range semantics and leaves other consumers vulnerable to the same mismatch.
+- Normalize reversed endpoints by swapping them - rejected because caller mistakes must produce `INVALID_INPUT`, matching `FindTasksIntent` rather than silently changing the requested range.
 
 ## Regression Test
 
@@ -59,12 +70,13 @@ _To be completed after implementation._
 ## Verification
 
 **Automated:**
-- [ ] Regression tests pass
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression tests pass - focused macOS run passed `DateFilterHelpersTests`, `QueryTasksIntentDateFilterTests`, and `FindTasksIntentTests`.
+- [x] Full unit test suite passes - `make test-quick` and an iOS Simulator run of `-only-testing:TransitTests` both exited successfully.
+- [x] Linters/validators pass - `make lint` reported 0 violations in 319 files and all ownership-guard checks passed.
+- [ ] Full `make test` target passes - the build and unit tests ran, but the target reported three unrelated UI failures: `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`, alongside repeated simulator `no debugger version` errors. No changed unit test failed.
 
 **Manual verification:**
-- Confirm the final diff preserves one-sided ranges, same-day inclusive ranges, relative filters, and strict date parsing.
+- Reviewed the final diff to confirm the guard runs only when both strict absolute endpoints parse, rejects only `from > to`, accepts equal endpoints, and leaves one-sided/open ranges, relative precedence, and T-1799 strict parsing unchanged.
 
 ## Prevention
 

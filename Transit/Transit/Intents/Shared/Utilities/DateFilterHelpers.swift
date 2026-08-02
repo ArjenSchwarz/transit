@@ -67,6 +67,7 @@ enum DateFilterHelpers {
 
         if from != nil && fromDate == nil { return nil }
         if toDateString != nil && toDate == nil { return nil }
+        if let fromDate, let toDate, fromDate > toDate { return nil }
 
         if from != nil || toDateString != nil {
             return .absolute(from: fromDate, toDate: toDate)

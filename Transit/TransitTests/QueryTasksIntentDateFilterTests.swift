@@ -253,6 +253,45 @@ struct QueryTasksIntentDateFilterTests {
         #expect(names == ["Before To", "At To"])
     }
 
+    @Test func absoluteSameDayRangeIncludesTasksOnThatDay() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date.now)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+
+        makeTask(
+            in: svc.context,
+            project: project,
+            name: "Today",
+            displayId: 1,
+            completionDate: today.addingTimeInterval(12 * 60 * 60)
+        )
+        makeTask(
+            in: svc.context,
+            project: project,
+            name: "Yesterday",
+            displayId: 2,
+            completionDate: yesterday.addingTimeInterval(12 * 60 * 60)
+        )
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.timeZone = TimeZone.current
+        let dateString = dateFormatter.string(from: today)
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"completionDate\":{\"from\":\"\(dateString)\",\"to\":\"\(dateString)\"}}",
+            projectService: svc.project,
+            taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let names = Set(try parseJSONArray(result).compactMap { $0["name"] as? String })
+        #expect(names == ["Today"])
+    }
+
     @Test("QueryTasksIntent rejects reversed absolute date ranges for both date fields")
     func reversedAbsoluteDateRangesReturnInvalidInput() throws {
         let svc = try makeServices()
