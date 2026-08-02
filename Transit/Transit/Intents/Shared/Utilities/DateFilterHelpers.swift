@@ -14,8 +14,11 @@ enum DateFilterHelpers {
         case absolute(from: Date?, toDate: Date?)
     }
 
+    // Preserve the user's calendar identifier while fixing the locale and timezone used
+    // for machine-readable date-only values. This matches the documented Calendar.current
+    // semantics and keeps absolute comparisons aligned with the parser across DST changes.
     private static let localDayCalendar: Calendar = {
-        var calendar = Calendar(identifier: .gregorian)
+        var calendar = Calendar.current
         calendar.locale = Locale(identifier: "en_US_POSIX")
         calendar.timeZone = TimeZone.current
         return calendar

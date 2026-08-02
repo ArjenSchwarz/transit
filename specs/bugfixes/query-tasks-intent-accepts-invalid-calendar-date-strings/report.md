@@ -33,11 +33,11 @@
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Intents/Shared/Utilities/DateFilterHelpers.swift` - Added an explicit Gregorian calendar using the current local time zone and POSIX locale; rejected every input without exactly ten ASCII bytes in `YYYY-MM-DD` shape; disabled formatter leniency; and required formatter round-trip equality so normalized invalid dates are rejected. Absolute range comparisons use the same local Gregorian calendar, while relative filters retain their existing `Calendar.current` behavior.
+- `Transit/Transit/Intents/Shared/Utilities/DateFilterHelpers.swift` - Preserved `Calendar.current` with the current local time zone and POSIX locale; rejected every input without exactly ten ASCII bytes in `YYYY-MM-DD` shape; disabled formatter leniency; and required formatter round-trip equality so normalized invalid dates are rejected. Absolute range comparisons use the same local current-calendar semantics as parsing, while relative filters retain their existing behavior.
 - `Transit/TransitTests/DateFilterHelpersTests.swift` - Added valid leap-day coverage plus invalid leap-year, month/day boundary, non-ASCII, and non-padded regressions.
 - `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` - Added intent-level `INVALID_INPUT` coverage for malformed values in both absolute date-filter fields.
 
-**Approach rationale:** Exact byte-shape validation prevents Foundation from accepting alternate lexical forms, and round-trip equality detects dates that Foundation normalizes. Explicit calendar/time-zone configuration keeps date-only values aligned with existing local inclusive range semantics without changing relative filters.
+**Approach rationale:** Exact byte-shape validation prevents Foundation from accepting alternate lexical forms, and round-trip equality detects dates that Foundation normalizes. Explicit locale/time-zone configuration preserves the documented `Calendar.current` date semantics and keeps parsing and inclusive comparisons aligned across local DST changes without changing relative filters.
 
 **Alternatives considered:**
 - Relying only on `DateFormatter.isLenient = false` - Not sufficient for the documented exact ASCII lexical contract, so shape validation and round-trip equality are both required.
@@ -63,7 +63,7 @@
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Intents/Shared/Utilities/DateFilterHelpers.swift` | Strict exact-shape, Gregorian, local-time-zone, round-trip date parsing |
+| `Transit/Transit/Intents/Shared/Utilities/DateFilterHelpers.swift` | Strict exact-shape, current-calendar, local-time-zone, round-trip date parsing |
 | `Transit/TransitTests/DateFilterHelpersTests.swift` | Parser regressions |
 | `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` | Intent-level regressions |
 | `specs/bugfixes/query-tasks-intent-accepts-invalid-calendar-date-strings/report.md` | Investigation and resolution report |
@@ -83,7 +83,7 @@
 ## Prevention
 
 - Validate exact input shape before invoking Foundation date parsing.
-- Use explicit Gregorian calendar, locale, and time-zone semantics for machine-readable dates.
+- Preserve `Calendar.current` while explicitly configuring locale and local time-zone semantics for machine-readable dates.
 - Require formatter round-trip equality before accepting a parsed calendar date.
 - Keep parser-level and intent-level regressions for externally documented input formats.
 
