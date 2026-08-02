@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import Testing
 @testable import Transit
@@ -30,7 +31,7 @@ struct ColorHexRoundTripTests {
         for byte in 0...255 {
             let component = byte == 0
                 ? 0.0
-                : (Double(byte) / 255.0).nextDown
+                : (Float(byte) / 255.0).nextDown
 
             #expect(
                 Color(
@@ -60,6 +61,19 @@ struct ColorHexRoundTripTests {
                 "Blue boundary component \(byte) did not round-trip"
             )
         }
+    }
+
+    @Test func resolvedComponentsAreClampedBeforeRounding() {
+        let color = Color(
+            Color.Resolved(
+                colorSpace: .sRGB,
+                red: -0.25,
+                green: 1.25,
+                blue: 0.5
+            )
+        )
+
+        #expect(color.hexString == "00FF80")
     }
 
     @Test func hexStringUsesUppercaseSixDigitRGBWithoutHashAndIgnoresAlpha() {
