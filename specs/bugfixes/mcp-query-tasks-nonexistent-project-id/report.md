@@ -34,6 +34,8 @@ The investigation followed the systematic debugging workflow:
 
 **Changes made:**
 - `Transit/Transit/MCP/MCPToolHandler.swift:505` - When `projectId` is a valid UUID, resolve it through `ProjectService.findProject(id:)` before constructing the in-memory task filter. Map lookup failures through the established project lookup error mapping; retain the existing UUID-shape validation and project-name branch.
+- `Transit/Transit/Services/ProjectService.swift` - Preserve project-store fetch failures as a distinct lookup error instead of misreporting them as missing projects. Query intent responses map this condition to `INTERNAL_ERROR`; MCP returns an error tool result.
+- The handler reuses the already resolved project when applying a project-scoped milestone-name filter, avoiding a second lookup.
 
 **Approach rationale:** The smallest safe fix validates existence at the point where MCP chooses the UUID filter path. It reuses the existing `ProjectService` and `IntentHelpers.mapProjectLookupError` behavior already used by the name path, without centralizing or rewriting unrelated filter logic. A valid existing UUID still selects the project ID, while a nonexistent one now returns the same hint as `QueryTasksIntent`.
 
@@ -46,7 +48,7 @@ The investigation followed the systematic debugging workflow:
 **Test file:** `Transit/TransitTests/MCPQueryProjectNameTests.swift`
 **Test names:** `queryByNonexistentProjectIdMatchesIntentProjectNotFound`, `queryWithMalformedProjectIdReturnsValidationError`
 
-**What they verify:** A well-formed nonexistent MCP `projectId` returns an error, and the MCP hint matches the `QueryTasksIntent` project-not-found response. A malformed `projectId` still returns the existing UUID validation error. Existing-ID/name/filter regressions remain unchanged.
+**What they verify:** A well-formed nonexistent MCP `projectId` returns an error, and the MCP hint matches the `QueryTasksIntent` project-not-found response even when the UUID input is lowercase. A malformed or explicit-null `projectId` returns the exact validation envelope. Existing-ID, project-name, projectId precedence, and combined filter behavior remain unchanged. Dedicated regressions also verify project lookup fetch failures are not reported as not-found and full task fetch failures remain MCP tool errors.
 
 **Run command:** `make test-quick`
 
@@ -55,7 +57,8 @@ The investigation followed the systematic debugging workflow:
 | File | Change |
 |------|--------|
 | `Transit/Transit/MCP/MCPToolHandler.swift` | Resolve valid `projectId` through `ProjectService` before filtering. |
-| `Transit/TransitTests/MCPQueryProjectNameTests.swift` | Add MCP regression and cross-surface parity assertion. |
+| `Transit/TransitTests/MCPQueryProjectNameTests.swift` | Add MCP regression, exact-envelope, malformed/null, fetch-failure, and cross-surface parity coverage. |
+| `Transit/TransitTests/ProjectLookupFetchFailureTests.swift` | Verify project lookup storage failures remain distinct from not-found. |
 | `CHANGELOG.md` | Record the unreleased T-1783 fix. |
 | `specs/bugfixes/mcp-query-tasks-nonexistent-project-id/report.md` | Document investigation, resolution, and verification. |
 
@@ -63,6 +66,7 @@ The investigation followed the systematic debugging workflow:
 
 **Automated:**
 - [x] Regression and malformed-input tests pass (`make test-quick`; all macOS unit tests passed)
+- [x] Focused lookup/failure tests cover existing and missing IDs, exact MCP error envelopes, explicit null IDs, lowercase UUID parity, project/task fetch failures, and project-scoped milestone filtering
 - [ ] Full iOS test suite passes: `make test` built and ran the suite, but three unrelated UI tests failed (`TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, `DataMaintenanceUITests.testDataMaintenanceGoldenPath`); the Makefile returned 0 because `xcbeautify` is the final pipeline command.
 - [x] Linters/validators pass (`make lint`; 0 violations, 0 serious)
 

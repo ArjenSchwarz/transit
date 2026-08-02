@@ -7,6 +7,18 @@ import Testing
 @MainActor @Suite(.serialized)
 struct MCPQueryProjectNameTests {
 
+    private struct FetchFailure: Swift.Error {}
+
+    private struct FailingProjectFetcher: ModelFetching {
+        func fetch<T: PersistentModel>(_ descriptor: FetchDescriptor<T>) throws -> [T] {
+            throw FetchFailure()
+        }
+    }
+
+    private struct FailingTaskFetcher: TaskFetching {
+        func fetchAllTasks() throws -> [TransitTask] { throw FetchFailure() }
+    }
+
     @Test func queryByProjectNameReturnsMatchingTasks() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
@@ -47,6 +59,24 @@ struct MCPQueryProjectNameTests {
         ))
 
         #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorText(response) == "No project named \"Nonexistent\"")
+    }
+
+    @Test func queryByProjectIdReturnsMatchingTasks() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        let beta = MCPTestHelpers.makeProject(in: env.context, name: "Beta")
+        _ = try await env.taskService.createTask(name: "A1", description: nil, type: .feature, project: alpha)
+        _ = try await env.taskService.createTask(name: "B1", description: nil, type: .bug, project: beta)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["projectId": alpha.id.uuidString]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.count == 1)
+        #expect(results.first?["name"] as? String == "A1")
     }
 
     @Test func queryWithMalformedProjectIdReturnsValidationError() async throws {
@@ -58,24 +88,61 @@ struct MCPQueryProjectNameTests {
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
-        #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
+        #expect(try MCPTestHelpers.errorText(response) == "Invalid projectId: expected a UUID string")
+    }
+
+    @Test func queryWithNullProjectIdReturnsValidationError() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["projectId": NSNull()]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorText(response) == "Invalid projectId: expected a UUID string")
+    }
+
+    @Test func queryProjectLookupFetchFailureReturnsInternalErrorEnvelope() async throws {
+        let env = try MCPTestHelpers.makeEnv(projectFetcher: FailingProjectFetcher())
+        let projectID = UUID()
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["projectId": projectID.uuidString]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorText(response).hasPrefix("Failed to fetch project:"))
+    }
+
+    @Test func queryTaskFetchFailureReturnsErrorEnvelope() async throws {
+        let env = try MCPTestHelpers.makeEnv(taskFetcher: FailingTaskFetcher())
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: [:]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorText(response).hasPrefix("Failed to fetch tasks:"))
     }
 
     @Test func queryByNonexistentProjectIdMatchesIntentProjectNotFound() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let projectID = UUID()
+        let projectIDString = projectID.uuidString.lowercased()
 
         let mcpResponse = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["projectId": projectID.uuidString]
+            arguments: ["projectId": projectIDString]
         ))
 
         #expect(try MCPTestHelpers.isError(mcpResponse))
         let mcpHint = try MCPTestHelpers.errorText(mcpResponse)
 
         let intentResponse = QueryTasksIntent.execute(
-            input: "{\"projectId\":\"\(projectID.uuidString)\"}",
+            input: "{\"projectId\":\"\(projectIDString)\"}",
             projectService: env.projectService,
             taskService: env.taskService,
             milestoneService: env.milestoneService
@@ -84,6 +151,7 @@ struct MCPQueryProjectNameTests {
         let intentJSON = try #require(
             try JSONSerialization.jsonObject(with: intentData) as? [String: Any]
         )
+        #expect(intentJSON.count == 2)
         #expect(intentJSON["error"] as? String == "PROJECT_NOT_FOUND")
         #expect(intentJSON["hint"] as? String == mcpHint)
     }

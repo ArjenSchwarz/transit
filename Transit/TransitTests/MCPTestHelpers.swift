@@ -20,7 +20,9 @@ enum MCPTestHelpers {
 
     static func makeEnv(
         taskCreateSave: @escaping (ModelContext) throws -> Void = { try $0.save() },
-        taskStatusSave: @escaping (ModelContext) throws -> Void = { try $0.save() }
+        taskStatusSave: @escaping (ModelContext) throws -> Void = { try $0.save() },
+        projectFetcher: (any ModelFetching)? = nil,
+        taskFetcher: (any TaskFetching)? = nil
     ) throws -> MCPTestEnv {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
@@ -32,7 +34,7 @@ enum MCPTestHelpers {
             createSave: taskCreateSave,
             statusSave: taskStatusSave
         )
-        let projectService = ProjectService(modelContext: context)
+        let projectService = ProjectService(modelContext: context, fetcher: projectFetcher)
         let commentService = CommentService(modelContext: context)
         let milestoneStore = InMemoryCounterStore()
         let milestoneAllocator = DisplayIDAllocator(store: milestoneStore)
@@ -49,7 +51,8 @@ enum MCPTestHelpers {
         let handler = MCPToolHandler(
             taskService: taskService, projectService: projectService,
             commentService: commentService, milestoneService: milestoneService,
-            maintenanceService: maintenanceService, settings: mcpSettings
+            maintenanceService: maintenanceService, settings: mcpSettings,
+            taskFetcher: taskFetcher
         )
         return MCPTestEnv(
             handler: handler,

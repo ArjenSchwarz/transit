@@ -116,6 +116,8 @@ nonisolated enum IntentHelpers {
             .projectNotFound(hint: hint)
         case .ambiguous(let hint):
             .ambiguousProject(hint: hint)
+        case .storageFailure(let hint):
+            .internalError(hint: hint)
         case .noIdentifier:
             .invalidInput(hint: "Either projectId or project name is required")
         }

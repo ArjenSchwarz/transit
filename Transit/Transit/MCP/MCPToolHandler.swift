@@ -9,6 +9,7 @@ import SwiftData
 final class MCPToolHandler {
 
     private let taskService: TaskService
+    private let taskFetcher: any TaskFetching
     private let projectService: ProjectService
     private let commentService: CommentService
     private let milestoneService: MilestoneService
@@ -35,9 +36,11 @@ final class MCPToolHandler {
         milestoneService: MilestoneService,
         maintenanceService: DisplayIDMaintenanceService,
         settings: MCPSettings,
-        persistence: PersistenceAvailability = .shared
+        persistence: PersistenceAvailability = .shared,
+        taskFetcher: (any TaskFetching)? = nil
     ) {
         self.taskService = taskService
+        self.taskFetcher = taskFetcher ?? taskService
         self.projectService = projectService
         self.commentService = commentService
         self.milestoneService = milestoneService
@@ -502,19 +505,25 @@ final class MCPToolHandler {
         if args["project"] != nil, !(args["project"] is String) {
             return errorResult("project must be a string")
         }
+        // Resolve a valid project ID to an existing project before filtering [T-1783].
         var projectFilter: UUID?
+        var resolvedProject: Project?
         if let pid = parsedProjectId {
             // A valid UUID is still an invalid project filter when no matching
             // project exists. Resolve it before applying the in-memory filter so
             // MCP matches the project-name and QueryTasksIntent contracts.
             switch projectService.findProject(id: pid) {
-            case .success(let found): projectFilter = found.id
+            case .success(let found):
+                resolvedProject = found
+                projectFilter = found.id
             case .failure(let err): return errorResult(IntentHelpers.mapProjectLookupError(err).hint)
             }
         } else if let name = args["project"] as? String,
                   !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             switch projectService.findProject(id: nil, name: name) {
-            case .success(let found): projectFilter = found.id
+            case .success(let found):
+                resolvedProject = found
+                projectFilter = found.id
             case .failure(let err): return errorResult(IntentHelpers.mapProjectLookupError(err).hint)
             }
         }
@@ -543,7 +552,7 @@ final class MCPToolHandler {
                   !milestoneName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if let projectFilter {
                 // Scoped to a single project — at most one milestone matches
-                guard case .success(let project) = projectService.findProject(id: projectFilter) else {
+                guard let project = resolvedProject else {
                     return textResult(IntentHelpers.encodeJSONArray([]))
                 }
                 do {
@@ -621,7 +630,7 @@ final class MCPToolHandler {
         // Full-table query
         let allTasks: [TransitTask]
         do {
-            allTasks = try taskService.fetchAllTasks()
+            allTasks = try taskFetcher.fetchAllTasks()
         } catch {
             return errorResult("Failed to fetch tasks: \(error)")
         }
