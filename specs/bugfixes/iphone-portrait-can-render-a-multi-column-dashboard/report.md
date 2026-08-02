@@ -55,9 +55,9 @@ The dashboard layout path was inspected from its root caller through both layout
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/DashboardLayoutTests.swift`
-**Test names:** `compactPortraitUsesSingleColumnAtEveryWidth(width:)`, `compactWidthRegularHeightUsesSingleColumnForNarrowIPadSplitView()`, `compactHeightRetainsLandscapeGeometryAdaptation()`, `regularIPadWidthRetainsGeometryAdaptation()`, `regularMacWidthRetainsGeometryAdaptationAndCapsAtFiveColumns()`
+**Test names:** `compactPortraitUsesSingleColumnAtEveryWidth(width:)`, `compactWidthRegularHeightUsesSingleColumnForNarrowIPadSplitView()`, `compactHeightRetainsLandscapeGeometryAdaptation()`, `regularIPadWidthRetainsGeometryAdaptation()`, `regularMacWidthRetainsGeometryAdaptationAndCapsAtFiveColumns()`, `missingSizeClassesRetainWidthBasedPreviewFallback()`, `missingVerticalSizeClassDoesNotAssumePortrait()`
 
-**What it verifies:** Compact-width portrait uses one column across representative widths, while landscape, iPad, and Mac retain geometry-based column selection. The iOS UI test now requires the segmented control and Active default rather than silently passing when the control is missing.
+**What it verifies:** Compact-width portrait uses one column across representative widths (320, 375, 390, 400, 428, and 599 points), while landscape, iPad, and Mac retain geometry-based column selection. Missing size classes retain the width-based fallback used by previews and macOS, and the iOS UI test requires the segmented control and Active default rather than silently passing when the control is missing.
 
 **Run command:** `make test-quick` and `make test-ui`
 
@@ -74,9 +74,9 @@ The dashboard layout path was inspected from its root caller through both layout
 ## Verification
 
 **Automated:**
-- [x] Regression tests pass — `DashboardLayoutTests` passes on macOS, including compact portrait widths 320, 400, 428, and 599 points plus iPad split, landscape, iPad, and Mac cases.
-- [x] Dedicated UI coverage passes — `make test-ui` result bundle `Test-Transit-2026.08.02_11-24-22-+1000.xcresult` reports 1,622/1,622 UI tests passed; the paired portrait and milestone-filter run also passed.
-- [~] Full iOS suite — `make test` completed its result bundle with 1,159/1,162 tests passed. The only three failures were established iOS 26.5 baseline failures: `testClearAll`, `testEditViewPreservesTaskMilestone`, and `testDataMaintenanceGoldenPath`. The other three established baseline failures (the Settings navigation tests) did not reproduce in this run, and no new product/test failure remained after orientation restoration. The Makefile wrapper timed out while `xcbeautify` was still attached, but the `.xcresult` bundle was complete and independently inspected.
+- [x] Regression tests pass — `DashboardLayoutTests` passes on macOS and iOS, including compact portrait widths 320, 375, 390, 400, 428, and 599 points plus iPad split, landscape, iPad, Mac, and missing-size-class cases.
+- [x] Portrait UI behavior passes in the full iOS run — `testIPhonePortraitDefaultsToActiveSegment` passed on the iPhone 17 iOS 26.5 Simulator, including the segmented-control and selected Active accessibility assertions.
+- [~] Full iOS suite — `make test` result bundle `DerivedData/Logs/Test/Test-Transit-2026.08.02_12-09-36-+1000.xcresult` reports 1,161/1,164 tests passed. The only three failures exactly match the known iOS 26.5 baseline: `testClearAll` (`XCTAssertTrue failed`), `testEditViewPreservesTaskMilestone` (`XCTAssertTrue failed`), and `testDataMaintenanceGoldenPath` (two matching `dataMaintenance.confirmButton` elements). No layout regression or new failure was observed.
 - [x] `make test-quick` passes.
 - [x] `make lint` passes with zero violations.
 

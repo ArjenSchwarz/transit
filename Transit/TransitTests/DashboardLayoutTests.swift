@@ -4,7 +4,7 @@ import Testing
 
 @MainActor
 struct DashboardLayoutTests {
-    @Test(arguments: [320, 400, 428, 599])
+    @Test(arguments: [320, 375, 390, 400, 428, 599])
     func compactPortraitUsesSingleColumnAtEveryWidth(width: Int) {
         let layout = DashboardLayoutLogic.layout(
             width: CGFloat(width),
@@ -53,5 +53,25 @@ struct DashboardLayoutTests {
         )
 
         #expect(layout == .kanban(visibleCount: 5, initialScrollTarget: nil))
+    }
+
+    @Test func missingSizeClassesRetainWidthBasedPreviewFallback() {
+        let layout = DashboardLayoutLogic.layout(
+            width: 400,
+            horizontalSizeClass: nil,
+            verticalSizeClass: nil
+        )
+
+        #expect(layout == .kanban(visibleCount: 2, initialScrollTarget: nil))
+    }
+
+    @Test func missingVerticalSizeClassDoesNotAssumePortrait() {
+        let layout = DashboardLayoutLogic.layout(
+            width: 400,
+            horizontalSizeClass: .compact,
+            verticalSizeClass: nil
+        )
+
+        #expect(layout == .kanban(visibleCount: 2, initialScrollTarget: nil))
     }
 }
