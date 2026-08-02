@@ -356,18 +356,18 @@ extension MCPServer {
         )
     }
 
-    /// Transport-level rejection. Deliberately not a JSON-RPC error body: the
-    /// request never entered a JSON-RPC session, and answering `200` with an
-    /// error object would tell an attacker's page that the endpoint is live.
-    ///
-    /// The body is a fixed string rather than the validator's specific reason,
-    /// so a probing script cannot learn whether it was the `Origin` or the
-    /// `Host` check that tripped.
+    /// Validates Origin and Host/authority before body access or dispatch.
+    /// This ordering is the MCP Streamable HTTP DNS-rebinding defence and must
+    /// remain first in every MCP route.
     nonisolated private static func isAllowedMCPRequest(_ request: Request) -> Bool {
         let origin = request.head.headerFields[.origin]
-        return MCPOriginValidator.rejectionReason(origin: origin,
-            authority: request.head.authority) == nil
+        return MCPOriginValidator.rejectionReason(
+            origin: origin,
+            authority: request.head.authority
+        ) == nil
     }
+    /// Transport-level rejection, not JSON-RPC: fixed plain text avoids
+    /// revealing whether Origin or Host validation failed to a prober.
     nonisolated private static func forbiddenResponse() -> Response {
         Response(
             status: .forbidden,
