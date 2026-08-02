@@ -134,6 +134,18 @@ struct MCPServerBatchRequestTests {
         #expect(object["result"] != nil)
     }
 
+    @Test func unknownToolCallOverRouteReturnsInvalidParams() async throws {
+        let response = try await respond(
+            body: #"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"not_a_real_tool","arguments":{}}}"#
+        )
+
+        #expect(response.status == .ok)
+        let object = try #require(response.json as? [String: Any])
+        let error = try #require(object["error"] as? [String: Any])
+        #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
+        #expect(error["message"] as? String == "Unknown tool: not_a_real_tool")
+    }
+
     // MARK: - Helpers
 
     private func respond(body: String) async throws -> CapturedResponse {

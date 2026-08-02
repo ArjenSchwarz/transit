@@ -81,6 +81,17 @@ struct MCPToolHandlerTests {
         #expect(error["code"] as? Int == -32601)
     }
 
+    @Test func unknownToolNameReturnsInvalidParams() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let response = await env.handler.handle(
+            MCPTestHelpers.toolCallRequest(tool: "not_a_real_tool", arguments: [:])
+        )
+
+        let error = try MCPTestHelpers.jsonRPCError(response)
+        #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
+        #expect(error["message"] as? String == "Unknown tool: not_a_real_tool")
+    }
+
     // MARK: - create_task
 
     @Test func createTaskSuccess() async throws {

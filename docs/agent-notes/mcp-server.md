@@ -50,7 +50,7 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 `scan_duplicate_display_ids` and `reassign_duplicate_display_ids` are exposed only when `MCPSettings.maintenanceToolsEnabled` is true. The toggle is persisted under UserDefaults key `mcpMaintenanceToolsEnabled`.
 
 - `MCPToolDefinitions` is split into `coreTools` and `maintenanceTools`; `tools(includingMaintenance:)` returns the right subset. The legacy `all` alias still resolves to `coreTools` only — anything in production should use the helper.
-- When the toggle is off, `tools/list` excludes both maintenance tools and `tools/call` for either name returns JSON-RPC `methodNotFound` (-32601) with the literal message `Tool '<name>' is disabled. Enable maintenance tools in Transit Settings.` — distinct from the "Unknown tool" message used for genuinely unknown names.
+- When the toggle is off, `tools/list` excludes both maintenance tools and `tools/call` for either name returns JSON-RPC `invalidParams` (-32602) with the literal message `Tool '<name>' is disabled. Enable maintenance tools in Transit Settings.` — distinct from the "Unknown tool" message used for genuinely unknown names.
 - The toggle takes effect on the next `tools/list` without restart (settings is read live).
 - Dispatch handlers (`handleScanDuplicateDisplayIds`, `handleReassignDuplicateDisplayIds`) encode `DisplayIDMaintenanceTypes` (Codable structs) via a shared `encodedTextResult(_:)` helper that JSON-encodes any `Encodable` and wraps it in the `MCPToolResult.content[text]` envelope.
 

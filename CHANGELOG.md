@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- MCP `tools/call` now returns JSON-RPC `-32602 Invalid Params` for unknown tool names and maintenance tools disabled in Settings (T-1883), while retaining useful messages, omitting disabled tools from `tools/list`, and preserving `-32601 Method Not Found` for unsupported top-level methods. Handler and HTTP-route regressions cover the classification boundaries.
 - T-1799: QueryTasksIntent absolute date filters now require exact ASCII `YYYY-MM-DD` values representing valid dates in the user's current calendar. Local `Calendar.current` parsing, non-lenient formatter round-trip validation, and regressions reject normalized invalid days/months, non-padded values, and non-ASCII input while preserving inclusive ranges and relative filters.
 - MCP Streamable HTTP now returns `405 Method Not Allowed` with `Allow: POST` for `GET /mcp` when no SSE listening stream is offered, while preserving POST handling, origin validation, and unrelated-route 404 behavior (T-1835).
 - MCP `query_tasks` now verifies that a well-formed `projectId` identifies an existing project before filtering (T-1783). Nonexistent project IDs return the established project-not-found error, while malformed UUID validation and other filters remain unchanged; regression coverage also checks parity with `QueryTasksIntent`.
