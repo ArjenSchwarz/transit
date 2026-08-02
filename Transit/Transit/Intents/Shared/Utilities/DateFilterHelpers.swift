@@ -14,12 +14,23 @@ enum DateFilterHelpers {
         case absolute(from: Date?, toDate: Date?)
     }
 
+    // Preserve the user's calendar identifier while fixing the locale and timezone used
+    // for machine-readable date-only values. This matches the documented Calendar.current
+    // semantics and keeps absolute comparisons aligned with the parser across DST changes.
+    private static let localDayCalendar: Calendar = {
+        var calendar = Calendar.current
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        calendar.timeZone = TimeZone.current
+        return calendar
+    }()
+
     private static let localDayFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.calendar = Calendar.current
-        formatter.timeZone = TimeZone.current
+        formatter.calendar = localDayCalendar
+        formatter.timeZone = localDayCalendar.timeZone
         formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
         return formatter
     }()
 
@@ -97,7 +108,7 @@ enum DateFilterHelpers {
             return dateInPreviousPeriod(date, component: .year, now: now, calendar: calendar)
 
         case .absolute(let from, let toDate):
-            return dateInAbsoluteRange(date, from: from, toDate: toDate, calendar: calendar)
+            return dateInAbsoluteRange(date, from: from, toDate: toDate, calendar: localDayCalendar)
         }
     }
 
@@ -139,6 +150,23 @@ enum DateFilterHelpers {
     }
 
     private static func dateFromString(_ value: String) -> Date? {
-        localDayFormatter.date(from: value)
+        guard hasExactDateShape(value),
+              let date = localDayFormatter.date(from: value),
+              localDayFormatter.string(from: date) == value else {
+            return nil
+        }
+        return date
+    }
+
+    private static func hasExactDateShape(_ value: String) -> Bool {
+        let bytes = Array(value.utf8)
+        guard bytes.count == 10, bytes[4] == 45, bytes[7] == 45 else {
+            return false
+        }
+
+        for (index, byte) in bytes.enumerated() where index != 4 && index != 7 {
+            guard (48...57).contains(byte) else { return false }
+        }
+        return true
     }
 }
