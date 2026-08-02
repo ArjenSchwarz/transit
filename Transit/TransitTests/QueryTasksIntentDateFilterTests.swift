@@ -4,6 +4,7 @@ import Testing
 @testable import Transit
 
 @MainActor @Suite(.serialized)
+// swiftlint:disable:next type_body_length
 struct QueryTasksIntentDateFilterTests {
 
     private struct Services {
@@ -264,6 +265,28 @@ struct QueryTasksIntentDateFilterTests {
 
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT")
+    }
+
+    @Test("QueryTasksIntent rejects malformed absolute date strings", arguments: [
+        "2026-02-30", // Normalized invalid day
+        "2026-13-01", // Invalid month boundary
+        "2026-2-01", // Non-padded month
+        "2026-02-１" // Non-ASCII digit
+    ])
+    func malformedAbsoluteDateStringsReturnInvalidInput(value: String) throws {
+        let svc = try makeServices()
+
+        for field in ["completionDate", "lastStatusChangeDate"] {
+            let result = QueryTasksIntent.execute(
+                input: "{\"\(field)\":{\"from\":\"\(value)\"}}",
+                projectService: svc.project,
+                taskService: svc.task,
+                milestoneService: svc.milestone
+            )
+
+            let parsed = try parseJSON(result)
+            #expect(parsed["error"] as? String == "INVALID_INPUT")
+        }
     }
 
     @Test func existingQueriesRemainCompatibleWithoutDateFilters() throws {

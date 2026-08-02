@@ -41,6 +41,44 @@ struct DateFilterHelpersTests {
         #expect(parsed == nil)
     }
 
+    @Test("parse absolute filter accepts real Gregorian leap-day dates")
+    func parseAbsoluteFilterAcceptsLeapDay() {
+        let parsed = DateFilterHelpers.parseDateFilter([
+            "from": "2024-02-29",
+            "to": "2024-03-01"
+        ])
+
+        guard case .absolute(let from, let toDate) = parsed else {
+            Issue.record("Expected absolute range")
+            return
+        }
+        #expect(from != nil)
+        #expect(toDate != nil)
+    }
+
+    @Test("parse absolute filter rejects non-calendar and non-ASCII date strings", arguments: [
+        "2023-02-29", // Non-leap year day overflow
+        "2024-02-30", // Leap-year month day overflow
+        "2026-04-31", // Month day overflow
+        "2026-00-01", // Month below lower boundary
+        "2026-13-01", // Month above upper boundary
+        "2026-02-00", // Day below lower boundary
+        "2026-２-01", // Full-width non-ASCII digit
+        "2026−02−01" // Unicode minus separators
+    ])
+    func parseAbsoluteFilterRejectsInvalidCalendarDateStrings(value: String) {
+        #expect(DateFilterHelpers.parseDateFilter(["from": value]) == nil)
+    }
+
+    @Test("parse absolute filter rejects non-padded date strings", arguments: [
+        "2026-2-01",
+        "2026-02-1",
+        "2026-2-1"
+    ])
+    func parseAbsoluteFilterRejectsNonPaddedDateStrings(value: String) {
+        #expect(DateFilterHelpers.parseDateFilter(["from": value]) == nil)
+    }
+
     @Test func absoluteRangeComparisonIsInclusive() {
         let calendar = Calendar.current
         let from = calendar.startOfDay(for: Date.now)
