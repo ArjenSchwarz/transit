@@ -25,11 +25,11 @@ struct AddTaskIntent: AppIntent {
 
     @Parameter(title: "Type")
     var type: TaskType
+
     // Keep no selection distinct from a stale entity so the latter can report
     // PROJECT_NOT_FOUND even when the deleted project was the last one.
-
     @Parameter(title: "Project")
-    var project: ProjectEntity?
+    var project: ProjectEntity
 
     // Metadata is intentionally not exposed here. See Decision 17 in
     // specs/shortcuts-friendly-intents/decision_log.md: comma-separated
@@ -76,6 +76,9 @@ struct AddTaskIntent: AppIntent {
         }
 
         guard let project else {
+            if services.projectService.hasAnyProjects() {
+                throw VisualIntentError.invalidInput("Project is required.")
+            }
             throw VisualIntentError.noProjects
         }
 

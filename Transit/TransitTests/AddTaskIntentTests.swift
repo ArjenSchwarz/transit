@@ -175,4 +175,25 @@ struct AddTaskIntentTests {
         let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
         #expect(tasks.isEmpty)
     }
+
+    @Test func executeThrowsInvalidInputForMissingProjectWhenProjectsExist() async throws {
+        let svc = try makeServices()
+        _ = makeProject(in: svc.context)
+
+        do {
+            _ = try await AddTaskIntent.execute(
+                name: "Task",
+                taskDescription: nil,
+                type: .feature,
+                project: nil,
+                services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
+            )
+            Issue.record("Expected invalidInput error")
+        } catch let error as VisualIntentError {
+            #expect(error == .invalidInput("Project is required."))
+        }
+
+        let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty)
+    }
 }
