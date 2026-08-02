@@ -2,6 +2,18 @@
 import SwiftData
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+#endif
+
+#if os(iOS)
+private func dashboardIsPhoneDevice() -> Bool {
+    UIDevice.current.userInterfaceIdiom == .phone
+}
+#else
+private func dashboardIsPhoneDevice() -> Bool { false }
+#endif
+
 struct DashboardView: View {
     @Query(sort: \TransitTask.lastStatusChangeDate, order: .reverse) private var allTasks: [TransitTask]
     @Query(sort: \Project.name) private var projects: [Project]
@@ -25,13 +37,6 @@ struct DashboardView: View {
     @Environment(QuickActionService.self) private var quickActionService
     @Environment(\.sceneSessionID) private var sceneSessionID
     #endif
-
-    /// Minimum width (in points) for a single kanban column.
-    private static let columnMinWidth: CGFloat = 200
-
-    private var isPhoneLandscape: Bool {
-        verticalSizeClass == .compact
-    }
 
     private var effectiveSearchText: String {
         searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -68,21 +73,26 @@ struct DashboardView: View {
         // render pass instead of once for each consumer. [T-198]
         let columns = filteredColumns
         GeometryReader { geometry in
-            let rawColumnCount = max(1, Int(geometry.size.width / Self.columnMinWidth))
-            let columnCount = isPhoneLandscape ? min(rawColumnCount, 3) : rawColumnCount
+            let layout = DashboardLayoutLogic.layout(
+                width: geometry.size.width,
+                horizontalSizeClass: sizeClass,
+                verticalSizeClass: verticalSizeClass,
+                isPhone: dashboardIsPhoneDevice()
+            )
 
-            if columnCount == 1 {
+            switch layout {
+            case .singleColumn:
                 SingleColumnView(
                     columns: columns,
                     selectedColumn: $selectedColumn,
                     onTaskTap: { handleTaskTap($0) },
                     onDrop: handleDrop
                 )
-            } else {
+            case let .kanban(visibleCount, initialScrollTarget):
                 KanbanBoardView(
                     columns: columns,
-                    visibleCount: min(columnCount, 5),
-                    initialScrollTarget: isPhoneLandscape ? .planning : nil,
+                    visibleCount: visibleCount,
+                    initialScrollTarget: initialScrollTarget,
                     onTaskTap: { handleTaskTap($0) },
                     onDrop: handleDrop
                 )
