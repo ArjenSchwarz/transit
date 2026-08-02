@@ -46,6 +46,11 @@ struct CreateRequiredStringValidationTests {
         return try #require(String(data: data, encoding: .utf8))
     }
 
+    private func jsonRoundTripped(_ fields: [String: Any]) throws -> [String: Any] {
+        let data = try JSONSerialization.data(withJSONObject: fields)
+        return try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
     private func parseJSON(_ string: String) throws -> [String: Any] {
         let data = try #require(string.data(using: .utf8))
         return try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -61,11 +66,11 @@ struct CreateRequiredStringValidationTests {
         for entry in nonStringValues {
             let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
                 tool: "create_task",
-                arguments: [
+                arguments: try jsonRoundTripped([
                     "name": entry.value,
                     "type": "feature",
                     "projectId": project.id.uuidString
-                ]
+                ])
             ))
             #expect(try MCPTestHelpers.isError(response))
             #expect(try MCPTestHelpers.errorText(response) == "name must be a string")
@@ -74,11 +79,11 @@ struct CreateRequiredStringValidationTests {
         for entry in nonStringValues {
             let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
                 tool: "create_task",
-                arguments: [
+                arguments: try jsonRoundTripped([
                     "name": "Task",
                     "type": entry.value,
                     "projectId": project.id.uuidString
-                ]
+                ])
             ))
             #expect(try MCPTestHelpers.isError(response))
             #expect(try MCPTestHelpers.errorText(response) == "type must be a string")
@@ -165,7 +170,7 @@ struct CreateRequiredStringValidationTests {
         for entry in nonStringValues {
             let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
                 tool: "create_milestone",
-                arguments: ["name": entry.value, "projectId": project.id.uuidString]
+                arguments: try jsonRoundTripped(["name": entry.value, "projectId": project.id.uuidString])
             ))
             #expect(try MCPTestHelpers.isError(response))
             #expect(try MCPTestHelpers.errorText(response) == "name must be a string")
