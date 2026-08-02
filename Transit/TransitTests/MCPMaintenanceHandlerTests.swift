@@ -53,7 +53,7 @@ struct MCPMaintenanceHandlerTests {
 
     // MARK: - tools/call gating
 
-    @Test func scanCallWhenDisabledReturnsMethodNotFound() async throws {
+    @Test func scanCallWhenDisabledReturnsInvalidParams() async throws {
         let env = try MCPTestHelpers.makeEnv()
         env.mcpSettings.maintenanceToolsEnabled = false
 
@@ -62,14 +62,14 @@ struct MCPMaintenanceHandlerTests {
         )
 
         let error = try requireError(response)
-        #expect(error["code"] as? Int == JSONRPCErrorCode.methodNotFound)
+        #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
         #expect(
             error["message"] as? String
                 == "Tool 'scan_duplicate_display_ids' is disabled. Enable maintenance tools in Transit Settings."
         )
     }
 
-    @Test func reassignCallWhenDisabledReturnsMethodNotFound() async throws {
+    @Test func reassignCallWhenDisabledReturnsInvalidParams() async throws {
         let env = try MCPTestHelpers.makeEnv()
         env.mcpSettings.maintenanceToolsEnabled = false
 
@@ -78,7 +78,7 @@ struct MCPMaintenanceHandlerTests {
         )
 
         let error = try requireError(response)
-        #expect(error["code"] as? Int == JSONRPCErrorCode.methodNotFound)
+        #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
         #expect(
             error["message"] as? String
                 == "Tool 'reassign_duplicate_display_ids' is disabled. Enable maintenance tools in Transit Settings."

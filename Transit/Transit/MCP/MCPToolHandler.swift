@@ -211,11 +211,13 @@ final class MCPToolHandler {
         }
 
         // Gate maintenance tools behind the settings toggle. Distinct message so
-        // callers can tell a disabled tool from an unknown one (AC 5.5).
+        // callers can tell a disabled tool from an unknown one (AC 5.5). The
+        // outer tools/call method is supported; only its tool-name parameter is
+        // invalid under the negotiated MCP protocol contract.
         if MCPToolDefinitions.maintenanceToolNames.contains(name), !settings.maintenanceToolsEnabled {
             return JSONRPCResponse.error(
                 id: id,
-                code: JSONRPCErrorCode.methodNotFound,
+                code: JSONRPCErrorCode.invalidParams,
                 message: "Tool '\(name)' is disabled. Enable maintenance tools in Transit Settings."
             )
         }
@@ -260,7 +262,7 @@ final class MCPToolHandler {
         default:
             return JSONRPCResponse.error(
                 id: id,
-                code: JSONRPCErrorCode.methodNotFound,
+                code: JSONRPCErrorCode.invalidParams,
                 message: "Unknown tool: \(name)"
             )
         }
