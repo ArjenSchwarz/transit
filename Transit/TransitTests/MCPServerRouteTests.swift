@@ -1,0 +1,109 @@
+#if os(macOS)
+import Foundation
+import HTTPTypes
+import Hummingbird
+import Logging
+import NIOCore
+import NIOEmbedded
+import Testing
+@testable import Transit
+
+/// Regression tests for T-1835: the advertised MCP Streamable HTTP endpoint
+/// must distinguish an unsupported method on `/mcp` from an unknown route.
+///
+/// MCP 2025-03-26 requires GET on the MCP endpoint to return 405 when the
+/// server does not offer an SSE listening stream. Hummingbird's unmatched
+/// route fallback previously returned 404 because only POST was registered.
+@MainActor @Suite(.serialized)
+struct MCPServerRouteTests {
+
+    @Test func getMcpReturnsMethodNotAllowedWithPostAllowHeader() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let response = try await respond(
+            handler: env.handler,
+            method: .get,
+            path: "/mcp"
+        )
+
+        #expect(response.status == .methodNotAllowed)
+        #expect(response.allow == "POST")
+    }
+
+    @Test func postMcpStillDispatchesNormally() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let response = try await respond(
+            handler: env.handler,
+            method: .post,
+            path: "/mcp",
+            body: #"{"jsonrpc":"2.0","id":1,"method":"ping"}"#
+        )
+
+        #expect(response.status == .ok)
+    }
+
+    @Test func getMcpStillValidatesUntrustedOrigins() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let response = try await respond(
+            handler: env.handler,
+            method: .get,
+            path: "/mcp",
+            origin: "https://evil.example.com"
+        )
+
+        #expect(response.status == .forbidden)
+    }
+
+    @Test func getOnUnrelatedPathRemainsNotFound() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let response = try await respond(
+            handler: env.handler,
+            method: .get,
+            path: "/not-mcp"
+        )
+
+        #expect(response.status == .notFound)
+        #expect(response.allow == nil)
+    }
+
+    private struct RouteResponse {
+        let status: HTTPResponse.Status
+        let allow: String?
+    }
+
+    private func respond(
+        handler: MCPToolHandler,
+        method: HTTPRequest.Method,
+        path: String,
+        origin: String? = nil,
+        body: String = ""
+    ) async throws -> RouteResponse {
+        let responder = MCPServer.makeRouter(handler: handler).buildResponder()
+        var headers = HTTPFields()
+        if let origin {
+            headers[.origin] = origin
+        }
+        let request = Request(
+            head: HTTPRequest(
+                method: method,
+                scheme: "http",
+                authority: "127.0.0.1:3141",
+                path: path,
+                headerFields: headers
+            ),
+            body: RequestBody(buffer: ByteBuffer(string: body))
+        )
+
+        let channel = EmbeddedChannel()
+        defer { _ = try? channel.finish() }
+        let context = BasicRequestContext(
+            source: ApplicationRequestContextSource(
+                channel: channel, logger: Logger(label: "mcp-route-tests")
+            )
+        )
+
+        let response = try await responder.respond(to: request, context: context)
+        return RouteResponse(status: response.status, allow: response.headers[.allow])
+    }
+}
+
+#endif
