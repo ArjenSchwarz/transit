@@ -193,22 +193,19 @@ extension MCPServer {
 
 extension MCPServer {
 
-    /// Builds the Hummingbird router for the single `POST /mcp` endpoint.
+    /// Builds the Hummingbird router for the MCP endpoint.
+    /// POST carries JSON-RPC; GET is explicitly 405 because no SSE stream is offered.
     /// `nonisolated` keeps transport construction independent of MainActor;
-    /// route callbacks execute on Hummingbird/NIO and hop to MainActor only
-    /// when dispatching through `MCPToolHandler`.
+    /// route callbacks execute on Hummingbird/NIO and hop to MainActor when dispatching.
     nonisolated static func makeRouter(handler: MCPToolHandler) -> Router<BasicRequestContext> {
         let router = Router()
+        router.get("mcp") { request, _ -> Response in
+            guard Self.isAllowedMCPRequest(request) else { return forbiddenResponse() }
+            return Response(status: .methodNotAllowed, headers: [.allow: "POST"])
+        }
         router.post("mcp") { request, _ -> Response in
-            // DNS-rebinding defence required by the MCP Streamable HTTP
-            // transport. This must stay the first statement in the route: an
-            // untrusted caller's body is never read, decoded, or dispatched.
-            if MCPOriginValidator.rejectionReason(
-                origin: request.head.headerFields[.origin],
-                authority: request.head.authority
-            ) != nil {
-                return forbiddenResponse()
-            }
+            // Validate origin before reading the body.
+            guard Self.isAllowedMCPRequest(request) else { return forbiddenResponse() }
 
             let body = try await request.body.collect(upTo: 1_048_576)
             let data = Data(buffer: body)
@@ -359,13 +356,18 @@ extension MCPServer {
         )
     }
 
-    /// Transport-level rejection. Deliberately not a JSON-RPC error body: the
-    /// request never entered a JSON-RPC session, and answering `200` with an
-    /// error object would tell an attacker's page that the endpoint is live.
-    ///
-    /// The body is a fixed string rather than the validator's specific reason,
-    /// so a probing script cannot learn whether it was the `Origin` or the
-    /// `Host` check that tripped.
+    /// Validates Origin and Host/authority before body access or dispatch.
+    /// This MCP DNS-rebinding defence must remain first in every MCP route.
+    nonisolated private static func isAllowedMCPRequest(_ request: Request) -> Bool {
+        let origin = request.head.headerFields[.origin]
+        return MCPOriginValidator.rejectionReason(
+            origin: origin,
+            authority: request.head.authority
+        ) == nil
+    }
+
+    /// Transport-level rejection, not JSON-RPC: fixed plain text avoids
+    /// revealing whether Origin or Host validation failed to a prober.
     nonisolated private static func forbiddenResponse() -> Response {
         Response(
             status: .forbidden,
