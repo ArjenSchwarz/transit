@@ -1,7 +1,7 @@
 # Bugfix Report: Query Tasks Nested Date Filter Null Fields
 
 **Date:** 2026-08-02
-**Status:** In Progress
+**Status:** Fixed
 **Ticket:** T-1644
 
 ## Description of the Issue
@@ -37,7 +37,17 @@ The investigation followed the project's systematic debugging workflow: inspect 
 
 ## Resolution for the Issue
 
-_To be completed after implementation._
+**Changes made:**
+- `Transit/Transit/Intents/QueryTasksIntent.swift` — Added a raw JSON preflight for `completionDate` and `lastStatusChangeDate`. Each recognized date filter must be an object, and `relative`, `from`, and `to` are checked for `NSNull` before `JSONDecoder` runs. Non-object shapes retain the existing `Expected valid JSON object` error contract, while unknown nested keys remain ignored.
+- `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift` — Added six nested-null regressions, malformed object-shape regressions, and a no-broadening regression covering both filters.
+- `CHANGELOG.md` — Added the T-1644 fixed entry under `Unreleased`.
+
+**Approach rationale:** The raw `JSONSerialization` object is already available for top-level null validation, so extending that preflight preserves the existing Codable model and date parsing semantics while retaining presence information only where required. Fixed field iteration order makes the nested null error deterministic.
+
+**Alternatives considered:**
+- Add custom `Decodable` presence tracking to `DateRangeFilter` — rejected as a larger change than the existing raw-object validation pattern.
+- Reject every null-valued unknown nested key — rejected to avoid changing Codable's established behavior for ignored fields.
+- Treat nested null as omitted — rejected because it can widen a bounded date query.
 
 ## Regression Test
 
@@ -62,22 +72,23 @@ _To be completed after implementation._
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Intents/QueryTasksIntent.swift` | Pending presence-aware nested date-filter validation |
+| `Transit/Transit/Intents/QueryTasksIntent.swift` | Presence-aware nested date-filter validation before Codable decoding |
 | `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift` | Nested null and malformed-shape regressions |
 | `specs/bugfixes/query-tasks-nested-date-filter-null-fields/report.md` | Investigation and resolution record |
-| `CHANGELOG.md` | Pending Unreleased fixed entry |
+| `CHANGELOG.md` | Unreleased T-1644 fixed entry |
 
 ## Verification
 
 **Automated:**
-- [ ] Red regression tests fail before the fix
-- [ ] Regression tests pass after the fix
-- [ ] Full unit test suite passes
-- [ ] Linters/validators pass
+- [x] Red regression run confirmed all six nested-null cases failed before the fix (`xcodebuild ... -only-testing:TransitTests/QueryTasksIntentNullFilterTests`, exit 65).
+- [x] Focused regression suite passes after the fix (all `QueryTasksIntentNullFilterTests` cases passed).
+- [x] Full unit test suite passes (`make test-quick`, exit 0).
+- [x] Linters/validators pass (`make lint`, exit 0; ownership guard and SwiftLint pass).
 
 **Manual verification:**
-- Confirm omitted date-filter fields retain existing semantics.
-- Confirm top-level null error hints remain unchanged.
+- Existing `omittedKeysStillReturnAllTasks` confirms omitted filters retain existing semantics.
+- Existing top-level null regressions continue to pass, preserving their established `Filter \"<key>\" must not be null` contract.
+- Scalar and array nested date-filter shapes continue to return `INVALID_INPUT` rather than broadening results.
 
 ## Prevention
 
