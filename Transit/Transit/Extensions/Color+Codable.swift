@@ -20,9 +20,18 @@ extension Color {
     /// Uses Color.Resolved to avoid UIColor/NSColor actor isolation issues.
     var hexString: String {
         let resolved = self.resolve(in: EnvironmentValues())
-        let red = Int(max(0, min(1, resolved.red)) * 255)
-        let green = Int(max(0, min(1, resolved.green)) * 255)
-        let blue = Int(max(0, min(1, resolved.blue)) * 255)
+        let red = roundedByte(from: resolved.red)
+        let green = roundedByte(from: resolved.green)
+        let blue = roundedByte(from: resolved.blue)
         return String(format: "%02X%02X%02X", red, green, blue)
+    }
+
+    /// Quantize a resolved sRGB component to its nearest 8-bit channel value.
+    /// Resolved components can be a fraction below an exact byte boundary due
+    /// to platform color-space conversion, so truncation would darken colors.
+    private func roundedByte(from component: Float) -> Int {
+        guard component.isFinite else { return 0 }
+        let clamped = max(0, min(1, component))
+        return Int((clamped * 255).rounded())
     }
 }

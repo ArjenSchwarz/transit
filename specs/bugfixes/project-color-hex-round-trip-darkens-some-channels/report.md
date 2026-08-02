@@ -1,7 +1,7 @@
 # Bugfix Report: Project Color Hex Round-Trip Darkens Some Channels
 
 **Date:** 2026-08-02
-**Status:** In Progress
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -34,7 +34,16 @@ The investigation followed the systematic debugging workflow: establish the expe
 
 ## Resolution for the Issue
 
-_To be completed after the implementation is verified._
+**Changes made:**
+- `Transit/Transit/Extensions/Color+Codable.swift:21-37` - Replaced truncating `Int(component * 255)` conversions with a shared `roundedByte` helper that rejects non-finite values, clamps components to `0...1`, rounds to the nearest byte, and then converts to `Int`.
+- `Transit/TransitTests/ColorHexRoundTripTests.swift:8-82` - Added all-byte RGB round-trip tests, deterministic just-below-boundary tests using explicit sRGB `Color.Resolved` values, and format/opacity assertions.
+- `CHANGELOG.md` - Documented the fixed behavior and regression coverage.
+
+**Approach rationale:** Rounding after clamping directly addresses the numeric root cause while leaving `Color.resolve(in: EnvironmentValues())` in place. That preserves the existing platform-aware SwiftUI resolution path and avoids the UIColor/NSColor actor-isolation issues documented for this project. The six-digit uppercase RGB format and intentional omission of opacity remain unchanged.
+
+**Alternatives considered:**
+- Converting through `UIColor`/`NSColor` - Not chosen because it introduces platform-specific code and actor-isolation concerns without fixing the quantization rule.
+- Changing the stored format to include alpha - Not chosen because project color storage is intentionally RGB-only and the bug is channel quantization, not opacity handling.
 
 ## Regression Test
 
@@ -49,19 +58,24 @@ _To be completed after the implementation is verified._
 
 | File | Change |
 |------|--------|
+| `Transit/Transit/Extensions/Color+Codable.swift` | Nearest-byte quantization for resolved RGB components. |
 | `Transit/TransitTests/ColorHexRoundTripTests.swift` | Regression coverage for RGB byte round trips, boundary rounding, alpha, and format. |
-| `Transit/Extensions/Color+Codable.swift` | Pending nearest-byte conversion fix. |
-| `CHANGELOG.md` | Pending user-visible bugfix entry. |
+| `specs/bugfixes/project-color-hex-round-trip-darkens-some-channels/report.md` | Investigation and resolution report. |
+| `CHANGELOG.md` | User-visible bugfix entry. |
 
 ## Verification
 
 **Automated:**
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Focused regression tests pass on macOS (`ColorHexRoundTripTests`, 5 tests)
+- [x] Focused regression tests pass on iOS Simulator (`ColorHexRoundTripTests`, 5 tests)
+- [x] macOS unit suite passes via `make test-quick`
+- [x] Linters/validators pass via `make lint` (0 violations)
+- [ ] Full iOS `make test` is not clean: unrelated existing UI tests `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath` failed after the app and unit tests built successfully.
 
 **Manual verification:**
-- Deterministic pre-fix run fails the new tests against the truncating implementation.
+- The pre-fix targeted run failed all five color tests against the truncating implementation.
+- The post-fix targeted runs passed all five tests on both macOS and iOS, including every RGB byte value and all three channels immediately below each byte boundary.
+- The tests construct explicit sRGB `Color.Resolved` values, so the boundary assertions do not depend on one platform's incidental floating-point representation.
 
 ## Prevention
 
