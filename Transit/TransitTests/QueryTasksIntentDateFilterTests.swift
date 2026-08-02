@@ -306,6 +306,7 @@ struct QueryTasksIntentDateFilterTests {
 
             let parsed = try parseJSON(result)
             #expect(parsed["error"] as? String == "INVALID_INPUT")
+            #expect(parsed["hint"] as? String == "Invalid \(field) filter format")
         }
     }
 

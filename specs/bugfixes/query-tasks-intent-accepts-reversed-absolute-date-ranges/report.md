@@ -34,10 +34,10 @@ The shared date-filter path and the visual path were inspected before implementa
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Intents/Shared/Utilities/DateFilterHelpers.swift` - After strict parsing and invalid-endpoint checks, reject an absolute range only when both parsed endpoints exist and `fromDate > toDate`. Equal endpoints remain valid.
-- `Transit/TransitTests/DateFilterHelpersTests.swift` - Verify reversed ranges are rejected by the shared parser.
-- `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` - Verify both JSON date fields return `INVALID_INPUT` for reversed ranges and that an equal same-day range remains inclusive.
-- `Transit/TransitTests/FindTasksIntentTests.swift` - Verify the visual surface rejects an inverted `lastStatusChangeDate` custom range, complementing the existing completion-date regression.
+- `Transit/Transit/Intents/Shared/Utilities/DateFilterHelpers.swift` - After strict parsing and invalid-endpoint checks, reject an absolute range only when both parsed endpoints exist and `fromDate > toDate`. Resolve the local-day calendar and formatter for each operation so changes to the user's current calendar or time zone are honored consistently by parsing and filtering.
+- `Transit/TransitTests/DateFilterHelpersTests.swift` - Verify reversed ranges are rejected, equal endpoints remain valid, and one-sided bounds remain open.
+- `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` - Verify both JSON date fields return `INVALID_INPUT` for reversed ranges and that an equal same-day range remains inclusive, with exact error hints.
+- `Transit/TransitTests/FindTasksIntentTests.swift` - Verify the visual surface rejects an inverted custom range for both date fields with the exact established `VisualIntentError` values, complementing the shared-parser coverage.
 - `CHANGELOG.md` - Record the cross-surface validation fix and preserved behaviors.
 
 **Approach rationale:** Range ordering belongs at the shared parser boundary because QueryTasksIntent uses it for both date fields and the helper defines the absolute-range contract. The guard is strictly conditional on two parsed endpoints, so one-sided ranges, equal same-day ranges, relative precedence, and T-1799's strict parsing are unaffected. The visual surface retains its established `VisualIntentError` behavior.

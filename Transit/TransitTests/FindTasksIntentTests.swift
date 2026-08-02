@@ -292,11 +292,12 @@ struct FindTasksIntentTests {
         #expect(result.isEmpty)
     }
 
-    @Test func executeThrowsInvalidDateWhenCustomRangeIsInverted() throws {
+    @Test func executeThrowsExactInvalidDateForInvertedCompletionRange() throws {
         let env = try makeEnv()
         let today = Calendar.current.startOfDay(for: .now)
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
-        #expect(throws: VisualIntentError.self) {
+
+        do {
             _ = try FindTasksIntent.execute(
                 filters: makeFindFilters(
                     completionDateFilter: .customRange,
@@ -305,14 +306,18 @@ struct FindTasksIntentTests {
                 ),
                 taskService: env.taskService
             )
+            Issue.record("Expected an inverted completion range to throw")
+        } catch let error as VisualIntentError {
+            #expect(error == .invalidDate("completionDate from date must be before to date"))
         }
     }
 
-    @Test func executeThrowsInvalidDateWhenLastStatusChangeCustomRangeIsInverted() throws {
+    @Test func executeThrowsExactInvalidDateForInvertedLastStatusChangeRange() throws {
         let env = try makeEnv()
         let today = Calendar.current.startOfDay(for: .now)
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
-        #expect(throws: VisualIntentError.self) {
+
+        do {
             _ = try FindTasksIntent.execute(
                 filters: makeFindFilters(
                     lastStatusChangeDateFilter: .customRange,
@@ -321,6 +326,9 @@ struct FindTasksIntentTests {
                 ),
                 taskService: env.taskService
             )
+            Issue.record("Expected an inverted last-status-change range to throw")
+        } catch let error as VisualIntentError {
+            #expect(error == .invalidDate("lastStatusChangeDate from date must be before to date"))
         }
     }
 }

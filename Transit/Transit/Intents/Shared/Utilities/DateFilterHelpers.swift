@@ -17,22 +17,23 @@ enum DateFilterHelpers {
     // Preserve the user's calendar identifier while fixing the locale and timezone used
     // for machine-readable date-only values. This matches the documented Calendar.current
     // semantics and keeps absolute comparisons aligned with the parser across DST changes.
-    private static let localDayCalendar: Calendar = {
+    private static var localDayCalendar: Calendar {
         var calendar = Calendar.current
         calendar.locale = Locale(identifier: "en_US_POSIX")
         calendar.timeZone = TimeZone.current
         return calendar
-    }()
+    }
 
-    private static let localDayFormatter: DateFormatter = {
+    private static var localDayFormatter: DateFormatter {
         let formatter = DateFormatter()
-        formatter.calendar = localDayCalendar
-        formatter.timeZone = localDayCalendar.timeZone
+        let calendar = localDayCalendar
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.isLenient = false
         return formatter
-    }()
+    }
 
     private static let relativeTokens: [String: DateRange] = [
         "today": .today,
