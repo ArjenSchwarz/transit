@@ -41,6 +41,52 @@ struct DateFilterHelpersTests {
         #expect(parsed == nil)
     }
 
+    @Test func parseAbsoluteFilterRejectsReversedRanges() {
+        let parsed = DateFilterHelpers.parseDateFilter([
+            "from": "2026-07-20",
+            "to": "2026-07-01"
+        ])
+        #expect(parsed == nil)
+    }
+
+    @Test func parseAbsoluteFilterUsesCurrentCalendarAndTimeZone() {
+        var calendar = Calendar.current
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        calendar.timeZone = TimeZone.current
+        let expected = calendar.date(from: DateComponents(year: 2026, month: 7, day: 20))!
+
+        guard case .absolute(let from, let toDate) = DateFilterHelpers.parseDateFilter([
+            "from": "2026-07-20",
+            "to": "2026-07-20"
+        ]) else {
+            Issue.record("Expected an absolute range")
+            return
+        }
+        #expect(from == expected)
+        #expect(toDate == expected)
+    }
+
+    @Test func parseAbsoluteFilterAcceptsEqualEndpointsAndOneSidedBounds() {
+        let sameDay = DateFilterHelpers.parseDateFilter([
+            "from": "2026-07-20",
+            "to": "2026-07-20"
+        ])
+        let fromOnly = DateFilterHelpers.parseDateFilter(["from": "2026-07-20"])
+        let toOnly = DateFilterHelpers.parseDateFilter(["to": "2026-07-20"])
+
+        guard case .absolute(let sameDayFrom, let sameDayTo) = sameDay,
+              case .absolute(let lowerBound, let openUpperBound) = fromOnly,
+              case .absolute(let openLowerBound, let upperBound) = toOnly else {
+            Issue.record("Expected absolute ranges")
+            return
+        }
+        #expect(sameDayFrom == sameDayTo)
+        #expect(lowerBound != nil)
+        #expect(openUpperBound == nil)
+        #expect(openLowerBound == nil)
+        #expect(upperBound != nil)
+    }
+
     @Test("parse absolute filter accepts real Gregorian leap-day dates")
     func parseAbsoluteFilterAcceptsLeapDay() {
         let parsed = DateFilterHelpers.parseDateFilter([
