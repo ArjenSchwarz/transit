@@ -49,6 +49,32 @@ struct MCPQueryProjectNameTests {
         #expect(try MCPTestHelpers.isError(response))
     }
 
+    @Test func queryByNonexistentProjectIdMatchesIntentProjectNotFound() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let projectID = UUID()
+
+        let mcpResponse = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["projectId": projectID.uuidString]
+        ))
+
+        #expect(try MCPTestHelpers.isError(mcpResponse))
+        let mcpHint = try MCPTestHelpers.errorText(mcpResponse)
+
+        let intentResponse = QueryTasksIntent.execute(
+            input: "{\"projectId\":\"\(projectID.uuidString)\"}",
+            projectService: env.projectService,
+            taskService: env.taskService,
+            milestoneService: env.milestoneService
+        )
+        let intentData = try #require(intentResponse.data(using: .utf8))
+        let intentJSON = try #require(
+            try JSONSerialization.jsonObject(with: intentData) as? [String: Any]
+        )
+        #expect(intentJSON["error"] as? String == "PROJECT_NOT_FOUND")
+        #expect(intentJSON["hint"] as? String == mcpHint)
+    }
+
     @Test func queryWithProjectIdAndProjectNameUsesProjectId() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
