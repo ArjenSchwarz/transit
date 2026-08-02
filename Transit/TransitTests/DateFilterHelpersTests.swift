@@ -63,6 +63,7 @@ struct DateFilterHelpersTests {
         "2026-00-01", // Month below lower boundary
         "2026-13-01", // Month above upper boundary
         "2026-02-00", // Day below lower boundary
+        "0000-01-01", // Gregorian year below lower boundary
         "2026-２-01", // Full-width non-ASCII digit
         "2026−02−01" // Unicode minus separators
     ])
