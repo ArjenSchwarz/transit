@@ -26,8 +26,6 @@ struct AddTaskIntent: AppIntent {
     @Parameter(title: "Type")
     var type: TaskType
 
-    // Keep no selection distinct from a stale entity so the latter can report
-    // PROJECT_NOT_FOUND even when the deleted project was the last one.
     @Parameter(title: "Project")
     var project: ProjectEntity
 
@@ -75,6 +73,8 @@ struct AddTaskIntent: AppIntent {
             throw VisualIntentError.invalidInput("Name is required.")
         }
 
+        // Keep no selection distinct from a stale entity so the latter can report
+        // PROJECT_NOT_FOUND even when the deleted project was the last one.
         guard let project else {
             if services.projectService.hasAnyProjects() {
                 throw VisualIntentError.invalidInput("Project is required.")
