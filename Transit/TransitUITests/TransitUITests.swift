@@ -180,16 +180,15 @@ final class TransitUITests: XCTestCase {
     func testIPhonePortraitDefaultsToActiveSegment() throws {
         let app = launchApp()
 
-        // [req 13.3] iPhone portrait default segment is "Active" (In Progress)
+        // [req 13.1, 13.3] Every compact-width portrait layout uses the
+        // segmented single-column dashboard and defaults to "Active".
         let segmentedControl = app.segmentedControls.firstMatch
-        if segmentedControl.waitForExistence(timeout: 5) {
-            let activeSegment = segmentedControl.buttons.matching(
-                NSPredicate(format: "label CONTAINS 'Active'")
-            ).firstMatch
-            XCTAssertTrue(activeSegment.exists)
-            XCTAssertTrue(activeSegment.isSelected)
-        }
-        // On wider devices (iPad), segmented control may not appear — test passes implicitly
+        XCTAssertTrue(segmentedControl.waitForExistence(timeout: 5))
+        let activeSegment = segmentedControl.buttons.matching(
+            NSPredicate(format: "label CONTAINS 'Active'")
+        ).firstMatch
+        XCTAssertTrue(activeSegment.exists)
+        XCTAssertTrue(activeSegment.isSelected)
     }
 
     // MARK: - Filter Menus
