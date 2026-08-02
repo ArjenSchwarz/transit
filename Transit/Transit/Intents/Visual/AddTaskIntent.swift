@@ -59,7 +59,7 @@ struct AddTaskIntent: AppIntent {
         name: String,
         taskDescription: String?,
         type: TaskType,
-        project: ProjectEntity,
+        project: ProjectEntity?,
         services: Services,
         persistence: PersistenceAvailability = .shared
     ) async throws -> TaskCreationResult {
@@ -73,7 +73,12 @@ struct AddTaskIntent: AppIntent {
             throw VisualIntentError.invalidInput("Name is required.")
         }
 
-        guard services.projectService.hasAnyProjects() else {
+        // Keep no selection distinct from a stale entity so the latter can report
+        // PROJECT_NOT_FOUND even when the deleted project was the last one.
+        guard let project else {
+            if services.projectService.hasAnyProjects() {
+                throw VisualIntentError.invalidInput("Project is required.")
+            }
             throw VisualIntentError.noProjects
         }
 

@@ -134,29 +134,22 @@ struct AddTaskIntentTests {
 
     @Test func executeThrowsNoProjectsWhenDatabaseIsEmpty() async throws {
         let svc = try makeServices()
-        let fakeProject = ProjectEntity(
-            id: UUID().uuidString,
-            projectId: UUID(),
-            name: "Missing"
-        )
 
         do {
             _ = try await AddTaskIntent.execute(
                 name: "Task",
                 taskDescription: nil,
                 type: .feature,
-                project: fakeProject,
+                project: nil,
                 services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
             )
             Issue.record("Expected noProjects error")
         } catch let error as VisualIntentError {
-            switch error {
-            case .noProjects:
-                break
-            default:
-                Issue.record("Expected noProjects error, got \(error.code)")
-            }
+            #expect(error == .noProjects)
         }
+
+        let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty)
     }
 
     @Test func executeThrowsProjectNotFoundForStaleProjectSelection() async throws {
@@ -166,7 +159,7 @@ struct AddTaskIntentTests {
         svc.context.delete(project)
         try svc.context.save()
 
-        await #expect(throws: VisualIntentError.self) {
+        do {
             _ = try await AddTaskIntent.execute(
                 name: "Task",
                 taskDescription: nil,
@@ -174,6 +167,60 @@ struct AddTaskIntentTests {
                 project: selectedProject,
                 services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
             )
+            Issue.record("Expected projectNotFound error")
+        } catch let error as VisualIntentError {
+            #expect(error == .projectNotFound("Selected project no longer exists."))
         }
+
+        let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty)
+    }
+
+    @Test func executeThrowsInvalidInputForMissingProjectWhenProjectsExist() async throws {
+        let svc = try makeServices()
+        _ = makeProject(in: svc.context)
+
+        do {
+            _ = try await AddTaskIntent.execute(
+                name: "Task",
+                taskDescription: nil,
+                type: .feature,
+                project: nil,
+                services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
+            )
+            Issue.record("Expected invalidInput error")
+        } catch let error as VisualIntentError {
+            #expect(error == .invalidInput("Project is required."))
+        }
+
+        let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty)
+    }
+
+    @Test func executeThrowsProjectNotFoundForStaleProjectSelectionWhenAnotherProjectRemains() async throws {
+        let svc = try makeServices()
+        let deletedProject = makeProject(in: svc.context, name: "Deleted Project")
+        _ = makeProject(in: svc.context, name: "Remaining Project")
+        let selectedProject = makeEntity(from: deletedProject)
+        svc.context.delete(deletedProject)
+        try svc.context.save()
+
+        #expect(svc.project.hasAnyProjects())
+
+        do {
+            _ = try await AddTaskIntent.execute(
+                name: "Task",
+                taskDescription: nil,
+                type: .feature,
+                project: selectedProject,
+                services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
+            )
+            Issue.record("Expected projectNotFound error")
+        } catch let error as VisualIntentError {
+            #expect(error == .projectNotFound("Selected project no longer exists."))
+        }
+
+        let tasks = try svc.context.fetch(FetchDescriptor<TransitTask>())
+        #expect(tasks.isEmpty)
     }
 }
