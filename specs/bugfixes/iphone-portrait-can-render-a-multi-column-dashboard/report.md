@@ -40,24 +40,24 @@ The dashboard layout path was inspected from its root caller through both layout
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Views/Dashboard/DashboardLayout.swift` — Extracted the layout decision from `DashboardView` into a value-returning helper. Compact horizontal size class with regular vertical size class now returns `.singleColumn` before width-based column counting; compact-height landscape still caps geometry-derived columns at three, while regular iPad and Mac retain width-based counts capped at five.
-- `Transit/Transit/Views/Dashboard/DashboardView.swift` — Uses the extracted layout mode to select `SingleColumnView` or `KanbanBoardView`, preserving the existing task tap and drop callbacks and landscape initial scroll target.
-- `Transit/TransitTests/DashboardLayoutTests.swift` — Added width-range and cross-platform regression tests for compact portrait, narrow iPad split view, iPhone landscape, iPad, and Mac.
+- `Transit/Transit/Views/Dashboard/DashboardLayout.swift` — Extracted the layout decision from `DashboardView` into a value-returning helper. A phone in compact width with regular height now returns `.singleColumn` before width-based column counting; iPad and Mac retain geometry-based adaptation and only fall back to `.singleColumn` when one 200pt column fits. Phone landscape, including regular-width compact-height phones, still caps geometry-derived columns at three.
+- `Transit/Transit/Views/Dashboard/DashboardView.swift` — Supplies the iOS device idiom to the selector and uses the resulting layout mode to select `SingleColumnView` or `KanbanBoardView`, preserving the existing task tap, drop callbacks, and landscape initial scroll target.
+- `Transit/TransitTests/DashboardLayoutTests.swift` — Added width-range and cross-platform regression tests for phone portrait, wide and narrow iPad split view, both phone landscape size-class shapes, iPad, Mac, and missing size classes.
 - `Transit/TransitUITests/TransitUITests.swift` — Makes the portrait UI regression deterministic by setting portrait orientation and requiring the segmented control plus Active default instead of allowing the control to be absent.
 
-**Approach rationale:** The selection rule is now explicit and unit-testable. The compact portrait rule is based on size classes rather than a device-specific width threshold, so it covers 400-point and wider compact windows without changing the geometry adaptation used by landscape, iPad, or Mac. Keeping the existing child views and callbacks avoids changing dashboard behavior outside the selection boundary.
+**Approach rationale:** The selection rule is now explicit and unit-testable. The phone portrait rule combines device idiom with size classes, so it covers 400-point and wider compact phone windows without forcing wider iPad Split View panes into the segmented path. iPad and Mac continue to use geometry adaptation, with a single-column fallback only below the 200pt column-fit boundary. Keeping the existing child views and callbacks avoids changing dashboard behavior outside the selection boundary.
 
 **Alternatives considered:**
 - Lowering `columnMinWidth` or increasing it — rejected because any width threshold would remain device-specific and could regress iPad/Mac geometry adaptation.
-- Checking only `horizontalSizeClass == .compact` — rejected because iPhone landscape also has compact width and must retain its multi-column layout.
-- Detecting iPhone with UIKit device idiom — rejected because the same compact-width portrait rule is required for narrow iPad split view and size classes already express the layout contract.
+- Checking only `horizontalSizeClass == .compact` — rejected because iPhone landscape and iPad Split View can also report compact width but must retain geometry-based adaptation.
+- Using only `verticalSizeClass` for phone detection — rejected because iPad and other regular-height panes can share the same vertical class; the iOS device idiom is needed to distinguish phone portrait from iPad Split View.
 
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/DashboardLayoutTests.swift`
-**Test names:** `compactPortraitUsesSingleColumnAtEveryWidth(width:)`, `compactWidthRegularHeightUsesSingleColumnForNarrowIPadSplitView()`, `compactHeightRetainsLandscapeGeometryAdaptation()`, `regularIPadWidthRetainsGeometryAdaptation()`, `regularMacWidthRetainsGeometryAdaptationAndCapsAtFiveColumns()`, `missingSizeClassesRetainWidthBasedPreviewFallback()`, `missingVerticalSizeClassDoesNotAssumePortrait()`
+**Test names:** `compactPortraitUsesSingleColumnAtEveryWidth(width:)`, `compactWidthRegularHeightUsesGeometryAdaptationForWideIPadSplitView()`, `narrowIPadSplitViewFallsBackToSingleColumn()`, `compactHeightRetainsLandscapeGeometryAdaptation()`, `regularWidthCompactHeightRetainsPhoneLandscapeAdaptation()`, `regularIPadWidthRetainsGeometryAdaptation()`, `regularMacWidthRetainsGeometryAdaptationAndCapsAtFiveColumns()`, `missingSizeClassesRetainWidthBasedPreviewFallback()`, `missingVerticalSizeClassDoesNotAssumePortrait()`
 
-**What it verifies:** Compact-width portrait uses one column across representative widths (320, 375, 390, 400, 428, and 599 points), while landscape, iPad, and Mac retain geometry-based column selection. Missing size classes retain the width-based fallback used by previews and macOS, and the iOS UI test requires the segmented control and Active default rather than silently passing when the control is missing.
+**What it verifies:** Phone compact-width portrait uses one column across representative widths (320, 375, 390, 400, 428, and 599 points). Wide iPad Split View retains geometry-based multi-column adaptation, while a pane narrower than one 200pt column falls back to the segmented view. Phone landscape, including regular-width compact-height phones, retains its three-column cap and Planning initial target; regular iPad and Mac retain geometry adaptation. Missing size classes retain the width-based fallback used by previews and macOS, and the iOS UI test requires the segmented control and Active default rather than silently passing when the control is missing.
 
 **Run command:** `make test-quick` and `make test-ui`
 

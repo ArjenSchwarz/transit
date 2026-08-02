@@ -7,10 +7,9 @@
 
 ### DashboardView
 - Root view, displayed on every launch
-- Uses `GeometryReader` with `columnMinWidth: 200` to determine layout
-- `columnCount == 1` → `SingleColumnView` (iPhone portrait, narrow iPad Split View)
-- `columnCount > 1` → `KanbanBoardView` (iPad, Mac, iPhone landscape)
-- iPhone landscape: caps at 3 columns, defaults scroll to Planning column
+- Uses `DashboardLayoutLogic` with a 200pt minimum column width and horizontal/vertical size classes
+- Phone portrait (`.compact` width + `.regular` height) always uses `SingleColumnView`; iPad/macOS use width-based geometry, falling back to `SingleColumnView` only when one 200pt column fits
+- Phone landscape (including regular-width phone landscape) caps at 3 columns and defaults scroll to Planning
 - `@Query` for allTasks and projects — reactive data from SwiftData
 - `selectedProjectIDs: Set<UUID>` is ephemeral (resets on launch)
 - `buildFilteredColumns()` is a static method for testability

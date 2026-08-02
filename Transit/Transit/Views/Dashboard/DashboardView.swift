@@ -2,6 +2,18 @@
 import SwiftData
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+#endif
+
+#if os(iOS)
+private func dashboardIsPhoneDevice() -> Bool {
+    UIDevice.current.userInterfaceIdiom == .phone
+}
+#else
+private func dashboardIsPhoneDevice() -> Bool { false }
+#endif
+
 struct DashboardView: View {
     @Query(sort: \TransitTask.lastStatusChangeDate, order: .reverse) private var allTasks: [TransitTask]
     @Query(sort: \Project.name) private var projects: [Project]
@@ -64,7 +76,8 @@ struct DashboardView: View {
             let layout = DashboardLayoutLogic.layout(
                 width: geometry.size.width,
                 horizontalSizeClass: sizeClass,
-                verticalSizeClass: verticalSizeClass
+                verticalSizeClass: verticalSizeClass,
+                isPhone: dashboardIsPhoneDevice()
             )
 
             switch layout {

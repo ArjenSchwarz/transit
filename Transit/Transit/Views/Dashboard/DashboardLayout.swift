@@ -11,15 +11,18 @@ enum DashboardLayoutLogic {
     static func layout(
         width: CGFloat,
         horizontalSizeClass: UserInterfaceSizeClass?,
-        verticalSizeClass: UserInterfaceSizeClass?
+        verticalSizeClass: UserInterfaceSizeClass?,
+        isPhone: Bool
     ) -> DashboardLayoutMode {
         let rawColumnCount = max(1, Int(width / columnMinWidth))
-        let isCompactPortrait = horizontalSizeClass == .compact && verticalSizeClass == .regular
-        if isCompactPortrait {
+        let isPhonePortrait = isPhone
+            && horizontalSizeClass == .compact
+            && verticalSizeClass == .regular
+        if isPhonePortrait {
             return .singleColumn
         }
 
-        let isPhoneLandscape = verticalSizeClass == .compact
+        let isPhoneLandscape = isPhone && verticalSizeClass == .compact
         let columnCount = isPhoneLandscape ? min(rawColumnCount, 3) : rawColumnCount
 
         if columnCount == 1 {
