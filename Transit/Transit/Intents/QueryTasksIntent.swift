@@ -250,6 +250,7 @@ struct QueryTasksIntent: AppIntent {
         }
         return .success(filters)
     }
+
     /// Runs all pre-lookup filter validations, returning the first error encountered.
     @MainActor private static func validateFilters(
         _ filters: QueryFilters,
@@ -394,7 +395,6 @@ struct QueryTasksIntent: AppIntent {
             toDateString: filter.toDate
         )
     }
-
 }
 
 // swiftlint:enable type_body_length
