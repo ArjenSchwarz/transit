@@ -39,7 +39,8 @@ The investigation followed the project's systematic debugging workflow: inspect 
 
 **Changes made:**
 - `Transit/Transit/Intents/QueryTasksIntent.swift` — Added a raw JSON preflight for `completionDate` and `lastStatusChangeDate`. Each recognized date filter must be an object, and `relative`, `from`, and `to` are checked for `NSNull` before `JSONDecoder` runs. Non-object shapes retain the existing `Expected valid JSON object` error contract, while unknown nested keys remain ignored.
-- `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift` — Added six nested-null regressions, malformed object-shape regressions, and a no-broadening regression covering both filters.
+- `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift` — Added six nested-null regressions with exact error-hint assertions, malformed nested-field type regressions, malformed object-shape regressions, and a no-broadening regression covering both filters.
+- `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` — Added query-level regressions proving omitted `from` and `to` bounds preserve open-ended range semantics.
 - `CHANGELOG.md` — Added the T-1644 fixed entry under `Unreleased`.
 
 **Approach rationale:** The raw `JSONSerialization` object is already available for top-level null validation, so extending that preflight preserves the existing Codable model and date parsing semantics while retaining presence information only where required. Fixed field iteration order makes the nested null error deterministic.
@@ -51,7 +52,9 @@ The investigation followed the project's systematic debugging workflow: inspect 
 
 ## Regression Test
 
-**Test file:** `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift`
+**Test files:**
+- `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift`
+- `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift`
 
 **Test names:**
 - `nullCompletionDateRelativeIsRejected`
@@ -60,11 +63,14 @@ The investigation followed the project's systematic debugging workflow: inspect 
 - `nullLastStatusChangeDateRelativeIsRejected`
 - `nullLastStatusChangeDateFromIsRejected`
 - `nullLastStatusChangeDateToIsRejected`
+- `malformedNestedDateFilterFieldsAreRejected`
 - `scalarCompletionDateFilterIsRejected`
 - `arrayLastStatusChangeDateFilterIsRejected`
 - `malformedNestedDateFiltersDoNotBroadenResults`
+- `completionDateFromOnlyKeepsOpenUpperBound`
+- `completionDateToOnlyKeepsOpenLowerBound`
 
-**What it verifies:** Every recognized nested date-filter field rejects explicit JSON null under both date filters. Scalar/array date-filter values retain `INVALID_INPUT`, and malformed nested filters do not return the seeded task set.
+**What it verifies:** Every recognized nested date-filter field rejects explicit JSON null under both date filters with stable field-path hints. Malformed scalar/array nested fields and date-filter shapes retain `INVALID_INPUT`, and malformed requests produce an error object rather than a broader task result. Query-level open-bound tests prove omitted `from` and `to` fields retain existing inclusive semantics.
 
 **Run command:** `make test-quick`
 
@@ -73,7 +79,8 @@ The investigation followed the project's systematic debugging workflow: inspect 
 | File | Change |
 |------|--------|
 | `Transit/Transit/Intents/QueryTasksIntent.swift` | Presence-aware nested date-filter validation before Codable decoding |
-| `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift` | Nested null and malformed-shape regressions |
+| `Transit/TransitTests/QueryTasksIntentNullFilterTests.swift` | Nested null, malformed-type, stable-error, and no-broadening regressions |
+| `Transit/TransitTests/QueryTasksIntentDateFilterTests.swift` | Open-ended `from`/`to` range-semantics regressions |
 | `specs/bugfixes/query-tasks-nested-date-filter-null-fields/report.md` | Investigation and resolution record |
 | `CHANGELOG.md` | Unreleased T-1644 fixed entry |
 
@@ -86,9 +93,10 @@ The investigation followed the project's systematic debugging workflow: inspect 
 - [x] Linters/validators pass (`make lint`, exit 0; ownership guard and SwiftLint pass).
 
 **Manual verification:**
-- Existing `omittedKeysStillReturnAllTasks` confirms omitted filters retain existing semantics.
+- Existing `omittedKeysStillReturnAllTasks` confirms omitted filters retain existing semantics, while `completionDateFromOnlyKeepsOpenUpperBound` and `completionDateToOnlyKeepsOpenLowerBound` verify omitted nested bounds remain open and inclusive.
+- Exact nested-null hints are asserted for all six `relative`/`from`/`to` cases under both date filters.
 - Existing top-level null regressions continue to pass, preserving their established `Filter \"<key>\" must not be null` contract.
-- Scalar and array nested date-filter shapes continue to return `INVALID_INPUT` rather than broadening results.
+- Malformed nested field types and scalar/array date-filter shapes continue to return `INVALID_INPUT` rather than broadening results; the no-broadening regression parses the response as an error object, not a task array.
 
 ## Prevention
 

@@ -63,7 +63,7 @@ struct QueryTasksIntentNullFilterTests {
         return svc
     }
 
-    private func expectInvalidInput(_ input: String) throws {
+    private func expectInvalidInput(_ input: String, expectedHint: String? = nil) throws {
         let svc = try makeSeededServices()
         let result = QueryTasksIntent.execute(
             input: input, projectService: svc.project, taskService: svc.task,
@@ -71,6 +71,9 @@ struct QueryTasksIntentNullFilterTests {
         )
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "INVALID_INPUT", "input \(input) should be rejected")
+        if let expectedHint {
+            #expect(parsed["hint"] as? String == expectedHint, "input \(input) returned an unstable error hint")
+        }
     }
 
     // MARK: - Explicit Null Rejection
@@ -106,50 +109,87 @@ struct QueryTasksIntentNullFilterTests {
 
     @Test func nullCompletionDateRelativeIsRejected() throws {
         try expectInvalidInput(
-            "{\"completionDate\":{\"relative\":null,\"from\":\"2026-01-01\",\"to\":\"2026-01-31\"}}"
+            "{\"completionDate\":{\"relative\":null,\"from\":\"2026-01-01\",\"to\":\"2026-01-31\"}}",
+            expectedHint: "Filter \"completionDate.relative\" must not be null"
         )
     }
 
     @Test func nullCompletionDateFromIsRejected() throws {
-        try expectInvalidInput("{\"completionDate\":{\"from\":null,\"to\":\"2026-01-31\"}}")
+        try expectInvalidInput(
+            "{\"completionDate\":{\"from\":null,\"to\":\"2026-01-31\"}}",
+            expectedHint: "Filter \"completionDate.from\" must not be null"
+        )
     }
 
     @Test func nullCompletionDateToIsRejected() throws {
-        try expectInvalidInput("{\"completionDate\":{\"from\":\"2026-01-01\",\"to\":null}}")
+        try expectInvalidInput(
+            "{\"completionDate\":{\"from\":\"2026-01-01\",\"to\":null}}",
+            expectedHint: "Filter \"completionDate.to\" must not be null"
+        )
     }
 
     @Test func nullLastStatusChangeDateRelativeIsRejected() throws {
         try expectInvalidInput(
-            "{\"lastStatusChangeDate\":{\"relative\":null,\"from\":\"2026-01-01\",\"to\":\"2026-01-31\"}}"
+            "{\"lastStatusChangeDate\":{\"relative\":null,\"from\":\"2026-01-01\",\"to\":\"2026-01-31\"}}",
+            expectedHint: "Filter \"lastStatusChangeDate.relative\" must not be null"
         )
     }
 
     @Test func nullLastStatusChangeDateFromIsRejected() throws {
-        try expectInvalidInput("{\"lastStatusChangeDate\":{\"from\":null,\"to\":\"2026-01-31\"}}")
+        try expectInvalidInput(
+            "{\"lastStatusChangeDate\":{\"from\":null,\"to\":\"2026-01-31\"}}",
+            expectedHint: "Filter \"lastStatusChangeDate.from\" must not be null"
+        )
     }
 
     @Test func nullLastStatusChangeDateToIsRejected() throws {
-        try expectInvalidInput("{\"lastStatusChangeDate\":{\"from\":\"2026-01-01\",\"to\":null}}")
+        try expectInvalidInput(
+            "{\"lastStatusChangeDate\":{\"from\":\"2026-01-01\",\"to\":null}}",
+            expectedHint: "Filter \"lastStatusChangeDate.to\" must not be null"
+        )
+    }
+
+    @Test func malformedNestedDateFilterFieldsAreRejected() throws {
+        let inputs = [
+            "{\"completionDate\":{\"relative\":false}}",
+            "{\"completionDate\":{\"from\":42}}",
+            "{\"completionDate\":{\"to\":[]}}",
+            "{\"lastStatusChangeDate\":{\"relative\":{}}}",
+            "{\"lastStatusChangeDate\":{\"from\":false}}",
+            "{\"lastStatusChangeDate\":{\"to\":42}}"
+        ]
+
+        for input in inputs {
+            try expectInvalidInput(input, expectedHint: "Expected valid JSON object")
+        }
     }
 
     @Test func scalarCompletionDateFilterIsRejected() throws {
-        try expectInvalidInput("{\"completionDate\":\"today\"}")
+        try expectInvalidInput("{\"completionDate\":\"today\"}", expectedHint: "Expected valid JSON object")
     }
 
     @Test func arrayLastStatusChangeDateFilterIsRejected() throws {
-        try expectInvalidInput("{\"lastStatusChangeDate\":[]}")
+        try expectInvalidInput("{\"lastStatusChangeDate\":[]}", expectedHint: "Expected valid JSON object")
     }
 
     @Test func malformedNestedDateFiltersDoNotBroadenResults() throws {
         let inputs = [
-            "{\"completionDate\":{\"from\":null,\"to\":\"2026-01-31\"}}",
-            "{\"lastStatusChangeDate\":{\"from\":\"2026-01-01\",\"to\":null}}",
-            "{\"completionDate\":\"today\"}",
-            "{\"lastStatusChangeDate\":[]}"
+            (
+                "{\"completionDate\":{\"from\":null,\"to\":\"2026-01-31\"}}",
+                "Filter \"completionDate.from\" must not be null"
+            ),
+            (
+                "{\"lastStatusChangeDate\":{\"from\":\"2026-01-01\",\"to\":null}}",
+                "Filter \"lastStatusChangeDate.to\" must not be null"
+            ),
+            ("{\"completionDate\":\"today\"}", "Expected valid JSON object"),
+            ("{\"lastStatusChangeDate\":[]}", "Expected valid JSON object")
         ]
 
-        for input in inputs {
-            try expectInvalidInput(input)
+        for (input, expectedHint) in inputs {
+            // Parsing the response as an object proves the malformed request did not
+            // become a successful (and potentially broader) task array.
+            try expectInvalidInput(input, expectedHint: expectedHint)
         }
     }
 
