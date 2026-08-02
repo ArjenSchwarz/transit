@@ -307,4 +307,20 @@ struct FindTasksIntentTests {
             )
         }
     }
+
+    @Test func executeThrowsInvalidDateWhenLastStatusChangeCustomRangeIsInverted() throws {
+        let env = try makeEnv()
+        let today = Calendar.current.startOfDay(for: .now)
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        #expect(throws: VisualIntentError.self) {
+            _ = try FindTasksIntent.execute(
+                filters: makeFindFilters(
+                    lastStatusChangeDateFilter: .customRange,
+                    lastStatusChangeFromDate: tomorrow,
+                    lastStatusChangeToDate: today
+                ),
+                taskService: env.taskService
+            )
+        }
+    }
 }

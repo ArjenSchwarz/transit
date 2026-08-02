@@ -41,6 +41,14 @@ struct DateFilterHelpersTests {
         #expect(parsed == nil)
     }
 
+    @Test func parseAbsoluteFilterRejectsReversedRanges() {
+        let parsed = DateFilterHelpers.parseDateFilter([
+            "from": "2026-07-20",
+            "to": "2026-07-01"
+        ])
+        #expect(parsed == nil)
+    }
+
     @Test("parse absolute filter accepts real Gregorian leap-day dates")
     func parseAbsoluteFilterAcceptsLeapDay() {
         let parsed = DateFilterHelpers.parseDateFilter([

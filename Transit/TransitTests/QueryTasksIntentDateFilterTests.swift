@@ -253,6 +253,23 @@ struct QueryTasksIntentDateFilterTests {
         #expect(names == ["Before To", "At To"])
     }
 
+    @Test("QueryTasksIntent rejects reversed absolute date ranges for both date fields")
+    func reversedAbsoluteDateRangesReturnInvalidInput() throws {
+        let svc = try makeServices()
+
+        for field in ["completionDate", "lastStatusChangeDate"] {
+            let result = QueryTasksIntent.execute(
+                input: "{\"\(field)\":{\"from\":\"2026-07-20\",\"to\":\"2026-07-01\"}}",
+                projectService: svc.project,
+                taskService: svc.task,
+                milestoneService: svc.milestone
+            )
+
+            let parsed = try parseJSON(result)
+            #expect(parsed["error"] as? String == "INVALID_INPUT")
+        }
+    }
+
     @Test func invalidDateFilterReturnsInvalidInputError() throws {
         let svc = try makeServices()
 
