@@ -54,6 +54,18 @@ struct CreateTaskMetadataShapeValidationTests {
 
     @Test func createTaskIntentRejectsEveryNonObjectMetadataShapeWithoutMutation() async throws {
         let services = try makeIntentServices()
+        let validInput = try jsonInput([
+            "name": "Task without metadata",
+            "type": "feature",
+            "projectId": services.projectModel.id.uuidString
+        ])
+        let validResult = await CreateTaskIntent.execute(
+            input: validInput,
+            taskService: services.task,
+            projectService: services.project
+        )
+        let validTaskID = try #require(try parseJSON(validResult)["taskId"] as? String)
+        let validTaskUUID = try #require(UUID(uuidString: validTaskID))
 
         for entry in nonObjectValues {
             let input = try jsonInput([
@@ -74,7 +86,7 @@ struct CreateTaskMetadataShapeValidationTests {
             #expect(parsed["hint"] as? String == "metadata must be an object")
         }
 
-        #expect(try services.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+        #expect(try services.context.fetch(FetchDescriptor<TransitTask>()).map(\.id) == [validTaskUUID])
     }
 
 #if os(macOS)
@@ -83,6 +95,16 @@ struct CreateTaskMetadataShapeValidationTests {
     @Test func mcpCreateTaskRejectsEveryNonObjectMetadataShapeWithoutMutation() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
+        let validResponse = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "create_task",
+            arguments: [
+                "name": "Task without metadata",
+                "type": "feature",
+                "projectId": project.id.uuidString
+            ]
+        ))
+        let validTaskID = try #require(try MCPTestHelpers.decodeResult(validResponse)["taskId"] as? String)
+        let validTaskUUID = try #require(UUID(uuidString: validTaskID))
 
         for entry in nonObjectValues {
             let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
@@ -99,7 +121,14 @@ struct CreateTaskMetadataShapeValidationTests {
             #expect(try MCPTestHelpers.errorText(response) == "metadata must be an object")
         }
 
-        #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+        #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).map(\.id) == [validTaskUUID])
+    }
+
+    @Test func mcpCreateTaskSchemaRequiresMetadataObject() throws {
+        let metadataSchema = try #require(
+            MCPToolDefinitions.createTask.inputSchema.properties?["metadata"]
+        )
+        #expect(metadataSchema.type == "object")
     }
 #endif
 }
