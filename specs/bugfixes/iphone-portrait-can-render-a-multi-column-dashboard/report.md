@@ -1,7 +1,7 @@
 # Bugfix Report: iPhone Portrait Can Render a Multi-Column Dashboard
 
 **Date:** 2026-08-02
-**Status:** In Progress
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -39,7 +39,18 @@ The dashboard layout path was inspected from its root caller through both layout
 
 ## Resolution for the Issue
 
-_To be completed after the red regression tests are verified and the implementation is applied._
+**Changes made:**
+- `Transit/Transit/Views/Dashboard/DashboardLayout.swift` — Extracted the layout decision from `DashboardView` into a value-returning helper. Compact horizontal size class with regular vertical size class now returns `.singleColumn` before width-based column counting; compact-height landscape still caps geometry-derived columns at three, while regular iPad and Mac retain width-based counts capped at five.
+- `Transit/Transit/Views/Dashboard/DashboardView.swift` — Uses the extracted layout mode to select `SingleColumnView` or `KanbanBoardView`, preserving the existing task tap and drop callbacks and landscape initial scroll target.
+- `Transit/TransitTests/DashboardLayoutTests.swift` — Added width-range and cross-platform regression tests for compact portrait, narrow iPad split view, iPhone landscape, iPad, and Mac.
+- `Transit/TransitUITests/TransitUITests.swift` — Makes the portrait UI regression deterministic by setting portrait orientation and requiring the segmented control plus Active default instead of allowing the control to be absent.
+
+**Approach rationale:** The selection rule is now explicit and unit-testable. The compact portrait rule is based on size classes rather than a device-specific width threshold, so it covers 400-point and wider compact windows without changing the geometry adaptation used by landscape, iPad, or Mac. Keeping the existing child views and callbacks avoids changing dashboard behavior outside the selection boundary.
+
+**Alternatives considered:**
+- Lowering `columnMinWidth` or increasing it — rejected because any width threshold would remain device-specific and could regress iPad/Mac geometry adaptation.
+- Checking only `horizontalSizeClass == .compact` — rejected because iPhone landscape also has compact width and must retain its multi-column layout.
+- Detecting iPhone with UIKit device idiom — rejected because the same compact-width portrait rule is required for narrow iPad split view and size classes already express the layout contract.
 
 ## Regression Test
 
@@ -63,13 +74,14 @@ _To be completed after the red regression tests are verified and the implementat
 ## Verification
 
 **Automated:**
-- [ ] Red regression tests fail against the pre-fix behavior
-- [ ] Regression tests pass after the fix
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression tests pass — `DashboardLayoutTests` passes on macOS, including compact portrait widths 320, 400, 428, and 599 points plus iPad split, landscape, iPad, and Mac cases.
+- [x] Dedicated UI coverage passes — `make test-ui` result bundle `Test-Transit-2026.08.02_11-24-22-+1000.xcresult` reports 1,622/1,622 UI tests passed; the paired portrait and milestone-filter run also passed.
+- [~] Full iOS suite — `make test` completed its result bundle with 1,159/1,162 tests passed. The only three failures were established iOS 26.5 baseline failures: `testClearAll`, `testEditViewPreservesTaskMilestone`, and `testDataMaintenanceGoldenPath`. The other three established baseline failures (the Settings navigation tests) did not reproduce in this run, and no new product/test failure remained after orientation restoration. The Makefile wrapper timed out while `xcbeautify` was still attached, but the `.xcresult` bundle was complete and independently inspected.
+- [x] `make test-quick` passes.
+- [x] `make lint` passes with zero violations.
 
 **Manual verification:**
-- Not performed yet; simulator UI coverage will verify the iPhone portrait path.
+- Not performed on physical hardware; iPhone 17 iOS 26.5 Simulator UI coverage exercises portrait selection and the existing landscape/iPad/Mac logic is covered by the pure helper tests.
 
 ## Prevention
 

@@ -14,6 +14,11 @@ enum DashboardLayoutLogic {
         verticalSizeClass: UserInterfaceSizeClass?
     ) -> DashboardLayoutMode {
         let rawColumnCount = max(1, Int(width / columnMinWidth))
+        let isCompactPortrait = horizontalSizeClass == .compact && verticalSizeClass == .regular
+        if isCompactPortrait {
+            return .singleColumn
+        }
+
         let isPhoneLandscape = verticalSizeClass == .compact
         let columnCount = isPhoneLandscape ? min(rawColumnCount, 3) : rawColumnCount
 

@@ -178,6 +178,15 @@ final class TransitUITests: XCTestCase {
 
     @MainActor
     func testIPhonePortraitDefaultsToActiveSegment() throws {
+        #if os(iOS)
+        let originalOrientation = XCUIDevice.shared.orientation
+        XCUIDevice.shared.orientation = .portrait
+        defer {
+            XCUIDevice.shared.orientation = originalOrientation == .unknown
+                ? .landscapeLeft
+                : originalOrientation
+        }
+        #endif
         let app = launchApp()
 
         // [req 13.1, 13.3] Every compact-width portrait layout uses the
