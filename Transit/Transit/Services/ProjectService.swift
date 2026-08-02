@@ -7,6 +7,7 @@ import SwiftData
 enum ProjectLookupError: Error {
     case notFound(hint: String)
     case ambiguous(hint: String)
+    case storageFailure(hint: String)
     case noIdentifier
 }
 
@@ -22,9 +23,9 @@ final class ProjectService {
 
     private let modelContext: ModelContext
 
-    /// Store reads for the name-uniqueness invariant. Separate from `modelContext`
-    /// only so tests can inject a failing fetch (T-1614); production always passes
-    /// the same context.
+    /// Store reads for project lookup and name-uniqueness invariants. Separate from
+    /// `modelContext` only so tests can inject a failing fetch (T-1614); production
+    /// always passes the same context.
     private let fetcher: any ModelFetching
 
     init(modelContext: ModelContext, fetcher: (any ModelFetching)? = nil) {
@@ -102,10 +103,14 @@ final class ProjectService {
             let descriptor = FetchDescriptor<Project>(
                 predicate: #Predicate { $0.id == id }
             )
-            guard let project = try? modelContext.fetch(descriptor).first else {
-                return .failure(.notFound(hint: "No project with ID \(id.uuidString)"))
+            do {
+                guard let project = try fetcher.fetch(descriptor).first else {
+                    return .failure(.notFound(hint: "No project with ID \(id.uuidString)"))
+                }
+                return .success(project)
+            } catch {
+                return .failure(.storageFailure(hint: "Failed to fetch project: \(error)"))
             }
-            return .success(project)
         }
 
         if let rawName = name {
@@ -114,7 +119,12 @@ final class ProjectService {
             // arbitrary case-insensitive equality. Fetch all and filter in memory
             // for exact case-insensitive match (project count is small).
             let descriptor = FetchDescriptor<Project>()
-            let allProjects = (try? modelContext.fetch(descriptor)) ?? []
+            let allProjects: [Project]
+            do {
+                allProjects = try fetcher.fetch(descriptor)
+            } catch {
+                return .failure(.storageFailure(hint: "Failed to fetch projects: \(error)"))
+            }
             let matches = allProjects.filter {
                 $0.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
             }

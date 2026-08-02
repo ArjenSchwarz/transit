@@ -269,8 +269,8 @@ struct QueryTasksIntent: AppIntent {
         guard let projectId = UUID(uuidString: idString) else {
             return .invalidInput(hint: "Invalid projectId format")
         }
-        if case .failure = projectService.findProject(id: projectId) {
-            return .projectNotFound(hint: "No project with ID \(idString)")
+        if case .failure(let error) = projectService.findProject(id: projectId) {
+            return IntentHelpers.mapProjectLookupError(error)
         }
         return nil
     }
