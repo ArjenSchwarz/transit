@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- T-1803: `UpdateStatusIntent` now includes a missing requested `displayId` in its `TASK_NOT_FOUND` hint (`No task with displayId N`), while missing UUIDs retain the existing generic lookup hint and malformed identifiers, duplicate IDs, status validation, and atomic mutation behavior remain unchanged.
 ### Fixed
 - MCP `create_task` and JSON `CreateTaskIntent` now reject present non-object `metadata` values (string, array, number, boolean, or null) with field-specific errors before task insertion, while omitted metadata and T-723's tolerant handling of values inside valid objects remain unchanged (T-1991).
 - T-2036: `QueryTasksIntent` now treats empty `completionDate` and `lastStatusChangeDate` objects as valid no-op filters, including when both are present. Raw-object emptiness is preserved before Codable decoding, while nested nulls, malformed non-empty objects, strict dates, reversed ranges, open bounds, and relative precedence remain covered by regression tests.

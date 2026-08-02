@@ -116,6 +116,7 @@ struct UpdateStatusIntentTests {
 
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "TASK_NOT_FOUND")
+        #expect(parsed["hint"] as? String == "No task with displayId 999")
     }
 
     @Test func invalidStatusStringReturnsInvalidStatus() throws {
@@ -286,6 +287,7 @@ struct UpdateStatusIntentTests {
 
         let parsed = try parseJSON(result)
         #expect(parsed["error"] as? String == "TASK_NOT_FOUND")
+        #expect(parsed["hint"] as? String == "Provide either displayId (integer) or taskId (UUID)")
     }
 
     // MARK: - Response Format
