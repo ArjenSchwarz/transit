@@ -236,6 +236,15 @@ struct QueryTasksIntent: AppIntent {
         if let nullKey = object.first(where: { $0.value is NSNull })?.key {
             return .failure(.invalidInput(hint: "Filter \"\(nullKey)\" must not be null"))
         }
+        for filterKey in ["completionDate", "lastStatusChangeDate"] {
+            guard let rawDateFilter = object[filterKey] else { continue }
+            guard let dateFilter = rawDateFilter as? [String: Any] else {
+                return .failure(.invalidInput(hint: "Expected valid JSON object"))
+            }
+            for fieldKey in ["relative", "from", "to"] where dateFilter[fieldKey] is NSNull {
+                return .failure(.invalidInput(hint: "Filter \"\(filterKey).\(fieldKey)\" must not be null"))
+            }
+        }
         guard let filters = try? JSONDecoder().decode(QueryFilters.self, from: data) else {
             return .failure(.invalidInput(hint: "Expected valid JSON object"))
         }
@@ -386,7 +395,6 @@ struct QueryTasksIntent: AppIntent {
             toDateString: filter.toDate
         )
     }
-
 }
 
 // swiftlint:enable type_body_length

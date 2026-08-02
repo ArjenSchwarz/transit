@@ -194,6 +194,64 @@ struct QueryTasksIntentDateFilterTests {
         #expect(parsed.first?["name"] as? String == "Today Done")
     }
 
+    @Test func completionDateFromOnlyKeepsOpenUpperBound() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date.now)
+        let fromDate = calendar.date(byAdding: .day, value: -1, to: today)!
+        let beforeFrom = calendar.date(byAdding: .day, value: -2, to: today)!
+
+        makeTask(in: svc.context, project: project, name: "Before From", displayId: 1, completionDate: beforeFrom)
+        makeTask(in: svc.context, project: project, name: "At From", displayId: 2, completionDate: fromDate)
+        makeTask(in: svc.context, project: project, name: "After From", displayId: 3, completionDate: today)
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.timeZone = TimeZone.current
+        let fromDateString = dateFormatter.string(from: fromDate)
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"completionDate\":{\"from\":\"\(fromDateString)\"}}",
+            projectService: svc.project,
+            taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let names = Set(try parseJSONArray(result).compactMap { $0["name"] as? String })
+        #expect(names == ["At From", "After From"])
+    }
+
+    @Test func completionDateToOnlyKeepsOpenLowerBound() throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date.now)
+        let toDate = calendar.date(byAdding: .day, value: -1, to: today)!
+        let beforeTo = calendar.date(byAdding: .day, value: -2, to: today)!
+
+        makeTask(in: svc.context, project: project, name: "Before To", displayId: 1, completionDate: beforeTo)
+        makeTask(in: svc.context, project: project, name: "At To", displayId: 2, completionDate: toDate)
+        makeTask(in: svc.context, project: project, name: "After To", displayId: 3, completionDate: today)
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.timeZone = TimeZone.current
+        let toDateString = dateFormatter.string(from: toDate)
+
+        let result = QueryTasksIntent.execute(
+            input: "{\"completionDate\":{\"to\":\"\(toDateString)\"}}",
+            projectService: svc.project,
+            taskService: svc.task,
+            milestoneService: svc.milestone
+        )
+
+        let names = Set(try parseJSONArray(result).compactMap { $0["name"] as? String })
+        #expect(names == ["Before To", "At To"])
+    }
+
     @Test func invalidDateFilterReturnsInvalidInputError() throws {
         let svc = try makeServices()
 
