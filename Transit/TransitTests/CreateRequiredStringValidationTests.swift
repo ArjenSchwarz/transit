@@ -8,6 +8,14 @@ import Testing
 @MainActor @Suite(.serialized)
 struct CreateRequiredStringValidationTests {
 
+    private struct Services {
+        let task: TaskService
+        let milestone: MilestoneService
+        let project: ProjectService
+        let context: ModelContext
+        let projectModel: Project
+    }
+
     private let nonStringValues: [(label: String, value: Any)] = [
         ("numeric", 123),
         ("boolean", true),
@@ -16,13 +24,7 @@ struct CreateRequiredStringValidationTests {
         ("null", NSNull())
     ]
 
-    private func makeServices() throws -> (
-        task: TaskService,
-        milestone: MilestoneService,
-        project: ProjectService,
-        context: ModelContext,
-        projectModel: Project
-    ) {
+    private func makeServices() throws -> Services {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
         let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
@@ -30,12 +32,12 @@ struct CreateRequiredStringValidationTests {
             name: "Test Project", description: "A test project", gitRepo: nil, colorHex: "#FF0000"
         )
         context.insert(project)
-        return (
-            TaskService(modelContext: context, displayIDAllocator: allocator),
-            MilestoneService(modelContext: context, displayIDAllocator: allocator),
-            ProjectService(modelContext: context),
-            context,
-            project
+        return Services(
+            task: TaskService(modelContext: context, displayIDAllocator: allocator),
+            milestone: MilestoneService(modelContext: context, displayIDAllocator: allocator),
+            project: ProjectService(modelContext: context),
+            context: context,
+            projectModel: project
         )
     }
 

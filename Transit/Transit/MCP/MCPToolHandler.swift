@@ -289,11 +289,16 @@ final class MCPToolHandler {
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func handleCreateTask(_ args: [String: Any]) async -> MCPToolResult {
-        guard let name = args["name"] as? String, !name.isEmpty else {
-            return errorResult("Missing required argument: name")
+        let name: String
+        switch requiredString(args, key: "name") {
+        case .success(let value): name = value
+        case .failure(.message(let message)): return errorResult(message)
+        }
+        guard args["type"] != nil else {
+            return errorResult("Missing required argument: type")
         }
         guard let typeRaw = args["type"] as? String else {
-            return errorResult("Missing required argument: type")
+            return errorResult("type must be a string")
         }
         guard let taskType = TaskType(rawValue: typeRaw) else {
             let valid = TaskType.allCases.map(\.rawValue).joined(separator: ", ")
@@ -652,9 +657,12 @@ final class MCPToolHandler {
 
 extension MCPToolHandler {
 
+    // swiftlint:disable:next cyclomatic_complexity
     private func handleCreateMilestone(_ args: [String: Any]) async -> MCPToolResult {
-        guard let name = args["name"] as? String, !name.isEmpty else {
-            return errorResult("Missing required argument: name")
+        let name: String
+        switch requiredString(args, key: "name") {
+        case .success(let value): name = value
+        case .failure(.message(let message)): return errorResult(message)
         }
 
         // Reject malformed or non-string projectId when the key is present

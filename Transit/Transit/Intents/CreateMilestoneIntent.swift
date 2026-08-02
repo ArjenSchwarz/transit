@@ -56,8 +56,10 @@ struct CreateMilestoneIntent: AppIntent {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json
         }
 
-        guard let name = json["name"] as? String, !name.isEmpty else {
-            return IntentError.invalidInput(hint: "Missing required field: name").json
+        let name: String
+        switch Self.requiredName(from: json) {
+        case .failure(let error): return error.json
+        case .success(let value): name = value
         }
 
         // Resolve project. Validate key presence separately from string/UUID parsing
@@ -98,6 +100,19 @@ struct CreateMilestoneIntent: AppIntent {
             response["displayId"] = displayId
         }
         return IntentHelpers.encodeJSON(response)
+    }
+
+    private static func requiredName(from json: [String: Any]) -> Result<String, IntentError> {
+        guard json["name"] != nil else {
+            return .failure(.invalidInput(hint: "Missing required field: name"))
+        }
+        guard let name = json["name"] as? String else {
+            return .failure(.invalidInput(hint: "name must be a string"))
+        }
+        guard !name.isEmpty else {
+            return .failure(.invalidInput(hint: "Missing required field: name"))
+        }
+        return .success(name)
     }
 
     /// Resolves the target project from `projectId` (precedence) or `project` name.
