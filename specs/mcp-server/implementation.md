@@ -44,7 +44,7 @@ All MCP code is behind `#if os(macOS)` guards. iOS builds are unaffected.
 
 The architecture has three layers:
 
-1. **Transport layer** (`MCPServer`): Hummingbird HTTP server with a single `POST /mcp` route. Runs in a `Task.detached` to keep `Application.run()` off the MainActor. Parses raw HTTP into `JSONRPCRequest`, dispatches to the handler, serialises the response back to HTTP.
+1. **Transport layer** (`MCPServer`): Hummingbird HTTP server with JSON-RPC over `POST /mcp`; `GET /mcp` is explicitly handled with HTTP 405 and `Allow: POST` because Transit does not offer an SSE listening stream. Runs in a `Task.detached` to keep `Application.run()` off the MainActor. Parses raw HTTP into `JSONRPCRequest`, dispatches to the handler, serialises the response back to HTTP.
 
 2. **Protocol layer** (`MCPToolHandler`): `@MainActor` class that owns references to `TaskService` and `ProjectService`. Dispatches JSON-RPC methods (`initialize`, `tools/list`, `tools/call`, `ping`) and translates tool arguments into service calls. Reuses `IntentHelpers` for JSON encoding and project lookup error mapping — same code path as the App Intents layer.
 

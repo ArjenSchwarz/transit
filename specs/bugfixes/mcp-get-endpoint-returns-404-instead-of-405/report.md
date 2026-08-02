@@ -1,7 +1,7 @@
 # Bugfix Report: MCP GET Endpoint Returns 404 Instead of 405
 
 **Date:** 2026-08-02
-**Status:** Investigating
+**Status:** Fixed
 **Transit ticket:** T-1835
 
 ## Description of the Issue
@@ -61,7 +61,37 @@ the application router.
 
 ## Resolution for the Issue
 
-_To be completed after implementation._
+**Changes made:**
+- `Transit/Transit/MCP/MCPServer.swift:196-217` - registers an explicit
+  `GET /mcp` route. It repeats the existing origin/authority validation and
+  returns HTTP 405 with `Allow: POST` when the request is from an allowed
+  local client. The existing POST route and its body/JSON-RPC dispatch path
+  are unchanged.
+- `Transit/TransitTests/MCPServerRouteTests.swift` - adds route-level tests
+  for the 405 status, `Allow: POST` header, unchanged POST success, GET origin
+  rejection, and unrelated-path 404 behavior.
+- `docs/agent-notes/mcp-server.md` and
+  `specs/mcp-server/implementation.md` - clarify that GET is explicitly
+  handled as an unsupported SSE operation while POST remains the data path.
+
+**Approach rationale:** The fix is deliberately at the Hummingbird router
+boundary. Registering GET on the exact `/mcp` path lets Hummingbird distinguish
+an unsupported method from an unknown path, while the `Allow` header tells MCP
+clients that POST is the supported operation. Repeating origin validation
+before returning 405 preserves the transport security policy for every MCP
+request. No lifecycle or POST handler code needs to change.
+
+**Alternatives considered:**
+- **Leave GET unmatched and rely on Hummingbird's 404** - rejected because it
+  violates the advertised Streamable HTTP `2025-03-26` endpoint contract and
+  prevents clients from distinguishing method support from route absence.
+- **Add a global method-not-allowed middleware** - rejected because the
+  behavior is specific to the MCP endpoint and a route-local handler is the
+  smallest change with no unrelated-path effects.
+- **Return 405 without origin validation** - rejected because MCP origin
+  validation applies to incoming transport requests; the new route must not
+  create a browser-origin bypass.
+
 
 ## Regression Test
 
@@ -83,7 +113,7 @@ new route, and continues returning 404 for an unrelated path.
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/MCP/MCPServer.swift` | To be updated with the explicit GET `/mcp` method response. |
+| `Transit/Transit/MCP/MCPServer.swift` | Explicit GET `/mcp` method response with origin validation. |
 | `Transit/TransitTests/MCPServerRouteTests.swift` | New route-level regression coverage. |
 | `specs/bugfixes/mcp-get-endpoint-returns-404-instead-of-405/report.md` | Investigation and resolution record. |
 | `CHANGELOG.md` | Unreleased fixed-entry for T-1835. |
@@ -92,13 +122,18 @@ new route, and continues returning 404 for an unrelated path.
 
 **Automated:**
 - [x] Regression tests fail before the fix, reproducing the incorrect 404 and missing endpoint method response.
-- [ ] Regression test passes after the fix.
-- [ ] Full test suite passes.
-- [ ] Linters/validators pass.
+- [x] `make test-quick` passes after the fix, including all existing macOS unit tests and the four T-1835 route tests.
+- [x] `make lint` passes in strict mode.
+- [x] `make build-macos` passes for the affected macOS target.
 
 **Manual verification:**
-- [ ] Verify a GET probe receives 405 with `Allow: POST`.
-- [ ] Verify a normal POST request still receives its existing response.
+- [x] Route-level request dispatch confirms `GET /mcp` returns 405 with
+  `Allow: POST`.
+- [x] Route-level request dispatch confirms a normal `POST /mcp` ping still
+  returns HTTP 200.
+- [x] Route-level request dispatch confirms `GET /not-mcp` remains 404 without
+  an `Allow` header.
+
 
 ## Prevention
 

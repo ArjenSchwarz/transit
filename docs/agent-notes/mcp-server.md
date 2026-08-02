@@ -10,7 +10,7 @@ Embedded MCP server in the Transit macOS app using Hummingbird HTTP server. Expo
 Claude Code ←→ HTTP POST /mcp (localhost:3141) ←→ MCPServer ←→ MCPToolHandler ←→ TaskService/ProjectService/CommentService ←→ SwiftData
 ```
 
-- **Transport**: Streamable HTTP, single `POST /mcp` endpoint, JSON-RPC 2.0
+- **Transport**: Streamable HTTP, JSON-RPC 2.0 over `POST /mcp`; `GET /mcp` is explicitly handled with HTTP 405 and `Allow: POST` because Transit does not offer an SSE listening stream
 - **HTTP server**: Hummingbird 2.x (SwiftNIO-based), binds to `127.0.0.1` only
 - **Lifecycle**: Opt-in via Settings toggle. Default port 3141.
 
