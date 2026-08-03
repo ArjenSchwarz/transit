@@ -52,7 +52,10 @@ struct GenerateReportIntentTests {
         makeTerminalTask(name: "Ship feature", project: project, completionDate: now, context: env.context)
 
         let markdown = GenerateReportIntent.execute(
-            dateRange: .thisYear, taskService: env.taskService, milestoneService: env.milestoneService
+            dateRange: .thisYear,
+            taskService: env.taskService,
+            milestoneService: env.milestoneService,
+            now: reportTestNow
         )
 
         #expect(markdown.contains("# Report: This Year"))
@@ -136,7 +139,10 @@ struct GenerateReportIntentTests {
 
         for dateRange in ReportDateRange.allCases {
             let markdown = GenerateReportIntent.execute(
-                dateRange: dateRange, taskService: env.taskService, milestoneService: env.milestoneService
+                dateRange: dateRange,
+                taskService: env.taskService,
+                milestoneService: env.milestoneService,
+                now: reportTestNow
             )
             #expect(!markdown.isEmpty, "Output for \(dateRange.rawValue) should not be empty")
             #expect(markdown.contains("# Report:"), "Output for \(dateRange.rawValue) should contain report header")
