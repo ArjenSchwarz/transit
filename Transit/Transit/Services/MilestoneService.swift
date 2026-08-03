@@ -173,7 +173,7 @@ final class MilestoneService {
 
         task.milestone = milestone
 
-        try modelContext.saveOrRollback(save: save)
+        if save { try modelContext.saveOrRollback(save: mutationSave) }
     }
 
     // MARK: - Promotion
