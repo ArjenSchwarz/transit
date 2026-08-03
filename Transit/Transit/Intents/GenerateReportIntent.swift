@@ -43,20 +43,21 @@ struct GenerateReportIntent: AppIntent {
         let taskFetcher = taskFetcher ?? taskService
         let milestoneFetcher = milestoneFetcher ?? milestoneService
         let tasks: [TransitTask]
-        let milestones: [Milestone]
         do {
             tasks = try taskFetcher.fetchTerminalTasks()
+        } catch {
+            Logger(subsystem: "com.transit", category: "report")
+                .error("Failed to fetch terminal tasks: \(error.localizedDescription)")
+            return IntentError.internalError(hint: "Failed to fetch terminal tasks").json
+        }
+
+        let milestones: [Milestone]
+        do {
             milestones = try milestoneFetcher.fetchTerminalMilestones()
         } catch {
             Logger(subsystem: "com.transit", category: "report")
-                .error("Failed to fetch data for report: \(error.localizedDescription)")
-            let emptyData = ReportData(
-                dateRangeLabel: dateRange.labelWithDates(now: now),
-                projectGroups: [],
-                totalDone: 0,
-                totalAbandoned: 0
-            )
-            return ReportMarkdownFormatter.format(emptyData)
+                .error("Failed to fetch terminal milestones: \(error.localizedDescription)")
+            return IntentError.internalError(hint: "Failed to fetch terminal milestones").json
         }
 
         let report = ReportLogic.buildReport(

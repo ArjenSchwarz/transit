@@ -1,7 +1,7 @@
 # Bugfix Report: Generate Report Intent Fetch Failures
 
 **Date:** 2026-08-04
-**Status:** Investigating
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -36,36 +36,41 @@ The intent used one combined `do`/`catch` for both terminal fetches. Its catch b
 
 ## Resolution for the Issue
 
-Pending implementation after the red regression checkpoint.
+`GenerateReportIntent` now fetches terminal tasks and milestones in independent `do`/`catch` blocks. A task failure returns `IntentError.internalError(hint: "Failed to fetch terminal tasks").json`; a milestone failure returns the equivalent `"Failed to fetch terminal milestones"` envelope. Both retain diagnostic logging. Successful fetches continue through the unchanged `ReportLogic.buildReport` and `ReportMarkdownFormatter.format` path.
 
-**Planned approach:** Add narrow terminal-fetch protocols for deterministic tests; map task and milestone failures independently to stable `INTERNAL_ERROR` JSON responses; preserve the normal successful report pipeline and date-range formatting.
+Narrow `TerminalTaskFetching` and `TerminalMilestoneFetching` protocols make each source independently injectable. The `now` argument is also injectable for stable date-range/Markdown assertions while defaulting to `.now` for the App Intent’s existing behavior.
 
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/GenerateReportIntentTests.swift`
 **Test names:** `taskFetchFailureReturnsInternalError`, `milestoneFetchFailureReturnsInternalError`, `validEmptyReportPreservesMarkdownAndDateRange`
 
-**What it verifies:** Task and milestone fetch failures must emit their exact structured error envelopes, while successful empty sources still return the exact formatter output for the supplied date range.
+**What it verifies:** Task and milestone fetch failures emit their exact `INTERNAL_ERROR` JSON envelopes, while successful empty sources still return the exact existing formatter output for the supplied date range.
 
 **Red command:** `xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit -destination 'platform=macOS' -configuration Debug -derivedDataPath ./DerivedData -only-testing:TransitTests/GenerateReportIntentTests`
 
 **Red result:** The two failure regressions failed; matching-task output, valid-empty output, and all date-range coverage passed.
 
+**Green result:** The same focused command passed after the implementation.
+
 ## Affected Files
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Intents/GenerateReportIntent.swift` | Adds injectable fetch/time seams before behavioral correction. |
+| `Transit/Transit/Intents/GenerateReportIntent.swift` | Returns source-specific structured errors on terminal fetch failures and preserves the normal successful report path. |
 | `Transit/Transit/Intents/Shared/TerminalReportFetching.swift` | Adds narrow terminal task/milestone fetch protocols. |
-| `Transit/TransitTests/GenerateReportIntentTests.swift` | Adds isolated failure and valid-empty regressions. |
+| `Transit/TransitTests/GenerateReportIntentTests.swift` | Adds isolated task-failure, milestone-failure, and exact valid-empty regressions. |
+| `CHANGELOG.md` | Documents the automation contract correction. |
 
 ## Verification
 
 **Automated:**
 - [x] Focused regression suite is red before the fix.
-- [ ] Focused regression suite passes after the fix.
-- [ ] Full macOS unit suite passes.
-- [ ] Linter passes.
+- [x] Focused regression suite passes after the fix.
+- [x] `make test-quick` passes.
+- [x] `make lint` passes.
+- [x] `make build-ios` passes.
+- [ ] `make test` did not complete successfully in this environment: the runner timed out and reported unrelated UI failures in `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`.
 
 ## Prevention
 
