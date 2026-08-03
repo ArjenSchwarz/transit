@@ -35,18 +35,23 @@ struct GenerateReportIntent: AppIntent {
     static func execute(
         dateRange: ReportDateRange,
         taskService: TaskService,
-        milestoneService: MilestoneService
+        milestoneService: MilestoneService,
+        taskFetcher: (any TerminalTaskFetching)? = nil,
+        milestoneFetcher: (any TerminalMilestoneFetching)? = nil,
+        now: Date = .now
     ) -> String {
+        let taskFetcher = taskFetcher ?? taskService
+        let milestoneFetcher = milestoneFetcher ?? milestoneService
         let tasks: [TransitTask]
         let milestones: [Milestone]
         do {
-            tasks = try taskService.fetchTerminalTasks()
-            milestones = try milestoneService.fetchTerminalMilestones()
+            tasks = try taskFetcher.fetchTerminalTasks()
+            milestones = try milestoneFetcher.fetchTerminalMilestones()
         } catch {
             Logger(subsystem: "com.transit", category: "report")
                 .error("Failed to fetch data for report: \(error.localizedDescription)")
             let emptyData = ReportData(
-                dateRangeLabel: dateRange.labelWithDates(),
+                dateRangeLabel: dateRange.labelWithDates(now: now),
                 projectGroups: [],
                 totalDone: 0,
                 totalAbandoned: 0
@@ -54,7 +59,12 @@ struct GenerateReportIntent: AppIntent {
             return ReportMarkdownFormatter.format(emptyData)
         }
 
-        let report = ReportLogic.buildReport(tasks: tasks, milestones: milestones, dateRange: dateRange)
+        let report = ReportLogic.buildReport(
+            tasks: tasks,
+            milestones: milestones,
+            dateRange: dateRange,
+            now: now
+        )
         return ReportMarkdownFormatter.format(report)
     }
 }
