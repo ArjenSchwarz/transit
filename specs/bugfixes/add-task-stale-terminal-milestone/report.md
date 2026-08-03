@@ -38,6 +38,7 @@ Add Task retained an in-memory milestone selection after that milestone became D
 **Changes made:**
 - `Transit/Transit/Services/TaskCreationMilestoneValidator.swift` — reads the selected milestone from the live context and a fresh transient context, requiring every available view to remain open and project-matched.
 - `Transit/Transit/Services/TaskService.swift` — calls that validation after the display-ID allocation await and cancellation re-check, immediately before constructing and inserting the task.
+- `Transit/Transit/Views/AddTask/AddTaskSheet.swift` — observes the selected project's milestone records and clears a selection as soon as it leaves the open option set, so the picker and draft do not retain a terminal selection.
 - `Transit/Transit/Services/TaskService+Error.swift` — adds the localized `milestoneNotOpen` error surfaced by Add Task.
 - `Transit/Transit/Intents/CreateTaskIntent.swift` — maps the new service error to `INVALID_INPUT` rather than an internal failure.
 
