@@ -309,6 +309,11 @@ final class MCPToolHandler {
             let valid = TaskType.allCases.map(\.rawValue).joined(separator: ", ")
             return errorResult("Invalid type: \(typeRaw). Must be one of: \(valid)")
         }
+        // A present metadata value must be an object. Keep the distinction from omission so
+        // malformed values cannot be silently converted to nil by stringMetadata [T-1991].
+        if let rawMetadata = args["metadata"], !IntentHelpers.isMetadataObject(rawMetadata) {
+            return errorResult("metadata must be an object")
+        }
 
         // Priority is optional and defaults to medium. A present-but-invalid value
         // is rejected before any task is created (Req 5.5).

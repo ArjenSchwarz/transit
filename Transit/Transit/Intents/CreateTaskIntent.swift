@@ -314,6 +314,11 @@ struct CreateTaskIntent: AppIntent {
         if let rawDescription = json["description"], rawDescription as? String == nil {
             return .invalidInput(hint: "description must be a string")
         }
+        // A present metadata value must be an object. Keep the distinction from omission so
+        // malformed values cannot be silently converted to nil by stringMetadata [T-1991].
+        if let rawMetadata = json["metadata"], !IntentHelpers.isMetadataObject(rawMetadata) {
+            return .invalidInput(hint: "metadata must be an object")
+        }
         return nil
     }
 }
