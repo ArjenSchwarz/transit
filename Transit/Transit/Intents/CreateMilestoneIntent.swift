@@ -86,7 +86,7 @@ struct CreateMilestoneIntent: AppIntent {
         } catch let error as MilestoneService.Error {
             return IntentHelpers.mapMilestoneError(error).json
         } catch {
-            return IntentError.invalidInput(hint: "Milestone creation failed").json
+            return IntentError.internalError(hint: "Milestone creation failed").json
         }
 
         var response: [String: Any] = [

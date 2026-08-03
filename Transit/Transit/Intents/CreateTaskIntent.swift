@@ -246,8 +246,8 @@ struct CreateTaskIntent: AppIntent {
         } catch let error as MilestoneService.Error {
             return (nil, IntentHelpers.mapMilestoneError(error).json)
         } catch {
-            return (nil, IntentError.milestoneNotFound(
-                hint: "No milestone with displayId \(displayId)"
+            return (nil, IntentError.internalError(
+                hint: "Failed to look up milestone: \(error)"
             ).json)
         }
     }

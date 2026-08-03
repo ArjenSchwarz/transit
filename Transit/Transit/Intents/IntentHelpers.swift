@@ -167,9 +167,7 @@ nonisolated enum IntentHelpers {
         } catch TaskService.Error.taskNotFound {
             return .failure(.taskNotFound(hint: taskNotFoundHint(from: json)))
         } catch {
-            return .failure(.taskNotFound(
-                hint: "Provide either displayId (integer) or taskId (UUID)"
-            ))
+            return .failure(.internalError(hint: "Failed to look up task: \(error)"))
         }
     }
 
@@ -255,8 +253,12 @@ nonisolated enum IntentHelpers {
             return .success(try milestoneService.findByDisplayID(displayId))
         } catch MilestoneService.Error.duplicateDisplayID {
             return .failure(.internalError(hint: "Duplicate milestone identifier for displayId \(displayId)"))
-        } catch {
+        } catch MilestoneService.Error.milestoneNotFound {
             return .failure(.milestoneNotFound(hint: "No milestone with displayId \(displayId)"))
+        } catch let error as MilestoneService.Error {
+            return .failure(mapMilestoneError(error))
+        } catch {
+            return .failure(.internalError(hint: "Failed to look up milestone: \(error)"))
         }
     }
 
@@ -272,9 +274,13 @@ nonisolated enum IntentHelpers {
         case .success(let uuid?):
             do {
                 return .success(try milestoneService.findByID(uuid))
-            } catch {
+            } catch MilestoneService.Error.milestoneNotFound {
                 let idStr = json["milestoneId"] as? String ?? "unknown"
                 return .failure(.milestoneNotFound(hint: "No milestone with ID \(idStr)"))
+            } catch let error as MilestoneService.Error {
+                return .failure(mapMilestoneError(error))
+            } catch {
+                return .failure(.internalError(hint: "Failed to look up milestone: \(error)"))
             }
         }
     }
@@ -442,9 +448,7 @@ nonisolated enum IntentHelpers {
             } catch let error as MilestoneService.Error {
                 return mapMilestoneError(error).json
             } catch {
-                return IntentError.milestoneNotFound(
-                    hint: "No milestone with displayId \(milestoneDisplayId)"
-                ).json
+                return IntentError.internalError(hint: "Failed to assign milestone").json
             }
         } else if let milestoneName = json["milestone"] as? String {
             return assignMilestone(named: milestoneName, to: task, using: milestoneService)
@@ -478,7 +482,7 @@ nonisolated enum IntentHelpers {
         } catch let error as MilestoneService.Error {
             return mapMilestoneError(error).json
         } catch {
-            return IntentError.invalidInput(hint: "Failed to assign milestone").json
+            return IntentError.internalError(hint: "Failed to assign milestone").json
         }
     }
 }

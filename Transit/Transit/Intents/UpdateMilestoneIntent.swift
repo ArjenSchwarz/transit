@@ -84,7 +84,7 @@ struct UpdateMilestoneIntent: AppIntent {
             do {
                 try milestoneService.save()
             } catch {
-                return IntentError.invalidInput(hint: "Update failed").json
+                return IntentError.internalError(hint: "Update failed").json
             }
         }
 

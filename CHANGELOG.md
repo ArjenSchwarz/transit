@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- T-1770: JSON mutation intents now preserve their established typed validation and domain-error payloads while mapping untyped SwiftData fetch/save failures to `INTERNAL_ERROR`. Shared task and milestone identifier resolution uses deterministic injected fetchers; milestone mutations also expose an injected saver. Regression coverage spans create, status update, milestone update, and deletion paths, asserting both the internal-error envelope and no persisted mutation on failure.
+
 - T-1803: `UpdateStatusIntent` now includes a missing requested `displayId` in its `TASK_NOT_FOUND` hint (`No task with displayId N`), while missing UUIDs retain the existing generic lookup hint and malformed identifiers, duplicate IDs, status validation, and atomic mutation behavior remain unchanged.
 ### Fixed
 - T-1613: MCP `query_tasks` now returns the exact tool error `Failed to fetch comments: <error>` when comment serialization cannot read storage, rather than reporting a successful task with `comments: []`. The detailed display-ID and task-list paths share this throwing serialization boundary; genuine empty comment collections retain their successful `comments: []` response. `update_task_status` continues serializing the `Comment` returned by its atomic mutation directly (T-1823), so it performs no post-commit comment fetch that could prompt a retry or duplicate a persisted comment. Deterministic MCP regressions cover both query errors, legitimate empty comments, and zero status-response fetches.
