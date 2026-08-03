@@ -27,6 +27,10 @@ struct MCPQueryProjectNameTests {
         func fetchAllMilestones() throws -> [Milestone] { throw MilestoneFetchFailure() }
     }
 
+    private struct FailingMilestoneDisplayIDFinder: MilestoneDisplayIDFinding {
+        func findByDisplayID(_ displayId: Int) throws -> Milestone { throw MilestoneFetchFailure() }
+    }
+
     @Test func queryByProjectNameReturnsMatchingTasks() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
@@ -148,6 +152,21 @@ struct MCPQueryProjectNameTests {
         #expect(
             try MCPTestHelpers.errorText(response)
                 == "Failed to fetch milestones: simulated milestone fetch failure"
+        )
+    }
+
+    @Test func queryMilestoneDisplayIDFetchFailureReturnsExactErrorInsteadOfEmptyArray() async throws {
+        let env = try MCPTestHelpers.makeEnv(milestoneDisplayIDFinder: FailingMilestoneDisplayIDFinder())
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["milestoneDisplayId": 1]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response), "A failed lookup must not look like no matches")
+        #expect(
+            try MCPTestHelpers.errorText(response)
+                == "Failed to look up milestone: simulated milestone fetch failure"
         )
     }
 

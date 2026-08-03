@@ -5,6 +5,13 @@ import SwiftData
 // swiftlint:disable file_length
 
 @MainActor
+protocol MilestoneDisplayIDFinding {
+    func findByDisplayID(_ displayId: Int) throws -> Milestone
+}
+
+extension MilestoneService: MilestoneDisplayIDFinding {}
+
+@MainActor
 // swiftlint:disable:next type_body_length
 final class MCPToolHandler {
 
@@ -14,6 +21,7 @@ final class MCPToolHandler {
     private let commentService: CommentService
     private let milestoneService: MilestoneService
     private let milestoneFetcher: any MilestoneFetching
+    private let milestoneDisplayIDFinder: any MilestoneDisplayIDFinding
     private let maintenanceService: DisplayIDMaintenanceService
     private let settings: MCPSettings
     private let persistence: PersistenceAvailability
@@ -39,7 +47,8 @@ final class MCPToolHandler {
         settings: MCPSettings,
         persistence: PersistenceAvailability = .shared,
         taskFetcher: (any TaskFetching)? = nil,
-        milestoneFetcher: (any MilestoneFetching)? = nil
+        milestoneFetcher: (any MilestoneFetching)? = nil,
+        milestoneDisplayIDFinder: (any MilestoneDisplayIDFinding)? = nil
     ) {
         self.taskService = taskService
         self.taskFetcher = taskFetcher ?? taskService
@@ -47,6 +56,7 @@ final class MCPToolHandler {
         self.commentService = commentService
         self.milestoneService = milestoneService
         self.milestoneFetcher = milestoneFetcher ?? milestoneService
+        self.milestoneDisplayIDFinder = milestoneDisplayIDFinder ?? milestoneService
         self.maintenanceService = maintenanceService
         self.settings = settings
         self.persistence = persistence
@@ -594,11 +604,13 @@ final class MCPToolHandler {
         var milestoneFilter: Set<UUID>?
         if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
-                milestoneFilter = [try milestoneService.findByDisplayID(milestoneDisplayId).id]
+                milestoneFilter = [try milestoneDisplayIDFinder.findByDisplayID(milestoneDisplayId).id]
+            } catch MilestoneService.Error.milestoneNotFound {
+                return textResult(IntentHelpers.encodeJSONArray([]))
             } catch MilestoneService.Error.duplicateDisplayID {
                 return errorResult("Duplicate milestone identifier detected for displayId \(milestoneDisplayId)")
             } catch {
-                return textResult(IntentHelpers.encodeJSONArray([]))
+                return errorResult("Failed to look up milestone: \(error)")
             }
         } else if let milestoneName = args["milestone"] as? String,
                   !milestoneName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
