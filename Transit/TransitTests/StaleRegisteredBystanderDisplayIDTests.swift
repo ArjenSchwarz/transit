@@ -5,15 +5,19 @@ import Testing
 
 // swiftlint:disable type_body_length
 
-/// Regression coverage for T-1939. The fixture commits display ID 10, then
-/// restores only the main context's registered value to 9 without saving. This
-/// deterministically models a stale peer-merge snapshot while also proving that
-/// live/pending registered IDs remain blocked by the combined collision set.
+/// Regression coverage for T-1939. An independent peer context commits display
+/// ID 10 while the receiving context keeps a clean registered value of 9. This
+/// models the stale peer-merge snapshot directly and separately proves that
+/// unsaved live IDs remain blocked by the combined collision set.
 @MainActor
 @Suite(.serialized)
 struct StaleRegisteredBystanderDisplayIDTests {
 
-    private struct StaleRegisteredFetcher: ModelFetching {
+    /// Deterministic live-context snapshot used after an independent peer commit.
+    /// The models are the receiving context's actual registered objects, not
+    /// detached substitutes, so the fixture proves they are clean and stale
+    /// before this seam prevents a test fetch from refreshing them.
+    private struct RegisteredSnapshotFetcher: ModelFetching {
         let tasks: [TransitTask]
         let milestones: [Milestone]
 
@@ -34,9 +38,6 @@ struct StaleRegisteredBystanderDisplayIDTests {
         let project: Project
         let taskAllocator: DisplayIDAllocator
         let milestoneAllocator: DisplayIDAllocator
-        let taskService: TaskService
-        let milestoneService: MilestoneService
-        let maintenanceService: DisplayIDMaintenanceService
     }
 
     private func makeEnvironment() throws -> Environment {
@@ -51,55 +52,13 @@ struct StaleRegisteredBystanderDisplayIDTests {
         let milestoneAllocator = DisplayIDAllocator(
             store: InMemoryCounterStore(initialNextDisplayID: 10)
         )
-        let taskService = TaskService(
-            modelContext: context,
-            displayIDAllocator: taskAllocator
-        )
-        let milestoneService = MilestoneService(
-            modelContext: context,
-            displayIDAllocator: milestoneAllocator
-        )
-        let maintenanceService = DisplayIDMaintenanceService(
-            modelContext: context,
-            taskAllocator: taskAllocator,
-            milestoneAllocator: milestoneAllocator,
-            commentService: CommentService(modelContext: context)
-        )
-
         return Environment(
             container: testContainer.container,
             context: context,
             project: project,
             taskAllocator: taskAllocator,
-            milestoneAllocator: milestoneAllocator,
-            taskService: taskService,
-            milestoneService: milestoneService,
-            maintenanceService: maintenanceService
+            milestoneAllocator: milestoneAllocator
         )
-    }
-
-    private func staleFetcher() -> StaleRegisteredFetcher {
-        // Keep snapshot-only models outside the live aggregate. Pointing them at
-        // the live project would register them through inverse relationships
-        // and a later service save would persist the test doubles themselves.
-        let detachedProject = Project(
-            name: "Snapshot",
-            description: "",
-            gitRepo: nil,
-            colorHex: "#000000"
-        )
-        let task = TransitTask(
-            name: "Cached task",
-            type: .feature,
-            project: detachedProject,
-            displayID: .permanent(9)
-        )
-        let milestone = Milestone(
-            name: "Cached milestone",
-            project: detachedProject,
-            displayID: .permanent(9)
-        )
-        return StaleRegisteredFetcher(tasks: [task], milestones: [milestone])
     }
 
     @discardableResult
@@ -137,25 +96,44 @@ struct StaleRegisteredBystanderDisplayIDTests {
         return milestone
     }
 
-    private func makeRegisteredTaskStale(
+    private func commitPeerTaskUpdateKeepingRegisteredBystanderStale(
         _ task: TransitTask,
-        in context: ModelContext
+        in environment: Environment
     ) throws {
-        task.permanentDisplayId = 10
-        try context.save()
-        // The store now holds the peer-equivalent value 10. Restore only the
-        // registered value to 9, without a fetch that could refresh it.
-        task.permanentDisplayId = 9
+        let taskID = task.id
+        let peerContext = ModelContext(environment.container)
+        let peerTask = try #require(try peerContext.fetch(FetchDescriptor<TransitTask>(
+            predicate: #Predicate { $0.id == taskID }
+        )).first)
+        peerTask.permanentDisplayId = 10
+        try peerContext.save()
+
+        #expect(task.permanentDisplayId == 9,
+                "The registered bystander must remain stale after the peer commit")
+        #expect(!environment.context.hasChanges,
+                "The stale bystander must be clean, not an unsaved local edit")
+        #expect(try storedTaskIDs(in: environment.container).contains(10),
+                "A transient context must observe the peer-committed ID")
     }
 
-    private func makeRegisteredMilestoneStale(
+    private func commitPeerMilestoneUpdateKeepingRegisteredBystanderStale(
         _ milestone: Milestone,
-        in context: ModelContext
+        in environment: Environment
     ) throws {
-        milestone.permanentDisplayId = 10
-        try context.save()
-        // Mirror T-1061's deterministic stale-cache fixture for milestones.
-        milestone.permanentDisplayId = 9
+        let milestoneID = milestone.id
+        let peerContext = ModelContext(environment.container)
+        let peerMilestone = try #require(try peerContext.fetch(FetchDescriptor<Milestone>(
+            predicate: #Predicate { $0.id == milestoneID }
+        )).first)
+        peerMilestone.permanentDisplayId = 10
+        try peerContext.save()
+
+        #expect(milestone.permanentDisplayId == 9,
+                "The registered bystander must remain stale after the peer commit")
+        #expect(!environment.context.hasChanges,
+                "The stale bystander must be clean, not an unsaved local edit")
+        #expect(try storedMilestoneIDs(in: environment.container).contains(10),
+                "A transient context must observe the peer-committed ID")
     }
 
     private func storedTaskIDs(in container: ModelContainer) throws -> [Int] {
@@ -168,24 +146,54 @@ struct StaleRegisteredBystanderDisplayIDTests {
         return try probe.fetch(FetchDescriptor<Milestone>()).compactMap(\.permanentDisplayId)
     }
 
-    private func expectStaleRegisteredTask(
-        _ task: TransitTask,
-        in context: ModelContext
-    ) {
-        #expect(task.permanentDisplayId == 9,
-                "The main-context bystander must remain stale for this regression")
-        #expect(context.hasChanges,
-                "The fixture must preserve the unsaved registered value")
+    @Test func taskGuardUnionsPeerCommittedAndLivePendingIDs() throws {
+        let environment = try makeEnvironment()
+        let bystander = insertTask(
+            in: environment,
+            name: "Bystander",
+            displayID: .permanent(9)
+        )
+        try environment.context.save()
+        try commitPeerTaskUpdateKeepingRegisteredBystanderStale(bystander, in: environment)
+
+        let pending = insertTask(in: environment, name: "Pending", displayID: .permanent(11))
+        let live = RegisteredSnapshotFetcher(tasks: [bystander, pending], milestones: [])
+        let ids = try UsedDisplayIDs(
+            modelContext: environment.context,
+            liveFetcher: live
+        ).tasks()
+
+        #expect(ids == [9, 10, 11],
+                "The guard must union stale live, peer-committed, and unsaved IDs")
+        #expect(bystander.permanentDisplayId == 9,
+                "Building the guard must not refresh the registered bystander")
+        #expect(environment.context.hasChanges,
+                "The pending ID must remain unsaved after the read")
     }
 
-    private func expectStaleRegisteredMilestone(
-        _ milestone: Milestone,
-        in context: ModelContext
-    ) {
-        #expect(milestone.permanentDisplayId == 9,
-                "The main-context bystander must remain stale for this regression")
-        #expect(context.hasChanges,
-                "The fixture must preserve the unsaved registered value")
+    @Test func milestoneGuardUnionsPeerCommittedAndLivePendingIDs() throws {
+        let environment = try makeEnvironment()
+        let bystander = insertMilestone(
+            in: environment,
+            name: "Bystander",
+            displayID: .permanent(9)
+        )
+        try environment.context.save()
+        try commitPeerMilestoneUpdateKeepingRegisteredBystanderStale(bystander, in: environment)
+
+        let pending = insertMilestone(in: environment, name: "Pending", displayID: .permanent(11))
+        let live = RegisteredSnapshotFetcher(tasks: [], milestones: [bystander, pending])
+        let ids = try UsedDisplayIDs(
+            modelContext: environment.context,
+            liveFetcher: live
+        ).milestones()
+
+        #expect(ids == [9, 10, 11],
+                "The guard must union stale live, peer-committed, and unsaved IDs")
+        #expect(bystander.permanentDisplayId == 9,
+                "Building the guard must not refresh the registered bystander")
+        #expect(environment.context.hasChanges,
+                "The pending ID must remain unsaved after the read")
     }
 
     @Test func taskCreationBlocksPeerCommittedIDHiddenByStaleRegisteredBystander() async throws {
@@ -196,13 +204,12 @@ struct StaleRegisteredBystanderDisplayIDTests {
             displayID: .permanent(9)
         )
         try environment.context.save()
-        try makeRegisteredTaskStale(bystander, in: environment.context)
-        expectStaleRegisteredTask(bystander, in: environment.context)
+        try commitPeerTaskUpdateKeepingRegisteredBystanderStale(bystander, in: environment)
 
         let taskService = TaskService(
             modelContext: environment.context,
             displayIDAllocator: environment.taskAllocator,
-            fetcher: staleFetcher()
+            fetcher: RegisteredSnapshotFetcher(tasks: [bystander], milestones: [])
         )
         let created = try await taskService.createTask(
             name: "Created",
@@ -224,13 +231,12 @@ struct StaleRegisteredBystanderDisplayIDTests {
             displayID: .permanent(9)
         )
         try environment.context.save()
-        try makeRegisteredMilestoneStale(bystander, in: environment.context)
-        expectStaleRegisteredMilestone(bystander, in: environment.context)
+        try commitPeerMilestoneUpdateKeepingRegisteredBystanderStale(bystander, in: environment)
 
         let milestoneService = MilestoneService(
             modelContext: environment.context,
             displayIDAllocator: environment.milestoneAllocator,
-            fetcher: staleFetcher()
+            fetcher: RegisteredSnapshotFetcher(tasks: [], milestones: [bystander])
         )
         let created = try await milestoneService.createMilestone(
             name: "Created",
@@ -256,8 +262,7 @@ struct StaleRegisteredBystanderDisplayIDTests {
             displayID: .provisional
         )
         try environment.context.save()
-        try makeRegisteredTaskStale(bystander, in: environment.context)
-        expectStaleRegisteredTask(bystander, in: environment.context)
+        try commitPeerTaskUpdateKeepingRegisteredBystanderStale(bystander, in: environment)
 
         await environment.taskAllocator.promoteProvisionalTasks(
             in: environment.context,
@@ -282,13 +287,12 @@ struct StaleRegisteredBystanderDisplayIDTests {
             displayID: .provisional
         )
         try environment.context.save()
-        try makeRegisteredMilestoneStale(bystander, in: environment.context)
-        expectStaleRegisteredMilestone(bystander, in: environment.context)
+        try commitPeerMilestoneUpdateKeepingRegisteredBystanderStale(bystander, in: environment)
 
         let milestoneService = MilestoneService(
             modelContext: environment.context,
             displayIDAllocator: environment.milestoneAllocator,
-            fetcher: staleFetcher()
+            fetcher: RegisteredSnapshotFetcher(tasks: [], milestones: [bystander])
         )
         await milestoneService.promoteProvisionalMilestones()
 
@@ -318,8 +322,7 @@ struct StaleRegisteredBystanderDisplayIDTests {
             creationDate: Date(timeIntervalSince1970: 3_000)
         )
         try environment.context.save()
-        try makeRegisteredTaskStale(bystander, in: environment.context)
-        expectStaleRegisteredTask(bystander, in: environment.context)
+        try commitPeerTaskUpdateKeepingRegisteredBystanderStale(bystander, in: environment)
 
         let maintenanceService = DisplayIDMaintenanceService(
             modelContext: environment.context,
@@ -328,7 +331,7 @@ struct StaleRegisteredBystanderDisplayIDTests {
             ),
             milestoneAllocator: environment.milestoneAllocator,
             commentService: CommentService(modelContext: environment.context),
-            usedIDFetcher: staleFetcher()
+            usedIDFetcher: RegisteredSnapshotFetcher(tasks: [bystander], milestones: [])
         )
         let result = await maintenanceService.reassignDuplicates()
 
@@ -360,8 +363,7 @@ struct StaleRegisteredBystanderDisplayIDTests {
             creationDate: Date(timeIntervalSince1970: 3_000)
         )
         try environment.context.save()
-        try makeRegisteredMilestoneStale(bystander, in: environment.context)
-        expectStaleRegisteredMilestone(bystander, in: environment.context)
+        try commitPeerMilestoneUpdateKeepingRegisteredBystanderStale(bystander, in: environment)
 
         let maintenanceService = DisplayIDMaintenanceService(
             modelContext: environment.context,
@@ -370,7 +372,7 @@ struct StaleRegisteredBystanderDisplayIDTests {
                 store: StaleReadCounterStore(staleValue: 10, staleReads: 3)
             ),
             commentService: CommentService(modelContext: environment.context),
-            usedIDFetcher: staleFetcher()
+            usedIDFetcher: RegisteredSnapshotFetcher(tasks: [], milestones: [bystander])
         )
         let result = await maintenanceService.reassignDuplicates()
 

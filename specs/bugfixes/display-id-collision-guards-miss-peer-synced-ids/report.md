@@ -68,8 +68,8 @@ Display-ID allocation asks each caller for IDs already in use before accepting a
 - `Transit/Transit/Services/TaskService.swift` — task creation supplies its main/injected live view to the shared two-source helper.
 - `Transit/Transit/Services/MilestoneService.swift` — milestone creation and promotion use the same helper while name uniqueness continues to use its existing fetcher.
 - `Transit/Transit/Services/DisplayIDAllocator.swift` — task promotion always includes the shared committed + live set; its injectable test set supplements rather than replaces those sources. Allocator-issued IDs remain unioned inside the serialized allocation gate.
-- `Transit/Transit/Services/DisplayIDMaintenanceService.swift` — both duplicate-repair paths use the shared helper; an optional live-fetch seam makes the stale registered view deterministic in tests without changing production behavior.
-- `Transit/TransitTests/StaleRegisteredBystanderDisplayIDTests.swift` — six task/milestone regressions cover creation, promotion, and repair.
+- `Transit/Transit/Services/DisplayIDMaintenanceService.swift` — both duplicate-repair paths use the shared helper; an optional live-view seam lets tests supply the receiving context's actual clean stale registered objects while production uses the main context.
+- `Transit/TransitTests/StaleRegisteredBystanderDisplayIDTests.swift` — six task/milestone path regressions cover creation, promotion, and repair; two focused helper tests prove the committed/live/pending union directly.
 
 **Approach rationale:** A transient context is the smallest authoritative committed-store read SwiftData exposes, while the main context remains necessary for unsaved/pending values. Unioning the two in the existing shared `UsedDisplayIDs` helper fixes all callers without changing allocator serialization or mutation control flow. `DisplayIDAllocator` already owns the third source—issued but not yet committed IDs—so that reservation remains inside its gate.
 
@@ -86,6 +86,8 @@ Display-ID allocation asks each caller for IDs already in use before accepting a
 **Test file:** `Transit/TransitTests/StaleRegisteredBystanderDisplayIDTests.swift`
 
 **Test names:**
+- `taskGuardUnionsPeerCommittedAndLivePendingIDs`
+- `milestoneGuardUnionsPeerCommittedAndLivePendingIDs`
 - `taskCreationBlocksPeerCommittedIDHiddenByStaleRegisteredBystander`
 - `milestoneCreationBlocksPeerCommittedIDHiddenByStaleRegisteredBystander`
 - `taskPromotionBlocksPeerCommittedIDHiddenByStaleRegisteredBystander`
@@ -93,7 +95,7 @@ Display-ID allocation asks each caller for IDs already in use before accepting a
 - `taskRepairBlocksPeerCommittedIDHiddenByStaleRegisteredBystander`
 - `milestoneRepairBlocksPeerCommittedIDHiddenByStaleRegisteredBystander`
 
-**What they verify:** The fixture commits ID 10, then changes only the registered main-context bystander back to ID 9 without saving or refetching it. This is the established deterministic T-1061 stale-cache simulation and also exercises the required union with live/pending state. A counter offering 10 must skip to 11 on all six affected paths.
+**What they verify:** An independent peer `ModelContext` commits ID 10 while the receiving context retains a registered ID 9. Before every path test, assertions prove the registered value is still 9, the receiving context has no pending changes, and a fresh transient probe sees committed ID 10—so the fixture is a clean stale bystander, not a synthetic unsaved edit or refreshed object. A counter offering 10 must skip to 11 on all six affected paths. Two focused tests then add an unsaved ID 11 and prove `UsedDisplayIDs` returns the complete `{9, 10, 11}` union without refreshing or saving the receiving context.
 
 **Run command:** `make test-quick`
 
@@ -105,16 +107,17 @@ Display-ID allocation asks each caller for IDs already in use before accepting a
 | `Transit/Transit/Services/TaskService.swift` | Task-creation wiring |
 | `Transit/Transit/Services/MilestoneService.swift` | Milestone creation/promotion wiring |
 | `Transit/Transit/Services/DisplayIDAllocator.swift` | Task-promotion shared set plus injected supplement |
-| `Transit/Transit/Services/DisplayIDMaintenanceService.swift` | Duplicate-repair wiring and live-fetch test seam |
-| `Transit/TransitTests/StaleRegisteredBystanderDisplayIDTests.swift` | Six deterministic regressions |
+| `Transit/Transit/Services/DisplayIDMaintenanceService.swift` | Duplicate-repair wiring and injectable live-snapshot seam |
+| `Transit/TransitTests/StaleRegisteredBystanderDisplayIDTests.swift` | Six end-to-end stale-bystander regressions plus two focused union tests |
 | `docs/agent-notes/display-id-maintenance.md` | Project-specific candidate-set invariant |
 | `CHANGELOG.md` | Unreleased T-1939 behavior |
 
 ## Verification
 
 **Automated:**
-- [x] Red baseline: all six T-1939 cases accepted ID 10 before the fix (verified from the macOS xcresult bundle).
-- [x] Green regression/full macOS unit suite: `make test-quick` — 1,698 passed, 0 failed, 0 skipped.
+- [x] Red baseline: the original six T-1939 path cases accepted ID 10 before the fix (verified from the macOS xcresult bundle).
+- [x] Review hardening: all six path regressions now use independent peer-context commits and assert the receiving registered bystander remains clean and unrefreshed; two focused tests separately prove pending IDs are unioned.
+- [x] Green regression/full macOS unit suite after review hardening: `make test-quick` — 1,700 passed, 0 failed, 0 skipped.
 - [x] Full iOS run: `make test` — 1,210 passed and 3 unrelated UI failures; all unit tests and all six T-1939 cases passed.
 - [x] Linters/validators: `make lint` — SwiftLint strict mode and the SwiftData ownership guard passed.
 - [ ] Dedicated UI suite is not fully green: `make test-ui` — 18 passed, 3 failed.
@@ -132,7 +135,7 @@ The same three failures are documented on the base branch in the T-2020 bug repo
 
 - Treat a registered main-context fetch as live/pending state, not as an authoritative committed-store snapshot.
 - Centralize display-ID candidate blocking so every allocator caller combines the same state sources.
-- Keep transient regression probes independent from the main context so tests do not accidentally refresh away the stale condition.
+- Establish stale-cache regressions with an independent peer context, assert the receiving context stays clean, and probe committed state through another transient context without refreshing the registered bystander.
 
 ## Related
 
