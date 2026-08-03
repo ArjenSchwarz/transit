@@ -119,4 +119,27 @@ struct AddTaskStaleMilestoneTests {
         let committedContext = ModelContext(testContainer.container)
         #expect(try committedContext.fetch(FetchDescriptor<TransitTask>()).isEmpty)
     }
+
+    @Test func directCreationAcceptsMilestoneWithLegacyUnknownStatus() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let taskService = TaskService(
+            modelContext: context,
+            displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
+        )
+        let project = makeProject(in: context)
+        let milestone = makeMilestone(in: context, project: project)
+        milestone.statusRawValue = "legacy-status"
+        try context.save()
+
+        let task = try await taskService.createTask(
+            name: "Legacy Milestone Task",
+            description: nil,
+            type: .feature,
+            project: project,
+            milestone: milestone
+        )
+
+        #expect(task.milestone?.id == milestone.id)
+    }
 }

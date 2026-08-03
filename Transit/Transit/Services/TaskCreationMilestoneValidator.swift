@@ -29,7 +29,7 @@ enum TaskCreationMilestoneValidator {
             guard currentMilestone.project?.id == projectID else {
                 throw TaskService.Error.milestoneProjectMismatch
             }
-            guard currentMilestone.statusRawValue == MilestoneStatus.open.rawValue else {
+            guard currentMilestone.status == .open else {
                 throw TaskService.Error.milestoneNotOpen
             }
         }
