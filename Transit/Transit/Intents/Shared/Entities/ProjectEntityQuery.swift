@@ -1,22 +1,35 @@
 import AppIntents
 import Foundation
 
+/// Narrow seam over project-list storage reads so EntityQuery tests can
+/// deterministically distinguish a failed fetch from an empty database.
+@MainActor
+protocol ProjectFetching {
+    func fetchAllProjects(sortedByName: Bool) throws -> [Project]
+}
+
+extension ProjectService: ProjectFetching {}
+
 struct ProjectEntityQuery: EntityQuery {
     @Dependency
     private var projectService: ProjectService
 
     @MainActor
     func entities(for identifiers: [String]) async throws -> [ProjectEntity] {
-        Self.entities(for: identifiers, projectService: projectService)
+        try Self.entities(for: identifiers, projectService: projectService)
     }
 
     @MainActor
     func suggestedEntities() async throws -> [ProjectEntity] {
-        Self.suggestedEntities(projectService: projectService)
+        try Self.suggestedEntities(projectService: projectService)
     }
 
     @MainActor
-    static func entities(for identifiers: [String], projectService: ProjectService) -> [ProjectEntity] {
+    static func entities(
+        for identifiers: [String],
+        projectService: ProjectService,
+        projectFetcher: (any ProjectFetching)? = nil
+    ) throws -> [ProjectEntity] {
         if identifiers.isEmpty {
             return []
         }
@@ -33,7 +46,7 @@ struct ProjectEntityQuery: EntityQuery {
             return []
         }
 
-        let projects = (try? projectService.fetchAllProjects()) ?? []
+        let projects = try (projectFetcher ?? projectService).fetchAllProjects(sortedByName: false)
         return projects.compactMap { project in
             guard wantedIDs.contains(project.id) else { return nil }
             return ProjectEntity.from(project)
@@ -41,8 +54,11 @@ struct ProjectEntityQuery: EntityQuery {
     }
 
     @MainActor
-    static func suggestedEntities(projectService: ProjectService) -> [ProjectEntity] {
-        let projects = (try? projectService.fetchAllProjects(sortedByName: true)) ?? []
+    static func suggestedEntities(
+        projectService: ProjectService,
+        projectFetcher: (any ProjectFetching)? = nil
+    ) throws -> [ProjectEntity] {
+        let projects = try (projectFetcher ?? projectService).fetchAllProjects(sortedByName: true)
         if projects.isEmpty {
             return []
         }

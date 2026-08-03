@@ -64,7 +64,7 @@ struct AddTaskIntentIntegrationTests {
             services: AddTaskIntent.Services(taskService: svc.task, projectService: svc.project)
         )
 
-        let entities = TaskEntityQuery.entities(for: [result.taskId.uuidString], taskService: svc.task)
+        let entities = try TaskEntityQuery.entities(for: [result.taskId.uuidString], taskService: svc.task)
         #expect(entities.count == 1)
         #expect(entities[0].name == "Queryable Task")
         #expect(entities[0].status == "idea")

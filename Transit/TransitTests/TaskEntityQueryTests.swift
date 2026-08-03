@@ -49,7 +49,7 @@ struct TaskEntityQueryTests {
         let first = makeTask(in: env.context, project: project, name: "First", displayID: 1, lastChange: .now)
         _ = makeTask(in: env.context, project: project, name: "Second", displayID: 2, lastChange: .now)
 
-        let entities = TaskEntityQuery.entities(
+        let entities = try TaskEntityQuery.entities(
             for: [first.id.uuidString, UUID().uuidString, "invalid"],
             taskService: env.taskService
         )
@@ -64,7 +64,7 @@ struct TaskEntityQueryTests {
         let task = makeTask(in: env.context, project: project, name: "Synced", displayID: 10, lastChange: .now)
         task.project = nil
 
-        let entities = TaskEntityQuery.entities(for: [task.id.uuidString], taskService: env.taskService)
+        let entities = try TaskEntityQuery.entities(for: [task.id.uuidString], taskService: env.taskService)
         #expect(entities.isEmpty)
     }
 
@@ -83,7 +83,7 @@ struct TaskEntityQueryTests {
             )
         }
 
-        let entities = TaskEntityQuery.suggestedEntities(taskService: env.taskService)
+        let entities = try TaskEntityQuery.suggestedEntities(taskService: env.taskService)
 
         #expect(entities.count == 10)
         #expect(entities.first?.name == "Task 11")

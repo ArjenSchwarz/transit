@@ -7,16 +7,20 @@ struct TaskEntityQuery: EntityQuery {
 
     @MainActor
     func entities(for identifiers: [String]) async throws -> [TaskEntity] {
-        Self.entities(for: identifiers, taskService: taskService)
+        try Self.entities(for: identifiers, taskService: taskService)
     }
 
     @MainActor
     func suggestedEntities() async throws -> [TaskEntity] {
-        Self.suggestedEntities(taskService: taskService)
+        try Self.suggestedEntities(taskService: taskService)
     }
 
     @MainActor
-    static func entities(for identifiers: [String], taskService: TaskService) -> [TaskEntity] {
+    static func entities(
+        for identifiers: [String],
+        taskService: TaskService,
+        taskFetcher: (any TaskFetching)? = nil
+    ) throws -> [TaskEntity] {
         if identifiers.isEmpty {
             return []
         }
@@ -33,14 +37,17 @@ struct TaskEntityQuery: EntityQuery {
             return []
         }
 
-        let tasks = (try? taskService.fetchAllTasks()) ?? []
+        let tasks = try (taskFetcher ?? taskService).fetchAllTasks()
         let matchingTasks = tasks.filter { wantedIDs.contains($0.id) }
         return entities(from: matchingTasks)
     }
 
     @MainActor
-    static func suggestedEntities(taskService: TaskService) -> [TaskEntity] {
-        let tasks = (try? taskService.fetchAllTasks()) ?? []
+    static func suggestedEntities(
+        taskService: TaskService,
+        taskFetcher: (any TaskFetching)? = nil
+    ) throws -> [TaskEntity] {
+        let tasks = try (taskFetcher ?? taskService).fetchAllTasks()
         if tasks.isEmpty {
             return []
         }
