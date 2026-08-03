@@ -31,7 +31,10 @@ struct AddTaskStaleMilestoneTests {
         return milestone
     }
 
-    @Test func persistRejectsMilestoneClosedAfterSelectionBeforeSaveWithoutInsertingTask() async throws {
+    @Test(arguments: [MilestoneStatus.done, .abandoned])
+    func persistRejectsMilestoneClosedAfterSelectionBeforeSaveWithoutInsertingTask(
+        terminalStatus: MilestoneStatus
+    ) async throws {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
         let allocationStore = AllocationGatedCounterStore()
@@ -62,7 +65,7 @@ struct AddTaskStaleMilestoneTests {
         let peerMilestone = try #require(try peerContext.fetch(FetchDescriptor<Milestone>(
             predicate: #Predicate { $0.id == selectedMilestoneID }
         )).first)
-        peerMilestone.status = .done
+        peerMilestone.status = terminalStatus
         try peerContext.save()
 
         #expect(selectedMilestone.status == .open, "The selected model must remain stale in its context")
@@ -71,8 +74,10 @@ struct AddTaskStaleMilestoneTests {
         do {
             try await persistence.value
             Issue.record("Expected persistence to reject the now-terminal milestone")
+        } catch let error as TaskService.Error {
+            #expect(error == .milestoneNotOpen)
         } catch {
-            // Expected once TaskService revalidates the milestone at its persistence boundary.
+            Issue.record("Expected milestoneNotOpen, got \(error)")
         }
 
         #expect(try context.fetch(FetchDescriptor<TransitTask>()).isEmpty)

@@ -1,7 +1,7 @@
 # Bugfix Report: Add Task Stale Terminal Milestone
 
 **Date:** 2026-08-04
-**Status:** Investigating
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -35,14 +35,24 @@ Add Task retained an in-memory milestone selection after that milestone became D
 
 ## Resolution for the Issue
 
-Pending implementation. The intended fix is a final task-creation validation after the allocation await that combines live pending state with a fresh committed-store milestone read and rejects terminal or cross-project selections before task insertion.
+**Changes made:**
+- `Transit/Transit/Services/TaskCreationMilestoneValidator.swift` — reads the selected milestone from the live context and a fresh transient context, requiring every available view to remain open and project-matched.
+- `Transit/Transit/Services/TaskService.swift` — calls that validation after the display-ID allocation await and cancellation re-check, immediately before constructing and inserting the task.
+- `Transit/Transit/Services/TaskService+Error.swift` — adds the localized `milestoneNotOpen` error surfaced by Add Task.
+- `Transit/Transit/Intents/CreateTaskIntent.swift` — maps the new service error to `INVALID_INPUT` rather than an internal failure.
+
+**Approach rationale:** The guard sits after the last suspension point and before `TransitTask` construction, closing the status-change race without relying on picker refreshes or `onChange`. It combines live state (including local pending updates) with a fresh committed-store read (including peer/window updates), and rejects before `insertOrDelete`, preserving the existing atomic one-save task/milestone path.
+
+**Alternatives considered:**
+- Clearing `selectedMilestone` only when the picker options change — rejected because it misses a closure that occurs after selection or during awaited task creation, and does not protect non-UI callers.
+- Changing the dashboard terminal filter — rejected because T-1825 is separate behavior and remains unchanged.
 
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/AddTaskStaleMilestoneTests.swift`
 **Test name:** `persistRejectsMilestoneClosedAfterSelectionBeforeSaveWithoutInsertingTask`
 
-**What it verifies:** A gated display-ID allocation permits a peer context to close a formerly selected milestone deterministically. The Add Task persistence path must reject the stale selection and leave no pending or committed task.
+**What it verifies:** A gated display-ID allocation permits a peer context to change a formerly selected milestone to Done or Abandoned deterministically. The Add Task persistence path must reject the stale selection with `milestoneNotOpen` and leave no pending or committed task.
 
 **Run command:** `make test-quick`
 
@@ -50,18 +60,23 @@ Pending implementation. The intended fix is a final task-creation validation aft
 
 | File | Change |
 |---|---|
-| `Transit/TransitTests/AddTaskSheetSaveErrorTests.swift` | Adds the deterministic red regression test. |
-| `Transit/Transit/Services/TaskService.swift` | Pending service-layer revalidation at task-creation persistence boundary. |
+| `Transit/Transit/Services/TaskCreationMilestoneValidator.swift` | Validates project scope and open status against live and committed milestone state. |
+| `Transit/Transit/Services/TaskService.swift` | Applies validation after allocation and before task construction/insertion. |
+| `Transit/Transit/Services/TaskService+Error.swift` | Adds localized terminal/unavailable milestone rejection. |
+| `Transit/Transit/Intents/CreateTaskIntent.swift` | Maps rejection to `INVALID_INPUT`. |
+| `Transit/TransitTests/AddTaskStaleMilestoneTests.swift` | Covers deterministic peer-context Done/Abandoned closure with no partial task. |
 
 ## Verification
 
 **Automated:**
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Focused regression passes for Done and Abandoned (`AddTaskStaleMilestoneTests`)
+- [x] macOS unit suite passes (`make test-quick`)
+- [x] Strict lint passes (`make lint`)
+- [ ] iOS suite (`make test`) did not complete: two attempts timed out after building and beginning tests; Xcode logged repeated LLDB debugger-version-store failures.
+- [ ] UI suite (`make test-ui`) not run after the full iOS suite could not complete in this environment.
 
 **Manual verification:**
-- Pending implementation.
+- The deterministic two-context test models the Add Task selection, external closure, and save boundary directly; no manual UI run was performed.
 
 ## Prevention
 
