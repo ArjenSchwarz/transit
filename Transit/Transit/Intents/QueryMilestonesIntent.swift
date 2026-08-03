@@ -66,10 +66,14 @@ struct QueryMilestonesIntent: AppIntent {
 
         let resolvedProjectId: UUID?
         switch resolveValidatedProjectFilter(json, projectService: projectService) {
-        case .success(let projectId):
+        case .unfiltered:
+            resolvedProjectId = nil
+        case .resolved(let projectId):
             resolvedProjectId = projectId
-        case .failure(let response):
-            return response
+        case .noMatch:
+            return IntentHelpers.encodeJSONArray([])
+        case .error(let error):
+            return error.json
         }
 
         // Single-milestone lookup by displayId. Remaining filters still apply conjunctively —
@@ -149,25 +153,16 @@ struct QueryMilestonesIntent: AppIntent {
     private static func resolveValidatedProjectFilter(
         _ json: [String: Any],
         projectService: ProjectService
-    ) -> Result<UUID?, String> {
+    ) -> ProjectFilterResolution {
         let projectId: UUID?
         switch IntentHelpers.validateUUIDField("projectId", in: json) {
-        case .failure(let error): return .failure(error.json)
+        case .failure(let error): return .error(error)
         case .success(let parsed): projectId = parsed
         }
         if let validationError = validateFilters(json) {
-            return .failure(validationError.json)
+            return .error(validationError)
         }
-        switch resolveProjectFilter(json, projectId: projectId, projectService: projectService) {
-        case .unfiltered:
-            return .success(nil)
-        case .resolved(let projectId):
-            return .success(projectId)
-        case .noMatch:
-            return .failure(IntentHelpers.encodeJSONArray([]))
-        case .error(let error):
-            return .failure(error.json)
-        }
+        return resolveProjectFilter(json, projectId: projectId, projectService: projectService)
     }
 
     private enum ProjectFilterResolution {
