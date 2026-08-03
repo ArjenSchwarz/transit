@@ -9,6 +9,10 @@ struct MCPQueryProjectNameTests {
 
     private struct FetchFailure: Swift.Error {}
 
+    private struct MilestoneFetchFailure: Swift.Error, CustomStringConvertible {
+        var description: String { "simulated milestone fetch failure" }
+    }
+
     private struct FailingProjectFetcher: ModelFetching {
         func fetch<T: PersistentModel>(_ descriptor: FetchDescriptor<T>) throws -> [T] {
             throw FetchFailure()
@@ -17,6 +21,14 @@ struct MCPQueryProjectNameTests {
 
     private struct FailingTaskFetcher: TaskFetching {
         func fetchAllTasks() throws -> [TransitTask] { throw FetchFailure() }
+    }
+
+    private struct FailingMilestoneFetcher: MilestoneFetching {
+        func fetchAllMilestones() throws -> [Milestone] { throw MilestoneFetchFailure() }
+    }
+
+    private struct FailingMilestoneDisplayIDFinder: MilestoneDisplayIDFinding {
+        func findByDisplayID(_ displayId: Int) throws -> Milestone { throw MilestoneFetchFailure() }
     }
 
     @Test func queryByProjectNameReturnsMatchingTasks() async throws {
@@ -126,6 +138,61 @@ struct MCPQueryProjectNameTests {
 
         #expect(try MCPTestHelpers.isError(response))
         #expect(try MCPTestHelpers.errorText(response).hasPrefix("Failed to fetch tasks:"))
+    }
+
+    @Test func queryMilestoneNameFetchFailureReturnsExactErrorInsteadOfEmptyArray() async throws {
+        let env = try MCPTestHelpers.makeEnv(milestoneFetcher: FailingMilestoneFetcher())
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["milestone": "v1.0"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response), "A failed filter fetch must not look like no matches")
+        #expect(
+            try MCPTestHelpers.errorText(response)
+                == "Failed to fetch milestones: simulated milestone fetch failure"
+        )
+    }
+
+    @Test func queryUnscopedMilestoneNameWithNoMatchReturnsEmptyArray() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        _ = try await env.taskService.createTask(name: "Unrelated", description: nil, type: .bug, project: project)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["milestone": "v9.0"]
+        ))
+
+        #expect(try MCPTestHelpers.decodeArrayResult(response).isEmpty)
+    }
+
+    @Test func queryMilestoneDisplayIDFetchFailureReturnsExactErrorInsteadOfEmptyArray() async throws {
+        let env = try MCPTestHelpers.makeEnv(milestoneDisplayIDFinder: FailingMilestoneDisplayIDFinder())
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["milestoneDisplayId": 1]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response), "A failed lookup must not look like no matches")
+        #expect(
+            try MCPTestHelpers.errorText(response)
+                == "Failed to look up milestone: simulated milestone fetch failure"
+        )
+    }
+
+    @Test func queryMilestoneFetchFailureDoesNotMaskMalformedStatus() async throws {
+        let env = try MCPTestHelpers.makeEnv(milestoneFetcher: FailingMilestoneFetcher())
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["milestone": "v1.0", "status": "not-a-status"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorText(response).contains("Invalid status: not-a-status"))
     }
 
     @Test func queryByNonexistentProjectIdMatchesIntentProjectNotFound() async throws {
