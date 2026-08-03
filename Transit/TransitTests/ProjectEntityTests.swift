@@ -39,7 +39,7 @@ struct ProjectEntityTests {
         env.context.insert(alpha)
         env.context.insert(beta)
 
-        let entities = ProjectEntityQuery.entities(
+        let entities = try ProjectEntityQuery.entities(
             for: [alpha.id.uuidString, UUID().uuidString, "not-a-uuid"],
             projectService: env.projectService
         )
@@ -50,7 +50,7 @@ struct ProjectEntityTests {
 
     @Test func suggestedEntitiesReturnsEmptyArrayWhenNoProjects() throws {
         let env = try makeEnv()
-        let entities = ProjectEntityQuery.suggestedEntities(projectService: env.projectService)
+        let entities = try ProjectEntityQuery.suggestedEntities(projectService: env.projectService)
         #expect(entities.isEmpty)
     }
 }

@@ -56,16 +56,20 @@ struct TaskCreationResultQuery: EntityQuery {
 
     @MainActor
     func entities(for identifiers: [String]) async throws -> [TaskCreationResult] {
-        Self.entities(for: identifiers, taskService: taskService)
+        try Self.entities(for: identifiers, taskService: taskService)
     }
 
     @MainActor
     func suggestedEntities() async throws -> [TaskCreationResult] {
-        Self.suggestedEntities(taskService: taskService)
+        try Self.suggestedEntities(taskService: taskService)
     }
 
     @MainActor
-    static func entities(for identifiers: [String], taskService: TaskService) -> [TaskCreationResult] {
+    static func entities(
+        for identifiers: [String],
+        taskService: TaskService,
+        taskFetcher: (any TaskFetching)? = nil
+    ) throws -> [TaskCreationResult] {
         if identifiers.isEmpty {
             return []
         }
@@ -82,7 +86,7 @@ struct TaskCreationResultQuery: EntityQuery {
             return []
         }
 
-        let tasks = (try? taskService.fetchAllTasks()) ?? []
+        let tasks = try (taskFetcher ?? taskService).fetchAllTasks()
         var results: [TaskCreationResult] = []
         results.reserveCapacity(min(tasks.count, wantedIDs.count))
 
@@ -97,8 +101,11 @@ struct TaskCreationResultQuery: EntityQuery {
     }
 
     @MainActor
-    static func suggestedEntities(taskService: TaskService) -> [TaskCreationResult] {
-        let tasks = (try? taskService.fetchAllTasks()) ?? []
+    static func suggestedEntities(
+        taskService: TaskService,
+        taskFetcher: (any TaskFetching)? = nil
+    ) throws -> [TaskCreationResult] {
+        let tasks = try (taskFetcher ?? taskService).fetchAllTasks()
         if tasks.isEmpty {
             return []
         }
