@@ -1,8 +1,13 @@
 import Foundation
 import SwiftData
 
+@MainActor
+protocol CommentFetching {
+    func fetchComments(for taskID: UUID) throws -> [Comment]
+}
+
 @MainActor @Observable
-final class CommentService {
+final class CommentService: CommentFetching {
 
     enum Error: Swift.Error, Equatable {
         case emptyContent
