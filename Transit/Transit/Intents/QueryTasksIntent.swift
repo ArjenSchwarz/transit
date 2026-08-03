@@ -1,15 +1,6 @@
 import AppIntents
 import Foundation
 
-/// Narrow seam over the task service's full-table fetch so query intents can be
-/// tested against a failing storage layer. `TaskService` conforms directly. [T-1566]
-@MainActor
-protocol TaskFetching {
-    func fetchAllTasks() throws -> [TransitTask]
-}
-
-extension TaskService: TaskFetching {}
-
 // swiftlint:disable type_body_length
 
 /// Queries tasks with optional filters via JSON input. Exposed as "Transit: Query Tasks"

@@ -105,4 +105,85 @@ struct EntityQueryFetchFailureTests {
             )
         }
     }
+
+    @Test func projectEntitiesForEmptyOrInvalidIdentifiersDoNotFetch() throws {
+        let services = try makeServices()
+        let identifierLists: [[String]] = [[], ["not-a-uuid"]]
+
+        for identifiers in identifierLists {
+            let entities = try ProjectEntityQuery.entities(
+                for: identifiers,
+                projectService: services.project,
+                projectFetcher: FailingProjectFetcher()
+            )
+            #expect(entities.isEmpty)
+        }
+    }
+
+    @Test func taskEntitiesForEmptyOrInvalidIdentifiersDoNotFetch() throws {
+        let services = try makeServices()
+        let identifierLists: [[String]] = [[], ["not-a-uuid"]]
+
+        for identifiers in identifierLists {
+            let entities = try TaskEntityQuery.entities(
+                for: identifiers,
+                taskService: services.task,
+                taskFetcher: FailingTaskFetcher()
+            )
+            #expect(entities.isEmpty)
+        }
+    }
+
+    @Test func taskCreationResultEntitiesForEmptyOrInvalidIdentifiersDoNotFetch() throws {
+        let services = try makeServices()
+        let identifierLists: [[String]] = [[], ["not-a-uuid"]]
+
+        for identifiers in identifierLists {
+            let entities = try TaskCreationResultQuery.entities(
+                for: identifiers,
+                taskService: services.task,
+                taskFetcher: FailingTaskFetcher()
+            )
+            #expect(entities.isEmpty)
+        }
+    }
+
+    @Test func projectQueryMethodsReturnEmptyForValidEmptyStore() throws {
+        let services = try makeServices()
+
+        let resolved = try ProjectEntityQuery.entities(
+            for: [UUID().uuidString],
+            projectService: services.project
+        )
+        let suggested = try ProjectEntityQuery.suggestedEntities(projectService: services.project)
+
+        #expect(resolved.isEmpty)
+        #expect(suggested.isEmpty)
+    }
+
+    @Test func taskEntityQueryMethodsReturnEmptyForValidEmptyStore() throws {
+        let services = try makeServices()
+
+        let resolved = try TaskEntityQuery.entities(
+            for: [UUID().uuidString],
+            taskService: services.task
+        )
+        let suggested = try TaskEntityQuery.suggestedEntities(taskService: services.task)
+
+        #expect(resolved.isEmpty)
+        #expect(suggested.isEmpty)
+    }
+
+    @Test func taskCreationResultQueryMethodsReturnEmptyForValidEmptyStore() throws {
+        let services = try makeServices()
+
+        let resolved = try TaskCreationResultQuery.entities(
+            for: [UUID().uuidString],
+            taskService: services.task
+        )
+        let suggested = try TaskCreationResultQuery.suggestedEntities(taskService: services.task)
+
+        #expect(resolved.isEmpty)
+        #expect(suggested.isEmpty)
+    }
 }
