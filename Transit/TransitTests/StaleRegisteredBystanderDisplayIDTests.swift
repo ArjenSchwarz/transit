@@ -78,16 +78,25 @@ struct StaleRegisteredBystanderDisplayIDTests {
         )
     }
 
-    private func staleFetcher(in environment: Environment) -> StaleRegisteredFetcher {
+    private func staleFetcher() -> StaleRegisteredFetcher {
+        // Keep snapshot-only models outside the live aggregate. Pointing them at
+        // the live project would register them through inverse relationships
+        // and a later service save would persist the test doubles themselves.
+        let detachedProject = Project(
+            name: "Snapshot",
+            description: "",
+            gitRepo: nil,
+            colorHex: "#000000"
+        )
         let task = TransitTask(
             name: "Cached task",
             type: .feature,
-            project: environment.project,
+            project: detachedProject,
             displayID: .permanent(9)
         )
         let milestone = Milestone(
             name: "Cached milestone",
-            project: environment.project,
+            project: detachedProject,
             displayID: .permanent(9)
         )
         return StaleRegisteredFetcher(tasks: [task], milestones: [milestone])
@@ -193,7 +202,7 @@ struct StaleRegisteredBystanderDisplayIDTests {
         let taskService = TaskService(
             modelContext: environment.context,
             displayIDAllocator: environment.taskAllocator,
-            fetcher: staleFetcher(in: environment)
+            fetcher: staleFetcher()
         )
         let created = try await taskService.createTask(
             name: "Created",
@@ -221,7 +230,7 @@ struct StaleRegisteredBystanderDisplayIDTests {
         let milestoneService = MilestoneService(
             modelContext: environment.context,
             displayIDAllocator: environment.milestoneAllocator,
-            fetcher: staleFetcher(in: environment)
+            fetcher: staleFetcher()
         )
         let created = try await milestoneService.createMilestone(
             name: "Created",
@@ -279,7 +288,7 @@ struct StaleRegisteredBystanderDisplayIDTests {
         let milestoneService = MilestoneService(
             modelContext: environment.context,
             displayIDAllocator: environment.milestoneAllocator,
-            fetcher: staleFetcher(in: environment)
+            fetcher: staleFetcher()
         )
         await milestoneService.promoteProvisionalMilestones()
 
@@ -319,7 +328,7 @@ struct StaleRegisteredBystanderDisplayIDTests {
             ),
             milestoneAllocator: environment.milestoneAllocator,
             commentService: CommentService(modelContext: environment.context),
-            usedIDFetcher: staleFetcher(in: environment)
+            usedIDFetcher: staleFetcher()
         )
         let result = await maintenanceService.reassignDuplicates()
 
@@ -361,7 +370,7 @@ struct StaleRegisteredBystanderDisplayIDTests {
                 store: StaleReadCounterStore(staleValue: 10, staleReads: 3)
             ),
             commentService: CommentService(modelContext: environment.context),
-            usedIDFetcher: staleFetcher(in: environment)
+            usedIDFetcher: staleFetcher()
         )
         let result = await maintenanceService.reassignDuplicates()
 

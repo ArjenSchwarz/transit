@@ -42,9 +42,10 @@ final class TaskService {
     private let createSave: (ModelContext) throws -> Void
     private let statusSave: (ModelContext) throws -> Void
 
-    /// Committed display IDs feeding the allocator's collision guard. Reads through
-    /// an injectable seam only so tests can simulate an unreadable store (T-1621);
-    /// production reads the same context.
+    /// Display IDs feeding the allocator's collision guard. Production unions a
+    /// transient committed-store read with the live main-context values; the
+    /// injectable live fetcher lets tests simulate stale or unreadable registered
+    /// state without replacing the committed-store read (T-1621, T-1939).
     private let usedDisplayIDs: UsedDisplayIDs
 
     init(
@@ -56,7 +57,10 @@ final class TaskService {
     ) {
         self.modelContext = modelContext
         self.displayIDAllocator = displayIDAllocator
-        self.usedDisplayIDs = UsedDisplayIDs(fetcher ?? modelContext)
+        self.usedDisplayIDs = UsedDisplayIDs(
+            modelContext: modelContext,
+            liveFetcher: fetcher ?? modelContext
+        )
         self.createSave = createSave
         self.statusSave = statusSave
     }

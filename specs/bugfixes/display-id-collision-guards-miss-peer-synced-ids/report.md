@@ -1,7 +1,7 @@
 # Bugfix Report: Display ID Collision Guards Miss Peer-Synced IDs
 
 **Date:** 2026-08-03
-**Status:** Investigating
+**Status:** Fixed
 **Ticket:** T-1939
 
 ## Description of the Issue
@@ -63,7 +63,23 @@ Display-ID allocation asks each caller for IDs already in use before accepting a
 
 ## Resolution for the Issue
 
-Pending implementation and green verification.
+**Changes made:**
+- `Transit/Transit/Services/UsedDisplayIDs.swift` — each task/milestone snapshot now unions committed IDs from a newly created transient context with live/pending IDs from the registered main context. Either fetch throwing aborts the snapshot.
+- `Transit/Transit/Services/TaskService.swift` — task creation supplies its main/injected live view to the shared two-source helper.
+- `Transit/Transit/Services/MilestoneService.swift` — milestone creation and promotion use the same helper while name uniqueness continues to use its existing fetcher.
+- `Transit/Transit/Services/DisplayIDAllocator.swift` — task promotion always includes the shared committed + live set; its injectable test set supplements rather than replaces those sources. Allocator-issued IDs remain unioned inside the serialized allocation gate.
+- `Transit/Transit/Services/DisplayIDMaintenanceService.swift` — both duplicate-repair paths use the shared helper; an optional live-fetch seam makes the stale registered view deterministic in tests without changing production behavior.
+- `Transit/TransitTests/StaleRegisteredBystanderDisplayIDTests.swift` — six task/milestone regressions cover creation, promotion, and repair.
+
+**Approach rationale:** A transient context is the smallest authoritative committed-store read SwiftData exposes, while the main context remains necessary for unsaved/pending values. Unioning the two in the existing shared `UsedDisplayIDs` helper fixes all callers without changing allocator serialization or mutation control flow. `DisplayIDAllocator` already owns the third source—issued but not yet committed IDs—so that reservation remains inside its gate.
+
+**Alternatives considered:**
+- **Refresh the main context before each allocation:** Rejected because SwiftData exposes no public targeted refresh API, and a broad refetch can overwrite or hide legitimate pending values.
+- **Use only a transient context:** Rejected because it cannot see newly inserted or edited main-context IDs that have not been committed yet.
+- **Add a second collision check after allocation:** Rejected as duplication at six call paths; the allocator already evaluates its exclusion closure inside the serialized gate on every retry.
+- **Change CloudKit schema or introduce owner reservations:** Unnecessary for this local stale-store-view defect and materially larger than the shared snapshot fix.
+
+**Preserved behavior:** T-1061/T-2019 loser probes and post-allocation re-probes, T-1621 fail-closed lookup semantics, T-1766 maintenance guards, allocator serialization and issued-ID reservation, cancellation propagation/checks, single-flight guards, and failure rollback/selective reset paths are unchanged.
 
 ## Regression Test
 
@@ -85,22 +101,32 @@ Pending implementation and green verification.
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Services/UsedDisplayIDs.swift` | Planned shared committed + live/pending candidate-blocking set |
-| `Transit/Transit/Services/TaskService.swift` | Planned task-creation wiring |
-| `Transit/Transit/Services/MilestoneService.swift` | Planned milestone creation/promotion wiring |
-| `Transit/Transit/Services/DisplayIDAllocator.swift` | Planned task-promotion wiring |
-| `Transit/Transit/Services/DisplayIDMaintenanceService.swift` | Planned duplicate-repair wiring |
+| `Transit/Transit/Services/UsedDisplayIDs.swift` | Shared committed transient + live/pending ID union |
+| `Transit/Transit/Services/TaskService.swift` | Task-creation wiring |
+| `Transit/Transit/Services/MilestoneService.swift` | Milestone creation/promotion wiring |
+| `Transit/Transit/Services/DisplayIDAllocator.swift` | Task-promotion shared set plus injected supplement |
+| `Transit/Transit/Services/DisplayIDMaintenanceService.swift` | Duplicate-repair wiring and live-fetch test seam |
 | `Transit/TransitTests/StaleRegisteredBystanderDisplayIDTests.swift` | Six deterministic regressions |
-| `CHANGELOG.md` | Final behavior entry after verification |
+| `docs/agent-notes/display-id-maintenance.md` | Project-specific candidate-set invariant |
+| `CHANGELOG.md` | Unreleased T-1939 behavior |
 
 ## Verification
 
 **Automated:**
-- [x] Regressions fail before the fix (all six accepted ID 10; verified in the macOS xcresult bundle)
-- [ ] Regressions pass after the fix
-- [ ] Full macOS unit suite passes
-- [ ] Relevant iOS/full suite passes
-- [ ] Linters/validators pass
+- [x] Red baseline: all six T-1939 cases accepted ID 10 before the fix (verified from the macOS xcresult bundle).
+- [x] Green regression/full macOS unit suite: `make test-quick` — 1,698 passed, 0 failed, 0 skipped.
+- [x] Full iOS run: `make test` — 1,210 passed and 3 unrelated UI failures; all unit tests and all six T-1939 cases passed.
+- [x] Linters/validators: `make lint` — SwiftLint strict mode and the SwiftData ownership guard passed.
+- [ ] Dedicated UI suite is not fully green: `make test-ui` — 18 passed, 3 failed.
+
+**Unrelated UI failures:**
+- `TransitUITests.testClearAll`
+- `TransitUITests.testEditViewPreservesTaskMilestone`
+- `DataMaintenanceUITests.testDataMaintenanceGoldenPath` — XCTest reports duplicate matching accessibility elements for the confirmation button.
+
+The same three failures are documented on the base branch in the T-2020 bug report, and none of the T-1939 changes touch views, UI tests, or accessibility identifiers. Both long iOS commands exceeded the CLI wrapper's timeout after Xcode had finalized their result bundles; counts and failures above were read directly with `xcresulttool`.
+
+**Manual review:** The diff changes only candidate-set construction and dependency wiring. T-1061/T-2019/T-2020 probes, allocation gate/issued-ID state, cancellation checks, maintenance single-flight handling, and save rollback/selective reset blocks are byte-for-byte unchanged.
 
 ## Prevention
 

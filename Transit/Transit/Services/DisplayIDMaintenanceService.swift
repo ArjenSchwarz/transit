@@ -33,7 +33,10 @@ final class DisplayIDMaintenanceService {
         self.commentService = commentService
         self.clock = clock
         self.lookup = DisplayIDRecordLookup(modelContext: modelContext)
-        self.usedDisplayIDs = UsedDisplayIDs(usedIDFetcher ?? modelContext)
+        self.usedDisplayIDs = UsedDisplayIDs(
+            modelContext: modelContext,
+            liveFetcher: usedIDFetcher ?? modelContext
+        )
     }
 
     // MARK: - Scan
