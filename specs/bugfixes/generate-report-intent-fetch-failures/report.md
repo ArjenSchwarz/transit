@@ -70,7 +70,7 @@ Narrow `TerminalTaskFetching` and `TerminalMilestoneFetching` protocols make eac
 - [x] `make test-quick` passes.
 - [x] `make lint` passes.
 - [x] `make build-ios` passes.
-- [ ] `make test` did not complete successfully in this environment: the runner timed out and reported unrelated UI failures in `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`.
+- [ ] `make test` completed with unrelated UI failures in `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`.
 
 ## Prevention
 
