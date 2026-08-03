@@ -167,6 +167,8 @@ struct CreateTaskIntent: AppIntent {
             .projectNotFound(hint: "The selected project could not be found")
         case .milestoneProjectMismatch:
             .milestoneProjectMismatch(hint: "Milestone and task must belong to the same project")
+        case .milestoneNotOpen:
+            .invalidInput(hint: "The selected milestone is no longer open")
         default:
             .internalError(hint: "Task creation failed")
         }

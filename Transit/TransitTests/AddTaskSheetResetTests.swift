@@ -27,6 +27,35 @@ struct AddTaskSheetResetTests {
         #expect(defaults.milestone == nil)
     }
 
+    // MARK: - Milestone selection reconciliation
+
+    @Test("A selected milestone is cleared when it is no longer an open option")
+    func staleMilestoneSelectionIsCleared() {
+        #expect(
+            AddTaskMilestoneSelectionLogic.shouldClearSelection(
+                selectedMilestoneID: UUID(),
+                availableMilestoneIDs: []
+            )
+        )
+    }
+
+    @Test("An available or absent milestone selection is retained")
+    func validOrAbsentMilestoneSelectionIsRetained() {
+        let milestoneID = UUID()
+        #expect(
+            !AddTaskMilestoneSelectionLogic.shouldClearSelection(
+                selectedMilestoneID: milestoneID,
+                availableMilestoneIDs: [milestoneID]
+            )
+        )
+        #expect(
+            !AddTaskMilestoneSelectionLogic.shouldClearSelection(
+                selectedMilestoneID: nil,
+                availableMilestoneIDs: []
+            )
+        )
+    }
+
     // MARK: - Default project selection
 
     @Test("Default project picks the first project when none selected")

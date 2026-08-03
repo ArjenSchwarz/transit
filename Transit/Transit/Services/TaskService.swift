@@ -4,38 +4,7 @@ import SwiftData
 /// Coordinates task creation, status changes, and lookups. Uses StatusEngine
 /// for all status transitions and DisplayIDAllocator for display ID assignment.
 @MainActor @Observable
-// swiftlint:disable:next type_body_length
 final class TaskService {
-
-    enum Error: Swift.Error, LocalizedError, Equatable {
-        case invalidName
-        case taskNotFound
-        case projectNotFound
-        case duplicateDisplayID
-        case restoreRequiresAbandonedTask
-        case milestoneProjectMismatch
-        /// Identifier key present but malformed; field name surfaces a field-specific INVALID_INPUT [T-808]
-        case invalidIdentifier(field: String)
-
-        var errorDescription: String? {
-            switch self {
-            case .invalidName:
-                "Task name cannot be empty."
-            case .taskNotFound:
-                "The specified task could not be found."
-            case .projectNotFound:
-                "The selected project could not be found."
-            case .duplicateDisplayID:
-                "A duplicate task identifier was detected."
-            case .restoreRequiresAbandonedTask:
-                "Only abandoned tasks can be restored."
-            case .milestoneProjectMismatch:
-                "Milestone and task must belong to the same project."
-            case .invalidIdentifier(let field):
-                "The supplied \(field) is not a valid task identifier."
-            }
-        }
-    }
 
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
@@ -157,6 +126,11 @@ final class TaskService {
         // and inserting the model so a successfully allocated ID cannot turn a
         // cancelled operation into a persisted task (T-1765).
         try Task.checkCancellation()
+        try TaskCreationMilestoneValidator.validate(
+            milestone,
+            projectID: project.id,
+            in: modelContext
+        )
 
         let task = TransitTask(
             name: trimmedName,

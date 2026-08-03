@@ -8,11 +8,11 @@ struct AddTaskSheet: View {
     // widening is incidental, so do not re-tighten these to `private`.
     @Environment(TaskService.self) var taskService
     @Environment(ProjectService.self) private var projectService
-    @Environment(MilestoneService.self) var milestoneService
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) var dismiss
     @Environment(\.resolvedTheme) private var resolvedTheme
     @Query(sort: \Project.name) private var projects: [Project]
+    @Query(sort: \Milestone.name) private var milestones: [Milestone]
 
     @State var name = ""
     @State var taskDescription = ""
@@ -31,7 +31,9 @@ struct AddTaskSheet: View {
 
     private var openMilestones: [Milestone] {
         guard let project = selectedProject else { return [] }
-        return milestoneService.milestonesForProject(project, status: .open)
+        return milestones.filter {
+            $0.project?.id == project.id && $0.status == .open
+        }
     }
 
     private var canSave: Bool {
@@ -102,6 +104,14 @@ struct AddTaskSheet: View {
                 selectedProjectID = projects.first?.id
             }
             #endif
+        }
+        .onChange(of: openMilestones.map(\.id), initial: true) { _, availableMilestoneIDs in
+            if AddTaskMilestoneSelectionLogic.shouldClearSelection(
+                selectedMilestoneID: selectedMilestone?.id,
+                availableMilestoneIDs: availableMilestoneIDs
+            ) {
+                selectedMilestone = nil
+            }
         }
     }
 
@@ -308,5 +318,18 @@ enum AddTaskFormResetLogic {
             return current
         }
         return projects.first?.id
+    }
+}
+
+/// Decides whether an Add Task milestone selection remains representable by the
+/// picker. Unlike task editing, creation has no existing terminal assignment to
+/// preserve, so an option that leaves the open set must be cleared from state.
+enum AddTaskMilestoneSelectionLogic {
+    static func shouldClearSelection(
+        selectedMilestoneID: UUID?,
+        availableMilestoneIDs: [UUID]
+    ) -> Bool {
+        guard let selectedMilestoneID else { return false }
+        return !availableMilestoneIDs.contains(selectedMilestoneID)
     }
 }

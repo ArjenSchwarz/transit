@@ -441,6 +441,8 @@ final class MCPToolHandler {
                 priority: priority,
                 milestone: resolvedMilestone
             )
+        } catch TaskService.Error.milestoneNotOpen {
+            return errorResult("The selected milestone is no longer open")
         } catch {
             return errorResult("Task creation failed: \(error)")
         }
