@@ -41,6 +41,20 @@ assert_workspace_path() {
     pass "$target sets $variable inside the workspace"
 }
 
+assert_xcodebuild_setting() {
+    local target="$1"
+    local setting="$2"
+    local commands="$3"
+    local xcodebuild_arguments
+
+    xcodebuild_arguments="${commands#*xcodebuild }"
+    [ "$xcodebuild_arguments" != "$commands" ] \
+        || fail "$target does not invoke xcodebuild"
+    printf '%s\n' "$xcodebuild_arguments" | grep -Fq -- "$setting" \
+        || fail "$target does not pass $setting as an xcodebuild build setting"
+    pass "$target passes $setting as an xcodebuild build setting"
+}
+
 assert_cache_controls() {
     local target="$1"
     local commands="$2"
@@ -49,13 +63,10 @@ assert_cache_controls() {
         || fail "$target does not enable pipefail before its xcodebuild pipeline"
     printf '%s\n' "$commands" | grep -Fq -- '-derivedDataPath ./DerivedData' \
         || fail "$target does not pass -derivedDataPath ./DerivedData"
-    printf '%s\n' "$commands" | grep -Fq -- \
-        "-derivedDataPath ./DerivedData CLANG_MODULE_CACHE_PATH=$clang_module_cache" \
-        || fail "$target does not pass CLANG_MODULE_CACHE_PATH as an xcodebuild build setting"
+    assert_xcodebuild_setting "$target" "CLANG_MODULE_CACHE_PATH=$clang_module_cache" "$commands"
     assert_workspace_path "$target" XDG_CACHE_HOME "$workspace_cache" "$commands"
     assert_workspace_path "$target" TMPDIR "$workspace_tmp" "$commands"
     assert_workspace_path "$target" SWIFTPM_MODULECACHE_OVERRIDE "$manifest_module_cache" "$commands"
-    assert_workspace_path "$target" CLANG_MODULE_CACHE_PATH "$clang_module_cache" "$commands"
 
     printf '%s\n' "$commands" | grep -Fq -- '-clonedSourcePackagesDirPath' \
         && fail "$target must omit -clonedSourcePackagesDirPath so xcodebuild can resolve packages"
@@ -64,9 +75,21 @@ assert_cache_controls() {
     pass "$target uses supported cache controls and preserves package resolution"
 }
 
+make_dry_run() {
+    local target="$1"
+
+    # DEVICE_ID is a recursively-expanded $(shell ...) value. Override it for
+    # install so make -n only prints the recipe and never enumerates devices.
+    if [ "$target" = "install" ]; then
+        make -n "$target" DEVICE_ID=cache-guard-device-id 2>/dev/null
+    else
+        make -n "$target" 2>/dev/null
+    fi
+}
+
 # Use make's dry-run mode so we get resolved command lines without executing.
 for target in build-ios build-macos test-quick test test-ui install archive clean; do
-    commands="$(make -n "$target" 2>/dev/null)"
+    commands="$(make_dry_run "$target")"
     assert_cache_controls "$target" "$commands"
 done
 
