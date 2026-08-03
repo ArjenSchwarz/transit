@@ -286,10 +286,12 @@ enum TaskUpdateValidator {
             return .failure(.duplicateMilestoneDisplayID(
                 message: "Duplicate milestone identifier detected for displayId \(displayId)"
             ))
-        } catch {
+        } catch MilestoneService.Error.milestoneNotFound {
             return .failure(.milestoneNotFound(
                 message: "No milestone with displayId \(displayId)"
             ))
+        } catch {
+            return .failure(.internalError("Failed to look up milestone: \(error)"))
         }
     }
 
@@ -316,7 +318,7 @@ enum TaskUpdateValidator {
                 message: "Multiple milestones named '\(name)' exist in project '\(project.name)'"
             ))
         } catch {
-            return .failure(.invalidInput("Failed to look up milestone: \(error)"))
+            return .failure(.internalError("Failed to look up milestone: \(error)"))
         }
     }
 
@@ -403,6 +405,7 @@ enum MilestoneAction {
 enum TaskUpdateValidationError: Error {
     case invalidInput(String)
     case invalidPriority(String)
+    case internalError(String)
     case milestoneNotFound(message: String)
     case ambiguousMilestoneName(message: String)
     case duplicateMilestoneDisplayID(message: String)
@@ -416,6 +419,7 @@ enum TaskUpdateValidationError: Error {
         switch self {
         case .invalidInput(let message),
              .invalidPriority(let message),
+             .internalError(let message),
              .milestoneNotFound(let message),
              .ambiguousMilestoneName(let message),
              .duplicateMilestoneDisplayID(let message):
@@ -436,6 +440,8 @@ enum TaskUpdateValidationError: Error {
             return .invalidInput(hint: hint)
         case .invalidPriority(let hint):
             return .invalidPriority(hint: hint)
+        case .internalError(let hint):
+            return .internalError(hint: hint)
         case .milestoneNotFound(let message):
             return .milestoneNotFound(hint: message)
         case .ambiguousMilestoneName(let message):
