@@ -16,6 +16,10 @@ else
 PIPE_PRETTY =
 endif
 
+# macOS ships GNU Make 3.81, which ignores .SHELLFLAGS. Enable pipefail in
+# each recipe that may pipe xcodebuild through xcbeautify so failures propagate.
+PIPEFAIL = set -o pipefail;
+
 # Default target
 .PHONY: help
 help:
@@ -109,7 +113,7 @@ prepare-cache-dirs:
 
 .PHONY: build-ios
 build-ios: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild build \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild build \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=iOS Simulator,name=iPhone 17' \
@@ -119,7 +123,7 @@ build-ios: prepare-cache-dirs
 
 .PHONY: build-macos
 build-macos: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild build \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild build \
 		-allowProvisioningUpdates \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
@@ -134,7 +138,7 @@ build: build-ios build-macos
 # Testing
 .PHONY: test-quick
 test-quick: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild test \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=macOS' \
@@ -145,7 +149,7 @@ test-quick: prepare-cache-dirs
 
 .PHONY: test
 test: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild test \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=iOS Simulator,name=iPhone 17' \
@@ -157,7 +161,7 @@ test: prepare-cache-dirs
 
 .PHONY: test-ui
 test-ui: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild test \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=iOS Simulator,name=iPhone 17' \
@@ -182,7 +186,7 @@ install: prepare-cache-dirs
 		exit 1; \
 	fi
 	@echo "Building $(CONFIG) for device $(DEVICE_ID)..."
-	$(XCODEBUILD_ENV) xcodebuild build \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild build \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'id=$(DEVICE_ID)' \
@@ -223,7 +227,7 @@ EXPORT_PATH = ./build/export
 
 .PHONY: archive
 archive: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild archive \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild archive \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'generic/platform=iOS' \
@@ -239,7 +243,7 @@ archive: prepare-cache-dirs
 #     -exportOptionsPlist ExportOptions.plist -exportPath ./build/export -allowProvisioningUpdates
 .PHONY: upload
 upload: archive
-	$(XCODEBUILD_ENV) xcodebuild -exportArchive \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild -exportArchive \
 		-archivePath $(ARCHIVE_PATH) \
 		-exportOptionsPlist ExportOptions.plist \
 		-exportPath $(EXPORT_PATH) \
@@ -249,7 +253,7 @@ upload: archive
 # Cleaning
 .PHONY: clean
 clean: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild clean \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild clean \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		$(XCODEBUILD_CACHE_FLAGS)

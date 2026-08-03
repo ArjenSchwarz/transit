@@ -45,6 +45,8 @@ assert_cache_controls() {
     local target="$1"
     local commands="$2"
 
+    printf '%s\n' "$commands" | grep -Fq -- 'set -o pipefail;' \
+        || fail "$target does not enable pipefail before its xcodebuild pipeline"
     printf '%s\n' "$commands" | grep -Fq -- '-derivedDataPath ./DerivedData' \
         || fail "$target does not pass -derivedDataPath ./DerivedData"
     printf '%s\n' "$commands" | grep -Fq -- \
