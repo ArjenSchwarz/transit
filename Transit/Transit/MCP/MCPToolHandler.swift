@@ -19,6 +19,7 @@ final class MCPToolHandler {
     private let taskFetcher: any TaskFetching
     private let projectService: ProjectService
     private let commentService: CommentService
+    private let commentFetcher: any CommentFetching
     private let milestoneService: MilestoneService
     private let milestoneFetcher: any MilestoneFetching
     private let milestoneDisplayIDFinder: any MilestoneDisplayIDFinding
@@ -47,6 +48,7 @@ final class MCPToolHandler {
         settings: MCPSettings,
         persistence: PersistenceAvailability = .shared,
         taskFetcher: (any TaskFetching)? = nil,
+        commentFetcher: (any CommentFetching)? = nil,
         milestoneFetcher: (any MilestoneFetching)? = nil,
         milestoneDisplayIDFinder: (any MilestoneDisplayIDFinding)? = nil
     ) {
@@ -54,6 +56,7 @@ final class MCPToolHandler {
         self.taskFetcher = taskFetcher ?? taskService
         self.projectService = projectService
         self.commentService = commentService
+        self.commentFetcher = commentFetcher ?? commentService
         self.milestoneService = milestoneService
         self.milestoneFetcher = milestoneFetcher ?? milestoneService
         self.milestoneDisplayIDFinder = milestoneDisplayIDFinder ?? milestoneService
@@ -677,7 +680,12 @@ final class MCPToolHandler {
 
         let filtered = allTasks.filter { filters.matches($0) }
         let isoFormatter = ISO8601DateFormatter()
-        let results = filtered.map { taskToDict($0, formatter: isoFormatter) }
+        let results: [[String: Any]]
+        do {
+            results = try filtered.map { try taskToDict($0, formatter: isoFormatter) }
+        } catch {
+            return errorResult("Failed to fetch comments: \(error)")
+        }
         return textResult(IntentHelpers.encodeJSONArray(results))
     }
 
@@ -702,7 +710,12 @@ final class MCPToolHandler {
         }
 
         let isoFormatter = ISO8601DateFormatter()
-        let dict = taskToDict(task, formatter: isoFormatter, detailed: true)
+        let dict: [String: Any]
+        do {
+            dict = try taskToDict(task, formatter: isoFormatter, detailed: true)
+        } catch {
+            return errorResult("Failed to fetch comments: \(error)")
+        }
         return textResult(IntentHelpers.encodeJSONArray([dict]))
     }
 
@@ -1448,9 +1461,9 @@ extension MCPToolHandler {
 
     private func taskToDict(
         _ task: TransitTask, formatter: ISO8601DateFormatter, detailed: Bool = false
-    ) -> [String: Any] {
+    ) throws -> [String: Any] {
         var dict = IntentHelpers.taskToDict(task, formatter: formatter, detailed: detailed)
-        let comments = (try? commentService.fetchComments(for: task.id)) ?? []
+        let comments = try commentFetcher.fetchComments(for: task.id)
         dict["comments"] = comments.map { [
             "id": $0.id.uuidString, "authorName": $0.authorName, "content": $0.content,
             "isAgent": $0.isAgent, "creationDate": formatter.string(from: $0.creationDate)

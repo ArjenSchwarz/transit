@@ -23,6 +23,7 @@ enum MCPTestHelpers {
         taskStatusSave: @escaping (ModelContext) throws -> Void = { try $0.save() },
         projectFetcher: (any ModelFetching)? = nil,
         taskFetcher: (any TaskFetching)? = nil,
+        commentFetcher: (any CommentFetching)? = nil,
         milestoneFetcher: (any MilestoneFetching)? = nil,
         milestoneDisplayIDFinder: (any MilestoneDisplayIDFinding)? = nil
     ) throws -> MCPTestEnv {
@@ -54,7 +55,8 @@ enum MCPTestHelpers {
             taskService: taskService, projectService: projectService,
             commentService: commentService, milestoneService: milestoneService,
             maintenanceService: maintenanceService, settings: mcpSettings,
-            taskFetcher: taskFetcher, milestoneFetcher: milestoneFetcher,
+            taskFetcher: taskFetcher, commentFetcher: commentFetcher,
+            milestoneFetcher: milestoneFetcher,
             milestoneDisplayIDFinder: milestoneDisplayIDFinder
         )
         return MCPTestEnv(
