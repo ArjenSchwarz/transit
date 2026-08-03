@@ -211,9 +211,9 @@ final class DisplayIDAllocator: @unchecked Sendable {
     /// Finds tasks with provisional display IDs (permanentDisplayId == nil),
     /// sorts them by creation date, and allocates permanent IDs one at a time.
     /// `save` is injectable for tests that need to simulate a save failure
-    /// after the permanent ID has been assigned in memory. `usedTaskIDs` is
-    /// injectable for tests that need to simulate an unreadable local store
-    /// (T-1621); it defaults to reading the committed IDs from `context`.
+    /// after the permanent ID has been assigned in memory. `usedTaskIDs` supplements
+    /// the default committed-store and live/pending IDs; tests can inject a
+    /// throwing source to verify fail-closed behavior (T-1621, T-1939).
     func promoteProvisionalTasks(
         in context: ModelContext,
         usedTaskIDs: (@MainActor @Sendable () throws -> Set<Int>)? = nil,
