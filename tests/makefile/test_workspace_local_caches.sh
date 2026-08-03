@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
-# Regression test for T-1241: Make build-macos should use workspace-local Xcode caches.
+# Regression test for T-1628: every source-building xcodebuild target must
+# keep Clang modules and SwiftPM manifest diagnostics/cache writes workspace-local.
 #
-# In sandboxed/dev environments, xcodebuild fails when it tries to write to
-# user-global caches (~/.cache/clang/ModuleCache, ~/Library/Caches/org.swift.swiftpm).
-# The Makefile must redirect every cache path that xcodebuild and its subprocesses
-# touch into the workspace.
-#
-# This test inspects `make -n build-macos` (dry-run) and `make -n clean` output and
-# verifies that the required cache-redirection flags and environment variables are
-# present. It does not actually build the project.
+# `-clonedSourcePackagesDirPath` and `-packageCachePath` are deliberately absent:
+# their subdirectory values prevent normal xcodebuild package resolution. Xcode
+# owns SourcePackages below -derivedDataPath. This guard checks the supported
+# controls instead, without invoking xcodebuild.
 
 set -euo pipefail
 
@@ -24,96 +21,68 @@ pass() {
     echo "PASS: $*"
 }
 
-# Use make's dry-run mode so we get the resolved command lines without executing.
-build_cmds="$(make -n build-macos 2>/dev/null)"
-build_ios_cmds="$(make -n build-ios 2>/dev/null)"
-clean_cmds="$(make -n clean 2>/dev/null)"
-test_cmds="$(make -n test-quick 2>/dev/null)"
-
-# 1. SwiftPM clones directory must be workspace-local.
-echo "$build_cmds" | grep -q -- '-clonedSourcePackagesDirPath' \
-    || fail "build-macos does not pass -clonedSourcePackagesDirPath"
-pass "build-macos passes -clonedSourcePackagesDirPath"
-
-# 2. SwiftPM package cache must be workspace-local.
-echo "$build_cmds" | grep -q -- '-packageCachePath' \
-    || fail "build-macos does not pass -packageCachePath"
-pass "build-macos passes -packageCachePath"
-
-# 3. XDG_CACHE_HOME must be redirected so Clang's default module cache
-#    (~/.cache/clang/ModuleCache when -fmodules-cache-path is not passed) stays
-#    in the workspace.
-echo "$build_cmds" | grep -q 'XDG_CACHE_HOME=' \
-    || fail "build-macos does not export XDG_CACHE_HOME"
-pass "build-macos exports XDG_CACHE_HOME"
-
-# 4. TMPDIR must be redirected so compiler temp diagnostics (*.dia) don't escape
-#    the workspace.
-echo "$build_cmds" | grep -q 'TMPDIR=' \
-    || fail "build-macos does not export TMPDIR"
-pass "build-macos exports TMPDIR"
-
-# 5. None of the redirected paths may resolve to a user-global cache location.
-#    Workspace-relative absolute paths inside the repo are fine; what we forbid
-#    is the well-known global caches (~/.cache, ~/Library/Caches) that triggered
-#    the original sandbox failure.
 workspace_root="$(pwd)"
-for var in XDG_CACHE_HOME TMPDIR CLANG_MODULE_CACHE_PATH; do
-    value_line="$(echo "$build_cmds" | grep -oE "${var}=[^ ]+" | head -1 || true)"
-    [ -n "$value_line" ] || fail "could not extract $var from build-macos commands"
-    value="${value_line#${var}=}"
-    case "$value" in
-        \$HOME*|\$\{HOME\}*|~*)
-            fail "$var resolves to a user-global path: $value"
-            ;;
-        *.cache|*.cache/*|*Library/Caches|*Library/Caches/*)
-            fail "$var resolves to a user-global cache path: $value"
-            ;;
-    esac
-    case "$value" in
-        "$workspace_root"/*)
-            ;;
-        /*)
-            fail "$var ($value) is absolute but not inside the workspace ($workspace_root)"
-            ;;
-    esac
+workspace_cache="$workspace_root/DerivedData/Caches"
+workspace_tmp="$workspace_root/DerivedData/tmp"
+manifest_module_cache="$workspace_cache/org.swift.swiftpm"
+clang_module_cache="$workspace_root/DerivedData/ModuleCache.noindex"
+
+assert_workspace_path() {
+    local target="$1"
+    local variable="$2"
+    local expected="$3"
+    local commands="$4"
+    local value_line
+
+    value_line="$(printf '%s\n' "$commands" | grep -oE "${variable}=[^[:space:]]+" | head -1 || true)"
+    [ -n "$value_line" ] || fail "$target does not set $variable"
+    [ "$value_line" = "${variable}=${expected}" ] \
+        || fail "$target sets $variable to ${value_line#${variable}=}, not $expected"
+    pass "$target sets $variable inside the workspace"
+}
+
+assert_cache_controls() {
+    local target="$1"
+    local commands="$2"
+
+    printf '%s\n' "$commands" | grep -Fq -- '-derivedDataPath ./DerivedData' \
+        || fail "$target does not pass -derivedDataPath ./DerivedData"
+    printf '%s\n' "$commands" | grep -Fq -- \
+        "-derivedDataPath ./DerivedData CLANG_MODULE_CACHE_PATH=$clang_module_cache" \
+        || fail "$target does not pass CLANG_MODULE_CACHE_PATH as an xcodebuild build setting"
+    assert_workspace_path "$target" XDG_CACHE_HOME "$workspace_cache" "$commands"
+    assert_workspace_path "$target" TMPDIR "$workspace_tmp" "$commands"
+    assert_workspace_path "$target" SWIFTPM_MODULECACHE_OVERRIDE "$manifest_module_cache" "$commands"
+    assert_workspace_path "$target" CLANG_MODULE_CACHE_PATH "$clang_module_cache" "$commands"
+
+    printf '%s\n' "$commands" | grep -Fq -- '-clonedSourcePackagesDirPath' \
+        && fail "$target must omit -clonedSourcePackagesDirPath so xcodebuild can resolve packages"
+    printf '%s\n' "$commands" | grep -Fq -- '-packageCachePath' \
+        && fail "$target must omit -packageCachePath so xcodebuild can resolve packages"
+    pass "$target uses supported cache controls and preserves package resolution"
+}
+
+# Use make's dry-run mode so we get resolved command lines without executing.
+for target in build-ios build-macos test-quick test test-ui install archive clean; do
+    commands="$(make -n "$target" 2>/dev/null)"
+    assert_cache_controls "$target" "$commands"
 done
-pass "build-macos cache paths are workspace-local"
 
-# 6. The clean target must also use the redirected caches so it doesn't fail
-#    before the build can run.
-echo "$clean_cmds" | grep -q -- '-clonedSourcePackagesDirPath' \
-    || fail "clean does not pass -clonedSourcePackagesDirPath"
-echo "$clean_cmds" | grep -q -- '-packageCachePath' \
-    || fail "clean does not pass -packageCachePath"
-echo "$clean_cmds" | grep -q 'XDG_CACHE_HOME=' \
-    || fail "clean does not export XDG_CACHE_HOME"
-echo "$clean_cmds" | grep -q 'TMPDIR=' \
-    || fail "clean does not export TMPDIR"
-pass "clean target redirects caches"
+prepare_cmds="$(make -n prepare-cache-dirs 2>/dev/null)"
+for path in \
+    ./DerivedData/Caches \
+    ./DerivedData/tmp \
+    ./DerivedData/Caches/org.swift.swiftpm \
+    ./DerivedData/ModuleCache.noindex; do
+    printf '%s\n' "$prepare_cmds" | grep -Fq -- "$path" \
+        || fail "prepare-cache-dirs does not create $path"
+done
+pass "prepare-cache-dirs creates every workspace-local cache directory"
 
-# 7. Test targets should also share the redirection so test runs don't regress
-#    in sandboxed environments.
-echo "$test_cmds" | grep -q -- '-clonedSourcePackagesDirPath' \
-    || fail "test-quick does not pass -clonedSourcePackagesDirPath"
-echo "$test_cmds" | grep -q 'XDG_CACHE_HOME=' \
-    || fail "test-quick does not export XDG_CACHE_HOME"
-pass "test-quick redirects caches"
-
-# 8. build-ios must use the same redirection as build-macos. iOS Simulator
-#    builds invoke the same SwiftPM/Clang subprocesses as macOS, so the same
-#    sandbox-unsafe cache paths apply.
-echo "$build_ios_cmds" | grep -q -- '-clonedSourcePackagesDirPath' \
-    || fail "build-ios does not pass -clonedSourcePackagesDirPath"
-echo "$build_ios_cmds" | grep -q -- '-packageCachePath' \
-    || fail "build-ios does not pass -packageCachePath"
-echo "$build_ios_cmds" | grep -q 'XDG_CACHE_HOME=' \
-    || fail "build-ios does not export XDG_CACHE_HOME"
-echo "$build_ios_cmds" | grep -q 'TMPDIR=' \
-    || fail "build-ios does not export TMPDIR"
-echo "$build_ios_cmds" | grep -q 'CLANG_MODULE_CACHE_PATH=' \
-    || fail "build-ios does not export CLANG_MODULE_CACHE_PATH"
-pass "build-ios redirects caches"
+clean_cmds="$(make -n clean 2>/dev/null)"
+printf '%s\n' "$clean_cmds" | grep -Fq -- 'rm -rf ./DerivedData build' \
+    || fail "clean does not remove workspace-local cache artifacts"
+pass "clean removes workspace-local cache artifacts"
 
 echo
 echo "All workspace-local cache redirection checks passed."

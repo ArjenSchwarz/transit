@@ -75,32 +75,37 @@ DERIVED_DATA = ./DerivedData
 # Workspace-local cache locations. Xcode and its subprocesses (SwiftPM, Clang)
 # otherwise scatter caches across ~/Library/Caches and ~/.cache, which fail in
 # sandboxed/dev environments. Keep everything under DerivedData so a single
-# `make clean` is enough. See T-1241.
-SPM_CACHE        = $(DERIVED_DATA)/SourcePackages/cache
-SPM_CLONED       = $(DERIVED_DATA)/SourcePackages/checkouts
-WORKSPACE_CACHE  = $(DERIVED_DATA)/Caches
-WORKSPACE_TMP    = $(DERIVED_DATA)/tmp
+# `make clean` is enough. See T-1241 and T-1628.
+WORKSPACE_CACHE = $(DERIVED_DATA)/Caches
+WORKSPACE_TMP = $(DERIVED_DATA)/tmp
+SPM_MANIFEST_MODULE_CACHE = $(WORKSPACE_CACHE)/org.swift.swiftpm
 CLANG_MODULE_CACHE = $(DERIVED_DATA)/ModuleCache.noindex
 
 # -clonedSourcePackagesDirPath and -packageCachePath are intentionally omitted:
 # they expect the SourcePackages parent dir (not its checkouts/cache subdirs),
 # and supplying both silently disables xcodebuild's package resolve step. With
-# only -derivedDataPath set, xcodebuild places SPM artifacts at
-# $(DERIVED_DATA)/SourcePackages, which already keeps everything workspace-local.
+# only -derivedDataPath set, xcodebuild places SourcePackages under
+# $(DERIVED_DATA), which already keeps package checkouts and repository data
+# workspace-local.
+#
+# CLANG_MODULE_CACHE_PATH must be an xcodebuild build setting, not just an
+# environment variable, so the compiler receives the module-cache path.
 XCODEBUILD_CACHE_FLAGS = \
-	-derivedDataPath $(DERIVED_DATA)
+	-derivedDataPath $(DERIVED_DATA) \
+	CLANG_MODULE_CACHE_PATH=$(abspath $(CLANG_MODULE_CACHE))
 
-# Exported before every xcodebuild call so SwiftPM resolution, Clang module
-# cache fallbacks ($XDG_CACHE_HOME/clang/ModuleCache), and compiler temp
-# diagnostics (.dia) all stay inside the workspace.
+# Exported before every xcodebuild call so XDG cache fallbacks, compiler temp
+# files, and SwiftPM manifest compilation (including *.dia diagnostics) stay
+# inside the workspace. SWIFTPM_MODULECACHE_OVERRIDE is recognized by SwiftPM;
+# Xcode's own Clang cache is configured above as a build setting.
 XCODEBUILD_ENV = \
 	XDG_CACHE_HOME=$(abspath $(WORKSPACE_CACHE)) \
 	TMPDIR=$(abspath $(WORKSPACE_TMP)) \
-	CLANG_MODULE_CACHE_PATH=$(abspath $(CLANG_MODULE_CACHE))
+	SWIFTPM_MODULECACHE_OVERRIDE=$(abspath $(SPM_MANIFEST_MODULE_CACHE))
 
 .PHONY: prepare-cache-dirs
 prepare-cache-dirs:
-	@mkdir -p $(SPM_CACHE) $(SPM_CLONED) $(WORKSPACE_CACHE) $(WORKSPACE_TMP) $(CLANG_MODULE_CACHE)
+	@mkdir -p $(WORKSPACE_CACHE) $(WORKSPACE_TMP) $(SPM_MANIFEST_MODULE_CACHE) $(CLANG_MODULE_CACHE)
 
 .PHONY: build-ios
 build-ios: prepare-cache-dirs
