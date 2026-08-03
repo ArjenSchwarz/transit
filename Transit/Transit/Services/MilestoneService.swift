@@ -10,10 +10,10 @@ final class MilestoneService {
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
 
-    /// Store reads for the two invariants that are derived from a fetch result —
-    /// name uniqueness and the used-display-ID snapshot. Separate from
-    /// `modelContext` only so tests can inject a failing fetch (T-1614, T-1621);
-    /// production always passes the same context.
+    /// Store reads for invariants derived from fetch results. Name uniqueness uses
+    /// the live fetcher directly. Display-ID guards additionally union a transient
+    /// committed-store read so peer-synced IDs cannot be hidden by cached models
+    /// (T-1614, T-1621, T-1939).
     private let fetcher: any ModelFetching
     private let usedDisplayIDs: UsedDisplayIDs
 
@@ -29,7 +29,7 @@ final class MilestoneService {
         self.modelContext = modelContext
         self.displayIDAllocator = displayIDAllocator
         self.fetcher = fetcher ?? modelContext
-        self.usedDisplayIDs = UsedDisplayIDs(fetcher ?? modelContext)
+        self.usedDisplayIDs = UsedDisplayIDs(modelContext: modelContext, liveFetcher: self.fetcher)
     }
 
     // MARK: - CRUD

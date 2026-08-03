@@ -211,9 +211,9 @@ final class DisplayIDAllocator: @unchecked Sendable {
     /// Finds tasks with provisional display IDs (permanentDisplayId == nil),
     /// sorts them by creation date, and allocates permanent IDs one at a time.
     /// `save` is injectable for tests that need to simulate a save failure
-    /// after the permanent ID has been assigned in memory. `usedTaskIDs` is
-    /// injectable for tests that need to simulate an unreadable local store
-    /// (T-1621); it defaults to reading the committed IDs from `context`.
+    /// after the permanent ID has been assigned in memory. `usedTaskIDs` supplements
+    /// the default committed-store and live/pending IDs; tests can inject a
+    /// throwing source to verify fail-closed behavior (T-1621, T-1939).
     func promoteProvisionalTasks(
         in context: ModelContext,
         usedTaskIDs: (@MainActor @Sendable () throws -> Set<Int>)? = nil,
@@ -235,11 +235,11 @@ final class DisplayIDAllocator: @unchecked Sendable {
             return
         }
 
-        // Exclude IDs already committed locally (recomputed inside the gate on
-        // every attempt so just-promoted IDs are included) so promotion never
-        // assigns a duplicate (T-1395). A failed read throws rather than yielding
-        // an empty set, which would disable the guard entirely (T-1621).
-        let usedIDs = usedTaskIDs ?? { try UsedDisplayIDs(context).tasks() }
+        // Recompute all blockers inside the gate; any source failure fails closed (T-1395, T-1621, T-1939).
+        let storedAndLiveIDs = UsedDisplayIDs(modelContext: context)
+        let usedIDs: @MainActor @Sendable () throws -> Set<Int> = {
+            try storedAndLiveIDs.tasks().union(usedTaskIDs?() ?? [])
+        }
         let recordLookup = DisplayIDRecordLookup(modelContext: context)
 
         for task in tasks {

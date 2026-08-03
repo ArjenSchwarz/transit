@@ -24,7 +24,8 @@ final class DisplayIDMaintenanceService {
         taskAllocator: DisplayIDAllocator,
         milestoneAllocator: DisplayIDAllocator,
         commentService: CommentService,
-        clock: @escaping () -> Date = { Date.now }
+        clock: @escaping () -> Date = { Date.now },
+        usedIDFetcher: (any ModelFetching)? = nil
     ) {
         self.modelContext = modelContext
         self.taskAllocator = taskAllocator
@@ -32,7 +33,10 @@ final class DisplayIDMaintenanceService {
         self.commentService = commentService
         self.clock = clock
         self.lookup = DisplayIDRecordLookup(modelContext: modelContext)
-        self.usedDisplayIDs = UsedDisplayIDs(modelContext)
+        self.usedDisplayIDs = UsedDisplayIDs(
+            modelContext: modelContext,
+            liveFetcher: usedIDFetcher ?? modelContext
+        )
     }
 
     // MARK: - Scan
