@@ -151,6 +151,18 @@ struct MCPQueryProjectNameTests {
         )
     }
 
+    @Test func queryMilestoneFetchFailureDoesNotMaskMalformedStatus() async throws {
+        let env = try MCPTestHelpers.makeEnv(milestoneFetcher: FailingMilestoneFetcher())
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks",
+            arguments: ["milestone": "v1.0", "status": "not-a-status"]
+        ))
+
+        #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorText(response).contains("Invalid status: not-a-status"))
+    }
+
     @Test func queryByNonexistentProjectIdMatchesIntentProjectNotFound() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let projectID = UUID()

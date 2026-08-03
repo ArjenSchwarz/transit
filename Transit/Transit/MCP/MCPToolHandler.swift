@@ -549,8 +549,10 @@ final class MCPToolHandler {
             }
         }
 
-        // Resolve milestone filter
-        // Reject non-integer milestoneDisplayId when key is present [T-613]
+        // Validate every remaining filter before resolving a milestone. A no-match or
+        // storage failure must not let a malformed filter look like a valid empty result.
+        // This also preserves validation when displayId would otherwise return early. [T-1608]
+        // Reject non-integer milestoneDisplayId when key is present [T-613].
         if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
             return errorResult("milestoneDisplayId must be an integer")
         }
@@ -560,6 +562,35 @@ final class MCPToolHandler {
         if args["milestone"] != nil, !(args["milestone"] is String) {
             return errorResult("milestone must be a string")
         }
+        // Validate enum filters before building MCPQueryFilters [T-732].
+        if let error = validateEnumFilter(args, key: "status", type: TaskStatus.self) { return error }
+        if let error = validateEnumFilter(args, key: "not_status", type: TaskStatus.self) { return error }
+        // type is a single-value filter (schema declares a string enum; read back as
+        // args["type"] as? String). Reject arrays so they aren't silently dropped. [T-1404]
+        if let error = validateEnumFilter(args, key: "type", type: TaskType.self, allowArray: false) {
+            return error
+        }
+        // priority is a multi-value filter (schema declares an array, mirroring status).
+        if let error = validateEnumFilter(args, key: "priority", type: TaskPriority.self, allowArray: true) {
+            return error
+        }
+        // Reject a present-but-non-boolean `unfinished` flag [T-1095]. A plain
+        // `as? Bool` would silently coerce "true"/1/null to false, returning
+        // done/abandoned tasks even though the caller requested unfinished-only.
+        if let unfinishedArg = args["unfinished"], IntentHelpers.parseBoolValue(unfinishedArg) == nil {
+            return errorResult("unfinished must be a boolean")
+        }
+        // Reject non-string `search` filter [T-1156]. A present non-string value must not be
+        // silently dropped by `as? String`, which would broaden results instead of erroring.
+        if args["search"] != nil, !(args["search"] is String) {
+            return errorResult("search must be a string")
+        }
+        // Reject non-integer displayId before a milestone no-match or failure can return early [T-634].
+        if args["displayId"] != nil, IntentHelpers.parseIntValue(args["displayId"]) == nil {
+            return errorResult("displayId must be an integer")
+        }
+
+        // Resolve milestone filter.
         var milestoneFilter: Set<UUID>?
         if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
             do {
@@ -572,7 +603,7 @@ final class MCPToolHandler {
         } else if let milestoneName = args["milestone"] as? String,
                   !milestoneName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if let projectFilter {
-                // Scoped to a single project — at most one milestone matches
+                // Scoped to a single project — at most one milestone matches.
                 guard let project = resolvedProject else {
                     return textResult(IntentHelpers.encodeJSONArray([]))
                 }
@@ -612,32 +643,6 @@ final class MCPToolHandler {
             }
         }
 
-        // Validate enum filters before building MCPQueryFilters [T-732]
-        if let error = validateEnumFilter(args, key: "status", type: TaskStatus.self) { return error }
-        if let error = validateEnumFilter(args, key: "not_status", type: TaskStatus.self) { return error }
-        // type is a single-value filter (schema declares a string enum; read back as
-        // args["type"] as? String). Reject arrays so they aren't silently dropped. [T-1404]
-        if let error = validateEnumFilter(args, key: "type", type: TaskType.self, allowArray: false) {
-            return error
-        }
-        // priority is a multi-value filter (schema declares an array, mirroring status).
-        if let error = validateEnumFilter(args, key: "priority", type: TaskPriority.self, allowArray: true) {
-            return error
-        }
-
-        // Reject a present-but-non-boolean `unfinished` flag [T-1095]. A plain
-        // `as? Bool` would silently coerce "true"/1/null to false, returning
-        // done/abandoned tasks even though the caller requested unfinished-only.
-        if let unfinishedArg = args["unfinished"], IntentHelpers.parseBoolValue(unfinishedArg) == nil {
-            return errorResult("unfinished must be a boolean")
-        }
-
-        // Reject non-string `search` filter [T-1156]. A present non-string value must not be
-        // silently dropped by `as? String`, which would broaden results instead of erroring.
-        if args["search"] != nil, !(args["search"] is String) {
-            return errorResult("search must be a string")
-        }
-
         let search = (args["search"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let filters = MCPQueryFilters.from(
             args: args, type: args["type"] as? String, projectId: projectFilter,
@@ -645,16 +650,12 @@ final class MCPToolHandler {
             milestoneIds: milestoneFilter
         )
 
-        // Single-task lookup by displayId — returns early with detailed response
-        // Reject non-integer displayId when key is present [T-634]
-        if args["displayId"] != nil {
-            guard let displayId = IntentHelpers.parseIntValue(args["displayId"]) else {
-                return errorResult("displayId must be an integer")
-            }
+        // Single-task lookup by displayId — returns early with detailed response.
+        if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
             return handleDisplayIdLookup(displayId, filters: filters)
         }
 
-        // Full-table query
+        // Full-table query.
         let allTasks: [TransitTask]
         do {
             allTasks = try taskFetcher.fetchAllTasks()
