@@ -12,8 +12,8 @@ nonisolated struct JSONRPCRequest: Decodable, Sendable {
     let method: String
     let params: AnyCodable?
     /// True when the source JSON omitted the `id` member entirely (a JSON-RPC
-    /// notification). An explicit `"id": null` is NOT a notification and must
-    /// receive a response per JSON-RPC 2.0 §4.1.
+    /// notification). An explicit `"id": null` is also not a notification,
+    /// but MCP validation rejects it as an invalid request.
     let isNotification: Bool
 
     init(
@@ -40,8 +40,10 @@ nonisolated struct JSONRPCRequest: Decodable, Sendable {
         jsonrpc = (try? container.decodeIfPresent(String.self, forKey: .jsonrpc)) ?? ""
         method = try container.decode(String.self, forKey: .method)
         params = try container.decodeIfPresent(AnyCodable.self, forKey: .params)
-        // Distinguish "id member absent" (notification) from "id present with
-        // value null" (still a request, requires response with id: null).
+        // Distinguish an omitted `id` member (notification) from an explicit
+        // `null` value. MCP validates the latter as an invalid request in the
+        // handler, so presence must remain available even though both values
+        // map to a nil Swift ID.
         if container.contains(.id) {
             isNotification = false
             id = try container.decodeIfPresent(JSONRPCId.self, forKey: .id)

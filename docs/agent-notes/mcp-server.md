@@ -151,7 +151,7 @@ MCPToolHandler, App Intents, and IntentHelpers all delegate to these methods rat
 ## Gotchas
 
 - `nonisolated` on struct/enum declarations is essential in this project due to `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Without it, all types inherit MainActor isolation, breaking Codable conformance on NIO threads.
-- `JSONRPCRequest.id` currently cannot distinguish an omitted id from an explicit JSON `null` id because both decode to `nil`. `MCPToolHandler.handle(_:)` uses `id == nil` to detect notifications, so explicit-null requests are dropped without a response. T-847 tracks preserving id presence separately from id value.
+- `JSONRPCRequest` preserves the distinction between an omitted `id` member and an explicit JSON `null` using `isNotification`. MCP 2025-03-26 requires present IDs to be strings or integers, so `MCPToolHandler.handle(_:)` rejects the `id == nil && !isNotification` state with `-32600 Invalid Request`; omitted-id notifications still execute and return no response. T-847 established the presence flag, but its expectation that explicit null should be accepted is superseded by T-1863.
 - `ByteBuffer(data:)` requires explicit `import NIOFoundationCompat` — not available from just `import Hummingbird`.
 - Don't reference `self` in `Task.detached` closures on `MCPServer` — causes "sending 'self' risks data races" error. Capture dependencies explicitly.
 - **Name-based filters must handle cross-project duplicates.** Milestone names (and potentially other name-resolved entities) can be duplicated across projects. When filtering by name without a project scope, use `Set<UUID>` to collect all matching IDs rather than taking just the first match (T-292).

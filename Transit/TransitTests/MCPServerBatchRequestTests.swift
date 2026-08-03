@@ -106,6 +106,58 @@ struct MCPServerBatchRequestTests {
         #expect(objects.contains { $0["id"] as? Int == 2 && $0["result"] != nil })
     }
 
+    @Test func singleExplicitNullIdReturnsInvalidRequestWithNullId() async throws {
+        let response = try await respond(
+            body: #"{"jsonrpc":"2.0","id":null,"method":"ping"}"#
+        )
+
+        #expect(response.status == .ok)
+        let object = try #require(response.json as? [String: Any])
+        let error = try #require(object["error"] as? [String: Any])
+        #expect(error["code"] as? Int == JSONRPCErrorCode.invalidRequest)
+        #expect(object["id"] is NSNull)
+        #expect(object["result"] == nil)
+    }
+
+    @Test(arguments: [
+        "initialize", "ping", "tools/list", "tools/call",
+        "notifications/initialized", "unknown/method"
+    ])
+    func singleExplicitNullIdIsReturnedForEveryMethodPath(method: String) async throws {
+        let response = try await respond(
+            body: #"{"jsonrpc":"2.0","id":null,"method":"\#(method)"}"#
+        )
+
+        #expect(response.status == .ok)
+        let object = try #require(response.json as? [String: Any])
+        let error = try #require(object["error"] as? [String: Any])
+        #expect(error["code"] as? Int == JSONRPCErrorCode.invalidRequest)
+        #expect(object["id"] is NSNull)
+        #expect(object["result"] == nil)
+    }
+
+    @Test func batchExplicitNullIdIsInvalidWhileStringAndIntegerIdsRemainValid() async throws {
+        let response = try await respond(body: """
+        [
+          {"jsonrpc":"2.0","id":null,"method":"ping"},
+          {"jsonrpc":"2.0","id":7,"method":"ping"},
+          {"jsonrpc":"2.0","id":"request-1","method":"ping"},
+          {"jsonrpc":"2.0","method":"ping"}
+        ]
+        """)
+
+        #expect(response.status == .ok)
+        let objects = try #require(response.json as? [[String: Any]])
+        #expect(objects.count == 3, "The omitted-id notification must have no response")
+
+        let nullResponse = try #require(objects.first { $0["id"] is NSNull })
+        let nullError = try #require(nullResponse["error"] as? [String: Any])
+        #expect(nullError["code"] as? Int == JSONRPCErrorCode.invalidRequest)
+        #expect(nullResponse["result"] == nil)
+        #expect(objects.contains { $0["id"] as? Int == 7 && $0["result"] != nil })
+        #expect(objects.contains { $0["id"] as? String == "request-1" && $0["result"] != nil })
+    }
+
     @Test func initializeInsideBatchIsRejectedWithoutRejectingOtherRequests() async throws {
         let response = try await respond(body: """
         [
