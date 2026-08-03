@@ -64,17 +64,12 @@ struct QueryMilestonesIntent: AppIntent {
             return IntentError.invalidInput(hint: "Expected valid JSON object").json
         }
 
-        // Validate projectId format before any lookup. Reject non-string values too
-        // [T-665, T-788] by checking key presence separately from the cast. Validation runs
-        // even when displayId is present so malformed filters can't bypass it [T-963].
-        if case .failure(let error) = IntentHelpers.validateUUIDField("projectId", in: json) {
-            return error.json
-        }
-
-        // Validate enum and `project` name filters before any lookup. Validation runs even
-        // when displayId is present so malformed filters can't bypass it [T-963].
-        if let validationError = validateFilters(json) {
-            return validationError.json
+        let resolvedProjectId: UUID?
+        switch resolveValidatedProjectFilter(json, projectService: projectService) {
+        case .success(let projectId):
+            resolvedProjectId = projectId
+        case .failure(let response):
+            return response
         }
 
         // Single-milestone lookup by displayId. Remaining filters still apply conjunctively —
@@ -95,7 +90,7 @@ struct QueryMilestonesIntent: AppIntent {
             } catch {
                 return IntentHelpers.encodeJSONArray([])
             }
-            let filtered = applyFilters(json, to: [milestone], projectService: projectService)
+            let filtered = applyFilters(json, to: [milestone], resolvedProjectId: resolvedProjectId)
             return IntentHelpers.encodeJSONArray(filtered.map { milestoneToDict($0, detailed: true) })
         }
 
@@ -110,7 +105,7 @@ struct QueryMilestonesIntent: AppIntent {
         } catch {
             return IntentError.internalError(hint: "Failed to fetch milestones: \(error)").json
         }
-        let filtered = applyFilters(json, to: allMilestones, projectService: projectService)
+        let filtered = applyFilters(json, to: allMilestones, resolvedProjectId: resolvedProjectId)
         return IntentHelpers.encodeJSONArray(filtered.map { milestoneToDict($0) })
     }
 
@@ -147,32 +142,73 @@ struct QueryMilestonesIntent: AppIntent {
         return nil
     }
 
+    /// Validates and resolves the project filter before any milestone read. A valid
+    /// `projectId` wins over `project`; ordinary name misses and ambiguity remain
+    /// successful empty arrays, while storage failure is an INTERNAL_ERROR [T-1657].
+    @MainActor
+    private static func resolveValidatedProjectFilter(
+        _ json: [String: Any],
+        projectService: ProjectService
+    ) -> Result<UUID?, String> {
+        let projectId: UUID?
+        switch IntentHelpers.validateUUIDField("projectId", in: json) {
+        case .failure(let error): return .failure(error.json)
+        case .success(let parsed): projectId = parsed
+        }
+        if let validationError = validateFilters(json) {
+            return .failure(validationError.json)
+        }
+        switch resolveProjectFilter(json, projectId: projectId, projectService: projectService) {
+        case .unfiltered:
+            return .success(nil)
+        case .resolved(let projectId):
+            return .success(projectId)
+        case .noMatch:
+            return .failure(IntentHelpers.encodeJSONArray([]))
+        case .error(let error):
+            return .failure(error.json)
+        }
+    }
+
+    private enum ProjectFilterResolution {
+        case unfiltered
+        case resolved(UUID)
+        case noMatch
+        case error(IntentError)
+    }
+
+    @MainActor
+    private static func resolveProjectFilter(
+        _ json: [String: Any],
+        projectId: UUID?,
+        projectService: ProjectService
+    ) -> ProjectFilterResolution {
+        if let projectId {
+            return .resolved(projectId)
+        }
+        guard let projectName = json["project"] as? String else {
+            return .unfiltered
+        }
+        switch projectService.findProject(name: projectName) {
+        case .success(let project):
+            return .resolved(project.id)
+        case .failure(.storageFailure(let hint)):
+            return .error(.internalError(hint: hint))
+        case .failure:
+            return .noMatch
+        }
+    }
+
     @MainActor
     private static func applyFilters(
         _ json: [String: Any],
         to milestones: [Milestone],
-        projectService: ProjectService
+        resolvedProjectId: UUID?
     ) -> [Milestone] {
         let statusFilter = json["status"] as? String
         let searchText = (json["search"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let effectiveSearch = (searchText?.isEmpty == true) ? nil : searchText
-
-        // Resolve project filter — callers must pre-validate projectId format.
-        // Guard here as defense-in-depth: return empty when the key is present but
-        // not a valid UUID string (covers non-string values too) [T-788].
-        var resolvedProjectId: UUID?
-        if json["projectId"] != nil {
-            guard let projectIdStr = json["projectId"] as? String,
-                  let pid = UUID(uuidString: projectIdStr) else { return [] }
-            resolvedProjectId = pid
-        } else if let projectName = json["project"] as? String {
-            if case .success(let project) = projectService.findProject(name: projectName) {
-                resolvedProjectId = project.id
-            } else {
-                return []
-            }
-        }
 
         var result: [Milestone] = []
         for milestone in milestones {

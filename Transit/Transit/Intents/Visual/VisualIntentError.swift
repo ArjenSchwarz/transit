@@ -7,6 +7,9 @@ enum VisualIntentError: LocalizedError, Equatable {
     case projectNotFound(String)
     case taskNotFound(String)
     case taskCreationFailed(String)
+    /// A SwiftData read failed after the caller supplied a valid identifier. This is
+    /// retryable storage trouble, not a stale selection or invalid input [T-1657].
+    case storageFailure(String)
     /// The supplied identifier matches more than one task. CloudKit cannot enforce unique
     /// display IDs, so this is store corruption to repair with display-ID maintenance, not a
     /// bad request. Uses INTERNAL_ERROR to match the JSON intents' code for the same
@@ -31,6 +34,8 @@ enum VisualIntentError: LocalizedError, Equatable {
             "TASK_NOT_FOUND"
         case .taskCreationFailed:
             "TASK_CREATION_FAILED"
+        case .storageFailure:
+            "INTERNAL_ERROR"
         case .duplicateIdentifier:
             "INTERNAL_ERROR"
         case .persistenceUnavailable:
@@ -52,6 +57,8 @@ enum VisualIntentError: LocalizedError, Equatable {
             "Task not found: \(hint)"
         case .taskCreationFailed(let hint):
             "Task creation failed: \(hint)"
+        case .storageFailure(let hint):
+            "Storage error: \(hint)"
         case .duplicateIdentifier(let hint):
             "Duplicate task identifier: \(hint)"
         case .persistenceUnavailable:
@@ -73,6 +80,8 @@ enum VisualIntentError: LocalizedError, Equatable {
             "The specified task could not be found in Transit."
         case .taskCreationFailed:
             "Transit could not create the task due to an unexpected failure."
+        case .storageFailure:
+            "Transit could not read its database while resolving the selected project."
         case .duplicateIdentifier:
             "Several Transit tasks share the identifier that was supplied."
         case .persistenceUnavailable:
@@ -93,6 +102,8 @@ enum VisualIntentError: LocalizedError, Equatable {
         case .taskNotFound:
             "Verify the task identifier and try again."
         case .taskCreationFailed:
+            "Try again in a moment. If the issue persists, reopen Transit."
+        case .storageFailure:
             "Try again in a moment. If the issue persists, reopen Transit."
         case .duplicateIdentifier:
             "Run display ID maintenance in Transit to repair the duplicates, then try again."

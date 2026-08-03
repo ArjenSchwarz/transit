@@ -1,7 +1,7 @@
 # Bugfix Report: Project lookup hides fetch failures
 
 **Date:** 2026-08-04
-**Status:** Investigating
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -48,11 +48,13 @@ ProjectLookupStorageFailureSurfaceTests.visualAddTaskReportsInternalStorageError
 
 ## Resolution for the Issue
 
-Pending implementation.
+**Changes made:**
+- `Transit/Transit/Intents/QueryMilestonesIntent.swift` resolves project filters before fetching milestones. Its typed preflight keeps valid `projectId` precedence and ordinary missing/ambiguous name filters as successful `[]`, while mapping only `storageFailure` to the established `INTERNAL_ERROR` payload.
+- `Transit/Transit/Intents/Visual/AddTaskIntent.swift` maps only `ProjectLookupError.storageFailure` to a visual storage error. Stale selections retain `PROJECT_NOT_FOUND`.
+- `Transit/Transit/Intents/Visual/VisualIntentError.swift` adds the storage error with the common `INTERNAL_ERROR` code and a retry-oriented recovery message.
+- `Transit/TransitTests/ProjectLookupStorageFailureSurfaceTests.swift` exercises the deterministic project fetch seam across JSON create/query, MCP create/query/milestone, and visual creation paths, including no task/milestone insertion assertions.
 
-**Proposed changes:**
-- Resolve the Query Milestones project filter before milestone retrieval. Use the project UUID for filtering, return `INTERNAL_ERROR` only for `.storageFailure`, and retain successful empty arrays for not-found/ambiguous name filters and project-ID precedence.
-- Add a dedicated visual storage-failure error that maps to `INTERNAL_ERROR`; map only `.storageFailure` to it while preserving stale-selection `PROJECT_NOT_FOUND` behavior.
+**Approach rationale:** The service's existing `Result` API and T-1770's persistence-error convention are reused directly. Moving resolution before milestone reads prevents the former `[]` fallback without changing filter precedence or the established valid-empty behavior.
 
 **Alternatives considered:**
 - Map every lookup failure to internal error — rejected because it would regress not-found and ambiguity contracts.
@@ -85,9 +87,9 @@ Pending implementation.
 
 **Automated:**
 - [x] Regression fails before the fix.
-- [ ] Regression passes after the fix.
-- [ ] Full macOS unit suite passes.
-- [ ] Linters/validators pass.
+- [x] Focused project lookup, Query Milestones, and visual error tests pass after the fix.
+- [x] Full macOS unit suite passes (`make test-quick`).
+- [x] Linters and the SwiftData ownership guard pass (`make lint`).
 
 **Manual verification:** Not required; deterministic in-memory SwiftData tests exercise the service seams and all automation/visual execution boundaries.
 
