@@ -61,3 +61,23 @@ extension ModelContext {
         }
     }
 }
+
+extension ModelContext {
+
+    /// Applies `mutation`, then persists through an injected save closure. This
+    /// is the injectable counterpart to `saveOrRollback(save:_:)`: updates and
+    /// deletes still recover with `safeRollback()` if either the mutation or the
+    /// supplied save fails.
+    func saveOrRollback(
+        save: (ModelContext) throws -> Void,
+        _ mutation: () throws -> Void = {}
+    ) throws {
+        do {
+            try mutation()
+            try save(self)
+        } catch {
+            safeRollback()
+            throw error
+        }
+    }
+}

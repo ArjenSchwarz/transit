@@ -149,3 +149,107 @@ struct MutationIntentStorageFailureTests {
         #expect(try context.fetch(FetchDescriptor<Milestone>()).map(\.id) == [milestone.id])
     }
 }
+
+extension MutationIntentStorageFailureTests {
+
+    @Test func createTaskReportsInternalErrorAndDeletesPendingTaskWhenSaveFails() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let project = makeProject(in: context)
+        try context.save()
+
+        let result = await CreateTaskIntent.execute(
+            input: "{\"projectId\":\"\(project.id.uuidString)\",\"name\":\"New task\",\"type\":\"feature\"}",
+            taskService: TaskService(
+                modelContext: context,
+                displayIDAllocator: allocator(),
+                createSave: { _ in throw SaveFailure.simulated }
+            ),
+            projectService: ProjectService(modelContext: context)
+        )
+
+        try expectInternalError(result)
+        #expect(try context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+    }
+
+    @Test func createMilestoneReportsInternalErrorAndDeletesPendingMilestoneWhenSaveFails() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let project = makeProject(in: context)
+        try context.save()
+
+        let result = await CreateMilestoneIntent.execute(
+            input: "{\"projectId\":\"\(project.id.uuidString)\",\"name\":\"Beta\"}",
+            milestoneService: MilestoneService(
+                modelContext: context,
+                displayIDAllocator: allocator(),
+                mutationSave: { _ in throw SaveFailure.simulated }
+            ),
+            projectService: ProjectService(modelContext: context)
+        )
+
+        try expectInternalError(result)
+        #expect(try context.fetch(FetchDescriptor<Milestone>()).isEmpty)
+    }
+
+    @Test func updateStatusReportsInternalErrorAndRollsBackWhenSaveFails() throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let project = makeProject(in: context)
+        let task = makeTask(in: context, project: project)
+        try context.save()
+
+        let result = UpdateStatusIntent.execute(
+            input: "{\"displayId\":1,\"status\":\"planning\"}",
+            taskService: TaskService(
+                modelContext: context,
+                displayIDAllocator: allocator(),
+                statusSave: { _ in throw SaveFailure.simulated }
+            )
+        )
+
+        try expectInternalError(result)
+        #expect(task.status == .idea)
+    }
+
+    @Test func updateMilestoneReportsInternalErrorAndRollsBackWhenSaveFails() throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let project = makeProject(in: context)
+        let milestone = makeMilestone(in: context, project: project)
+        try context.save()
+
+        let result = UpdateMilestoneIntent.execute(
+            input: "{\"displayId\":1,\"status\":\"done\"}",
+            milestoneService: MilestoneService(
+                modelContext: context,
+                displayIDAllocator: allocator(),
+                mutationSave: { _ in throw SaveFailure.simulated }
+            ),
+            projectService: ProjectService(modelContext: context)
+        )
+
+        try expectInternalError(result)
+        #expect(milestone.status == .open)
+    }
+
+    @Test func deleteMilestoneReportsInternalErrorAndRollsBackWhenSaveFails() throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let project = makeProject(in: context)
+        let milestone = makeMilestone(in: context, project: project)
+        try context.save()
+
+        let result = DeleteMilestoneIntent.execute(
+            input: "{\"displayId\":1}",
+            milestoneService: MilestoneService(
+                modelContext: context,
+                displayIDAllocator: allocator(),
+                mutationSave: { _ in throw SaveFailure.simulated }
+            )
+        )
+
+        try expectInternalError(result)
+        #expect(try context.fetch(FetchDescriptor<Milestone>()).map(\.id) == [milestone.id])
+    }
+}

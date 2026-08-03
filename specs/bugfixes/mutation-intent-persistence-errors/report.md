@@ -1,7 +1,7 @@
 # Bugfix Report: Mutation Intents Misclassify Persistence Failures
 
 **Date:** 2026-08-04
-**Status:** Investigating
+**Status:** Fixed
 **Ticket:** T-1770
 
 ## Description of the Issue
@@ -44,11 +44,11 @@ Expected behavior: JSON validation and typed domain errors remain their establis
 
 ## Resolution for the Issue
 
-**Planned changes:**
-- Route all untyped mutation save/fetch errors to `INTERNAL_ERROR`, preserving explicit typed error catches and their current payloads.
-- Make service lookup methods use their injected `ModelFetching` instance.
-- Add a shared injected saver to `MilestoneService` so create/update/delete intent paths can deterministically fail saves while retaining the real context for mutation assertions.
-- Add parity coverage for all five affected intents using failing fetch and save seams, including no-mutation assertions.
+**Changes made:**
+- Routed every untyped create/update/delete and direct identifier-lookup failure through `INTERNAL_ERROR`, with typed validation, not-found, duplicate, and domain catches retained ahead of the generic catch.
+- Made `TaskService` and `MilestoneService` direct UUID/display-ID/name lookups use their injected `ModelFetching` instance.
+- Added `MilestoneService.mutationSave` and a closure-based `ModelContext.saveOrRollback(save:_:)` overload, retaining `safeRollback()` for update/delete failures and `insertOrDelete` cleanup for creates.
+- Added ten deterministic parity tests—one failing-fetch and one failing-save path for each affected intent—asserting a two-key `INTERNAL_ERROR` envelope and no persisted mutation.
 
 **Approach rationale:** Reusing the established `UpdateTaskIntent` convention preserves the public error vocabulary and differentiates caller action from infrastructure state. The smallest safe change is at the existing service seam and each final error-translation boundary; rollback behavior remains in the service layer.
 
@@ -79,6 +79,7 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
 | `Transit/Transit/Intents/UpdateMilestoneIntent.swift` | Map generic save failures to `INTERNAL_ERROR`. |
 | `Transit/Transit/Intents/DeleteMilestoneIntent.swift` | Map generic delete/lookup failures to `INTERNAL_ERROR`. |
 | `Transit/Transit/Intents/IntentHelpers.swift` | Preserve typed mappings and surface unexpected shared lookup errors as internal. |
+| `Transit/Transit/Extensions/ModelContext+Save.swift` | Add injected-save rollback overload that preserves `safeRollback()` recovery. |
 | `Transit/Transit/Services/TaskService.swift` | Use deterministic injected fetcher for direct lookup. |
 | `Transit/Transit/Services/MilestoneService.swift` | Use deterministic injected fetcher and saver for mutation paths. |
 | `Transit/TransitTests/MutationIntentStorageFailureTests.swift` | Add failure-path/no-mutation parity coverage. |
@@ -86,11 +87,15 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
 ## Verification
 
 **Automated:**
-- [ ] Regression suite fails before the fix.
-- [ ] Regression suite passes after the fix.
-- [ ] macOS unit suite passes: `make test-quick`.
-- [ ] Linter/ownership guard passes: `make lint`.
-- [ ] Production builds pass: `make build`.
+- [x] Regression suite fails before the fix: all five deterministic failing-fetch cases failed.
+- [x] Regression suite passes after the fix: all ten fetch/save cases pass on macOS.
+- [x] Affected intent/service/save-helper suites pass on macOS, including existing typed caller-error payload coverage.
+- [x] macOS unit suite passes: `make test-quick`.
+- [x] Linter/ownership guard passes: `make lint`.
+- [x] Production builds pass: `make build` (iOS Simulator and macOS).
+- [ ] Full `make test` did not complete before the 10-minute harness cap; it built successfully, started the new suite, and independently exposed the same three unrelated UI failures below.
+- [ ] Focused iOS regression run did not complete before the 10-minute harness cap during simulator build/execution.
+- [ ] `make test-ui` reproduces unrelated failures in `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`, then exceeds the cap during cleanup. No T-1770 code touches these UI flows.
 
 **Manual verification:** Not required. The injection seams exercise the exact intent paths with a writable in-memory context and deterministic failures.
 

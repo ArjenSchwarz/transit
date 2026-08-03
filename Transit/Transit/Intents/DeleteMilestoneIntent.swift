@@ -65,7 +65,7 @@ struct DeleteMilestoneIntent: AppIntent {
         do {
             try milestoneService.deleteMilestone(milestone)
         } catch {
-            return IntentError.invalidInput(hint: "Deletion failed").json
+            return IntentError.internalError(hint: "Deletion failed").json
         }
 
         var response: [String: Any] = [
@@ -110,10 +110,12 @@ struct DeleteMilestoneIntent: AppIntent {
         }
         do {
             return .success(try milestoneService.findByDisplayID(displayId))
+        } catch MilestoneService.Error.milestoneNotFound {
+            return .failure(.milestoneNotFound(hint: "No milestone with displayId \(displayId)"))
         } catch let error as MilestoneService.Error {
             return .failure(IntentHelpers.mapMilestoneError(error))
         } catch {
-            return .failure(.milestoneNotFound(hint: "No milestone with displayId \(displayId)"))
+            return .failure(.internalError(hint: "Failed to look up milestone: \(error)"))
         }
     }
 
@@ -130,8 +132,12 @@ struct DeleteMilestoneIntent: AppIntent {
         case .success(let uuid?):
             do {
                 return .success(try milestoneService.findByID(uuid))
-            } catch {
+            } catch MilestoneService.Error.milestoneNotFound {
                 return .failure(.milestoneNotFound(hint: "No milestone with ID \(uuid.uuidString)"))
+            } catch let error as MilestoneService.Error {
+                return .failure(IntentHelpers.mapMilestoneError(error))
+            } catch {
+                return .failure(.internalError(hint: "Failed to look up milestone: \(error)"))
             }
         }
     }

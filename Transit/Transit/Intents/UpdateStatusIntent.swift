@@ -88,7 +88,7 @@ struct UpdateStatusIntent: AppIntent {
         do {
             try taskService.updateStatus(task: task, to: newStatus)
         } catch {
-            return IntentError.invalidInput(hint: "Status update failed").json
+            return IntentError.internalError(hint: "Status update failed").json
         }
 
         var response: [String: Any] = [

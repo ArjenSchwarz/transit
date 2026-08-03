@@ -42,10 +42,10 @@ final class TaskService {
     private let createSave: (ModelContext) throws -> Void
     private let statusSave: (ModelContext) throws -> Void
 
-    /// Display IDs feeding the allocator's collision guard. Production unions a
-    /// transient committed-store read with the live main-context values; the
-    /// injectable live fetcher lets tests simulate stale or unreadable registered
-    /// state without replacing the committed-store read (T-1621, T-1939).
+    /// Store reads for direct task lookups and display-ID collision guards. Tests
+    /// inject a failing fetcher while retaining a writable model context, so
+    /// automation surfaces can prove storage failures are not caller errors.
+    private let fetcher: any ModelFetching
     private let usedDisplayIDs: UsedDisplayIDs
 
     init(
@@ -57,9 +57,10 @@ final class TaskService {
     ) {
         self.modelContext = modelContext
         self.displayIDAllocator = displayIDAllocator
+        self.fetcher = fetcher ?? modelContext
         self.usedDisplayIDs = UsedDisplayIDs(
             modelContext: modelContext,
-            liveFetcher: fetcher ?? modelContext
+            liveFetcher: self.fetcher
         )
         self.createSave = createSave
         self.statusSave = statusSave
@@ -332,7 +333,7 @@ final class TaskService {
         let descriptor = FetchDescriptor<TransitTask>(
             predicate: #Predicate { $0.id == id }
         )
-        guard let task = try modelContext.fetch(descriptor).first else {
+        guard let task = try fetcher.fetch(descriptor).first else {
             throw Error.taskNotFound
         }
         return task
@@ -343,7 +344,7 @@ final class TaskService {
         let descriptor = FetchDescriptor<TransitTask>(
             predicate: #Predicate { $0.permanentDisplayId == displayId }
         )
-        let tasks = try modelContext.fetch(descriptor)
+        let tasks = try fetcher.fetch(descriptor)
 
         guard let first = tasks.first else {
             throw Error.taskNotFound
