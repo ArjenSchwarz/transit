@@ -29,22 +29,35 @@ The no-project milestone-name branch converted a thrown `fetchAllMilestones()` e
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/MCP/MCPToolHandler.swift` — injects the existing `MilestoneFetching` seam and returns `Failed to fetch milestones: <error>` when unscoped milestone-name resolution cannot read storage.
-- `Transit/TransitTests/MCPTestHelpers.swift` — accepts the milestone fetcher seam.
-- `Transit/TransitTests/MCPQueryProjectNameTests.swift` — adds deterministic failure coverage that asserts the exact tool error and rejects false success.
+- `Transit/Transit/MCP/MCPToolHandler.swift` — injects read seams for unscoped milestone names and display IDs, returns `Failed to fetch milestones: <error>` for failed unscoped-name reads, and returns `Failed to look up milestone: <error>` for unexpected display-ID lookup failures while retaining the normal no-match and duplicate-ID outcomes.
+- `Transit/TransitTests/MCPTestHelpers.swift` — accepts both deterministic milestone read seams.
+- `Transit/TransitTests/MCPQueryProjectNameTests.swift` — adds exact-error, no-false-success, malformed-filter precedence, and legitimate no-match regression coverage.
 
-**Approach rationale:** The handler now follows the same explicit full-table fetch error contract used by `query_milestones` and the later `query_tasks` task fetch. It changes only the previously masked failure branch, preserving valid `[]` no-match responses and all existing filter behavior.
+**Approach rationale:** The handler now follows the explicit storage-error contract used by `query_milestones` and the later `query_tasks` task fetch. It preserves valid no-match responses, cross-project aggregation, and scoped lookup behavior while making malformed filters fail before milestone resolution.
 
 **Alternatives considered:**
 - Keep `try?` and add logging — rejected because callers still receive an indistinguishable successful `[]`.
 - Change shared service behavior — rejected because the defect is MCP response translation, and the existing service/API contract already throws.
 
+## Independent Review Follow-up
+
+The PR review found two adjacent paths that could still hide or mis-prioritize failures:
+
+- `milestoneDisplayId` lookup now preserves its legitimate `milestoneNotFound` empty result and duplicate-ID error, while surfacing unexpected storage failures through a narrow injected `MilestoneDisplayIDFinding` seam.
+- Every remaining `query_tasks` filter shape is validated before milestone resolution. This intentionally gives malformed filters precedence over milestone no-match, duplicate, or storage-failure outcomes; regression coverage proves an invalid status is not masked by a failing milestone fetch.
+
+The follow-up coverage also directly proves that an unscoped milestone name with no matches still returns a successful empty array.
+
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/MCPQueryProjectNameTests.swift`
-**Test name:** `queryMilestoneNameFetchFailureReturnsExactErrorInsteadOfEmptyArray`
+**Tests:**
+- `queryMilestoneNameFetchFailureReturnsExactErrorInsteadOfEmptyArray`
+- `queryMilestoneDisplayIDFetchFailureReturnsExactErrorInsteadOfEmptyArray`
+- `queryUnscopedMilestoneNameWithNoMatchReturnsEmptyArray`
+- `queryMilestoneFetchFailureDoesNotMaskMalformedStatus`
 
-The test uses a deterministic `MilestoneFetching` failure and verifies `isError == true` with the exact text `Failed to fetch milestones: simulated milestone fetch failure`; before the fix, the Makefile test target failed because the handler returned successful `[]`.
+The deterministic seams verify `isError == true` with the exact name- and display-ID failure text, preserve a legitimate no-match empty array, and prove input validation is not masked by a failing milestone fetch. Before the original fix, the unscoped-name failure returned a successful `[]`.
 
 **Run command:** `make test-quick`
 
@@ -52,10 +65,10 @@ The test uses a deterministic `MilestoneFetching` failure and verifies `isError 
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/MCP/MCPToolHandler.swift` | Injected the milestone fetch seam and surfaced unscoped name-resolution failures. |
-| `Transit/TransitTests/MCPTestHelpers.swift` | Passed deterministic milestone fetchers into MCP handler tests. |
-| `Transit/TransitTests/MCPQueryProjectNameTests.swift` | Added no-false-success exact-error regression coverage. |
-| `CHANGELOG.md` | Recorded the fixed MCP error contract. |
+| `Transit/Transit/MCP/MCPToolHandler.swift` | Injected milestone read seams, surfaced name/display-ID storage failures, and validates filter shapes before milestone resolution. |
+| `Transit/TransitTests/MCPTestHelpers.swift` | Passed deterministic milestone read seams into MCP handler tests. |
+| `Transit/TransitTests/MCPQueryProjectNameTests.swift` | Added exact-error, no-false-success, no-match, and validation-order regression coverage. |
+| `CHANGELOG.md` | Recorded the complete fixed MCP error and validation-order contract. |
 
 ## Verification
 
@@ -69,7 +82,7 @@ The test uses a deterministic `MilestoneFetching` failure and verifies `isError 
 
 ## Prevention
 
-Full-table query paths must propagate storage errors as tool errors rather than recover with empty collections when an empty result is a valid response.
+Milestone-resolution paths must propagate unexpected storage errors as tool errors rather than recover with empty collections when an empty result is a valid response. Validate every filter shape before resolving milestones so lookup outcomes cannot mask malformed input.
 
 ## Related
 
