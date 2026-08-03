@@ -44,6 +44,16 @@ struct UpdateStatusIntentTests {
         return try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 
+    private func expectStableErrorPayload(
+        _ result: String,
+        error expectedError: String,
+        hint expectedHint: String
+    ) throws {
+        let parsed = try parseJSON(result)
+        #expect(Set(parsed.keys) == Set(["error", "hint"]))
+        #expect(parsed["error"] as? String == expectedError && parsed["hint"] as? String == expectedHint)
+    }
+
     // MARK: - Success Cases
 
     @Test func validUpdateReturnsPreviousAndNewStatus() throws {
@@ -114,8 +124,11 @@ struct UpdateStatusIntentTests {
 
         let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
 
-        let parsed = try parseJSON(result)
-        #expect(parsed["error"] as? String == "TASK_NOT_FOUND")
+        try expectStableErrorPayload(
+            result,
+            error: "TASK_NOT_FOUND",
+            hint: "No task with displayId 999"
+        )
     }
 
     @Test func invalidStatusStringReturnsInvalidStatus() throws {
@@ -138,8 +151,11 @@ struct UpdateStatusIntentTests {
 
         let result = UpdateStatusIntent.execute(input: "not json", taskService: taskService)
 
-        let parsed = try parseJSON(result)
-        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        try expectStableErrorPayload(
+            result,
+            error: "INVALID_INPUT",
+            hint: "Expected valid JSON object"
+        )
     }
 
     @Test func missingBothIdentifiersReturnsInvalidInput() throws {
@@ -151,8 +167,30 @@ struct UpdateStatusIntentTests {
 
         let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
 
-        let parsed = try parseJSON(result)
-        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        try expectStableErrorPayload(
+            result,
+            error: "INVALID_INPUT",
+            hint: "Provide either displayId (integer) or taskId (UUID)"
+        )
+    }
+
+    @Test func malformedDisplayIdReturnsStableInvalidInputPayloadWithoutFallback() throws {
+        let (taskService, context) = try makeService()
+        let project = makeProject(in: context)
+        let task = makeTask(in: context, project: project, displayId: 42)
+
+        let input = """
+        {"displayId":"not-an-int","taskId":"\(task.id.uuidString)","status":"planning"}
+        """
+
+        let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
+
+        try expectStableErrorPayload(
+            result,
+            error: "INVALID_INPUT",
+            hint: "displayId must be an integer"
+        )
+        #expect(task.statusRawValue == "idea")
     }
 
     @Test func missingStatusReturnsInvalidInput() throws {
@@ -284,8 +322,11 @@ struct UpdateStatusIntentTests {
 
         let result = UpdateStatusIntent.execute(input: input, taskService: taskService)
 
-        let parsed = try parseJSON(result)
-        #expect(parsed["error"] as? String == "TASK_NOT_FOUND")
+        try expectStableErrorPayload(
+            result,
+            error: "TASK_NOT_FOUND",
+            hint: "Provide either displayId (integer) or taskId (UUID)"
+        )
     }
 
     // MARK: - Response Format
