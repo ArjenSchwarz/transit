@@ -104,6 +104,31 @@ struct CreateTaskIntentMilestoneTests {
         #expect(milestoneInfo?["name"] as? String == "v1.0")
     }
 
+    @Test(arguments: [MilestoneStatus.done, .abandoned])
+    func createTaskWithTerminalMilestoneReturnsInvalidInputWithoutCreatingTask(
+        terminalStatus: MilestoneStatus
+    ) async throws {
+        let svc = try makeServices()
+        let project = makeProject(in: svc.context)
+        let milestone = makeMilestone(in: svc.context, name: "v1.0", project: project, displayId: 1)
+        try svc.milestone.updateStatus(milestone, to: terminalStatus)
+
+        let input = """
+        {"name":"Task","type":"feature","project":"\(project.name)","milestoneDisplayId":1}
+        """
+        let result = await CreateTaskIntent.execute(
+            input: input,
+            taskService: svc.task,
+            projectService: svc.project,
+            milestoneService: svc.milestone
+        )
+
+        let parsed = try parseJSON(result)
+        #expect(parsed["error"] as? String == "INVALID_INPUT")
+        #expect(parsed["hint"] as? String == "The selected milestone is no longer open")
+        #expect(try svc.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+    }
+
     @Test func createTaskWithMilestoneSaveFailureIsAtomic() async throws {
         var expectedMilestoneID: UUID?
         let svc = try makeServices { context in

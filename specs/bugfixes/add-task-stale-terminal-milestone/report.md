@@ -41,6 +41,7 @@ Add Task retained an in-memory milestone selection after that milestone became D
 - `Transit/Transit/Views/AddTask/AddTaskSheet.swift` — observes the selected project's milestone records and clears a selection as soon as it leaves the open option set, so the picker and draft do not retain a terminal selection.
 - `Transit/Transit/Services/TaskService+Error.swift` — adds the localized `milestoneNotOpen` error surfaced by Add Task.
 - `Transit/Transit/Intents/CreateTaskIntent.swift` — maps the new service error to `INVALID_INPUT` rather than an internal failure.
+- `Transit/Transit/MCP/MCPToolHandler.swift` — returns the localized terminal-milestone message rather than an enum case name from `create_task`.
 
 **Approach rationale:** The guard sits after the last suspension point and before `TransitTask` construction, closing the status-change race without relying on picker refreshes or `onChange`. It combines live state (including local pending updates) with a fresh committed-store read (including peer/window updates), and rejects before `insertOrDelete`, preserving the existing atomic one-save task/milestone path.
 

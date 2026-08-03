@@ -84,4 +84,39 @@ struct AddTaskStaleMilestoneTests {
         let committedContext = ModelContext(testContainer.container)
         #expect(try committedContext.fetch(FetchDescriptor<TransitTask>()).isEmpty)
     }
+
+    @Test(arguments: [MilestoneStatus.done, .abandoned])
+    func directCreationRejectsAlreadyTerminalMilestoneWithoutInsertingTask(
+        terminalStatus: MilestoneStatus
+    ) async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let taskService = TaskService(
+            modelContext: context,
+            displayIDAllocator: DisplayIDAllocator(store: InMemoryCounterStore())
+        )
+        let project = makeProject(in: context)
+        let milestone = makeMilestone(in: context, project: project)
+        milestone.status = terminalStatus
+        try context.save()
+
+        do {
+            _ = try await taskService.createTask(
+                name: "Terminal Milestone Task",
+                description: nil,
+                type: .feature,
+                project: project,
+                milestone: milestone
+            )
+            Issue.record("Expected terminal milestone creation to fail")
+        } catch let error as TaskService.Error {
+            #expect(error == .milestoneNotOpen)
+        } catch {
+            Issue.record("Expected milestoneNotOpen, got \(error)")
+        }
+
+        #expect(try context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+        let committedContext = ModelContext(testContainer.container)
+        #expect(try committedContext.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+    }
 }
