@@ -164,6 +164,17 @@ struct QueryTasksIntentNullFilterTests {
         }
     }
 
+    @Test func unknownNestedDateFilterFieldsAreRejected() throws {
+        try expectInvalidInput(
+            "{\"completionDate\":{\"unexpected\":\"value\"}}",
+            expectedHint: "Invalid completionDate filter format"
+        )
+        try expectInvalidInput(
+            "{\"lastStatusChangeDate\":{\"unexpected\":\"value\"}}",
+            expectedHint: "Invalid lastStatusChangeDate filter format"
+        )
+    }
+
     @Test func scalarCompletionDateFilterIsRejected() throws {
         try expectInvalidInput("{\"completionDate\":\"today\"}", expectedHint: "Expected valid JSON object")
     }

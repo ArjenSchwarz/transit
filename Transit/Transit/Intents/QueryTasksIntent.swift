@@ -10,61 +10,6 @@ protocol TaskFetching {
 
 extension TaskService: TaskFetching {}
 
-private struct DateRangeFilter: Codable {
-    var relative: String?
-    var from: String?
-    var toDate: String?
-
-    enum CodingKeys: String, CodingKey {
-        case relative
-        case from
-        case toDate = "to"
-    }
-
-    init(relative: String? = nil, from: String? = nil, toDate: String? = nil) {
-        self.relative = relative
-        self.from = from
-        self.toDate = toDate
-    }
-}
-
-private struct QueryFilters: Codable {
-    var displayId: Int?
-    var status: String?
-    var type: String?
-    var priority: String?
-    var projectId: String?
-    var search: String?
-    var completionDate: DateRangeFilter?
-    var lastStatusChangeDate: DateRangeFilter?
-    var milestone: String?
-    var milestoneDisplayId: Int?
-
-    init(
-        displayId: Int? = nil,
-        status: String? = nil,
-        type: String? = nil,
-        priority: String? = nil,
-        projectId: String? = nil,
-        search: String? = nil,
-        completionDate: DateRangeFilter? = nil,
-        lastStatusChangeDate: DateRangeFilter? = nil,
-        milestone: String? = nil,
-        milestoneDisplayId: Int? = nil
-    ) {
-        self.displayId = displayId
-        self.status = status
-        self.type = type
-        self.priority = priority
-        self.projectId = projectId
-        self.search = search
-        self.completionDate = completionDate
-        self.lastStatusChangeDate = lastStatusChangeDate
-        self.milestone = milestone
-        self.milestoneDisplayId = milestoneDisplayId
-    }
-}
-
 // swiftlint:disable type_body_length
 
 /// Queries tasks with optional filters via JSON input. Exposed as "Transit: Query Tasks"
@@ -236,6 +181,7 @@ struct QueryTasksIntent: AppIntent {
         if let nullKey = object.first(where: { $0.value is NSNull })?.key {
             return .failure(.invalidInput(hint: "Filter \"\(nullKey)\" must not be null"))
         }
+        var emptyDateFilterKeys = Set<String>()
         for filterKey in ["completionDate", "lastStatusChangeDate"] {
             guard let rawDateFilter = object[filterKey] else { continue }
             guard let dateFilter = rawDateFilter as? [String: Any] else {
@@ -244,10 +190,15 @@ struct QueryTasksIntent: AppIntent {
             for fieldKey in ["relative", "from", "to"] where dateFilter[fieldKey] is NSNull {
                 return .failure(.invalidInput(hint: "Filter \"\(filterKey).\(fieldKey)\" must not be null"))
             }
+            if dateFilter.isEmpty {
+                emptyDateFilterKeys.insert(filterKey)
+            }
         }
-        guard let filters = try? JSONDecoder().decode(QueryFilters.self, from: data) else {
+        guard var filters = try? JSONDecoder().decode(QueryFilters.self, from: data) else {
             return .failure(.invalidInput(hint: "Expected valid JSON object"))
         }
+        filters.completionDate?.isEmptyObject = emptyDateFilterKeys.contains("completionDate")
+        filters.lastStatusChangeDate?.isEmptyObject = emptyDateFilterKeys.contains("lastStatusChangeDate")
         return .success(filters)
     }
 
@@ -290,10 +241,12 @@ struct QueryTasksIntent: AppIntent {
 
     @MainActor private static func validateDateFilters(_ filters: QueryFilters) -> IntentError? {
         if let completionDate = filters.completionDate,
+           !completionDate.isEmptyObject,
            dateRange(from: completionDate) == nil {
             return .invalidInput(hint: "Invalid completionDate filter format")
         }
         if let lastStatusChangeDate = filters.lastStatusChangeDate,
+           !lastStatusChangeDate.isEmptyObject,
            dateRange(from: lastStatusChangeDate) == nil {
             return .invalidInput(hint: "Invalid lastStatusChangeDate filter format")
         }

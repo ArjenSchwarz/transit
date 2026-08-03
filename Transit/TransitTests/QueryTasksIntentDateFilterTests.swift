@@ -363,4 +363,31 @@ struct QueryTasksIntentDateFilterTests {
         #expect(parsed.count == 1)
         #expect(parsed.first?["name"] as? String == "Idea A")
     }
+
+    @Test("Empty date filter objects are no-ops for both date fields")
+    func emptyDateFilterObjectsReturnAllTasks() throws {
+        let inputs = [
+            "{\"completionDate\":{}}",
+            "{\"lastStatusChangeDate\":{}}",
+            "{\"completionDate\":{},\"lastStatusChangeDate\":{}}"
+        ]
+
+        for input in inputs {
+            let svc = try makeServices()
+            let project = makeProject(in: svc.context)
+            makeTask(in: svc.context, project: project, name: "Task A", displayId: 1)
+            makeTask(in: svc.context, project: project, name: "Task B", displayId: 2, status: .done)
+            makeTask(in: svc.context, project: project, name: "Task C", displayId: 3, status: .abandoned)
+
+            let result = QueryTasksIntent.execute(
+                input: input,
+                projectService: svc.project,
+                taskService: svc.task,
+                milestoneService: svc.milestone
+            )
+
+            let names = Set(try parseJSONArray(result).compactMap { $0["name"] as? String })
+            #expect(names == ["Task A", "Task B", "Task C"], "Input \(input) must not filter tasks")
+        }
+    }
 }
