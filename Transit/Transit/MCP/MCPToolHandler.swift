@@ -13,6 +13,7 @@ final class MCPToolHandler {
     private let projectService: ProjectService
     private let commentService: CommentService
     private let milestoneService: MilestoneService
+    private let milestoneFetcher: any MilestoneFetching
     private let maintenanceService: DisplayIDMaintenanceService
     private let settings: MCPSettings
     private let persistence: PersistenceAvailability
@@ -37,13 +38,15 @@ final class MCPToolHandler {
         maintenanceService: DisplayIDMaintenanceService,
         settings: MCPSettings,
         persistence: PersistenceAvailability = .shared,
-        taskFetcher: (any TaskFetching)? = nil
+        taskFetcher: (any TaskFetching)? = nil,
+        milestoneFetcher: (any MilestoneFetching)? = nil
     ) {
         self.taskService = taskService
         self.taskFetcher = taskFetcher ?? taskService
         self.projectService = projectService
         self.commentService = commentService
         self.milestoneService = milestoneService
+        self.milestoneFetcher = milestoneFetcher ?? milestoneService
         self.maintenanceService = maintenanceService
         self.settings = settings
         self.persistence = persistence
@@ -586,8 +589,14 @@ final class MCPToolHandler {
                     return errorResult("Failed to look up milestone: \(error)")
                 }
             } else {
-                // No project filter — collect ALL milestones with this name across projects
-                let allMilestones = (try? milestoneService.fetchAllMilestones()) ?? []
+                // No project filter — collect ALL milestones with this name across projects.
+                // A storage failure must remain distinct from a valid no-match response. [T-1608]
+                let allMilestones: [Milestone]
+                do {
+                    allMilestones = try milestoneFetcher.fetchAllMilestones()
+                } catch {
+                    return errorResult("Failed to fetch milestones: \(error)")
+                }
                 let matchingIds = Set(
                     allMilestones
                         .filter {
