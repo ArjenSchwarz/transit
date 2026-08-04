@@ -1158,18 +1158,25 @@ extension MCPToolHandler {
         } catch {
             return errorResult("Failed to fetch projects: \(error)")
         }
-        let results: [[String: Any]] = projects.map { project in
+        var results: [[String: Any]] = []
+        for project in projects {
             var dict: [String: Any] = [
                 "projectId": project.id.uuidString, "name": project.name,
                 "description": project.projectDescription, "colorHex": project.colorHex,
                 "activeTaskCount": projectService.activeTaskCount(for: project)
             ]
             if let gitRepo = project.gitRepo { dict["gitRepo"] = gitRepo }
-            let milestones = milestoneService.milestonesForProject(project)
+
+            let milestones: [Milestone]
+            do {
+                milestones = try milestoneService.milestonesForProject(project)
+            } catch {
+                return errorResult("Failed to fetch milestones: \(error)")
+            }
             if !milestones.isEmpty {
                 dict["milestones"] = milestones.map { milestoneSummaryDict($0) }
             }
-            return dict
+            results.append(dict)
         }
         return textResult(IntentHelpers.encodeJSONArray(results))
     }

@@ -105,8 +105,8 @@ struct MilestoneServiceLookupTests {
         let done = try await service.createMilestone(name: "v2.0", description: nil, project: project)
         try service.updateStatus(done, to: .done)
 
-        #expect(service.milestonesForProject(project).count == 2)
-        let openOnly = service.milestonesForProject(project, status: .open)
+        #expect(try service.milestonesForProject(project).count == 2)
+        let openOnly = try service.milestonesForProject(project, status: .open)
         #expect(openOnly.count == 1)
         #expect(openOnly.first?.name == "v1.0")
     }

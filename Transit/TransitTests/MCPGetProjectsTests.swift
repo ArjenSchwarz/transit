@@ -7,6 +7,23 @@ import Testing
 @MainActor @Suite(.serialized)
 struct MCPGetProjectsTests {
 
+    private struct ScopedMilestoneFetchFailure: Swift.Error, CustomStringConvertible {
+        var description: String { "simulated scoped milestone fetch failure" }
+    }
+
+    /// Returns a valid empty result for the first project, then fails for the
+    /// second. This proves `get_projects` cannot emit the first project as a
+    /// partial authoritative response when later enrichment fails.
+    private final class FailingAfterFirstScopedMilestoneFetch: ModelFetching {
+        private(set) var fetchCallCount = 0
+
+        func fetch<T: PersistentModel>(_ descriptor: FetchDescriptor<T>) throws -> [T] {
+            fetchCallCount += 1
+            guard fetchCallCount > 1 else { return [] }
+            throw ScopedMilestoneFetchFailure()
+        }
+    }
+
     @Test func getProjectsReturnsCorrectFieldsAndSortOrder() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let bravo = MCPTestHelpers.makeProject(in: env.context, name: "Bravo")
@@ -43,6 +60,51 @@ struct MCPGetProjectsTests {
 
         let results = try MCPTestHelpers.decodeArrayResult(response)
         #expect(results.isEmpty)
+    }
+
+    @Test
+    func getProjectsMilestoneFetchFailureReturnsExactToolErrorWithoutPartialProjects() async throws {
+        let milestoneFetcher = FailingAfterFirstScopedMilestoneFetch()
+        let env = try MCPTestHelpers.makeEnv(milestoneServiceFetcher: milestoneFetcher)
+        MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        MCPTestHelpers.makeProject(in: env.context, name: "Beta")
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "get_projects", arguments: [:]
+        ))
+
+        #expect(
+            try MCPTestHelpers.isError(response),
+            "A milestone fetch failure must not return a partial project list"
+        )
+        #expect(
+            try MCPTestHelpers.errorText(response)
+                == "Failed to fetch milestones: simulated scoped milestone fetch failure"
+        )
+        #expect(milestoneFetcher.fetchCallCount == 2)
+    }
+
+    @Test func getProjectsPreservesEmptyMilestonesAndScopesOtherProjects() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let alpha = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
+        let beta = MCPTestHelpers.makeProject(in: env.context, name: "Beta")
+        _ = try await env.milestoneService.createMilestone(name: "Beta 1", description: nil, project: beta)
+        _ = try await env.milestoneService.createMilestone(name: "Beta 2", description: nil, project: beta)
+
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "get_projects", arguments: [:]
+        ))
+
+        let results = try MCPTestHelpers.decodeArrayResult(response)
+        #expect(results.count == 2)
+
+        let alphaResult = try #require(results.first { $0["projectId"] as? String == alpha.id.uuidString })
+        #expect(alphaResult["milestones"] == nil)
+
+        let betaResult = try #require(results.first { $0["projectId"] as? String == beta.id.uuidString })
+        let milestones = try #require(betaResult["milestones"] as? [[String: Any]])
+        #expect(milestones.count == 2)
+        #expect(Set(milestones.compactMap { $0["name"] as? String }) == ["Beta 1", "Beta 2"])
     }
 
     @Test func getProjectsIncludesGitRepoWhenSetAndOmitsWhenNil() async throws {
