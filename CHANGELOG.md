@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 - T-1657: Project lookup storage failures now remain distinguishable from missing projects across JSON intents, MCP create/query/milestone tools, and visual Add Task. `QueryMilestonesIntent` no longer returns a successful empty array when its project-name lookup is unreadable, while valid missing/ambiguous names and project-ID precedence retain their prior behavior. Visual Add Task now reports `INTERNAL_ERROR` for a failed project read rather than a stale-selection `PROJECT_NOT_FOUND`; deterministic failing-fetch regressions verify cross-surface parity and no task or milestone insertion.
+- T-1800: Open task details now observe a task-scoped SwiftData comment query instead of a one-time snapshot, so MCP and local insertions/deletions update both the visible comment list and Share export without reopening the view. The query filters through the CloudKit-compatible optional child relationship and uses creation date plus UUID for stable ordering.
 
 - T-1770: JSON mutation intents now preserve their established typed validation and domain-error payloads while mapping untyped SwiftData fetch/save failures to `INTERNAL_ERROR`. Shared task and milestone identifier resolution uses deterministic injected fetchers; milestone mutations also expose an injected saver. Regression coverage spans create, status update, milestone update, and deletion paths, asserting both the internal-error envelope and no persisted mutation on failure.
 
