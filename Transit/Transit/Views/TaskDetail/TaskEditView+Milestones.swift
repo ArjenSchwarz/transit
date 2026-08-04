@@ -14,7 +14,9 @@ extension TaskEditView {
         milestoneService: MilestoneService
     ) -> [Milestone] {
         guard let project else { return [] }
-        var milestones = milestoneService.milestonesForProject(project, status: .open)
+        // The picker has no storage-error presentation path; retain its existing
+        // empty-options fallback while authoritative MCP reads propagate failures.
+        var milestones = (try? milestoneService.milestonesForProject(project, status: .open)) ?? []
 
         guard let selectedMilestone, selectedMilestone.project?.id == project.id else {
             return milestones

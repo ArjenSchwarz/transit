@@ -306,12 +306,12 @@ final class MilestoneService {
         try MilestoneNameReconciler(modelContext: modelContext).reconcile()
     }
 
-    func milestonesForProject(_ project: Project, status: MilestoneStatus? = nil) -> [Milestone] {
+    func milestonesForProject(_ project: Project, status: MilestoneStatus? = nil) throws -> [Milestone] {
         let projectID = project.id
         let descriptor = FetchDescriptor<Milestone>(
             predicate: #Predicate { $0.project?.id == projectID }
         )
-        var milestones = (try? modelContext.fetch(descriptor)) ?? []
+        var milestones = try fetcher.fetch(descriptor)
         if let status {
             let statusRaw = status.rawValue
             milestones = milestones.filter { $0.statusRawValue == statusRaw }
