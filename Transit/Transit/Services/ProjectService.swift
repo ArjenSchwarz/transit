@@ -184,9 +184,12 @@ final class ProjectService {
     }
 
     /// Returns true if at least one project exists.
-    func hasAnyProjects() -> Bool {
+    ///
+    /// Throws the underlying storage error rather than treating an unreadable
+    /// project table as an empty database.
+    func hasAnyProjects() throws -> Bool {
         var descriptor = FetchDescriptor<Project>()
         descriptor.fetchLimit = 1
-        return ((try? modelContext.fetch(descriptor)) ?? []).isEmpty == false
+        return try fetcher.fetch(descriptor).isEmpty == false
     }
 }

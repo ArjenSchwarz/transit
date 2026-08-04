@@ -205,7 +205,7 @@ struct AddTaskIntentTests {
         svc.context.delete(deletedProject)
         try svc.context.save()
 
-        #expect(svc.project.hasAnyProjects())
+        #expect(try svc.project.hasAnyProjects())
 
         do {
             _ = try await AddTaskIntent.execute(
