@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import Transit
 
@@ -88,5 +89,74 @@ struct SyncManagerTests {
             #expect(manager.isHeartbeatRunning == false,
                     "Re-enabling sync must not restart the heartbeat; a new startHeartbeat call is required")
         }
+    }
+
+    // MARK: - T-1699 Regression: heartbeat singleton fetch failures
+
+    private struct FetchFailure: Swift.Error {}
+
+    private final class HeartbeatFetchController {
+        var shouldFail = false
+
+        func fetch(
+            context: ModelContext,
+            descriptor: FetchDescriptor<SyncHeartbeat>
+        ) throws -> [SyncHeartbeat] {
+            if shouldFail {
+                throw FetchFailure()
+            }
+            return try context.fetch(descriptor)
+        }
+    }
+
+    private func heartbeatCount(in context: ModelContext) throws -> Int {
+        try context.fetch(FetchDescriptor<SyncHeartbeat>()).count
+    }
+
+    @Test
+    func heartbeatWithMissingSingletonInsertsOneRecord() throws {
+        let fixture = try TestModelContainer()
+        let context = fixture.context
+        let manager = SyncManager()
+
+        manager.beat(context: context)
+
+        #expect(try heartbeatCount(in: context) == 1)
+    }
+
+    @Test
+    func heartbeatWithExistingSingletonUpdatesWithoutInsertingAnotherRecord() throws {
+        let fixture = try TestModelContainer()
+        let context = fixture.context
+        let existing = SyncHeartbeat()
+        existing.lastBeat = .distantPast
+        context.insert(existing)
+        try context.save()
+        let manager = SyncManager()
+
+        manager.beat(context: context)
+
+        #expect(try heartbeatCount(in: context) == 1)
+        #expect(existing.lastBeat > .distantPast)
+    }
+
+    @Test
+    func heartbeatFetchFailureInsertsNothingAndNextBeatRecovers() throws {
+        let fixture = try TestModelContainer()
+        let context = fixture.context
+        let fetcher = HeartbeatFetchController()
+        let manager = SyncManager(heartbeatFetcher: fetcher.fetch)
+        fetcher.shouldFail = true
+
+        manager.beat(context: context)
+
+        #expect(try heartbeatCount(in: context) == 0,
+                "A failed singleton fetch must not be treated as a missing record")
+
+        fetcher.shouldFail = false
+        manager.beat(context: context)
+
+        #expect(try heartbeatCount(in: context) == 1,
+                "The next heartbeat must retry normally after a transient fetch failure")
     }
 }
