@@ -24,13 +24,21 @@ struct MilestoneFilterMenu: View {
         )
     }
 
+    private var hasVisibleMilestoneOption: Bool {
+        let scopedProjectIDs = Set(Self.scopedProjects(
+            projects: projects,
+            selectedProjectIDs: selectedProjectIDs
+        ).map(\.id))
+        return allMilestones.contains { milestone in
+            guard let projectID = milestone.project?.id, scopedProjectIDs.contains(projectID) else {
+                return false
+            }
+            return milestone.status == .open || selectedMilestones.contains(milestone.id)
+        }
+    }
+
     var body: some View {
-        let options = milestoneOptions
-        if Self.shouldShowMenu(
-            availableMilestones: options,
-            selectedMilestones: selectedMilestones,
-            isPresented: showPopover
-        ) {
+        if showPopover || hasVisibleMilestoneOption || !selectedMilestones.isEmpty {
             Button { showPopover.toggle() } label: { filterLabel }
                 .accessibilityIdentifier("dashboard.filter.milestones")
                 .accessibilityLabel(Self.accessibilityLabel(for: selectedMilestones.count))
@@ -38,7 +46,7 @@ struct MilestoneFilterMenu: View {
                 .popover(isPresented: $showPopover) {
                     List {
                         Section {
-                            toggleContent(options)
+                            toggleContent(milestoneOptions)
                         }
                         clearSection
                     }
@@ -48,7 +56,7 @@ struct MilestoneFilterMenu: View {
                 .sheet(isPresented: $showPopover) {
                     NavigationStack {
                         List {
-                            toggleContent(options)
+                            toggleContent(milestoneOptions)
                             clearSection
                         }
                         .navigationTitle("Milestones")

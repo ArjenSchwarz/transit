@@ -95,24 +95,24 @@ struct MilestoneFilterMenuTests {
     }
 
     @Test func multiProjectOrderingMatchesDisplayedMilestoneTitles() {
-        let compactProject = Project(name: "A", description: "", gitRepo: nil, colorHex: "#FF0000")
-        let spacedProject = Project(name: "A ", description: "", gitRepo: nil, colorHex: "#00FF00")
-        let compactMilestone = Milestone(name: "Aaa", project: compactProject, displayID: .provisional)
-        let spacedMilestone = Milestone(name: "Aaa", project: spacedProject, displayID: .provisional)
-        let spacedTerminal = Milestone(name: "Release", project: spacedProject, displayID: .provisional)
-        spacedTerminal.status = .done
+        let alphaProject = Project(name: "Alpha", description: "", gitRepo: nil, colorHex: "#FF0000")
+        let betaProject = Project(name: "Beta", description: "", gitRepo: nil, colorHex: "#00FF00")
+        let alphaMilestone = Milestone(name: "Beta", project: alphaProject, displayID: .provisional)
+        let betaMilestone = Milestone(name: "Alpha", project: betaProject, displayID: .provisional)
+        let betaTerminal = Milestone(name: "Release", project: betaProject, displayID: .provisional)
+        betaTerminal.status = .done
 
         let available = MilestoneFilterMenu.availableMilestones(
-            milestones: [spacedTerminal, compactMilestone, spacedMilestone],
-            projects: [compactProject, spacedProject],
+            milestones: [betaTerminal, betaMilestone, alphaMilestone],
+            projects: [betaProject, alphaProject],
             selectedProjectIDs: [],
-            selectedMilestones: [spacedTerminal.id]
+            selectedMilestones: [betaTerminal.id]
         )
         let titles = available.map {
             MilestoneFilterMenu.milestoneTitle(for: $0, selectedProjectIDs: [])
         }
 
-        #expect(titles == ["A  - Aaa", "A - Aaa", "A  - Release"])
+        #expect(titles == ["Alpha - Beta", "Beta - Alpha", "Beta - Release"])
     }
 
     @Test func deletedSelectedMilestoneLeavesMenuAvailableForClear() throws {
