@@ -11,8 +11,15 @@ struct MCPGetProjectsTests {
         var description: String { "simulated scoped milestone fetch failure" }
     }
 
-    private struct FailingScopedMilestoneFetcher: ModelFetching {
+    /// Returns a valid empty result for the first project, then fails for the
+    /// second. This proves `get_projects` cannot emit the first project as a
+    /// partial authoritative response when later enrichment fails.
+    private final class FailingAfterFirstScopedMilestoneFetch: ModelFetching {
+        private(set) var fetchCallCount = 0
+
         func fetch<T: PersistentModel>(_ descriptor: FetchDescriptor<T>) throws -> [T] {
+            fetchCallCount += 1
+            guard fetchCallCount > 1 else { return [] }
             throw ScopedMilestoneFetchFailure()
         }
     }
@@ -57,7 +64,8 @@ struct MCPGetProjectsTests {
 
     @Test
     func getProjectsMilestoneFetchFailureReturnsExactToolErrorWithoutPartialProjects() async throws {
-        let env = try MCPTestHelpers.makeEnv(milestoneServiceFetcher: FailingScopedMilestoneFetcher())
+        let milestoneFetcher = FailingAfterFirstScopedMilestoneFetch()
+        let env = try MCPTestHelpers.makeEnv(milestoneServiceFetcher: milestoneFetcher)
         MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
         MCPTestHelpers.makeProject(in: env.context, name: "Beta")
 
@@ -73,6 +81,7 @@ struct MCPGetProjectsTests {
             try MCPTestHelpers.errorText(response)
                 == "Failed to fetch milestones: simulated scoped milestone fetch failure"
         )
+        #expect(milestoneFetcher.fetchCallCount == 2)
     }
 
     @Test func getProjectsPreservesEmptyMilestonesAndScopesOtherProjects() async throws {

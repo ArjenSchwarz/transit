@@ -12,11 +12,11 @@ partial project list. Clients cannot distinguish an unreadable milestone store
 from a valid project with no milestones.
 
 **Reproduction steps:**
-1. Inject a `ModelFetching` implementation that throws for scoped milestone
-   fetches into `MilestoneService`.
-2. Call MCP `get_projects` with one or more projects present.
-3. Observe a non-error project array with missing `milestones` fields instead
-   of a tool error.
+1. Inject a `ModelFetching` implementation that returns a valid empty result
+   for the first scoped milestone fetch and throws for the second.
+2. Call MCP `get_projects` with two or more projects present.
+3. Observe a non-error partial project array with missing `milestones` fields
+   instead of a tool error.
 
 **Impact:** MCP clients can treat incomplete project/milestone metadata as
 authoritative and make incorrect routing or planning decisions.
@@ -75,10 +75,11 @@ loop avoids allocating or returning an incomplete serialized project array.
 **Test file:** `Transit/TransitTests/MCPGetProjectsTests.swift`
 **Test name:** `getProjectsMilestoneFetchFailureReturnsExactToolErrorWithoutPartialProjects`
 
-**What it verifies:** an injected scoped milestone fetch failure returns the
-exact MCP tool error instead of a partial successful project list; a separate
-control verifies an empty project's omitted `milestones` field and another
-project's correctly scoped milestones.
+**What it verifies:** the first scoped milestone fetch succeeds with a valid
+empty result and the second fails, proving the exact MCP tool error replaces
+(rather than accompanies) a partial successful project list; a separate control
+verifies an empty project's omitted `milestones` field and another project's
+correctly scoped milestones.
 
 **Run command:** `make test-quick`
 
