@@ -45,9 +45,9 @@ A selected dashboard milestone disappeared from `MilestoneFilterMenu` after it t
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/MilestoneFilterMenuTests.swift`
-**Test names:** `visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones`, `availableMilestonesHandlesPersistedStatusTransitionWithDeterministicTerminalPlacement`, `multiProjectOrderingMatchesDisplayedMilestoneTitles`, `deletedSelectedMilestoneLeavesMenuAvailableForClear`, `menuRemainsMountedWhilePresentedAfterClearingLastSelection`, `accessibilityLabelsIncludeTerminalStatusWithoutSelectionDuplication`
+**Test names:** `visibleMilestoneOptionUsesOpenRecordsWithinCurrentProjectScope`, `visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones`, `availableMilestonesHandlesPersistedStatusTransitionWithDeterministicTerminalPlacement`, `multiProjectOrderingMatchesDisplayedMilestoneTitles`, `deletedSelectedMilestoneLeavesMenuAvailableForClear`, `menuRemainsMountedWhilePresentedAfterClearingLastSelection`, `accessibilityLabelsIncludeTerminalStatusWithoutSelectionDuplication`
 
-**What it verifies:** A fresh SwiftData snapshot sees an open selected milestone move into the selected-terminal suffix after a persisted Done transition; open rows stay first in deterministic order; multi-project ordering matches displayed titles; another project is excluded; deleting a selected record preserves access to Clear; clearing the final selection retains an open presentation; and labels contain one title plus optional terminal status.
+**What it verifies:** The production visibility predicate treats only scoped open records as normal choices; a fresh SwiftData snapshot sees an open selected milestone move into the selected-terminal suffix after a persisted Done transition; open rows stay first in deterministic order; multi-project ordering matches displayed titles; another project is excluded; deleting a selected record preserves access to Clear; clearing the final selection retains an open presentation; and labels contain one title plus optional terminal status.
 
 **Run command:** `make test-quick`
 
@@ -67,7 +67,7 @@ A selected dashboard milestone disappeared from `MilestoneFilterMenu` after it t
 - [x] iOS Simulator and macOS builds pass (`make build`).
 - [x] Focused iOS simulator regression suite passes (`-only-testing:TransitTests/MilestoneFilterMenuTests`).
 - [ ] Full `make test` exceeded the five-minute command harness after compiling both test bundles and beginning iOS execution; it did not return a final result.
-- [ ] Full `make test-ui` exceeded the five-minute command harness after completing UI execution. It reported unchanged failures in `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`; the unchanged `TransitUITests.testMilestoneFilterMenu` passed.
+- [ ] Full `make test-ui` exceeded the five-minute command harness after completing UI execution. It reported failures in `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`; the unchanged `TransitUITests.testMilestoneFilterMenu` passed. A baseline run on `origin/main` was not completed in this session.
 
 **Manual verification:**
 - Confirmed the persisted transition regression, multi-project title ordering, deleted-selection Clear behavior, presented-menu lifecycle behavior, and accessibility label contract cover the filter's state contracts.

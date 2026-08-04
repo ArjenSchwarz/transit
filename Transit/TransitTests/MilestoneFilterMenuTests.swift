@@ -19,16 +19,38 @@ struct MilestoneFilterMenuTests {
     }
 
     @Test func menuHiddenWhenNoAvailableAndNoneSelected() {
-        #expect(MilestoneFilterMenu.shouldShowMenu(availableMilestones: [], selectedMilestones: []) == false)
+        #expect(MilestoneFilterMenu.shouldShowMenu(
+            hasVisibleMilestoneOption: false,
+            selectedMilestones: []
+        ) == false)
     }
 
     @Test func menuRemainsMountedWhilePresentedAfterClearingLastSelection() {
         #expect(MilestoneFilterMenu.shouldShowMenu(
-            availableMilestones: [],
+            hasVisibleMilestoneOption: false,
             selectedMilestones: [],
             isPresented: true
         ))
     }
+    @Test func visibleMilestoneOptionUsesOpenRecordsWithinCurrentProjectScope() {
+        let firstProject = Project(name: "First", description: "", gitRepo: nil, colorHex: "#FF0000")
+        let secondProject = Project(name: "Second", description: "", gitRepo: nil, colorHex: "#00FF00")
+        let firstOpen = Milestone(name: "Open", project: firstProject, displayID: .provisional)
+        let secondTerminal = Milestone(name: "Done", project: secondProject, displayID: .provisional)
+        secondTerminal.status = .done
+
+        #expect(MilestoneFilterMenu.hasVisibleMilestoneOption(
+            milestones: [firstOpen, secondTerminal],
+            projects: [firstProject, secondProject],
+            selectedProjectIDs: [firstProject.id]
+        ))
+        #expect(!MilestoneFilterMenu.hasVisibleMilestoneOption(
+            milestones: [firstOpen, secondTerminal],
+            projects: [firstProject, secondProject],
+            selectedProjectIDs: [secondProject.id]
+        ))
+    }
+
     @Test func visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones() {
         let firstOpenID = UUID()
         let secondOpenID = UUID()
@@ -135,7 +157,7 @@ struct MilestoneFilterMenuTests {
 
         #expect(available.isEmpty)
         #expect(MilestoneFilterMenu.shouldShowMenu(
-            availableMilestones: available,
+            hasVisibleMilestoneOption: false,
             selectedMilestones: [milestone.id]
         ))
     }

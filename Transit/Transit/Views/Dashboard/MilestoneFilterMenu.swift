@@ -25,20 +25,19 @@ struct MilestoneFilterMenu: View {
     }
 
     private var hasVisibleMilestoneOption: Bool {
-        let scopedProjectIDs = Set(Self.scopedProjects(
+        Self.hasVisibleMilestoneOption(
+            milestones: allMilestones,
             projects: projects,
             selectedProjectIDs: selectedProjectIDs
-        ).map(\.id))
-        return allMilestones.contains { milestone in
-            guard let projectID = milestone.project?.id, scopedProjectIDs.contains(projectID) else {
-                return false
-            }
-            return milestone.status == .open || selectedMilestones.contains(milestone.id)
-        }
+        )
     }
 
     var body: some View {
-        if showPopover || hasVisibleMilestoneOption || !selectedMilestones.isEmpty {
+        if Self.shouldShowMenu(
+            hasVisibleMilestoneOption: hasVisibleMilestoneOption,
+            selectedMilestones: selectedMilestones,
+            isPresented: showPopover
+        ) {
             Button { showPopover.toggle() } label: { filterLabel }
                 .accessibilityIdentifier("dashboard.filter.milestones")
                 .accessibilityLabel(Self.accessibilityLabel(for: selectedMilestones.count))
@@ -148,11 +147,25 @@ struct MilestoneFilterMenu: View {
     }
 
     static func shouldShowMenu(
-        availableMilestones: [Milestone],
+        hasVisibleMilestoneOption: Bool,
         selectedMilestones: Set<UUID>,
         isPresented: Bool = false
     ) -> Bool {
-        isPresented || !availableMilestones.isEmpty || !selectedMilestones.isEmpty
+        isPresented || hasVisibleMilestoneOption || !selectedMilestones.isEmpty
+    }
+
+    static func hasVisibleMilestoneOption(
+        milestones: [Milestone],
+        projects: [Project],
+        selectedProjectIDs: Set<UUID>
+    ) -> Bool {
+        let scopedProjectIDs = scopedProjectIDs(
+            projects: projects,
+            selectedProjectIDs: selectedProjectIDs
+        )
+        return milestones.contains { milestone in
+            isAccessible(milestone, in: scopedProjectIDs) && milestone.status == .open
+        }
     }
 
     static func availableMilestones(
@@ -161,15 +174,12 @@ struct MilestoneFilterMenu: View {
         selectedProjectIDs: Set<UUID>,
         selectedMilestones: Set<UUID>
     ) -> [Milestone] {
-        let scopedProjectIDs = Set(scopedProjects(
+        let scopedProjectIDs = scopedProjectIDs(
             projects: projects,
             selectedProjectIDs: selectedProjectIDs
-        ).map(\.id))
+        )
         let accessibleMilestones = orderedMilestones(
-            milestones.filter { milestone in
-                guard let projectID = milestone.project?.id else { return false }
-                return scopedProjectIDs.contains(projectID)
-            },
+            milestones.filter { isAccessible($0, in: scopedProjectIDs) },
             selectedProjectIDs: selectedProjectIDs
         )
         let visibleIDs = visibleMilestoneIDs(
@@ -183,6 +193,21 @@ struct MilestoneFilterMenu: View {
             uniquingKeysWith: { first, _ in first }
         )
         return visibleIDs.compactMap { milestonesByID[$0] }
+    }
+
+    private static func scopedProjectIDs(
+        projects: [Project],
+        selectedProjectIDs: Set<UUID>
+    ) -> Set<UUID> {
+        Set(scopedProjects(
+            projects: projects,
+            selectedProjectIDs: selectedProjectIDs
+        ).map(\.id))
+    }
+
+    private static func isAccessible(_ milestone: Milestone, in projectIDs: Set<UUID>) -> Bool {
+        guard let projectID = milestone.project?.id else { return false }
+        return projectIDs.contains(projectID)
     }
 
     private static func orderedMilestones(
