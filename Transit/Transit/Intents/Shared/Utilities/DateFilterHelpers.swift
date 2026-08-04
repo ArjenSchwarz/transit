@@ -77,9 +77,12 @@ enum DateFilterHelpers {
         return nil
     }
 
-    static func dateInRange(_ date: Date, range: DateRange, now: Date = Date()) -> Bool {
-        let calendar = Calendar.current
-
+    static func dateInRange(
+        _ date: Date,
+        range: DateRange,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Bool {
         switch range {
         case .today:
             return calendar.isDate(date, inSameDayAs: now)

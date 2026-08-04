@@ -11,14 +11,38 @@ struct ReportView: View {
     }) private var terminalMilestones: [Milestone]
 
     @State private var selectedRange: ReportDateRange = .thisWeek
+    @State private var reportRefreshState = ReportRefreshState()
     @State private var showCopyConfirmation = false
     @Environment(\.resolvedTheme) private var resolvedTheme
+    @Environment(\.scenePhase) private var scenePhase
+
+    private var reportRefreshTaskID: String {
+        "\(selectedRange.rawValue)|\(reportRefreshState.refreshGeneration)|\(scenePhase == .active)"
+    }
+
+    private var terminalItemsFingerprint: [String] {
+        let tasks = terminalTasks.map { task in
+            let completionDate = task.completionDate?.timeIntervalSinceReferenceDate ?? 0
+            let statusChangeDate = task.lastStatusChangeDate.timeIntervalSinceReferenceDate
+            return "task|\(task.id.uuidString)|\(task.statusRawValue)|"
+                + "\(completionDate)|\(statusChangeDate)"
+        }
+        let milestones = terminalMilestones.map { milestone in
+            let completionDate = milestone.completionDate?.timeIntervalSinceReferenceDate ?? 0
+            let statusChangeDate = milestone.lastStatusChangeDate.timeIntervalSinceReferenceDate
+            return "milestone|\(milestone.id.uuidString)|\(milestone.statusRawValue)|"
+                + "\(completionDate)|\(statusChangeDate)"
+        }
+        return (tasks + milestones).sorted()
+    }
 
     var body: some View {
         let report = ReportLogic.buildReport(
             tasks: terminalTasks,
             milestones: terminalMilestones,
-            dateRange: selectedRange
+            dateRange: selectedRange,
+            now: reportRefreshState.now,
+            calendar: reportRefreshState.calendar
         )
 
         ScrollView {
@@ -65,6 +89,33 @@ struct ReportView: View {
             if showCopyConfirmation {
                 copyConfirmationBanner
             }
+        }
+        .task(id: reportRefreshTaskID) {
+            guard scenePhase == .active else { return }
+
+            let nextRefresh = reportRefreshState.nextRefreshDate(for: selectedRange)
+            let delay = nextRefresh.timeIntervalSince(reportRefreshState.now)
+            guard delay > 0 else { return }
+
+            do {
+                try await Task.sleep(for: .seconds(delay))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else { return }
+            reportRefreshState.refresh()
+        }
+        .onChange(of: selectedRange) { _, _ in
+            reportRefreshState.refresh()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                reportRefreshState.refresh()
+            }
+        }
+        .onChange(of: terminalItemsFingerprint) { _, _ in
+            reportRefreshState.refresh()
         }
     }
 
