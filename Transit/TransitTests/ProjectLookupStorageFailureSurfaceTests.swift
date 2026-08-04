@@ -77,6 +77,7 @@ struct ProjectLookupStorageFailureSurfaceTests {
         #expect(try context.fetch(FetchDescriptor<Milestone>()).isEmpty)
     }
 
+#if os(macOS)
     @Test func mcpCreateAndQueryPathsReturnStorageErrorsWithoutInsertionWhenProjectLookupFails() async throws {
         let env = try MCPTestHelpers.makeEnv(projectFetcher: FailingProjectFetcher())
         let projectID = UUID().uuidString
@@ -110,6 +111,7 @@ struct ProjectLookupStorageFailureSurfaceTests {
         #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
         #expect(try env.context.fetch(FetchDescriptor<Milestone>()).isEmpty)
     }
+#endif
 
     @Test func visualAddTaskReportsInternalStorageErrorWithoutInsertionWhenProjectLookupFails() async throws {
         let testContainer = try TestModelContainer()
