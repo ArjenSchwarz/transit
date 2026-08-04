@@ -36,7 +36,7 @@ struct MilestoneFilterMenuTests {
         #expect(visibleIDs == [firstOpenID, secondOpenID, doneID, abandonedID])
     }
 
-    @Test func availableMilestonesReflectsObservedStatusTransitionWithDeterministicTerminalPlacement() throws {
+    @Test func availableMilestonesHandlesPersistedStatusTransitionWithDeterministicTerminalPlacement() throws {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
         let firstProject = Project(name: "First", description: "", gitRepo: nil, colorHex: "#FF0000")
@@ -59,30 +59,50 @@ struct MilestoneFilterMenuTests {
             gammaTerminal.id,
             inaccessibleTerminal.id
         ]
-        let initialObservedMilestones = try context.fetch(FetchDescriptor<Milestone>())
         let initiallyAvailable = MilestoneFilterMenu.availableMilestones(
-            milestones: initialObservedMilestones,
+            milestones: try context.fetch(FetchDescriptor<Milestone>()),
             projects: [firstProject, secondProject],
             selectedProjectIDs: [firstProject.id],
             selectedMilestones: selectedMilestones
         )
         let initialAvailableIDs: [UUID] = initiallyAvailable.map(\.id)
-        let initialExpectedIDs: [UUID] = [alphaOpen.id, betaTransition.id, zuluOpen.id, gammaTerminal.id]
+        let initialExpectedIDs: [UUID] = [
+            alphaOpen.id, betaTransition.id, zuluOpen.id, gammaTerminal.id
+        ]
         #expect(initialAvailableIDs == initialExpectedIDs)
 
         betaTransition.status = .done
         try context.save()
 
-        let transitionedObservedMilestones = try context.fetch(FetchDescriptor<Milestone>())
         let transitionedAvailable = MilestoneFilterMenu.availableMilestones(
-            milestones: transitionedObservedMilestones,
+            milestones: try context.fetch(FetchDescriptor<Milestone>()),
             projects: [firstProject, secondProject],
             selectedProjectIDs: [firstProject.id],
             selectedMilestones: selectedMilestones
         )
         let transitionedAvailableIDs: [UUID] = transitionedAvailable.map(\.id)
-        let transitionedExpectedIDs: [UUID] = [alphaOpen.id, zuluOpen.id, betaTransition.id, gammaTerminal.id]
+        let transitionedExpectedIDs: [UUID] = [
+            alphaOpen.id, zuluOpen.id, betaTransition.id, gammaTerminal.id
+        ]
         #expect(transitionedAvailableIDs == transitionedExpectedIDs)
+    }
+
+    @Test func multiProjectOrderingMatchesDisplayedMilestoneTitles() {
+        let alphaProject = Project(name: "Alpha", description: "", gitRepo: nil, colorHex: "#FF0000")
+        let betaProject = Project(name: "Beta", description: "", gitRepo: nil, colorHex: "#00FF00")
+        let alphaMilestone = Milestone(name: "Zulu", project: alphaProject, displayID: .provisional)
+        let betaMilestone = Milestone(name: "Alpha", project: betaProject, displayID: .provisional)
+        let betaTerminal = Milestone(name: "Release", project: betaProject, displayID: .provisional)
+        betaTerminal.status = .done
+
+        let available = MilestoneFilterMenu.availableMilestones(
+            milestones: [betaTerminal, betaMilestone, alphaMilestone],
+            projects: [betaProject, alphaProject],
+            selectedProjectIDs: [],
+            selectedMilestones: [betaTerminal.id]
+        )
+
+        #expect(available.map(\.id) == [alphaMilestone.id, betaMilestone.id, betaTerminal.id])
     }
 
     @Test func deletedSelectedMilestoneLeavesMenuAvailableForClear() throws {
@@ -96,9 +116,8 @@ struct MilestoneFilterMenuTests {
 
         context.delete(milestone)
         try context.save()
-        let observedMilestones = try context.fetch(FetchDescriptor<Milestone>())
         let available = MilestoneFilterMenu.availableMilestones(
-            milestones: observedMilestones,
+            milestones: try context.fetch(FetchDescriptor<Milestone>()),
             projects: [project],
             selectedProjectIDs: [project.id],
             selectedMilestones: [milestone.id]
@@ -131,5 +150,10 @@ struct MilestoneFilterMenuTests {
             for: abandonedMilestone,
             selectedProjectIDs: [project.id]
         ) == "Retired, Abandoned")
+    }
+
+    @Test func selectedAccessibilityTraitAppliesOnlyToSelectedRows() {
+        #expect(MilestoneFilterMenu.selectionAccessibilityTraits(isSelected: true).contains(.isSelected))
+        #expect(!MilestoneFilterMenu.selectionAccessibilityTraits(isSelected: false).contains(.isSelected))
     }
 }
