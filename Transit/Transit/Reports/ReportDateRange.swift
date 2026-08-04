@@ -51,27 +51,35 @@ enum ReportDateRange: String, AppEnum, CaseIterable, Identifiable {
     }
 
     /// Returns the label with actual dates, e.g. "This Week (Feb 17 – 19, 2026)".
-    func labelWithDates(now: Date = .now) -> String {
-        let calendar = Calendar.current
-
+    func labelWithDates(now: Date = .now, calendar: Calendar = .current) -> String {
         let (start, end) = dateInterval(now: now, calendar: calendar)
 
         if calendar.isDate(start, inSameDayAs: end) {
-            return "\(label) (\(start.formatted(.dateTime.month(.abbreviated).day().year())))"
+            return "\(label) (\(Self.dayFormatter(calendar: calendar).string(from: start)))"
         }
 
         // Use DateIntervalFormatter with explicit start/end dates rather than
         // Range<Date>.formatted, which misleadingly applies half-open range
         // semantics (..< end) to dates that are already inclusive last days.
-        let formatted = Self.intervalFormatter.string(from: start, to: end)
+        let formatted = Self.intervalFormatter(calendar: calendar).string(from: start, to: end)
         return "\(label) (\(formatted))"
     }
 
-    private static let intervalFormatter: DateIntervalFormatter = {
+    private static func dayFormatter(calendar: Calendar) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.setLocalizedDateFormatFromTemplate("MMMdy")
+        return formatter
+    }
+
+    private static func intervalFormatter(calendar: Calendar) -> DateIntervalFormatter {
         let formatter = DateIntervalFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
         formatter.dateTemplate = "MMMdy"
         return formatter
-    }()
+    }
 
     private func dateInterval(now: Date, calendar: Calendar) -> (start: Date, end: Date) {
         switch self {

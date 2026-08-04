@@ -44,7 +44,8 @@ struct ReportRefreshStateTests {
 
     @Test("Refresh state rolls report contents and label with one captured clock value")
     func refreshStateRollsReportAndLabelTogether() throws {
-        let context = try TestModelContainer.newContext()
+        let testContainer = try makeReportTestContainer()
+        let context = testContainer.context
         let calendar = testCalendar()
         let project = makeTestProject(name: "Project", context: context)
         let februaryTask = makeTerminalTask(
@@ -66,13 +67,14 @@ struct ReportRefreshStateTests {
             now: state.now,
             calendar: state.calendar
         )
-        #expect(februaryReport.projectGroups.flatMap(\.tasks).map(\.name) == ["February"])
+        let februaryNames = februaryReport.projectGroups.flatMap { $0.tasks }.map { $0.name }
+        #expect(februaryNames == ["February"])
         #expect(
             februaryReport.dateRangeLabel
                 == ReportDateRange.thisMonth.labelWithDates(now: state.now, calendar: state.calendar)
         )
 
-        now = testDate(year: 2026, month: 3, day: 1, hour: 0, minute: 1, calendar: calendar)
+        now = testDate(year: 2026, month: 3, day: 1, hour: 0, minute: 31, calendar: calendar)
         state.refresh()
 
         let marchReport = ReportLogic.buildReport(
@@ -81,7 +83,8 @@ struct ReportRefreshStateTests {
             now: state.now,
             calendar: state.calendar
         )
-        #expect(marchReport.projectGroups.flatMap(\.tasks).map(\.name) == ["March"])
+        let marchNames = marchReport.projectGroups.flatMap { $0.tasks }.map { $0.name }
+        #expect(marchNames == ["March"])
         #expect(
             marchReport.dateRangeLabel
                 == ReportDateRange.thisMonth.labelWithDates(now: state.now, calendar: state.calendar)
@@ -96,6 +99,7 @@ struct ReportRefreshStateTests {
         return calendar
     }
 
+    // swiftlint:disable:next function_parameter_count
     private func testDate(
         year: Int,
         month: Int,

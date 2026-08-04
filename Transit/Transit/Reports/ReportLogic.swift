@@ -5,7 +5,8 @@ enum ReportLogic {
         tasks: [TransitTask],
         milestones: [Milestone] = [],
         dateRange: ReportDateRange,
-        now: Date = .now
+        now: Date = .now,
+        calendar: Calendar = .current
     ) -> ReportData {
         let range = dateRange.dateRange
 
@@ -15,7 +16,7 @@ enum ReportLogic {
             guard task.project != nil else { return false }
             guard task.status.isTerminal else { return false }
             let effectiveDate = task.completionDate ?? task.lastStatusChangeDate
-            return DateFilterHelpers.dateInRange(effectiveDate, range: range, now: now)
+            return isDateInRange(effectiveDate, range: range, now: now, calendar: calendar)
         }
 
         // 2. Filter milestones with terminal status and effective completion date in range.
@@ -24,7 +25,7 @@ enum ReportLogic {
             guard milestone.project != nil else { return false }
             guard milestone.status.isTerminal else { return false }
             let effectiveDate = milestone.completionDate ?? milestone.lastStatusChangeDate
-            return DateFilterHelpers.dateInRange(effectiveDate, range: range, now: now)
+            return isDateInRange(effectiveDate, range: range, now: now, calendar: calendar)
         }
         let milestonesByProject = Dictionary(grouping: filteredMilestones) { $0.project?.id ?? $0.id }
 
@@ -59,7 +60,7 @@ enum ReportLogic {
         let totalMilestonesAbandoned = projectGroups.reduce(0) { $0 + $1.abandonedMilestoneCount }
 
         return ReportData(
-            dateRangeLabel: dateRange.labelWithDates(now: now),
+            dateRangeLabel: dateRange.labelWithDates(now: now, calendar: calendar),
             projectGroups: projectGroups,
             totalDone: totalDone,
             totalAbandoned: totalAbandoned,
@@ -69,6 +70,15 @@ enum ReportLogic {
     }
 
     // MARK: - Private
+
+    private static func isDateInRange(
+        _ date: Date,
+        range: DateFilterHelpers.DateRange,
+        now: Date,
+        calendar: Calendar
+    ) -> Bool {
+        DateFilterHelpers.dateInRange(date, range: range, now: now, calendar: calendar)
+    }
 
     private static func buildReportMilestones(from milestones: [Milestone]) -> [ReportMilestone] {
         milestones

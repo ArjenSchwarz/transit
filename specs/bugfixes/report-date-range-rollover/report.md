@@ -1,7 +1,7 @@
 # Bugfix Report: Report Date Range Rollover
 
 **Date:** 2026-08-05
-**Status:** In Progress
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -38,12 +38,15 @@ Relative report ranges are expected to roll as calendar time advances, without a
 
 ## Resolution for the Issue
 
-Pending implementation.
+**Changes made:**
+- `Transit/Transit/Reports/ReportRefreshState.swift` — Adds pure `ReportRefreshScheduler` and `ReportRefreshState` value types. Clock and calendar providers are injected; `Calendar.dateInterval` selects DST- and timezone-aware local day/week/month/year boundaries.
+- `Transit/Transit/Views/Reports/ReportView.swift` — Uses one captured state snapshot to build the report, schedules one cancellable `.task(id:)` sleep to its next boundary, refreshes on scene activation/range/data changes, and cancels the sleep whenever its task identity changes.
+- `Transit/Transit/Reports/ReportLogic.swift` and `Transit/Transit/Reports/ReportDateRange.swift` — Thread the captured calendar through filtering and label formatting so report contents and label share exactly the same snapshot.
+- `Transit/Transit/Intents/Shared/Utilities/DateFilterHelpers.swift` — Adds a defaulted calendar argument for relative matching; absolute range matching continues to use its existing local-calendar semantics.
+- `Transit/TransitTests/ReportRefreshStateTests.swift` — Covers DST-local-midnight scheduling, completed week/month/year boundaries, and rolling report contents plus label with a mutable injected clock.
+- `CHANGELOG.md` — Documents the user-visible report refresh behavior.
 
-**Proposed approach:**
-- Add pure `ReportRefreshScheduler` and `ReportRefreshState` types with injected clock and calendar providers.
-- Schedule one cancellable SwiftUI task to the next local calendar boundary and recreate it when range, state snapshot, or scene phase changes.
-- Capture one `now` and calendar snapshot for both filtering and date-label formatting; retain default behavior for existing App Intent and absolute-range callers.
+**Approach rationale:** `Calendar.dateInterval` gives the real next local boundary, including shortened/lengthened DST days. A SwiftUI `.task(id:)` owns one sleep and cancels it on a range, snapshot, lifecycle, or view change, avoiding periodic wake-ups and retained timers. The captured state passes one `now` and calendar to both report filtering and the label.
 
 **Alternatives considered:**
 - Periodic `Timer` / `TimelineView` polling — rejected because it wakes unnecessarily and does not naturally model DST-aware calendar boundaries.
@@ -77,9 +80,10 @@ Pending implementation.
 
 **Automated:**
 - [x] Regression suite fails before implementation because the scheduler/state APIs are absent.
-- [ ] Regression test passes.
-- [ ] Full test suite passes.
-- [ ] Linters/validators pass.
+- [x] Focused `ReportRefreshStateTests` passes on macOS and iOS Simulator.
+- [x] Full macOS unit suite passes (`make test-quick`).
+- [x] Strict lint and SwiftData fixture validation pass (`make lint`).
+- [ ] Full iOS Simulator suite could not complete: `make test` progressed through passing tests but stalled in Xcode's `DebuggerLLDB.DebuggerVersionStore.StoreError` loop. Retrying after a warm build showed the same runner issue; no test assertion or compilation failure was reported.
 
 **Manual verification:**
 - Open each relative report range and keep it visible over its next relevant boundary.
