@@ -18,6 +18,19 @@ final class CommentService: CommentFetching {
 
     private let modelContext: ModelContext
 
+    /// Shared task-scoped comment query for views and service consumers.
+    /// Queries from the child side because the CloudKit-compatible task
+    /// relationship is optional; UUID makes equal timestamps deterministic.
+    static func descriptor(for taskID: UUID) -> FetchDescriptor<Comment> {
+        FetchDescriptor<Comment>(
+            predicate: #Predicate { $0.task?.id == taskID },
+            sortBy: [
+                SortDescriptor(\Comment.creationDate, order: .forward),
+                SortDescriptor(\Comment.id, order: .forward)
+            ]
+        )
+    }
+
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
@@ -86,14 +99,7 @@ final class CommentService: CommentFetching {
     /// Fetches comments for a task, querying from the Comment side.
     /// Sorted by creationDate ascending, UUID as tiebreaker.
     func fetchComments(for taskID: UUID) throws -> [Comment] {
-        let descriptor = FetchDescriptor<Comment>(
-            predicate: #Predicate { $0.task?.id == taskID },
-            sortBy: [
-                SortDescriptor(\.creationDate, order: .forward),
-                SortDescriptor(\.id, order: .forward)
-            ]
-        )
-        return try modelContext.fetch(descriptor)
+        try modelContext.fetch(Self.descriptor(for: taskID))
     }
 
     /// Returns comment count for a task using fetchCount for efficiency.

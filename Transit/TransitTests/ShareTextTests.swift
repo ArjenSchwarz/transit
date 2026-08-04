@@ -235,7 +235,7 @@ struct ShareTextTests {
         context.insert(unrelatedTask)
         try context.save()
 
-        let descriptor = TaskDetailCommentQuery.descriptor(for: task.id)
+        let descriptor = CommentService.descriptor(for: task.id)
         #expect(try context.fetch(descriptor).isEmpty)
 
         // Simulates an MCP agent mutating the shared app ModelContext while

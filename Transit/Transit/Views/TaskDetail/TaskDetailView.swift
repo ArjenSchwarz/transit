@@ -20,7 +20,7 @@ struct TaskDetailView: View {
         self.task = task
         self.dismissAll = dismissAll
         self.onEdit = onEdit
-        _comments = Query(TaskDetailCommentQuery.descriptor(for: task.id))
+        _comments = Query(CommentService.descriptor(for: task.id))
     }
 
     var body: some View {

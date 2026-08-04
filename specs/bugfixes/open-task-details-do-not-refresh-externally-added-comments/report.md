@@ -33,7 +33,7 @@ The detail view used imperative snapshot state instead of a reactive SwiftData q
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Views/TaskDetail/TaskDetailCommentQuery.swift` - adds the reusable task-scoped child-side SwiftData descriptor with deterministic `creationDate`, then UUID ordering.
+- `Transit/Transit/Services/CommentService.swift` - owns the reusable task-scoped child-side SwiftData descriptor with deterministic `creationDate`, then UUID ordering; service fetches and detail views share it.
 - `Transit/Transit/Views/TaskDetail/TaskDetailView.swift` - installs that descriptor as `@Query` during view initialization and shares its current value with both rendering and Share export.
 - `Transit/Transit/Views/TaskDetail/CommentsSection.swift` - consumes the parent query value and lets query observation replace manual reloads after local add/delete actions.
 
@@ -56,10 +56,10 @@ The detail view used imperative snapshot state instead of a reactive SwiftData q
 
 | File | Change |
 |---|---|
-| `TaskDetailCommentQuery.swift` | Reactive task-scoped descriptor |
-| `TaskDetailView.swift` | Replace snapshot with `@Query` |
+| `CommentService.swift` | Shared task-scoped descriptor and comment fetch |
+| `TaskDetailView.swift` | Replace snapshot with reactive `@Query` |
 | `CommentsSection.swift` | Remove redundant manual refetching |
-| `ShareTextTests.swift` | Regression coverage retained from prior work |
+| `ShareTextTests.swift` | Regression coverage for the shared descriptor and current Share output |
 
 ## Verification
 
