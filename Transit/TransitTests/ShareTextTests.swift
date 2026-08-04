@@ -212,6 +212,58 @@ struct ShareTextTests {
         #expect(textAfter.contains("Just added"))
     }
 
+    // MARK: - Reactive task detail comments (T-1800 regression)
+
+    @Test func taskScopedCommentsReflectExternalInsertionDeletionAndKeepShareCurrent() throws {
+        let testContainer = try makeTestContainer()
+        let context = testContainer.context
+        let service = CommentService(modelContext: context)
+        let project = makeProject(in: context, name: "Transit")
+        let task = TransitTask(
+            name: "Observed task",
+            type: .bug,
+            project: project,
+            displayID: .permanent(1800)
+        )
+        context.insert(task)
+        let unrelatedTask = TransitTask(
+            name: "Unrelated task",
+            type: .feature,
+            project: project,
+            displayID: .permanent(1801)
+        )
+        context.insert(unrelatedTask)
+        try context.save()
+
+        let descriptor = TaskDetailCommentQuery.descriptor(for: task.id)
+        #expect(try context.fetch(descriptor).isEmpty)
+
+        // Simulates an MCP agent mutating the shared app ModelContext while
+        // TaskDetailView remains open.
+        let externalComment = try service.addComment(
+            to: task,
+            content: "Added by an agent",
+            authorName: "Agent",
+            isAgent: true
+        )
+        _ = try service.addComment(
+            to: unrelatedTask,
+            content: "Do not include me",
+            authorName: "Agent",
+            isAgent: true
+        )
+
+        let insertedComments = try context.fetch(descriptor)
+        #expect(insertedComments.map(\.id) == [externalComment.id])
+        #expect(task.shareText(comments: insertedComments).contains("Added by an agent"))
+
+        try service.deleteComment(externalComment)
+
+        let deletedComments = try context.fetch(descriptor)
+        #expect(deletedComments.isEmpty)
+        #expect(!task.shareText(comments: deletedComments).contains("Added by an agent"))
+    }
+
     // MARK: - Full format
 
     @Test func shareTextFullFormat() throws {

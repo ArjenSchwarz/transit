@@ -2,7 +2,7 @@ import SwiftUI
 
 struct CommentsSection: View {
     let task: TransitTask
-    @Binding var comments: [Comment]
+    let comments: [Comment]
 
     @Environment(CommentService.self) private var commentService
     @AppStorage("userDisplayName") private var userDisplayName = ""
@@ -129,10 +129,6 @@ struct CommentsSection: View {
 
     // MARK: - Actions
 
-    private func loadComments() {
-        comments = (try? commentService.fetchComments(for: task.id)) ?? []
-    }
-
     private func addComment() {
         guard canAddComment else { return }
         do {
@@ -146,7 +142,6 @@ struct CommentsSection: View {
         } catch {
             errorMessage = "Failed to add comment."
         }
-        loadComments()
     }
 
     private func deleteComment(_ comment: Comment) {
@@ -155,11 +150,10 @@ struct CommentsSection: View {
         } catch {
             errorMessage = "Failed to delete comment."
         }
-        loadComments()
     }
 
     /// Deletes comments at the given offsets, mapping to objects before any
-    /// mutation to avoid indexing into a stale array. Reloads once at the end.
+    /// mutation to avoid indexing into a stale array.
     private func deleteComments(at offsets: IndexSet) {
         let toDelete = offsets.map { comments[$0] }
         do {
@@ -167,6 +161,5 @@ struct CommentsSection: View {
         } catch {
             errorMessage = "Failed to delete comment."
         }
-        loadComments()
     }
 }

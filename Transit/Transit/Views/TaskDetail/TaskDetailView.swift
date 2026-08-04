@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 struct TaskDetailView: View {
@@ -6,11 +7,21 @@ struct TaskDetailView: View {
     var onEdit: (() -> Void)?
     @Environment(TaskService.self) private var taskService
     @Environment(\.dismiss) private var dismiss
-    @Environment(CommentService.self) private var commentService
     @Environment(\.resolvedTheme) private var resolvedTheme
+    @Query private var comments: [Comment]
     @State private var showEdit = false
-    @State private var comments: [Comment] = []
     @State private var errorMessage: String?
+
+    init(
+        task: TransitTask,
+        dismissAll: @escaping () -> Void,
+        onEdit: (() -> Void)? = nil
+    ) {
+        self.task = task
+        self.dismissAll = dismissAll
+        self.onEdit = onEdit
+        _comments = Query(TaskDetailCommentQuery.descriptor(for: task.id))
+    }
 
     var body: some View {
         NavigationStack {
@@ -38,7 +49,7 @@ struct TaskDetailView: View {
             iOSDetailSection
             iOSDescriptionSection
             MetadataSection(metadata: .constant(task.metadata), isEditing: false)
-            CommentsSection(task: task, comments: $comments)
+            CommentsSection(task: task, comments: comments)
             iOSActionSection
         }
         .navigationTitle(task.displayID.formatted)
@@ -47,7 +58,6 @@ struct TaskDetailView: View {
         .sheet(isPresented: $showEdit) {
             TaskEditView(task: task, dismissAll: dismissAll)
         }
-        .onAppear { loadComments() }
     }
 
     private var iOSDetailSection: some View {
@@ -160,7 +170,7 @@ struct TaskDetailView: View {
                     MetadataSection(metadata: .constant(task.metadata), isEditing: false)
                 }
 
-                CommentsSection(task: task, comments: $comments)
+                CommentsSection(task: task, comments: comments)
 
                 LiquidGlassSection(title: "Actions") {
                     actionButtons
@@ -173,7 +183,6 @@ struct TaskDetailView: View {
         .background { BoardBackground(theme: resolvedTheme) }
         .navigationTitle(task.displayID.formatted)
         .toolbar { detailToolbar }
-        .onAppear { loadComments() }
     }
     #endif
 
@@ -213,12 +222,6 @@ struct TaskDetailView: View {
             }
         }
         #endif
-    }
-
-    private func loadComments() {
-        // Read-only fetch: showing an empty list on failure is acceptable,
-        // unlike write operations where silent errors would lose data.
-        comments = (try? commentService.fetchComments(for: task.id)) ?? []
     }
 
     @ViewBuilder
