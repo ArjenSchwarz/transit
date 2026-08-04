@@ -77,20 +77,24 @@ Every `xcodebuild` invocation in the Makefile redirects its caches into
 
 Two reusable Make vars carry the redirection:
 
-- `XCODEBUILD_CACHE_FLAGS` — `-derivedDataPath`, `-clonedSourcePackagesDirPath`,
-  `-packageCachePath` (passed as xcodebuild arguments).
-- `XCODEBUILD_ENV` — `XDG_CACHE_HOME`, `TMPDIR`, `CLANG_MODULE_CACHE_PATH`
-  (exported before the xcodebuild command).
+- `XCODEBUILD_CACHE_FLAGS` — `-derivedDataPath` plus
+  `CLANG_MODULE_CACHE_PATH=<workspace path>` as an **xcodebuild build-setting
+  argument**. Exporting the latter as an environment variable does not set
+  Xcode's module-cache build setting.
+- `XCODEBUILD_ENV` — `XDG_CACHE_HOME`, `TMPDIR`, and
+  `SWIFTPM_MODULECACHE_OVERRIDE`. The SwiftPM override keeps manifest compiler
+  modules and `*.dia` diagnostics out of `~/Library/Caches/org.swift.swiftpm`.
+
+`-clonedSourcePackagesDirPath` and `-packageCachePath` are intentionally
+omitted. Their subdirectory values disable Xcode's normal package-resolution
+path; `-derivedDataPath` keeps Xcode-managed `SourcePackages` workspace-local.
 
 A `prepare-cache-dirs` prerequisite target creates the redirected directories
-before every build/clean/test. `-derivedDataPath` alone is not sufficient
-because SwiftPM uses a separate package cache and Clang falls back to
-`$XDG_CACHE_HOME/clang/ModuleCache` when invoked without
-`-fmodules-cache-path` (which SwiftPM resolution does).
-
-When adding a new xcodebuild target, include `prepare-cache-dirs` as a
-prerequisite and prefix the command with `$(XCODEBUILD_ENV)` and
-`$(XCODEBUILD_CACHE_FLAGS)`.
+before every source-building xcodebuild target. When adding one, include
+`prepare-cache-dirs` and prefix the command with `$(XCODEBUILD_ENV)` and
+`$(XCODEBUILD_CACHE_FLAGS)`. The shell guard at
+`tests/makefile/test_workspace_local_caches.sh` enforces these controls and
+checks that the intentionally omitted package flags do not return.
 
 ## Test Infrastructure
 

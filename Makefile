@@ -16,6 +16,10 @@ else
 PIPE_PRETTY =
 endif
 
+# macOS ships GNU Make 3.81, which ignores .SHELLFLAGS. Enable pipefail in
+# each recipe that may pipe xcodebuild through xcbeautify so failures propagate.
+PIPEFAIL = set -o pipefail;
+
 # Default target
 .PHONY: help
 help:
@@ -75,36 +79,41 @@ DERIVED_DATA = ./DerivedData
 # Workspace-local cache locations. Xcode and its subprocesses (SwiftPM, Clang)
 # otherwise scatter caches across ~/Library/Caches and ~/.cache, which fail in
 # sandboxed/dev environments. Keep everything under DerivedData so a single
-# `make clean` is enough. See T-1241.
-SPM_CACHE        = $(DERIVED_DATA)/SourcePackages/cache
-SPM_CLONED       = $(DERIVED_DATA)/SourcePackages/checkouts
-WORKSPACE_CACHE  = $(DERIVED_DATA)/Caches
-WORKSPACE_TMP    = $(DERIVED_DATA)/tmp
+# `make clean` is enough. See T-1241 and T-1628.
+WORKSPACE_CACHE = $(DERIVED_DATA)/Caches
+WORKSPACE_TMP = $(DERIVED_DATA)/tmp
+SPM_MANIFEST_MODULE_CACHE = $(WORKSPACE_CACHE)/org.swift.swiftpm
 CLANG_MODULE_CACHE = $(DERIVED_DATA)/ModuleCache.noindex
 
 # -clonedSourcePackagesDirPath and -packageCachePath are intentionally omitted:
 # they expect the SourcePackages parent dir (not its checkouts/cache subdirs),
 # and supplying both silently disables xcodebuild's package resolve step. With
-# only -derivedDataPath set, xcodebuild places SPM artifacts at
-# $(DERIVED_DATA)/SourcePackages, which already keeps everything workspace-local.
+# only -derivedDataPath set, xcodebuild places SourcePackages under
+# $(DERIVED_DATA), which already keeps package checkouts and repository data
+# workspace-local.
+#
+# CLANG_MODULE_CACHE_PATH must be an xcodebuild build setting, not just an
+# environment variable, so the compiler receives the module-cache path.
 XCODEBUILD_CACHE_FLAGS = \
-	-derivedDataPath $(DERIVED_DATA)
+	-derivedDataPath $(DERIVED_DATA) \
+	CLANG_MODULE_CACHE_PATH=$(abspath $(CLANG_MODULE_CACHE))
 
-# Exported before every xcodebuild call so SwiftPM resolution, Clang module
-# cache fallbacks ($XDG_CACHE_HOME/clang/ModuleCache), and compiler temp
-# diagnostics (.dia) all stay inside the workspace.
+# Exported before every xcodebuild call so XDG cache fallbacks, compiler temp
+# files, and SwiftPM manifest compilation (including *.dia diagnostics) stay
+# inside the workspace. SWIFTPM_MODULECACHE_OVERRIDE is recognized by SwiftPM;
+# Xcode's own Clang cache is configured above as a build setting.
 XCODEBUILD_ENV = \
 	XDG_CACHE_HOME=$(abspath $(WORKSPACE_CACHE)) \
 	TMPDIR=$(abspath $(WORKSPACE_TMP)) \
-	CLANG_MODULE_CACHE_PATH=$(abspath $(CLANG_MODULE_CACHE))
+	SWIFTPM_MODULECACHE_OVERRIDE=$(abspath $(SPM_MANIFEST_MODULE_CACHE))
 
 .PHONY: prepare-cache-dirs
 prepare-cache-dirs:
-	@mkdir -p $(SPM_CACHE) $(SPM_CLONED) $(WORKSPACE_CACHE) $(WORKSPACE_TMP) $(CLANG_MODULE_CACHE)
+	@mkdir -p $(WORKSPACE_CACHE) $(WORKSPACE_TMP) $(SPM_MANIFEST_MODULE_CACHE) $(CLANG_MODULE_CACHE)
 
 .PHONY: build-ios
 build-ios: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild build \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild build \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=iOS Simulator,name=iPhone 17' \
@@ -114,7 +123,7 @@ build-ios: prepare-cache-dirs
 
 .PHONY: build-macos
 build-macos: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild build \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild build \
 		-allowProvisioningUpdates \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
@@ -129,7 +138,7 @@ build: build-ios build-macos
 # Testing
 .PHONY: test-quick
 test-quick: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild test \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=macOS' \
@@ -140,7 +149,7 @@ test-quick: prepare-cache-dirs
 
 .PHONY: test
 test: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild test \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=iOS Simulator,name=iPhone 17' \
@@ -152,7 +161,7 @@ test: prepare-cache-dirs
 
 .PHONY: test-ui
 test-ui: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild test \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'platform=iOS Simulator,name=iPhone 17' \
@@ -177,7 +186,7 @@ install: prepare-cache-dirs
 		exit 1; \
 	fi
 	@echo "Building $(CONFIG) for device $(DEVICE_ID)..."
-	$(XCODEBUILD_ENV) xcodebuild build \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild build \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'id=$(DEVICE_ID)' \
@@ -218,7 +227,7 @@ EXPORT_PATH = ./build/export
 
 .PHONY: archive
 archive: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild archive \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild archive \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-destination 'generic/platform=iOS' \
@@ -234,7 +243,7 @@ archive: prepare-cache-dirs
 #     -exportOptionsPlist ExportOptions.plist -exportPath ./build/export -allowProvisioningUpdates
 .PHONY: upload
 upload: archive
-	$(XCODEBUILD_ENV) xcodebuild -exportArchive \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild -exportArchive \
 		-archivePath $(ARCHIVE_PATH) \
 		-exportOptionsPlist ExportOptions.plist \
 		-exportPath $(EXPORT_PATH) \
@@ -244,7 +253,7 @@ upload: archive
 # Cleaning
 .PHONY: clean
 clean: prepare-cache-dirs
-	$(XCODEBUILD_ENV) xcodebuild clean \
+	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild clean \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		$(XCODEBUILD_CACHE_FLAGS)
