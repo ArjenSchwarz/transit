@@ -136,4 +136,29 @@ struct ProjectLookupStorageFailureSurfaceTests {
 
         #expect(try context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
     }
+
+    // T-1749: an unreadable project table must remain a storage error even when
+    // Shortcuts has no selected project. It must not be reported as NO_PROJECTS.
+    @Test func visualAddTaskReportsStorageFailureWhenProjectExistenceFetchFails() async throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let taskService = TaskService(modelContext: context, displayIDAllocator: allocator())
+        let projectService = ProjectService(modelContext: context, fetcher: FailingProjectFetcher())
+
+        do {
+            _ = try await AddTaskIntent.execute(
+                name: "Task",
+                taskDescription: nil,
+                type: .feature,
+                project: nil,
+                services: AddTaskIntent.Services(taskService: taskService, projectService: projectService)
+            )
+            Issue.record("Expected project existence storage failure")
+        } catch let error as VisualIntentError {
+            #expect(error == .storageFailure("Failed to fetch projects: simulated project fetch failure"))
+            #expect(error.code == "INTERNAL_ERROR")
+        }
+
+        #expect(try context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+    }
 }
