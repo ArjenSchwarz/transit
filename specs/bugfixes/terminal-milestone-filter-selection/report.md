@@ -22,21 +22,21 @@ A selected dashboard milestone disappeared from `MilestoneFilterMenu` after it t
 
 ## Discovered Root Cause
 
-`MilestoneFilterMenu.availableMilestones` populated its rows solely from open milestones. `selectedMilestones` is UUID state that is intentionally retained across a milestone status transition, but the menu made no union with selected accessible milestones.
+`MilestoneFilterMenu.availableMilestones` populated its rows solely from open milestones. `selectedMilestones` is UUID state that is intentionally retained across a milestone status transition, but the menu made no union with selected accessible milestones. Its service-backed read also did not make the presented SwiftUI menu observe externally persisted status or deletion changes.
 
 **Defect type:** Logic error / stale selection state
 
 **Why it occurred:** The menu applied the normal open-only choice rule to existing selections, even though terminal selections must remain available for removal.
 
-**Contributing factors:** The selection-list construction had no pure ordering/deduplication helper or transition regression.
+**Contributing factors:** The selection-list construction had no pure ordering/deduplication helper or transition regression, and it did not observe the SwiftData records that external MCP and CloudKit updates mutate.
 
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Views/Dashboard/MilestoneFilterMenu.swift` - Fetches all accessible milestones within the current project scope, retains the existing open-milestone order, then appends selected accessible records once by UUID. Terminal rows are struck through, show a Done or Abandoned label/icon, and expose their state and selection through accessibility.
-- `Transit/TransitTests/MilestoneFilterMenuTests.swift` - Adds pure UUID-union coverage and a scoped Done/Abandoned transition regression. Also verifies that inaccessible/deleted selections retain the menu so Clear remains available.
+- `Transit/Transit/Views/Dashboard/MilestoneFilterMenu.swift` - Observes all milestones with a SwiftData `@Query`, so local status/deletion mutations, MCP changes, and CloudKit imports refresh an already-open menu. It scopes the observed records in memory (CloudKit-safe for the optional project relationship), orders name/project/UUID deterministically, then lists open rows before selected terminal rows once by UUID. Terminal rows remain struck through and display their status. Selected rows use the native `.isSelected` accessibility trait, while each row label contains only its title and optional terminal status, preventing duplicate selected announcements.
+- `Transit/TransitTests/MilestoneFilterMenuTests.swift` - Adds pure UUID-union coverage, an observed-snapshot Done transition regression proving open-first/terminal-second deterministic placement, a deletion/Clear regression, and exact open/Done/Abandoned label coverage.
 
-**Approach rationale:** The dashboard now exposes only the normal open choices plus selected records the user can still act on. It preserves project filtering and does not broaden Add Task or task-edit creation behavior to terminal milestones.
+**Approach rationale:** The dashboard now exposes only the normal open choices plus selected records the user can still act on. The live query avoids stale menu content while project scoping remains CloudKit-safe; stable in-memory ordering preserves open-first presentation and makes appended terminal placement predictable. The native selection trait is shared by open and terminal selected rows and is announced once. Add Task and task-edit creation behavior remain open-only.
 
 **Alternatives considered:**
 - Show every terminal milestone in the dashboard filter - rejected because it unnecessarily expands normal options and conflicts with the open-only default.
@@ -45,9 +45,9 @@ A selected dashboard milestone disappeared from `MilestoneFilterMenu` after it t
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/MilestoneFilterMenuTests.swift`
-**Test names:** `visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones`, `availableMilestonesKeepsSelectedTerminalMilestonesWithinSelectedProjects`
+**Test names:** `visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones`, `availableMilestonesReflectsObservedStatusTransitionWithDeterministicTerminalPlacement`, `deletedSelectedMilestoneLeavesMenuAvailableForClear`, `accessibilityLabelsIncludeTerminalStatusWithoutSelectionDuplication`
 
-**What it verifies:** Open rows retain their order, selected Done and Abandoned milestones within the active project scope remain visible exactly once, and selected milestones outside that scope are not exposed.
+**What it verifies:** An observed snapshot sees an open selected milestone move into the selected-terminal suffix after a persisted Done transition; open rows stay first in deterministic order; an inaccessible project is excluded; deleting a selected record preserves access to Clear; and open/terminal row labels contain one title and optional terminal status while selected rows receive the native selection trait.
 
 **Run command:** `make test-quick`
 
@@ -55,26 +55,28 @@ A selected dashboard milestone disappeared from `MilestoneFilterMenu` after it t
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Views/Dashboard/MilestoneFilterMenu.swift` | Union selected accessible milestones with open options; distinguish terminal rows visually and through accessibility. |
-| `Transit/TransitTests/MilestoneFilterMenuTests.swift` | Add pure union, status-transition, scope, duplicate, and inaccessible-selection regressions. |
+| `Transit/Transit/Views/Dashboard/MilestoneFilterMenu.swift` | Observe all milestones; scope, order, and union open/selected-terminal records; expose terminal status and native selected accessibility state. |
+| `Transit/TransitTests/MilestoneFilterMenuTests.swift` | Add pure union, observed transition, deterministic ordering, deletion/Clear, and accessibility-label regressions. |
 | `CHANGELOG.md` | Record the user-visible dashboard filter fix. |
 
 ## Verification
 
 **Automated:**
-- [x] Regression tests pass.
-- [x] macOS unit suite passes (`make test-quick`).
-- [x] Linter passes (`make lint`).
-- [x] iOS app build passes (`make build-ios`).
-- [ ] `make test` and `make test-ui` are blocked before tests start by the pre-existing `Cannot find 'MCPTestHelpers' in scope` errors in `TransitTests/ProjectLookupStorageFailureSurfaceTests.swift` (lines 81, 84, 88, 92, 96, and 102-109).
+- [x] Focused regressions pass on macOS (`make test-quick`).
+- [x] SwiftLint passes (`make lint`).
+- [x] iOS Simulator and macOS builds pass (`make build`).
+- [x] Focused iOS simulator regression suite passes (`-only-testing:TransitTests/MilestoneFilterMenuTests`).
+- [ ] Full `make test` exceeded the five-minute command harness after compiling both test bundles and beginning iOS execution; it did not return a final result.
+- [ ] Full `make test-ui` exceeded the five-minute command harness after completing UI execution. It reported unchanged failures in `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`; the unchanged `TransitUITests.testMilestoneFilterMenu` passed.
 
 **Manual verification:**
-- Confirmed the unit transition covers both Done and Abandoned states, preserves the service-provided scoped order, excludes selected milestones in another project, and keeps Clear reachable for a deleted/unavailable UUID.
-- UI automation was not added: reproducing the runtime transition would require a brittle Settings round trip while retaining dashboard-local `@State`, or production test-state injection. The deterministic unit transition covers the menu's data contract directly.
+- Confirmed the transition regression uses a persisted SwiftData update and a refreshed observed snapshot, preserves deterministic open-first/selected-terminal ordering, excludes another project, and keeps Clear reachable for a deleted UUID.
+- A new UI transition assertion was not retained: XCTest cannot reliably query a SwiftUI list row's updated accessibility state while the sheet remains presented, and a second sheet round trip destabilizes the seeded board assertion. The existing milestone filter UI flow passes, while focused unit coverage verifies the data and accessibility contracts directly.
 
 ## Prevention
 
 - Keep selection-list construction in pure helpers that explicitly union normal options and current accessible selections.
+- Use an observed SwiftData source for menu options that must react to external mutations; scope optional relationships in memory for CloudKit compatibility.
 - Add state-transition coverage whenever an active selection may become invalid for new choices.
 - Keep creation flows such as Add Task separate from edit/filter flows that must preserve existing terminal state.
 

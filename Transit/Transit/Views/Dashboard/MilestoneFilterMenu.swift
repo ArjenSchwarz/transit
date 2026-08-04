@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 struct MilestoneFilterMenu: View {
@@ -5,17 +6,20 @@ struct MilestoneFilterMenu: View {
     let selectedProjectIDs: Set<UUID>
     @Binding var selectedMilestones: Set<UUID>
 
-    @Environment(MilestoneService.self) private var milestoneService
+    // Observe every milestone so local mutations, MCP calls, and CloudKit imports
+    // refresh an already-presented menu. Project scoping stays in memory because
+    // SwiftData predicates cannot safely traverse this optional relationship.
+    @Query(sort: \Milestone.name) private var allMilestones: [Milestone]
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     @State private var showPopover = false
 
     private var availableMilestones: [Milestone] {
         Self.availableMilestones(
+            milestones: allMilestones,
             projects: projects,
             selectedProjectIDs: selectedProjectIDs,
-            selectedMilestones: selectedMilestones,
-            milestoneService: milestoneService
+            selectedMilestones: selectedMilestones
         )
     }
 
@@ -66,7 +70,7 @@ struct MilestoneFilterMenu: View {
                 $selectedMilestones.contains(milestone.id).wrappedValue.toggle()
             } label: {
                 HStack {
-                    Text(milestoneTitle(for: milestone))
+                    Text(Self.milestoneTitle(for: milestone, selectedProjectIDs: selectedProjectIDs))
                         .strikethrough(milestone.status.isTerminal)
                         .foregroundStyle(milestone.status.isTerminal ? .secondary : .primary)
                     if milestone.status.isTerminal {
@@ -86,7 +90,11 @@ struct MilestoneFilterMenu: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(milestoneAccessibilityLabel(for: milestone))
+            .accessibilityLabel(Self.milestoneAccessibilityLabel(
+                for: milestone,
+                selectedProjectIDs: selectedProjectIDs
+            ))
+            .accessibilityAddTraits(selectedMilestones.contains(milestone.id) ? .isSelected : [])
         }
     }
 
@@ -101,14 +109,17 @@ struct MilestoneFilterMenu: View {
         }
     }
 
-    private func milestoneTitle(for milestone: Milestone) -> String {
+    static func milestoneTitle(for milestone: Milestone, selectedProjectIDs: Set<UUID>) -> String {
         selectedProjectIDs.count == 1 ? milestone.name : milestone.displayName
     }
 
-    private func milestoneAccessibilityLabel(for milestone: Milestone) -> String {
-        guard milestone.status.isTerminal else { return milestoneTitle(for: milestone) }
-        let selection = selectedMilestones.contains(milestone.id) ? "selected" : "not selected"
-        return "\(milestoneTitle(for: milestone)), \(milestone.status.displayName), \(selection)"
+    static func milestoneAccessibilityLabel(
+        for milestone: Milestone,
+        selectedProjectIDs: Set<UUID>
+    ) -> String {
+        let title = milestoneTitle(for: milestone, selectedProjectIDs: selectedProjectIDs)
+        guard milestone.status.isTerminal else { return title }
+        return "\(title), \(milestone.status.displayName)"
     }
 
     @ViewBuilder
@@ -130,21 +141,38 @@ struct MilestoneFilterMenu: View {
     }
 
     static func availableMilestones(
+        milestones: [Milestone],
         projects: [Project],
         selectedProjectIDs: Set<UUID>,
-        selectedMilestones: Set<UUID>,
-        milestoneService: MilestoneService
+        selectedMilestones: Set<UUID>
     ) -> [Milestone] {
-        let scopedProjects = scopedProjects(projects: projects, selectedProjectIDs: selectedProjectIDs)
-        let accessibleMilestones = scopedProjects.flatMap { milestoneService.milestonesForProject($0) }
+        let scopedProjectIDs = Set(scopedProjects(
+            projects: projects,
+            selectedProjectIDs: selectedProjectIDs
+        ).map(\.id))
+        let accessibleMilestones = orderedMilestones(milestones.filter { milestone in
+            guard let projectID = milestone.project?.id else { return false }
+            return scopedProjectIDs.contains(projectID)
+        })
         let visibleIDs = visibleMilestoneIDs(
             openMilestoneIDs: accessibleMilestones.filter { $0.status == .open }.map(\.id),
             selectedAccessibleMilestoneIDs: accessibleMilestones.filter {
                 selectedMilestones.contains($0.id)
             }.map(\.id)
         )
-        return visibleIDs.compactMap { id in
-            accessibleMilestones.first { $0.id == id }
+        let milestonesByID = Dictionary(uniqueKeysWithValues: accessibleMilestones.map { ($0.id, $0) })
+        return visibleIDs.compactMap { milestonesByID[$0] }
+    }
+
+    private static func orderedMilestones(_ milestones: [Milestone]) -> [Milestone] {
+        milestones.sorted { lhs, rhs in
+            let nameOrder = lhs.name.localizedCaseInsensitiveCompare(rhs.name)
+            if nameOrder != .orderedSame { return nameOrder == .orderedAscending }
+
+            let projectOrder = (lhs.project?.name ?? "").localizedCaseInsensitiveCompare(rhs.project?.name ?? "")
+            if projectOrder != .orderedSame { return projectOrder == .orderedAscending }
+
+            return lhs.id.uuidString < rhs.id.uuidString
         }
     }
 
