@@ -46,9 +46,9 @@ The heartbeat's error-handling expression combined two semantically different st
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/SyncManagerTests.swift`
-**Test names:** `heartbeatWithMissingSingletonInsertsOneRecord`, `heartbeatWithExistingSingletonUpdatesWithoutInsertingAnotherRecord`, and `heartbeatFetchFailureInsertsNothingAndNextBeatRecovers`
+**Test names:** `heartbeatWithMissingSingletonInsertsAndSavesOneRecord`, `heartbeatWithExistingSingletonUpdatesAndSavesWithoutInsertingAnotherRecord`, `heartbeatFetchFailureDoesNotInsertOrSaveAndNextBeatRecovers`, and `heartbeatFetchFailureKeepsTimerScheduledForNextInterval`
 
-**What it verifies:** A successful empty fetch creates one record, a successful existing fetch updates without adding another record, and an injected fetch failure inserts zero records before a later successful beat recovers normally.
+**What it verifies:** A successful empty fetch creates and saves one record, a successful existing fetch updates and saves without adding another record, an injected fetch failure inserts nothing before a later successful beat recovers normally, and a failed beat leaves the scheduled timer active for its next interval.
 
 **Run commands:** `make test-quick`; `make lint`
 
