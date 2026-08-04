@@ -1,7 +1,7 @@
 # Bugfix Report: Add Task No-Projects Fetch Failure
 
 **Date:** 2026-08-05
-**Status:** Investigating
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -37,7 +37,16 @@ When the visual Add Task shortcut has no selected project, it asks `ProjectServi
 
 ## Resolution for the Issue
 
-Pending implementation.
+**Changes made:**
+- `Transit/Transit/Services/ProjectService.swift` - Made `hasAnyProjects()` throw and read through the existing injected `ModelFetching` seam, preserving the underlying storage failure.
+- `Transit/Transit/Intents/Visual/AddTaskIntent.swift` - Maps an unselected-project existence-read failure to `VisualIntentError.storageFailure` (`INTERNAL_ERROR`) instead of `NO_PROJECTS`.
+- `Transit/TransitTests/ProjectLookupStorageFailureSurfaceTests.swift` - Adds the exact no-selection, failing-project-table regression alongside T-1657’s selected-project storage regression.
+
+**Approach rationale:** The existing `fetcher` dependency already makes project reads deterministically testable. Exposing the real error at the existing boolean boundary is smaller and safer than adding a second existence abstraction or changing the established visual error type.
+
+**Alternatives considered:**
+- Treat a failed fetch as an empty project list - rejected because it recreates the incorrect `NO_PROJECTS` diagnosis.
+- Reuse the selected-project lookup result - not applicable because no `ProjectEntity` exists in this path; that is T-2078’s separate stale-selection concern.
 
 ## Regression Test
 
@@ -52,19 +61,22 @@ Pending implementation.
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Services/ProjectService.swift` | Pending: expose fetch failure from the project-existence check through the existing fetch seam. |
-| `Transit/Transit/Intents/Visual/AddTaskIntent.swift` | Pending: map existence-check failures to the visual internal storage error. |
-| `Transit/TransitTests/ProjectLookupStorageFailureSurfaceTests.swift` | Added exact visual no-selection failure regression. |
+| `Transit/Transit/Services/ProjectService.swift` | Exposes project-table fetch failure through `hasAnyProjects()`. |
+| `Transit/Transit/Intents/Visual/AddTaskIntent.swift` | Maps the existence failure to the established visual storage error. |
+| `Transit/TransitTests/ProjectLookupStorageFailureSurfaceTests.swift` | Adds the exact visual no-selection failure regression. |
+| `Transit/TransitTests/AddTaskIntentTests.swift` | Updates the existing successful existence assertion for the throwing API. |
 
 ## Verification
 
 **Automated:**
 - [x] Regression fails before the fix
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression test passes
+- [x] Full macOS unit suite passes (`make test-quick`)
+- [x] Linters/validators pass (`make lint`)
 
 **Manual verification:** The injected failing-fetcher test exercises the same visual intent path that Shortcuts invokes.
+
+**UI-suite note:** `make test-ui` was attempted and then the three failed scenarios were rerun directly. `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath` all fail while the iOS simulator reports repeated LLDB-version-store and test-runner launch failures (`RequestDenied` / server died). These UI scenarios are outside T-1749’s project-existence error path; no unrelated UI changes were made.
 
 ## Prevention
 
