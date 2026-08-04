@@ -31,6 +31,10 @@ struct MilestoneFilterMenuTests {
             selectedMilestones: [],
             isPresented: true
         ))
+        #expect(MilestoneFilterMenu.shouldDismissPresentation(
+            hasVisibleMilestoneOption: false,
+            selectedMilestones: []
+        ))
     }
     @Test func visibleMilestoneOptionUsesOpenRecordsWithinCurrentProjectScope() {
         let firstProject = Project(name: "First", description: "", gitRepo: nil, colorHex: "#FF0000")
@@ -77,17 +81,22 @@ struct MilestoneFilterMenuTests {
         let betaTransition = Milestone(name: "Beta", project: firstProject, displayID: .provisional)
         let gammaTerminal = Milestone(name: "Gamma", project: firstProject, displayID: .provisional)
         gammaTerminal.status = .abandoned
+        let hiddenTerminal = Milestone(name: "Hidden", project: firstProject, displayID: .provisional)
+        hiddenTerminal.status = .done
         let zuluOpen = Milestone(name: "Zulu", project: firstProject, displayID: .provisional)
         let inaccessibleTerminal = Milestone(name: "Other", project: secondProject, displayID: .provisional)
         inaccessibleTerminal.status = .done
-        [zuluOpen, gammaTerminal, alphaOpen, inaccessibleTerminal, betaTransition].forEach(context.insert)
+        [
+            zuluOpen,
+            gammaTerminal,
+            hiddenTerminal,
+            alphaOpen,
+            inaccessibleTerminal,
+            betaTransition
+        ].forEach(context.insert)
         try context.save()
 
-        let selectedMilestones: Set<UUID> = [
-            betaTransition.id,
-            gammaTerminal.id,
-            inaccessibleTerminal.id
-        ]
+        let selectedMilestones: Set<UUID> = [betaTransition.id, gammaTerminal.id, inaccessibleTerminal.id]
         let initiallyAvailable = MilestoneFilterMenu.availableMilestones(
             milestones: try context.fetch(FetchDescriptor<Milestone>()),
             projects: [firstProject, secondProject],
@@ -141,28 +150,39 @@ struct MilestoneFilterMenuTests {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
         let project = Project(name: "Project", description: "", gitRepo: nil, colorHex: "#FF0000")
+        let otherProject = Project(name: "Other", description: "", gitRepo: nil, colorHex: "#00FF00")
         let milestone = Milestone(name: "Deleted", project: project, displayID: .provisional)
+        let otherOpenMilestone = Milestone(name: "Other Open", project: otherProject, displayID: .provisional)
         context.insert(project)
+        context.insert(otherProject)
         context.insert(milestone)
+        context.insert(otherOpenMilestone)
         try context.save()
 
         context.delete(milestone)
         try context.save()
+        let observedMilestones = try context.fetch(FetchDescriptor<Milestone>())
         let available = MilestoneFilterMenu.availableMilestones(
-            milestones: try context.fetch(FetchDescriptor<Milestone>()),
-            projects: [project],
+            milestones: observedMilestones,
+            projects: [project, otherProject],
             selectedProjectIDs: [project.id],
             selectedMilestones: [milestone.id]
         )
+        let hasVisibleOption = MilestoneFilterMenu.hasVisibleMilestoneOption(
+            milestones: observedMilestones,
+            projects: [project, otherProject],
+            selectedProjectIDs: [project.id]
+        )
 
         #expect(available.isEmpty)
+        #expect(!hasVisibleOption)
         #expect(MilestoneFilterMenu.shouldShowMenu(
-            hasVisibleMilestoneOption: false,
+            hasVisibleMilestoneOption: hasVisibleOption,
             selectedMilestones: [milestone.id]
         ))
     }
 
-    @Test func accessibilityLabelsIncludeTerminalStatusWithoutSelectionDuplication() {
+    @Test func accessibilityLabelsIncludeTerminalStatus() {
         let project = Project(name: "Project", description: "", gitRepo: nil, colorHex: "#FF0000")
         let openMilestone = Milestone(name: "Open", project: project, displayID: .provisional)
         let doneMilestone = Milestone(name: "Closed", project: project, displayID: .provisional)

@@ -78,6 +78,12 @@ struct MilestoneFilterMenu: View {
         ForEach(milestones) { milestone in
             Button {
                 $selectedMilestones.contains(milestone.id).wrappedValue.toggle()
+                if Self.shouldDismissPresentation(
+                    hasVisibleMilestoneOption: hasVisibleMilestoneOption,
+                    selectedMilestones: selectedMilestones
+                ) {
+                    showPopover = false
+                }
             } label: {
                 HStack {
                     Text(Self.milestoneTitle(for: milestone, selectedProjectIDs: selectedProjectIDs))
@@ -114,6 +120,12 @@ struct MilestoneFilterMenu: View {
             Section {
                 Button("Clear", role: .destructive) {
                     selectedMilestones.removeAll()
+                    if Self.shouldDismissPresentation(
+                        hasVisibleMilestoneOption: hasVisibleMilestoneOption,
+                        selectedMilestones: selectedMilestones
+                    ) {
+                        showPopover = false
+                    }
                 }
             }
         }
@@ -152,6 +164,13 @@ struct MilestoneFilterMenu: View {
         isPresented: Bool = false
     ) -> Bool {
         isPresented || hasVisibleMilestoneOption || !selectedMilestones.isEmpty
+    }
+
+    static func shouldDismissPresentation(
+        hasVisibleMilestoneOption: Bool,
+        selectedMilestones: Set<UUID>
+    ) -> Bool {
+        !hasVisibleMilestoneOption && selectedMilestones.isEmpty
     }
 
     static func hasVisibleMilestoneOption(
