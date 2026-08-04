@@ -76,12 +76,14 @@ struct AddTaskIntent: AppIntent {
         // Keep no selection distinct from a stale entity so the latter can report
         // PROJECT_NOT_FOUND even when the deleted project was the last one.
         guard let project else {
+            let hasProjects: Bool
             do {
-                if try services.projectService.hasAnyProjects() {
-                    throw VisualIntentError.invalidInput("Project is required.")
-                }
+                hasProjects = try services.projectService.hasAnyProjects()
             } catch {
                 throw VisualIntentError.storageFailure("Failed to fetch projects: \(error)")
+            }
+            if hasProjects {
+                throw VisualIntentError.invalidInput("Project is required.")
             }
             throw VisualIntentError.noProjects
         }
