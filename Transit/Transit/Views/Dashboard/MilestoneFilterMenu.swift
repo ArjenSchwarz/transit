@@ -8,7 +8,8 @@ struct MilestoneFilterMenu: View {
 
     // Observe every milestone so local mutations, MCP calls, and CloudKit imports
     // refresh an already-presented menu. Project scoping stays in memory because
-    // the active multi-project set changes with the dashboard filter.
+    // the dynamic selected-project set cannot be expressed by a CloudKit-safe
+    // SwiftData predicate, while terminal selections must remain observable.
     @Query(sort: \Milestone.name) private var allMilestones: [Milestone]
     @Environment(\.horizontalSizeClass) private var sizeClass
 
@@ -94,9 +95,7 @@ struct MilestoneFilterMenu: View {
                 for: milestone,
                 selectedProjectIDs: selectedProjectIDs
             ))
-            .accessibilityAddTraits(Self.selectionAccessibilityTraits(
-                isSelected: selectedMilestones.contains(milestone.id)
-            ))
+            .accessibilityAddTraits(selectedMilestones.contains(milestone.id) ? .isSelected : [])
         }
     }
 
@@ -122,10 +121,6 @@ struct MilestoneFilterMenu: View {
         let title = milestoneTitle(for: milestone, selectedProjectIDs: selectedProjectIDs)
         guard milestone.status.isTerminal else { return title }
         return "\(title), \(milestone.status.displayName)"
-    }
-
-    static func selectionAccessibilityTraits(isSelected: Bool) -> AccessibilityTraits {
-        isSelected ? .isSelected : []
     }
 
     @ViewBuilder
@@ -161,7 +156,7 @@ struct MilestoneFilterMenu: View {
                 guard let projectID = milestone.project?.id else { return false }
                 return scopedProjectIDs.contains(projectID)
             },
-            usesDisplayName: selectedProjectIDs.count != 1
+            selectedProjectIDs: selectedProjectIDs
         )
         let visibleIDs = visibleMilestoneIDs(
             openMilestoneIDs: accessibleMilestones.filter { $0.status == .open }.map(\.id),
@@ -176,16 +171,19 @@ struct MilestoneFilterMenu: View {
         return visibleIDs.compactMap { milestonesByID[$0] }
     }
 
-    private static func orderedMilestones(_ milestones: [Milestone], usesDisplayName: Bool) -> [Milestone] {
+    private static func orderedMilestones(
+        _ milestones: [Milestone],
+        selectedProjectIDs: Set<UUID>
+    ) -> [Milestone] {
         milestones.sorted { lhs, rhs in
-            let nameOrder = lhs.name.localizedCaseInsensitiveCompare(rhs.name)
-            let projectOrder = (lhs.project?.name ?? "").localizedCaseInsensitiveCompare(rhs.project?.name ?? "")
-
-            if usesDisplayName, projectOrder != .orderedSame {
-                return projectOrder == .orderedAscending
-            }
-            if nameOrder != .orderedSame { return nameOrder == .orderedAscending }
-            if projectOrder != .orderedSame { return projectOrder == .orderedAscending }
+            let titleOrder = milestoneTitle(
+                for: lhs,
+                selectedProjectIDs: selectedProjectIDs
+            ).localizedCaseInsensitiveCompare(milestoneTitle(
+                for: rhs,
+                selectedProjectIDs: selectedProjectIDs
+            ))
+            if titleOrder != .orderedSame { return titleOrder == .orderedAscending }
             return lhs.id.uuidString < rhs.id.uuidString
         }
     }

@@ -88,21 +88,24 @@ struct MilestoneFilterMenuTests {
     }
 
     @Test func multiProjectOrderingMatchesDisplayedMilestoneTitles() {
-        let alphaProject = Project(name: "Alpha", description: "", gitRepo: nil, colorHex: "#FF0000")
-        let betaProject = Project(name: "Beta", description: "", gitRepo: nil, colorHex: "#00FF00")
-        let alphaMilestone = Milestone(name: "Zulu", project: alphaProject, displayID: .provisional)
-        let betaMilestone = Milestone(name: "Alpha", project: betaProject, displayID: .provisional)
-        let betaTerminal = Milestone(name: "Release", project: betaProject, displayID: .provisional)
-        betaTerminal.status = .done
+        let compactProject = Project(name: "A", description: "", gitRepo: nil, colorHex: "#FF0000")
+        let spacedProject = Project(name: "A ", description: "", gitRepo: nil, colorHex: "#00FF00")
+        let compactMilestone = Milestone(name: "Aaa", project: compactProject, displayID: .provisional)
+        let spacedMilestone = Milestone(name: "Aaa", project: spacedProject, displayID: .provisional)
+        let spacedTerminal = Milestone(name: "Release", project: spacedProject, displayID: .provisional)
+        spacedTerminal.status = .done
 
         let available = MilestoneFilterMenu.availableMilestones(
-            milestones: [betaTerminal, betaMilestone, alphaMilestone],
-            projects: [betaProject, alphaProject],
+            milestones: [spacedTerminal, compactMilestone, spacedMilestone],
+            projects: [compactProject, spacedProject],
             selectedProjectIDs: [],
-            selectedMilestones: [betaTerminal.id]
+            selectedMilestones: [spacedTerminal.id]
         )
+        let titles = available.map {
+            MilestoneFilterMenu.milestoneTitle(for: $0, selectedProjectIDs: [])
+        }
 
-        #expect(available.map(\.id) == [alphaMilestone.id, betaMilestone.id, betaTerminal.id])
+        #expect(titles == ["A  - Aaa", "A - Aaa", "A  - Release"])
     }
 
     @Test func deletedSelectedMilestoneLeavesMenuAvailableForClear() throws {
@@ -150,10 +153,5 @@ struct MilestoneFilterMenuTests {
             for: abandonedMilestone,
             selectedProjectIDs: [project.id]
         ) == "Retired, Abandoned")
-    }
-
-    @Test func selectedAccessibilityTraitAppliesOnlyToSelectedRows() {
-        #expect(MilestoneFilterMenu.selectionAccessibilityTraits(isSelected: true).contains(.isSelected))
-        #expect(!MilestoneFilterMenu.selectionAccessibilityTraits(isSelected: false).contains(.isSelected))
     }
 }

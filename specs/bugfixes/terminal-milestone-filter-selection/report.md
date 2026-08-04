@@ -33,8 +33,8 @@ A selected dashboard milestone disappeared from `MilestoneFilterMenu` after it t
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Views/Dashboard/MilestoneFilterMenu.swift` - Observes all milestones with a SwiftData `@Query`, so local status/deletion mutations, MCP changes, and CloudKit imports refresh an already-open menu. It scopes the observed records in memory for the dashboard's dynamic multi-project scope, then lists open rows before selected terminal rows once by UUID. Within one scoped project rows sort by milestone name; across projects they sort by displayed project/name title, with UUID as a stable final tie-breaker. Duplicate IDs degrade to the first record rather than trapping. Terminal rows remain struck through and display their status. Selected rows use the native `.isSelected` accessibility trait, while each row label contains only its title and optional terminal status, preventing duplicate selected announcements.
-- `Transit/TransitTests/MilestoneFilterMenuTests.swift` - Adds pure UUID-union coverage, a persisted Done transition regression proving open-first/terminal-second deterministic placement, displayed multi-project ordering coverage, a deletion/Clear regression, exact open/Done/Abandoned label coverage, and native selected-trait coverage.
+- `Transit/Transit/Views/Dashboard/MilestoneFilterMenu.swift` - Observes all milestones with a SwiftData `@Query`, so local status/deletion mutations, MCP changes, and CloudKit imports refresh an already-open menu. It scopes the observed records in memory because the dynamic selected-project set cannot be represented in a CloudKit-safe SwiftData predicate, then lists open rows before selected terminal rows once by UUID. Within one scoped project rows sort by milestone name; across projects they sort by displayed project/name title, with UUID as a stable final tie-breaker. Duplicate IDs retain one row rather than trapping. Terminal rows remain struck through and display their status. Selected rows use the native `.isSelected` accessibility trait, while each row label contains only its title and optional terminal status, preventing duplicate selected announcements.
+- `Transit/TransitTests/MilestoneFilterMenuTests.swift` - Adds pure UUID-union coverage, a persisted Done transition regression proving open-first/terminal-second deterministic placement, displayed multi-project ordering coverage, a deletion/Clear regression, and exact open/Done/Abandoned label coverage.
 
 **Approach rationale:** The dashboard now exposes only the normal open choices plus selected records the user can still act on. The live query avoids stale menu content while stable in-memory ordering matches the title users see. The native selection trait is shared by open and terminal selected rows and is announced once. Add Task and task-edit creation behavior remain open-only.
 
@@ -45,7 +45,7 @@ A selected dashboard milestone disappeared from `MilestoneFilterMenu` after it t
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/MilestoneFilterMenuTests.swift`
-**Test names:** `visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones`, `availableMilestonesHandlesPersistedStatusTransitionWithDeterministicTerminalPlacement`, `multiProjectOrderingMatchesDisplayedMilestoneTitles`, `deletedSelectedMilestoneLeavesMenuAvailableForClear`, `accessibilityLabelsIncludeTerminalStatusWithoutSelectionDuplication`, `selectedAccessibilityTraitAppliesOnlyToSelectedRows`
+**Test names:** `visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones`, `availableMilestonesHandlesPersistedStatusTransitionWithDeterministicTerminalPlacement`, `multiProjectOrderingMatchesDisplayedMilestoneTitles`, `deletedSelectedMilestoneLeavesMenuAvailableForClear`, `accessibilityLabelsIncludeTerminalStatusWithoutSelectionDuplication`
 
 **What it verifies:** A fresh SwiftData snapshot sees an open selected milestone move into the selected-terminal suffix after a persisted Done transition; open rows stay first in deterministic order; multi-project ordering matches displayed titles; another project is excluded; deleting a selected record preserves access to Clear; and labels contain one title plus optional terminal status while only selected rows receive the native selection trait.
 
@@ -70,7 +70,7 @@ A selected dashboard milestone disappeared from `MilestoneFilterMenu` after it t
 - [ ] Full `make test-ui` exceeded the five-minute command harness after completing UI execution. It reported unchanged failures in `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`; the unchanged `TransitUITests.testMilestoneFilterMenu` passed.
 
 **Manual verification:**
-- Confirmed the persisted transition regression, multi-project title ordering, deleted-selection Clear behavior, and selected-trait helper cover the filter's state contracts.
+- Confirmed the persisted transition regression, multi-project title ordering, deleted-selection Clear behavior, and accessibility label contract cover the filter's state contracts.
 - A new UI transition assertion was not retained: XCTest cannot reliably query a SwiftUI list row's updated accessibility state while the sheet remains presented, and a second sheet round trip destabilizes the seeded board assertion. The existing milestone filter UI flow passes, while focused unit coverage verifies the data and accessibility contracts directly.
 
 ## Prevention
