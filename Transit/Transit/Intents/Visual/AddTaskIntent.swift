@@ -86,6 +86,8 @@ struct AddTaskIntent: AppIntent {
         switch services.projectService.findProject(id: project.projectId) {
         case .success(let existingProject):
             resolvedProject = existingProject
+        case .failure(.storageFailure(let hint)):
+            throw VisualIntentError.storageFailure(hint)
         case .failure:
             throw VisualIntentError.projectNotFound(
                 "Selected project no longer exists."

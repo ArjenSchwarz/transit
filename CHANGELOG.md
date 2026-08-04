@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- T-1657: Project lookup storage failures now remain distinguishable from missing projects across JSON intents, MCP create/query/milestone tools, and visual Add Task. `QueryMilestonesIntent` no longer returns a successful empty array when its project-name lookup is unreadable, while valid missing/ambiguous names and project-ID precedence retain their prior behavior. Visual Add Task now reports `INTERNAL_ERROR` for a failed project read rather than a stale-selection `PROJECT_NOT_FOUND`; deterministic failing-fetch regressions verify cross-surface parity and no task or milestone insertion.
+
 - T-1770: JSON mutation intents now preserve their established typed validation and domain-error payloads while mapping untyped SwiftData fetch/save failures to `INTERNAL_ERROR`. Shared task and milestone identifier resolution uses deterministic injected fetchers; milestone mutations also expose an injected saver. Regression coverage spans create, status update, milestone update, and deletion paths, asserting both the internal-error envelope and no persisted mutation on failure.
 
 - T-1803: `UpdateStatusIntent` now includes a missing requested `displayId` in its `TASK_NOT_FOUND` hint (`No task with displayId N`), while missing UUIDs retain the existing generic lookup hint and malformed identifiers, duplicate IDs, status validation, and atomic mutation behavior remain unchanged.

@@ -9,7 +9,8 @@ struct VisualIntentErrorTests {
         (VisualIntentError.invalidDate("bad"), "INVALID_DATE"),
         (VisualIntentError.projectNotFound("bad"), "PROJECT_NOT_FOUND"),
         (VisualIntentError.taskNotFound("bad"), "TASK_NOT_FOUND"),
-        (VisualIntentError.taskCreationFailed("bad"), "TASK_CREATION_FAILED")
+        (VisualIntentError.taskCreationFailed("bad"), "TASK_CREATION_FAILED"),
+        (VisualIntentError.storageFailure("bad"), "INTERNAL_ERROR")
     ])
     func codeMapping(error: VisualIntentError, expected: String) {
         #expect(error.code == expected)
