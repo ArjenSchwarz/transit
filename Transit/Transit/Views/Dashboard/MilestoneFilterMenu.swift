@@ -14,6 +14,7 @@ struct MilestoneFilterMenu: View {
         Self.availableMilestones(
             projects: projects,
             selectedProjectIDs: selectedProjectIDs,
+            selectedMilestones: selectedMilestones,
             milestoneService: milestoneService
         )
     }
@@ -66,7 +67,16 @@ struct MilestoneFilterMenu: View {
             } label: {
                 HStack {
                     Text(milestoneTitle(for: milestone))
-                        .foregroundStyle(.primary)
+                        .strikethrough(milestone.status.isTerminal)
+                        .foregroundStyle(milestone.status.isTerminal ? .secondary : .primary)
+                    if milestone.status.isTerminal {
+                        Label(
+                            milestone.status.displayName,
+                            systemImage: milestone.status == .done ? "checkmark.circle" : "xmark.circle"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
                     Spacer()
                     if selectedMilestones.contains(milestone.id) {
                         Image(systemName: "checkmark")
@@ -76,6 +86,7 @@ struct MilestoneFilterMenu: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(milestoneAccessibilityLabel(for: milestone))
         }
     }
 
@@ -92,6 +103,12 @@ struct MilestoneFilterMenu: View {
 
     private func milestoneTitle(for milestone: Milestone) -> String {
         selectedProjectIDs.count == 1 ? milestone.name : milestone.displayName
+    }
+
+    private func milestoneAccessibilityLabel(for milestone: Milestone) -> String {
+        guard milestone.status.isTerminal else { return milestoneTitle(for: milestone) }
+        let selection = selectedMilestones.contains(milestone.id) ? "selected" : "not selected"
+        return "\(milestoneTitle(for: milestone)), \(milestone.status.displayName), \(selection)"
     }
 
     @ViewBuilder
@@ -115,10 +132,28 @@ struct MilestoneFilterMenu: View {
     static func availableMilestones(
         projects: [Project],
         selectedProjectIDs: Set<UUID>,
+        selectedMilestones: Set<UUID>,
         milestoneService: MilestoneService
     ) -> [Milestone] {
         let scopedProjects = scopedProjects(projects: projects, selectedProjectIDs: selectedProjectIDs)
-        return scopedProjects.flatMap { milestoneService.milestonesForProject($0, status: .open) }
+        let accessibleMilestones = scopedProjects.flatMap { milestoneService.milestonesForProject($0) }
+        let visibleIDs = visibleMilestoneIDs(
+            openMilestoneIDs: accessibleMilestones.filter { $0.status == .open }.map(\.id),
+            selectedAccessibleMilestoneIDs: accessibleMilestones.filter {
+                selectedMilestones.contains($0.id)
+            }.map(\.id)
+        )
+        return visibleIDs.compactMap { id in
+            accessibleMilestones.first { $0.id == id }
+        }
+    }
+
+    nonisolated static func visibleMilestoneIDs(
+        openMilestoneIDs: [UUID],
+        selectedAccessibleMilestoneIDs: [UUID]
+    ) -> [UUID] {
+        var seen = Set<UUID>()
+        return (openMilestoneIDs + selectedAccessibleMilestoneIDs).filter { seen.insert($0).inserted }
     }
 
     static func scopedProjects(projects: [Project], selectedProjectIDs: Set<UUID>) -> [Project] {

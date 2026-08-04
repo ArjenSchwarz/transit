@@ -22,7 +22,21 @@ struct MilestoneFilterMenuTests {
         #expect(MilestoneFilterMenu.shouldShowMenu(availableMilestones: [], selectedMilestones: []) == false)
     }
 
-    @Test func availableMilestonesScopedToSelectedProjects() throws {
+    @Test func visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones() {
+        let firstOpenID = UUID()
+        let secondOpenID = UUID()
+        let doneID = UUID()
+        let abandonedID = UUID()
+
+        let visibleIDs = MilestoneFilterMenu.visibleMilestoneIDs(
+            openMilestoneIDs: [firstOpenID, secondOpenID, firstOpenID],
+            selectedAccessibleMilestoneIDs: [doneID, secondOpenID, abandonedID, doneID]
+        )
+
+        #expect(visibleIDs == [firstOpenID, secondOpenID, doneID, abandonedID])
+    }
+
+    @Test func availableMilestonesKeepsSelectedTerminalMilestonesWithinSelectedProjects() throws {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
         let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
@@ -33,18 +47,40 @@ struct MilestoneFilterMenuTests {
         context.insert(firstProject)
         context.insert(secondProject)
 
-        let firstMilestone = Milestone(name: "M1", project: firstProject, displayID: .provisional)
-        let secondMilestone = Milestone(name: "M2", project: secondProject, displayID: .provisional)
-        context.insert(firstMilestone)
-        context.insert(secondMilestone)
+        let openMilestone = Milestone(name: "Open", project: firstProject, displayID: .provisional)
+        let doneMilestone = Milestone(name: "Done", project: firstProject, displayID: .provisional)
+        doneMilestone.status = .done
+        let abandonedMilestone = Milestone(name: "Abandoned", project: firstProject, displayID: .provisional)
+        abandonedMilestone.status = .abandoned
+        let inaccessibleMilestone = Milestone(
+            name: "Other project", project: secondProject, displayID: .provisional
+        )
+        inaccessibleMilestone.status = .done
+        [openMilestone, doneMilestone, abandonedMilestone, inaccessibleMilestone].forEach(context.insert)
         try context.save()
 
         let available = MilestoneFilterMenu.availableMilestones(
             projects: [firstProject, secondProject],
             selectedProjectIDs: [firstProject.id],
+            selectedMilestones: [
+                openMilestone.id,
+                doneMilestone.id,
+                abandonedMilestone.id,
+                inaccessibleMilestone.id
+            ],
             milestoneService: milestoneService
         )
 
-        #expect(Set(available.map(\.id)) == [firstMilestone.id])
+        let selectedTerminalIDs = milestoneService.milestonesForProject(firstProject)
+            .filter { $0.status.isTerminal && [doneMilestone.id, abandonedMilestone.id].contains($0.id) }
+            .map(\.id)
+        #expect(available.map(\.id) == [openMilestone.id] + selectedTerminalIDs)
+    }
+
+    @Test func menuRemainsAvailableForAnInaccessibleSelectedMilestone() {
+        #expect(MilestoneFilterMenu.shouldShowMenu(
+            availableMilestones: [],
+            selectedMilestones: [UUID()]
+        ))
     }
 }
