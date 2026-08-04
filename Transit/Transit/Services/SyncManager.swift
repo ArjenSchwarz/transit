@@ -1,5 +1,6 @@
 import CloudKit
 import Foundation
+import OSLog
 import SwiftData
 
 /// Manages the CloudKit sync enabled/disabled preference.
@@ -24,6 +25,7 @@ final class SyncManager {
     /// Matches the @AppStorage key used in SettingsView.
     private static let syncEnabledKey = "syncEnabled"
     private static let cloudKitContainerID = "iCloud.me.nore.ig.Transit"
+    private static let logger = Logger(subsystem: "me.nore.ig.Transit", category: "SyncManager")
 
     private(set) var isSyncEnabled: Bool
 
@@ -33,13 +35,24 @@ final class SyncManager {
     /// whichever launch path actually creates the container.
     private(set) var isCloudSyncActive: Bool
 
+    /// Fetches the heartbeat singleton. Injectable so tests can deterministically
+    /// simulate a SwiftData read failure while keeping inserts and saves real.
+    typealias HeartbeatFetcher =
+        (ModelContext, FetchDescriptor<SyncHeartbeat>) throws -> [SyncHeartbeat]
+
+    private let heartbeatFetcher: HeartbeatFetcher
+
     /// True when the preference no longer matches the mode the live container runs in,
     /// i.e. the user changed the toggle and has not relaunched yet.
     var syncChangeRequiresRestart: Bool {
         isSyncEnabled != isCloudSyncActive
     }
 
-    init() {
+    init(
+        heartbeatFetcher: @escaping HeartbeatFetcher = { context, descriptor in
+            try context.fetch(descriptor)
+        }
+    ) {
         // Default to enabled if never set
         let defaults = UserDefaults.standard
         if defaults.object(forKey: Self.syncEnabledKey) == nil {
@@ -48,6 +61,7 @@ final class SyncManager {
         let enabled = defaults.bool(forKey: Self.syncEnabledKey)
         self.isSyncEnabled = enabled
         self.isCloudSyncActive = enabled
+        self.heartbeatFetcher = heartbeatFetcher
     }
 
     // MARK: - Public API
@@ -123,12 +137,23 @@ final class SyncManager {
 
     /// Writes a timestamp to the `SyncHeartbeat` singleton, triggering a
     /// CloudKit sync cycle that pulls pending remote changes.
-    private func beat(context: ModelContext) {
+    func beat(context: ModelContext) {
         let singletonID = SyncHeartbeat.singletonID
         let descriptor = FetchDescriptor<SyncHeartbeat>(
             predicate: #Predicate { $0.id == singletonID }
         )
-        let heartbeat = (try? context.fetch(descriptor))?.first ?? SyncHeartbeat()
+
+        let heartbeats: [SyncHeartbeat]
+        do {
+            heartbeats = try heartbeatFetcher(context, descriptor)
+        } catch {
+            Self.logger.error(
+                "Skipping sync heartbeat because the singleton fetch failed: \(error.localizedDescription)"
+            )
+            return
+        }
+
+        let heartbeat = heartbeats.first ?? SyncHeartbeat()
         heartbeat.lastBeat = Date()
         if heartbeat.modelContext == nil {
             context.insert(heartbeat)
