@@ -1,7 +1,7 @@
 # Bugfix Report: Milestone Create Dismissal
 
 **Date:** 2026-08-05
-**Status:** Investigating
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -46,9 +46,12 @@ Actual behavior: the create task outlives the editor. The UI does not represent 
 
 ## Resolution for the Issue
 
-Pending implementation.
+**Changes made:**
+- `Transit/Transit/Views/Settings/MilestoneEditView.swift` — retains the create-mode `Task`, disables the iOS back and interactive dismissal paths while saving, and cancels a still-pending operation when the editor disappears on either platform. Successful persistence marks completion before `dismiss()`, so that disappearance is intentionally not cancelled. Cancellation errors stay silent; ordinary save errors still remain in the editor and surface through the existing alert. Edit-mode merge/conflict save behavior is unchanged.
+- `Transit/Transit/Views/Settings/MilestoneCreateSaveLifecycle.swift` — adds the small lifecycle state helper separating `saving`, `cancellationPending`, and `savedAwaitingDismissal`.
+- `Transit/TransitTests/MilestoneCreateSaveLifecycleTests.swift` — adds deterministic lifecycle regressions.
 
-**Proposed approach:** Add a small testable create-save lifecycle helper. Retain the create `Task`, block iOS dismissal while saving, cancel the retained task only when a still-pending create disappears, and transition to a successful-completion state before calling `dismiss()` so success does not cancel itself.
+**Approach rationale:** The retained operation gives `onDisappear` a concrete cancellation target. The lifecycle helper ensures cancellation is requested only before the service returns; T-1765’s post-allocation `Task.checkCancellation()` then guarantees that a true cancellation cannot cross the milestone insert/save boundary. Marking success before dismissal prevents the successful route from being mistaken for cancellation.
 
 **Alternatives considered:**
 - Disable only the iOS back button — rejected because it does not cover swipe navigation or macOS category/detail replacement.
@@ -59,11 +62,11 @@ Pending implementation.
 
 **Test file:** `Transit/TransitTests/MilestoneCreateSaveLifecycleTests.swift`
 
-**Test names:** lifecycle tests covering in-flight disappearance, successful-save dismissal, failure retry, and cancellation completion.
+**Test names:** `disappearanceDuringInFlightCreateRequestsCancellation`, `successfulSaveDoesNotCancelWhenDismissalMakesViewDisappear`, `failedSaveReenablesDismissalAndRetry`, and `completingCancellationReenablesTheEditor`.
 
-**What they verify:** The view-state model requests cancellation only for a genuinely pending create and keeps successful dismissal distinct from cancellation.
+**What they verify:** The view-state model requests cancellation only for a genuinely pending create, keeps successful dismissal distinct from cancellation, and recovers after errors or cancellation. Existing `CancelledCreateTests` verifies T-1765 prevents a milestone from persisting after cancellation during allocation.
 
-**Run command:** `make test-quick`
+**Run commands:** `make test-quick`; targeted iOS `xcodebuild test` for `MilestoneCreateSaveLifecycleTests` and `CancelledCreateTests`.
 
 ## Affected Files
 
@@ -72,19 +75,19 @@ Pending implementation.
 | `Transit/Transit/Views/Settings/MilestoneEditView.swift` | Retain/cancel create task and gate iOS dismissal. |
 | `Transit/Transit/Views/Settings/MilestoneCreateSaveLifecycle.swift` | Testable create-save lifecycle state helper. |
 | `Transit/TransitTests/MilestoneCreateSaveLifecycleTests.swift` | Lifecycle regressions for T-1858. |
+| `CHANGELOG.md` | Records the user-visible lifecycle fix. |
 
 ## Verification
 
 **Automated:**
-- [ ] Regression lifecycle tests pass.
-- [ ] T-1765 cancelled-create service tests pass.
-- [ ] `make test-quick` passes.
-- [ ] `make lint` passes.
+- [x] `make test-quick` passes.
+- [x] Targeted iOS `MilestoneCreateSaveLifecycleTests` and `CancelledCreateTests` pass.
+- [x] `make lint` passes.
+- [ ] `make test` did not reach completion before the runner’s five-minute timeout. It compiled the iOS app and ran a large portion of `TransitTests` without a reported failure before timing out.
+- [ ] `make test-ui` has unrelated existing failures in `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`, accompanied by simulator debugger-version-store errors. No UI test exercises milestone creation.
 
 **Manual verification:**
-- [ ] iOS: Save a new milestone during delayed allocation; back and interactive dismissal remain unavailable.
-- [ ] macOS: Navigate away while saving; the operation is cancelled and no milestone appears.
-- [ ] Successful create still dismisses the editor; edit-mode save/error behavior is unchanged.
+- Not run: a deterministic UI reproduction needs a delayed allocator injection seam that the production UI-test harness does not expose. The lifecycle helper plus T-1765’s deterministic service tests cover the relevant cancellation boundary.
 
 ## Prevention
 

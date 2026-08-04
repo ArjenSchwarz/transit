@@ -11,39 +11,53 @@ struct MilestoneCreateSaveLifecycleTests {
     @Test func disappearanceDuringInFlightCreateRequestsCancellation() {
         var lifecycle = MilestoneCreateSaveLifecycle()
 
-        #expect(lifecycle.beginSave())
-        #expect(lifecycle.blocksDismissal)
-        #expect(lifecycle.cancelForDisappearance())
+        let didBegin = lifecycle.beginSave()
+        let blocksWhileSaving = lifecycle.blocksDismissal
+        let didRequestCancellation = lifecycle.cancelForDisappearance()
+
+        #expect(didBegin)
+        #expect(blocksWhileSaving)
+        #expect(didRequestCancellation)
         #expect(lifecycle.isCancellationPending)
     }
 
     @Test func successfulSaveDoesNotCancelWhenDismissalMakesViewDisappear() {
         var lifecycle = MilestoneCreateSaveLifecycle()
 
-        #expect(lifecycle.beginSave())
-        #expect(lifecycle.completeSave())
-        #expect(lifecycle.blocksDismissal)
-        #expect(lifecycle.cancelForDisappearance() == false)
+        let didBegin = lifecycle.beginSave()
+        let didCompleteSave = lifecycle.completeSave()
+        let blocksWhileDismissing = lifecycle.blocksDismissal
+        let didRequestCancellation = lifecycle.cancelForDisappearance()
+
+        #expect(didBegin)
+        #expect(didCompleteSave)
+        #expect(blocksWhileDismissing)
+        #expect(didRequestCancellation == false)
         #expect(lifecycle.isCancellationPending == false)
     }
 
     @Test func failedSaveReenablesDismissalAndRetry() {
         var lifecycle = MilestoneCreateSaveLifecycle()
 
-        #expect(lifecycle.beginSave())
+        let didBegin = lifecycle.beginSave()
         lifecycle.completeFailure()
+        let blocksAfterFailure = lifecycle.blocksDismissal
+        let didRetry = lifecycle.beginSave()
 
-        #expect(lifecycle.blocksDismissal == false)
-        #expect(lifecycle.beginSave())
+        #expect(didBegin)
+        #expect(blocksAfterFailure == false)
+        #expect(didRetry)
     }
 
     @Test func completingCancellationReenablesTheEditor() {
         var lifecycle = MilestoneCreateSaveLifecycle()
 
-        #expect(lifecycle.beginSave())
-        #expect(lifecycle.cancelForDisappearance())
+        let didBegin = lifecycle.beginSave()
+        let didRequestCancellation = lifecycle.cancelForDisappearance()
         lifecycle.completeCancellation()
 
+        #expect(didBegin)
+        #expect(didRequestCancellation)
         #expect(lifecycle.blocksDismissal == false)
         #expect(lifecycle.isCancellationPending == false)
     }

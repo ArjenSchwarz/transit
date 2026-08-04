@@ -10,7 +10,8 @@ struct MilestoneEditView: View {
     /// The draft, its baseline, and the load-once guard, held as one value so a
     /// second `onAppear` cannot discard in-flight edits.
     @State private var form = MilestoneEditForm()
-    @State private var isSaving = false
+    @State private var createSaveLifecycle = MilestoneCreateSaveLifecycle()
+    @State private var createSaveTask: Task<Void, Never>?
     @State private var errorMessage: String?
 
     /// Set when a save finds fields that both the user and an external writer
@@ -18,6 +19,10 @@ struct MilestoneEditView: View {
     @State private var pendingConflict: MilestoneEditMerge?
 
     private var isEditing: Bool { milestone != nil }
+
+    private var isSaving: Bool {
+        createSaveLifecycle.blocksDismissal
+    }
 
     var body: some View {
         formContent
@@ -32,6 +37,7 @@ struct MilestoneEditView: View {
                 keepMine: { saveExisting(consentingTo: $0) },
                 useTheirs: { adoptLiveValues(for: $0) }
             )
+            .onDisappear { cancelCreateSaveForDisappearance() }
     }
 
     private var formContent: some View {
@@ -57,6 +63,7 @@ struct MilestoneEditView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .toolbar { editToolbar }
+        .interactiveDismissDisabled(isSaving)
         .onAppear { loadMilestone() }
     }
     #endif
@@ -112,6 +119,7 @@ struct MilestoneEditView: View {
             Button { dismiss() } label: {
                 Image(systemName: "chevron.left")
             }
+            .disabled(isSaving)
         }
         ToolbarItem(placement: .confirmationAction) {
             Button("Save", systemImage: "checkmark") { save() }
@@ -127,7 +135,7 @@ struct MilestoneEditView: View {
     }
 
     private func save() {
-        guard form.canSave else { return }
+        guard form.canSave, !isSaving else { return }
         if milestone == nil {
             createMilestone()
         } else {
@@ -166,22 +174,46 @@ struct MilestoneEditView: View {
     }
 
     private func createMilestone() {
+        guard createSaveLifecycle.beginSave() else { return }
         let edited = form.edited
-        isSaving = true
-        Task {
-            defer { isSaving = false }
+
+        let saveTask = Task { @MainActor in
             do {
                 try await milestoneService.createMilestone(
                     name: edited.name,
                     description: edited.description.isEmpty ? nil : edited.description,
                     project: project
                 )
+                try Task.checkCancellation()
+
+                // Record success before dismissal so the resulting `onDisappear`
+                // cannot cancel an operation that has already persisted.
+                guard createSaveLifecycle.completeSave() else { return }
+                createSaveTask = nil
+                dismiss()
+            } catch is CancellationError {
+                finishCancelledCreate()
             } catch {
-                errorMessage = error.localizedDescription
-                return
+                if Task.isCancelled {
+                    finishCancelledCreate()
+                } else {
+                    createSaveLifecycle.completeFailure()
+                    createSaveTask = nil
+                    errorMessage = error.localizedDescription
+                }
             }
-            dismiss()
         }
+        createSaveTask = saveTask
+    }
+
+    private func cancelCreateSaveForDisappearance() {
+        guard createSaveLifecycle.cancelForDisappearance() else { return }
+        createSaveTask?.cancel()
+    }
+
+    private func finishCancelledCreate() {
+        createSaveLifecycle.completeCancellation()
+        createSaveTask = nil
     }
 
     /// Recomputes before using external values. Changed conflict fields or
