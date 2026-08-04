@@ -41,6 +41,14 @@ struct MilestoneFilterMenu: View {
             Button { showPopover.toggle() } label: { filterLabel }
                 .accessibilityIdentifier("dashboard.filter.milestones")
                 .accessibilityLabel(Self.accessibilityLabel(for: selectedMilestones.count))
+                .onChange(of: hasVisibleMilestoneOption) {
+                    if showPopover && Self.shouldDismissPresentation(
+                        hasVisibleMilestoneOption: hasVisibleMilestoneOption,
+                        selectedMilestones: selectedMilestones
+                    ) {
+                        showPopover = false
+                    }
+                }
                 #if os(macOS)
                 .popover(isPresented: $showPopover) {
                     List {

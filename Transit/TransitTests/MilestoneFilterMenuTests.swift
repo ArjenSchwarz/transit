@@ -35,6 +35,14 @@ struct MilestoneFilterMenuTests {
             hasVisibleMilestoneOption: false,
             selectedMilestones: []
         ))
+        #expect(!MilestoneFilterMenu.shouldDismissPresentation(
+            hasVisibleMilestoneOption: true,
+            selectedMilestones: []
+        ))
+        #expect(!MilestoneFilterMenu.shouldDismissPresentation(
+            hasVisibleMilestoneOption: false,
+            selectedMilestones: [UUID()]
+        ))
     }
     @Test func visibleMilestoneOptionUsesOpenRecordsWithinCurrentProjectScope() {
         let firstProject = Project(name: "First", description: "", gitRepo: nil, colorHex: "#FF0000")
