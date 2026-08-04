@@ -25,7 +25,8 @@ enum MCPTestHelpers {
         taskFetcher: (any TaskFetching)? = nil,
         commentFetcher: (any CommentFetching)? = nil,
         milestoneFetcher: (any MilestoneFetching)? = nil,
-        milestoneDisplayIDFinder: (any MilestoneDisplayIDFinding)? = nil
+        milestoneDisplayIDFinder: (any MilestoneDisplayIDFinding)? = nil,
+        milestoneServiceFetcher: (any ModelFetching)? = nil
     ) throws -> MCPTestEnv {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
@@ -41,7 +42,11 @@ enum MCPTestHelpers {
         let commentService = CommentService(modelContext: context)
         let milestoneStore = InMemoryCounterStore()
         let milestoneAllocator = DisplayIDAllocator(store: milestoneStore)
-        let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator)
+        let milestoneService = MilestoneService(
+            modelContext: context,
+            displayIDAllocator: milestoneAllocator,
+            fetcher: milestoneServiceFetcher
+        )
         let maintenanceService = DisplayIDMaintenanceService(
             modelContext: context,
             taskAllocator: taskAllocator,

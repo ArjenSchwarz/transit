@@ -482,7 +482,7 @@ nonisolated enum IntentHelpers {
         } catch let error as MilestoneService.Error {
             return mapMilestoneError(error).json
         } catch {
-            return IntentError.internalError(hint: "Failed to assign milestone").json
+            return IntentError.internalError(hint: "Failed to look up milestone: \(error)").json
         }
     }
 }
