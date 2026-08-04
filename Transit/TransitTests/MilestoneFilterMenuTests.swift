@@ -19,32 +19,196 @@ struct MilestoneFilterMenuTests {
     }
 
     @Test func menuHiddenWhenNoAvailableAndNoneSelected() {
-        #expect(MilestoneFilterMenu.shouldShowMenu(availableMilestones: [], selectedMilestones: []) == false)
+        #expect(MilestoneFilterMenu.shouldShowMenu(
+            hasVisibleMilestoneOption: false,
+            selectedMilestones: []
+        ) == false)
     }
 
-    @Test func availableMilestonesScopedToSelectedProjects() throws {
+    @Test func menuRemainsMountedWhilePresentedAfterClearingLastSelection() {
+        #expect(MilestoneFilterMenu.shouldShowMenu(
+            hasVisibleMilestoneOption: false,
+            selectedMilestones: [],
+            isPresented: true
+        ))
+        #expect(MilestoneFilterMenu.shouldDismissPresentation(
+            hasVisibleMilestoneOption: false,
+            selectedMilestones: []
+        ))
+        #expect(!MilestoneFilterMenu.shouldDismissPresentation(
+            hasVisibleMilestoneOption: true,
+            selectedMilestones: []
+        ))
+        #expect(!MilestoneFilterMenu.shouldDismissPresentation(
+            hasVisibleMilestoneOption: false,
+            selectedMilestones: [UUID()]
+        ))
+    }
+    @Test func visibleMilestoneOptionUsesOpenRecordsWithinCurrentProjectScope() {
+        let firstProject = Project(name: "First", description: "", gitRepo: nil, colorHex: "#FF0000")
+        let secondProject = Project(name: "Second", description: "", gitRepo: nil, colorHex: "#00FF00")
+        let firstOpen = Milestone(name: "Open", project: firstProject, displayID: .provisional)
+        let secondTerminal = Milestone(name: "Done", project: secondProject, displayID: .provisional)
+        secondTerminal.status = .done
+
+        #expect(MilestoneFilterMenu.hasVisibleMilestoneOption(
+            milestones: [firstOpen, secondTerminal],
+            projects: [firstProject, secondProject],
+            selectedProjectIDs: [firstProject.id]
+        ))
+        #expect(!MilestoneFilterMenu.hasVisibleMilestoneOption(
+            milestones: [firstOpen, secondTerminal],
+            projects: [firstProject, secondProject],
+            selectedProjectIDs: [secondProject.id]
+        ))
+    }
+
+    @Test func visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones() {
+        let firstOpenID = UUID()
+        let secondOpenID = UUID()
+        let doneID = UUID()
+        let abandonedID = UUID()
+
+        let visibleIDs = MilestoneFilterMenu.visibleMilestoneIDs(
+            openMilestoneIDs: [firstOpenID, secondOpenID, firstOpenID],
+            selectedAccessibleMilestoneIDs: [doneID, secondOpenID, abandonedID, doneID]
+        )
+
+        #expect(visibleIDs == [firstOpenID, secondOpenID, doneID, abandonedID])
+    }
+
+    @Test func availableMilestonesHandlesPersistedStatusTransitionWithDeterministicTerminalPlacement() throws {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
-        let allocator = DisplayIDAllocator(store: InMemoryCounterStore())
-        let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: allocator)
-
         let firstProject = Project(name: "First", description: "", gitRepo: nil, colorHex: "#FF0000")
         let secondProject = Project(name: "Second", description: "", gitRepo: nil, colorHex: "#00FF00")
         context.insert(firstProject)
         context.insert(secondProject)
 
-        let firstMilestone = Milestone(name: "M1", project: firstProject, displayID: .provisional)
-        let secondMilestone = Milestone(name: "M2", project: secondProject, displayID: .provisional)
-        context.insert(firstMilestone)
-        context.insert(secondMilestone)
+        let alphaOpen = Milestone(name: "Alpha", project: firstProject, displayID: .provisional)
+        let betaTransition = Milestone(name: "Beta", project: firstProject, displayID: .provisional)
+        let gammaTerminal = Milestone(name: "Gamma", project: firstProject, displayID: .provisional)
+        gammaTerminal.status = .abandoned
+        let hiddenTerminal = Milestone(name: "Hidden", project: firstProject, displayID: .provisional)
+        hiddenTerminal.status = .done
+        let zuluOpen = Milestone(name: "Zulu", project: firstProject, displayID: .provisional)
+        let inaccessibleTerminal = Milestone(name: "Other", project: secondProject, displayID: .provisional)
+        inaccessibleTerminal.status = .done
+        [
+            zuluOpen,
+            gammaTerminal,
+            hiddenTerminal,
+            alphaOpen,
+            inaccessibleTerminal,
+            betaTransition
+        ].forEach(context.insert)
         try context.save()
 
-        let available = MilestoneFilterMenu.availableMilestones(
+        let selectedMilestones: Set<UUID> = [betaTransition.id, gammaTerminal.id, inaccessibleTerminal.id]
+        let initiallyAvailable = MilestoneFilterMenu.availableMilestones(
+            milestones: try context.fetch(FetchDescriptor<Milestone>()),
             projects: [firstProject, secondProject],
             selectedProjectIDs: [firstProject.id],
-            milestoneService: milestoneService
+            selectedMilestones: selectedMilestones
+        )
+        let initialAvailableIDs: [UUID] = initiallyAvailable.map(\.id)
+        let initialExpectedIDs: [UUID] = [
+            alphaOpen.id, betaTransition.id, zuluOpen.id, gammaTerminal.id
+        ]
+        #expect(initialAvailableIDs == initialExpectedIDs)
+
+        betaTransition.status = .done
+        try context.save()
+
+        let transitionedAvailable = MilestoneFilterMenu.availableMilestones(
+            milestones: try context.fetch(FetchDescriptor<Milestone>()),
+            projects: [firstProject, secondProject],
+            selectedProjectIDs: [firstProject.id],
+            selectedMilestones: selectedMilestones
+        )
+        let transitionedAvailableIDs: [UUID] = transitionedAvailable.map(\.id)
+        let transitionedExpectedIDs: [UUID] = [
+            alphaOpen.id, zuluOpen.id, betaTransition.id, gammaTerminal.id
+        ]
+        #expect(transitionedAvailableIDs == transitionedExpectedIDs)
+    }
+
+    @Test func multiProjectOrderingMatchesDisplayedMilestoneTitles() {
+        let alphaProject = Project(name: "Alpha", description: "", gitRepo: nil, colorHex: "#FF0000")
+        let betaProject = Project(name: "Beta", description: "", gitRepo: nil, colorHex: "#00FF00")
+        let alphaMilestone = Milestone(name: "Beta", project: alphaProject, displayID: .provisional)
+        let betaMilestone = Milestone(name: "Alpha", project: betaProject, displayID: .provisional)
+        let betaTerminal = Milestone(name: "Release", project: betaProject, displayID: .provisional)
+        betaTerminal.status = .done
+
+        let available = MilestoneFilterMenu.availableMilestones(
+            milestones: [betaTerminal, betaMilestone, alphaMilestone],
+            projects: [betaProject, alphaProject],
+            selectedProjectIDs: [],
+            selectedMilestones: [betaTerminal.id]
+        )
+        let titles = available.map {
+            MilestoneFilterMenu.milestoneTitle(for: $0, selectedProjectIDs: [])
+        }
+
+        #expect(titles == ["Alpha - Beta", "Beta - Alpha", "Beta - Release"])
+    }
+
+    @Test func deletedSelectedMilestoneLeavesMenuAvailableForClear() throws {
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let project = Project(name: "Project", description: "", gitRepo: nil, colorHex: "#FF0000")
+        let otherProject = Project(name: "Other", description: "", gitRepo: nil, colorHex: "#00FF00")
+        let milestone = Milestone(name: "Deleted", project: project, displayID: .provisional)
+        let otherOpenMilestone = Milestone(name: "Other Open", project: otherProject, displayID: .provisional)
+        context.insert(project)
+        context.insert(otherProject)
+        context.insert(milestone)
+        context.insert(otherOpenMilestone)
+        try context.save()
+
+        context.delete(milestone)
+        try context.save()
+        let observedMilestones = try context.fetch(FetchDescriptor<Milestone>())
+        let available = MilestoneFilterMenu.availableMilestones(
+            milestones: observedMilestones,
+            projects: [project, otherProject],
+            selectedProjectIDs: [project.id],
+            selectedMilestones: [milestone.id]
+        )
+        let hasVisibleOption = MilestoneFilterMenu.hasVisibleMilestoneOption(
+            milestones: observedMilestones,
+            projects: [project, otherProject],
+            selectedProjectIDs: [project.id]
         )
 
-        #expect(Set(available.map(\.id)) == [firstMilestone.id])
+        #expect(available.isEmpty)
+        #expect(!hasVisibleOption)
+        #expect(MilestoneFilterMenu.shouldShowMenu(
+            hasVisibleMilestoneOption: hasVisibleOption,
+            selectedMilestones: [milestone.id]
+        ))
+    }
+
+    @Test func accessibilityLabelsIncludeTerminalStatus() {
+        let project = Project(name: "Project", description: "", gitRepo: nil, colorHex: "#FF0000")
+        let openMilestone = Milestone(name: "Open", project: project, displayID: .provisional)
+        let doneMilestone = Milestone(name: "Closed", project: project, displayID: .provisional)
+        doneMilestone.status = .done
+        let abandonedMilestone = Milestone(name: "Retired", project: project, displayID: .provisional)
+        abandonedMilestone.status = .abandoned
+
+        #expect(MilestoneFilterMenu.milestoneAccessibilityLabel(
+            for: openMilestone,
+            selectedProjectIDs: [project.id]
+        ) == "Open")
+        #expect(MilestoneFilterMenu.milestoneAccessibilityLabel(
+            for: doneMilestone,
+            selectedProjectIDs: [project.id]
+        ) == "Closed, Done")
+        #expect(MilestoneFilterMenu.milestoneAccessibilityLabel(
+            for: abandonedMilestone,
+            selectedProjectIDs: [project.id]
+        ) == "Retired, Abandoned")
     }
 }
