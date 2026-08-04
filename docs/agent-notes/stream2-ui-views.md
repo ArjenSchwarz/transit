@@ -117,12 +117,11 @@ Applied to: AddTaskSheet (macOS description), TaskEditView (macOS description), 
 - Persistence flow lives in `AddTaskSheet.persist(draft:taskService:milestoneService:)` (a static helper) so the view's save logic is exercisable from unit tests. The view's `save()` builds a `TaskDraft` and delegates to `persist`.
 - Orphan cleanup: if `setMilestone` throws after `createTask` succeeded, `persist` deletes the newly-created task via `taskService.deleteTask(task)` before rethrowing. Mirrors the cleanup pattern in `CreateTaskIntent` / MCP `create_task` (T-558, T-855). Keep all three entry points in sync when changing this contract.
 
-### FilterPopoverView Milestones Section
-- New `selectedMilestones: Set<UUID>` binding (state owned by DashboardView)
-- Milestones section after Types section, same toggle pattern
-- Scoped by project filter (all open milestones if no project filter active)
-- Stale selected milestones (no longer open) shown dimmed for deselection
-- Clears milestone selection when project filter changes
+### MilestoneFilterMenu
+- `DashboardView` owns the ephemeral `selectedMilestones: Set<UUID>` state and passes it into `MilestoneFilterMenu`.
+- `MilestoneFilterMenu` observes all milestones with `@Query`; it scopes the dynamic project selection in memory, keeps open rows first, and appends selected Done/Abandoned rows so they remain deselectable.
+- Rows sort by the exact displayed milestone title with a UUID tie-breaker. Terminal rows are dimmed/struck through and show their status; selected rows carry the native selected accessibility trait.
+- Changing the project filter clears milestone selection.
 
 ### DashboardView Milestone Filter
 - In-memory filter: `selectedMilestones` passed to `DashboardLogic.buildFilteredColumns`

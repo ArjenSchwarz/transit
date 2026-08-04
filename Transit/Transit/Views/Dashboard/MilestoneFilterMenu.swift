@@ -6,16 +6,16 @@ struct MilestoneFilterMenu: View {
     let selectedProjectIDs: Set<UUID>
     @Binding var selectedMilestones: Set<UUID>
 
-    // Observe every milestone so local mutations, MCP calls, and CloudKit imports
-    // refresh an already-presented menu. Project scoping stays in memory because
-    // the dynamic selected-project set cannot be expressed by a CloudKit-safe
-    // SwiftData predicate, while terminal selections must remain observable.
-    @Query(sort: \Milestone.name) private var allMilestones: [Milestone]
+    // Load-bearing observation: do not replace this with a service snapshot.
+    // It refreshes an already-presented menu after local, MCP, or CloudKit changes.
+    // Project scoping stays in memory because the dynamic selected-project set cannot
+    // be expressed by a CloudKit-safe SwiftData predicate while retaining terminal rows.
+    @Query private var allMilestones: [Milestone]
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     @State private var showPopover = false
 
-    private var availableMilestones: [Milestone] {
+    private var milestoneOptions: [Milestone] {
         Self.availableMilestones(
             milestones: allMilestones,
             projects: projects,
@@ -25,9 +25,11 @@ struct MilestoneFilterMenu: View {
     }
 
     var body: some View {
+        let options = milestoneOptions
         if Self.shouldShowMenu(
-            availableMilestones: availableMilestones,
-            selectedMilestones: selectedMilestones
+            availableMilestones: options,
+            selectedMilestones: selectedMilestones,
+            isPresented: showPopover
         ) {
             Button { showPopover.toggle() } label: { filterLabel }
                 .accessibilityIdentifier("dashboard.filter.milestones")
@@ -36,7 +38,7 @@ struct MilestoneFilterMenu: View {
                 .popover(isPresented: $showPopover) {
                     List {
                         Section {
-                            toggleContent
+                            toggleContent(options)
                         }
                         clearSection
                     }
@@ -46,7 +48,7 @@ struct MilestoneFilterMenu: View {
                 .sheet(isPresented: $showPopover) {
                     NavigationStack {
                         List {
-                            toggleContent
+                            toggleContent(options)
                             clearSection
                         }
                         .navigationTitle("Milestones")
@@ -65,8 +67,8 @@ struct MilestoneFilterMenu: View {
     }
 
     @ViewBuilder
-    private var toggleContent: some View {
-        ForEach(availableMilestones) { milestone in
+    private func toggleContent(_ milestones: [Milestone]) -> some View {
+        ForEach(milestones) { milestone in
             Button {
                 $selectedMilestones.contains(milestone.id).wrappedValue.toggle()
             } label: {
@@ -137,8 +139,12 @@ struct MilestoneFilterMenu: View {
         }
     }
 
-    static func shouldShowMenu(availableMilestones: [Milestone], selectedMilestones: Set<UUID>) -> Bool {
-        !availableMilestones.isEmpty || !selectedMilestones.isEmpty
+    static func shouldShowMenu(
+        availableMilestones: [Milestone],
+        selectedMilestones: Set<UUID>,
+        isPresented: Bool = false
+    ) -> Bool {
+        isPresented || !availableMilestones.isEmpty || !selectedMilestones.isEmpty
     }
 
     static func availableMilestones(
@@ -175,17 +181,14 @@ struct MilestoneFilterMenu: View {
         _ milestones: [Milestone],
         selectedProjectIDs: Set<UUID>
     ) -> [Milestone] {
-        milestones.sorted { lhs, rhs in
-            let titleOrder = milestoneTitle(
-                for: lhs,
-                selectedProjectIDs: selectedProjectIDs
-            ).localizedCaseInsensitiveCompare(milestoneTitle(
-                for: rhs,
-                selectedProjectIDs: selectedProjectIDs
-            ))
-            if titleOrder != .orderedSame { return titleOrder == .orderedAscending }
-            return lhs.id.uuidString < rhs.id.uuidString
+        let titledMilestones = milestones.map {
+            (title: milestoneTitle(for: $0, selectedProjectIDs: selectedProjectIDs), milestone: $0)
         }
+        return titledMilestones.sorted { lhs, rhs in
+            let titleOrder = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
+            if titleOrder != .orderedSame { return titleOrder == .orderedAscending }
+            return lhs.milestone.id.uuidString < rhs.milestone.id.uuidString
+        }.map(\.milestone)
     }
 
     nonisolated static func visibleMilestoneIDs(

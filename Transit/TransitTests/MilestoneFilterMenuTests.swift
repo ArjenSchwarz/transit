@@ -22,6 +22,13 @@ struct MilestoneFilterMenuTests {
         #expect(MilestoneFilterMenu.shouldShowMenu(availableMilestones: [], selectedMilestones: []) == false)
     }
 
+    @Test func menuRemainsMountedWhilePresentedAfterClearingLastSelection() {
+        #expect(MilestoneFilterMenu.shouldShowMenu(
+            availableMilestones: [],
+            selectedMilestones: [],
+            isPresented: true
+        ))
+    }
     @Test func visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones() {
         let firstOpenID = UUID()
         let secondOpenID = UUID()

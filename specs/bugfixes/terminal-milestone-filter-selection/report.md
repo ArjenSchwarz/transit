@@ -45,9 +45,9 @@ A selected dashboard milestone disappeared from `MilestoneFilterMenu` after it t
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/MilestoneFilterMenuTests.swift`
-**Test names:** `visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones`, `availableMilestonesHandlesPersistedStatusTransitionWithDeterministicTerminalPlacement`, `multiProjectOrderingMatchesDisplayedMilestoneTitles`, `deletedSelectedMilestoneLeavesMenuAvailableForClear`, `accessibilityLabelsIncludeTerminalStatusWithoutSelectionDuplication`
+**Test names:** `visibleMilestoneIDsPreservesOpenOrderAndDeduplicatesSelectedMilestones`, `availableMilestonesHandlesPersistedStatusTransitionWithDeterministicTerminalPlacement`, `multiProjectOrderingMatchesDisplayedMilestoneTitles`, `deletedSelectedMilestoneLeavesMenuAvailableForClear`, `menuRemainsMountedWhilePresentedAfterClearingLastSelection`, `accessibilityLabelsIncludeTerminalStatusWithoutSelectionDuplication`
 
-**What it verifies:** A fresh SwiftData snapshot sees an open selected milestone move into the selected-terminal suffix after a persisted Done transition; open rows stay first in deterministic order; multi-project ordering matches displayed titles; another project is excluded; deleting a selected record preserves access to Clear; and labels contain one title plus optional terminal status while only selected rows receive the native selection trait.
+**What it verifies:** A fresh SwiftData snapshot sees an open selected milestone move into the selected-terminal suffix after a persisted Done transition; open rows stay first in deterministic order; multi-project ordering matches displayed titles; another project is excluded; deleting a selected record preserves access to Clear; clearing the final selection retains an open presentation; and labels contain one title plus optional terminal status.
 
 **Run command:** `make test-quick`
 
@@ -70,7 +70,7 @@ A selected dashboard milestone disappeared from `MilestoneFilterMenu` after it t
 - [ ] Full `make test-ui` exceeded the five-minute command harness after completing UI execution. It reported unchanged failures in `TransitUITests.testClearAll`, `TransitUITests.testEditViewPreservesTaskMilestone`, and `DataMaintenanceUITests.testDataMaintenanceGoldenPath`; the unchanged `TransitUITests.testMilestoneFilterMenu` passed.
 
 **Manual verification:**
-- Confirmed the persisted transition regression, multi-project title ordering, deleted-selection Clear behavior, and accessibility label contract cover the filter's state contracts.
+- Confirmed the persisted transition regression, multi-project title ordering, deleted-selection Clear behavior, presented-menu lifecycle behavior, and accessibility label contract cover the filter's state contracts.
 - A new UI transition assertion was not retained: XCTest cannot reliably query a SwiftUI list row's updated accessibility state while the sheet remains presented, and a second sheet round trip destabilizes the seeded board assertion. The existing milestone filter UI flow passes, while focused unit coverage verifies the data and accessibility contracts directly.
 
 ## Prevention
