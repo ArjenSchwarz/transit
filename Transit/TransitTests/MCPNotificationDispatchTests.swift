@@ -159,54 +159,14 @@ struct MCPNotificationDispatchTests {
     private func respond(
         handler: MCPToolHandler,
         body: String
-    ) async throws -> NotificationCapturedResponse {
-        let responder = MCPServer.makeRouter(handler: handler).buildResponder()
-        let request = Request(
-            head: HTTPRequest(
-                method: .post,
-                scheme: "http",
-                authority: "127.0.0.1:3141",
-                path: "/mcp",
-                headerFields: [.contentType: "application/json"]
-            ),
-            body: RequestBody(buffer: ByteBuffer(string: body))
+    ) async throws -> MCPHTTPTestResponse {
+        try await MCPTestHelpers.respond(
+            handler: handler,
+            contentType: "application/json",
+            body: body,
+            loggerLabel: "mcp-notification-dispatch-tests"
         )
-
-        let channel = EmbeddedChannel()
-        defer { _ = try? channel.finish() }
-        let context = BasicRequestContext(
-            source: ApplicationRequestContextSource(
-                channel: channel,
-                logger: Logger(label: "mcp-notification-dispatch-tests")
-            )
-        )
-
-        let response = try await responder.respond(to: request, context: context)
-        let writer = NotificationCollatedResponseWriter()
-        try await response.body.write(writer)
-        let data = Data(buffer: writer.collated.withLockedValue { $0 })
-        return NotificationCapturedResponse(status: response.status, body: data)
     }
-}
-
-private nonisolated struct NotificationCapturedResponse {
-    let status: HTTPResponse.Status
-    let body: Data
-
-    var json: Any? {
-        guard !body.isEmpty else { return nil }
-        return try? JSONSerialization.jsonObject(with: body)
-    }
-}
-
-private nonisolated final class NotificationCollatedResponseWriter: ResponseBodyWriter {
-    let collated = NIOLockedValueBox(ByteBuffer())
-
-    func write(_ buffer: ByteBuffer) async throws {
-        collated.withLockedValue { $0.writeImmutableBuffer(buffer) }
-    }
-
-    func finish(_: HTTPFields?) async throws {}
 }
 
 #endif

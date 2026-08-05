@@ -57,7 +57,10 @@ The current implementation corrects the causation chain by dispatching all valid
 
 | File | Change |
 |------|--------|
-| `Transit/TransitTests/MCPNotificationDispatchTests.swift` | Direct, HTTP, and ordered mixed-batch mutation notification regressions. |
+| `Transit/TransitTests/MCPHTTPTestHelpers.swift` | Shared in-process HTTP request/response harness for MCP route, batch, and notification tests. |
+| `Transit/TransitTests/MCPNotificationDispatchTests.swift` | Direct, HTTP, ordered mixed-batch mutation, and batched lifecycle-notification regressions. |
+| `Transit/TransitTests/MCPServerBatchRequestTests.swift` | Migrated batch transport tests to the shared harness. |
+| `Transit/TransitTests/MCPServerRouteTests.swift` | Migrated route transport tests to the shared harness. |
 | `specs/bugfixes/mcp-notifications-acknowledged-without-executing/report.md` | Investigation and resolution record. |
 | `CHANGELOG.md` | Unreleased T-1820 regression-coverage entry. |
 

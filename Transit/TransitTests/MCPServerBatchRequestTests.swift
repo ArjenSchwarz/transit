@@ -200,7 +200,7 @@ struct MCPServerBatchRequestTests {
 
     // MARK: - Helpers
 
-    private func respond(body: String) async throws -> CapturedResponse {
+    private func respond(body: String) async throws -> MCPHTTPTestResponse {
         let env = try MCPTestHelpers.makeEnv()
         return try await respond(handler: env.handler, body: body)
     }
@@ -208,58 +208,14 @@ struct MCPServerBatchRequestTests {
     private func respond(
         handler: MCPToolHandler,
         body: String
-    ) async throws -> CapturedResponse {
-        let responder = MCPServer.makeRouter(handler: handler).buildResponder()
-        let request = Request(
-            head: HTTPRequest(
-                method: .post,
-                scheme: "http",
-                authority: "127.0.0.1:3141",
-                path: "/mcp",
-                headerFields: [.contentType: "application/json"]
-            ),
-            body: RequestBody(buffer: ByteBuffer(string: body))
-        )
-
-        let channel = EmbeddedChannel()
-        defer { _ = try? channel.finish() }
-        let context = BasicRequestContext(
-            source: ApplicationRequestContextSource(
-                channel: channel, logger: Logger(label: "mcp-batch-tests")
-            )
-        )
-
-        let response = try await responder.respond(to: request, context: context)
-        let writer = CollatedResponseWriter()
-        try await response.body.write(writer)
-        let data = Data(buffer: writer.collated.withLockedValue { $0 })
-        return CapturedResponse(
-            status: response.status,
-            contentType: response.headers[.contentType],
-            body: data
+    ) async throws -> MCPHTTPTestResponse {
+        try await MCPTestHelpers.respond(
+            handler: handler,
+            contentType: "application/json",
+            body: body,
+            loggerLabel: "mcp-batch-tests"
         )
     }
-}
-
-private nonisolated struct CapturedResponse {
-    let status: HTTPResponse.Status
-    let contentType: String?
-    let body: Data
-
-    var json: Any? {
-        guard !body.isEmpty else { return nil }
-        return try? JSONSerialization.jsonObject(with: body)
-    }
-}
-
-private nonisolated final class CollatedResponseWriter: ResponseBodyWriter {
-    let collated = NIOLockedValueBox(ByteBuffer())
-
-    func write(_ buffer: ByteBuffer) async throws {
-        collated.withLockedValue { $0.writeImmutableBuffer(buffer) }
-    }
-
-    func finish(_: HTTPFields?) async throws {}
 }
 
 #endif
