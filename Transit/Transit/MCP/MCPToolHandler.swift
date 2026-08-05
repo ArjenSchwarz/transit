@@ -881,7 +881,13 @@ extension MCPToolHandler {
         // [T-665, T-788].
         switch parseProjectIdArgument(args) {
         case .failure(.message(let message)): return .error(message)
-        case .success(let pid?): return .resolved(pid)
+        case .success(let pid?):
+            switch projectService.findProject(id: pid) {
+            case .success(let project):
+                return .resolved(project.id)
+            case .failure(let error):
+                return .error(IntentHelpers.mapProjectLookupError(error).hint)
+            }
         case .success(nil):
             // Reject non-string `project` filter [T-1116].
             if args["project"] != nil, !(args["project"] is String) {
