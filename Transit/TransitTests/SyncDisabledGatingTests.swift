@@ -63,6 +63,78 @@ struct SyncDisabledGatingTests {
         #expect(id == 7)
     }
 
+    private enum InjectedContainerFailure: Error { case primaryCreationFailed }
+
+    @Test("Fallback container outcome disables counters while preserving interactive writes")
+    func fallbackOutcomeDisablesCounterUseWhileInteractiveWritesRemainAvailable() async throws {
+        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
+        let config = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: true,
+            cloudKitDatabase: .none
+        )
+        let outcome = ContainerFactory.makeContainer(schema: schema, configuration: config) { _, _ in
+            throw InjectedContainerFailure.primaryCreationFailed
+        }
+        #expect(outcome.error != nil, "The test must derive its mode from a real fallback outcome")
+
+        let syncManager = SyncManager()
+        syncManager.recordActiveCloudSync(true)
+        let cloudSyncActive = CloudSyncBootstrap.effectiveActiveCloudSync(
+            requestedCloudSyncActive: syncManager.isCloudSyncActive,
+            containerOutcome: outcome
+        )
+        syncManager.recordActiveCloudSync(cloudSyncActive)
+        #expect(syncManager.isCloudSyncActive == false)
+
+        let testContainer = try TestModelContainer()
+        let context = testContainer.context
+        let project = makeProject(in: context)
+        let taskStore = InMemoryCounterStore(initialNextDisplayID: 1)
+        let milestoneStore = InMemoryCounterStore(initialNextDisplayID: 1)
+        let taskAllocator = DisplayIDAllocator(store: taskStore, isCloudSyncActive: cloudSyncActive)
+        let milestoneAllocator = DisplayIDAllocator(store: milestoneStore, isCloudSyncActive: cloudSyncActive)
+        let taskService = TaskService(modelContext: context, displayIDAllocator: taskAllocator)
+        let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator)
+
+        let task = try await taskService.createTask(
+            name: "Interactive fallback task", description: nil, type: .feature, project: project
+        )
+        let milestone = try await milestoneService.createMilestone(
+            name: "Interactive fallback milestone", description: nil, project: project
+        )
+        await taskAllocator.promoteProvisionalTasks(in: context)
+        await milestoneService.promoteProvisionalMilestones()
+
+        #expect(task.permanentDisplayId == nil, "Interactive fallback writes remain provisional")
+        #expect(milestone.permanentDisplayId == nil, "Interactive fallback writes remain provisional")
+        let taskStoreUntouched = await taskStore.wasNeverAccessed
+        let milestoneStoreUntouched = await milestoneStore.wasNeverAccessed
+        #expect(taskStoreUntouched, "Fallback mode must never read the task counter")
+        #expect(milestoneStoreUntouched, "Fallback mode must never read the milestone counter")
+    }
+
+    @Test("Bootstrap derivation preserves active and preference-disabled modes after a healthy outcome")
+    func bootstrapDerivationPreservesHealthyModes() {
+        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
+        let config = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: true,
+            cloudKitDatabase: .none
+        )
+        let outcome = ContainerFactory.makeContainer(schema: schema, configuration: config)
+        #expect(outcome.error == nil)
+
+        #expect(CloudSyncBootstrap.effectiveActiveCloudSync(
+            requestedCloudSyncActive: true,
+            containerOutcome: outcome
+        ))
+        #expect(CloudSyncBootstrap.effectiveActiveCloudSync(
+            requestedCloudSyncActive: false,
+            containerOutcome: outcome
+        ) == false)
+    }
+
     @Test
     func promoteProvisionalTasks_withCloudSyncInactive_leavesTasksProvisional() async throws {
         let testContainer = try TestModelContainer()

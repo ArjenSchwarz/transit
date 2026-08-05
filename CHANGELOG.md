@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+- T-1936: When the primary SwiftData store cannot open, Transit now derives the effective CloudKit mode from `ContainerFactory`’s fallback outcome rather than retaining the requested sync preference. It records sync inactive before constructing display-ID allocators and promotion wiring, so temporary interactive task/milestone writes remain provisional and cannot advance CloudKit counters. Existing fallback automation-write restrictions and healthy/preference-disabled launch behavior are unchanged.
 ## [Unreleased]
 
 - T-1820: MCP JSON-RPC notification regressions now prove that valid mutating `tools/call` notifications execute their normal side effects while suppressing only their response. Coverage spans direct handler dispatch, successful and failing single HTTP notifications that return 202/no body, ordered mixed batches where a following valid request observes the mutation while notification failures remain response-suppressed, and a batched `initialize` notification that cannot block the following valid request. The MCP route, batch, and notification suites now share one in-process HTTP transport harness. Explicit-null invalid requests, standalone lifecycle rules, all-notification HTTP semantics, and valid request responses remain covered.
