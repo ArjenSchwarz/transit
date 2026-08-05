@@ -123,6 +123,46 @@ nonisolated struct TaskEditSnapshot: EditSnapshot {
 /// (T-1817).
 typealias TaskEditMerge = EditMerge<TaskEditSnapshot>
 
+// MARK: - Save State
+
+/// The project part of the task editor's save preflight.
+///
+/// The picker stores an ID while its options are live SwiftData models. A remote
+/// delete can leave the ID intact after its model disappears, so a non-nil ID is
+/// not enough to make an edit saveable.
+nonisolated struct TaskEditProjectSelectionState: Equatable {
+    let selectedProjectID: UUID?
+    let resolvedProjectID: UUID?
+
+    var isResolved: Bool {
+        guard let selectedProjectID else { return false }
+        return selectedProjectID == resolvedProjectID
+    }
+
+    var errorMessage: String {
+        if selectedProjectID == nil {
+            "Choose a project before saving."
+        } else {
+            "The selected project is no longer available. Choose another project and try again."
+        }
+    }
+
+    /// Persistent in-form recovery guidance for a Save control that is
+    /// intentionally disabled while the picker selection cannot be resolved.
+    var recoveryMessage: String? {
+        isResolved ? nil : errorMessage
+    }
+
+    var recoveryAccessibilityLabel: String? {
+        guard let recoveryMessage else { return nil }
+        return "Project selection error. \(recoveryMessage)"
+    }
+
+    var recoveryAccessibilityHint: String? {
+        recoveryMessage == nil ? nil : "Select an available project to enable Save."
+    }
+}
+
 // MARK: - Applier
 
 /// Writes the fields a `TaskEditMerge` marks as changed, routing every mutation
@@ -132,6 +172,17 @@ typealias TaskEditMerge = EditMerge<TaskEditSnapshot>
 /// commit the whole edit with a single `modelContext.save()` and roll it back as
 /// a unit on failure.
 struct TaskEditApplier {
+    nonisolated enum Error: Swift.Error, Equatable, LocalizedError {
+        case projectNotResolved
+
+        var errorDescription: String? {
+            switch self {
+            case .projectNotResolved:
+                "The selected project is no longer available."
+            }
+        }
+    }
+
     let taskService: TaskService
     let milestoneService: MilestoneService
 
@@ -142,9 +193,16 @@ struct TaskEditApplier {
         project: Project?,
         milestone: Milestone?
     ) throws {
-        // Moving project clears the milestone (Decision 6), so it goes first.
-        if merge.changed(.project), let project, task.project?.id != project.id {
-            try taskService.changeProject(task: task, to: project, save: false)
+        // A changed project must be represented by a live model. Failing before
+        // any other field is applied preserves the caller's atomic rollback.
+        if merge.changed(.project) {
+            guard let project, project.id == edited.projectID else {
+                throw Error.projectNotResolved
+            }
+            // Moving project clears the milestone (Decision 6), so it goes first.
+            if task.project?.id != project.id {
+                try taskService.changeProject(task: task, to: project, save: false)
+            }
         }
 
         // Unchanged fields are passed as nil, which `updateTask` reads as

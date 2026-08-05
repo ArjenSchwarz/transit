@@ -54,14 +54,14 @@ struct TaskEditTestEnv {
         _ merge: TaskEditMerge,
         edited: TaskEditSnapshot,
         to task: TransitTask,
-        project overrideProject: Project? = nil,
+        project: Project? = nil,
         milestone: Milestone? = nil
     ) throws {
         try applier.apply(
             merge,
             edited: edited,
             to: task,
-            project: overrideProject ?? project,
+            project: project,
             milestone: milestone
         )
     }

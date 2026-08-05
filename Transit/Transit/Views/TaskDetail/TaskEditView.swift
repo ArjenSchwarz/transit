@@ -16,7 +16,7 @@ struct TaskEditView: View {
     @State private var selectedType: TaskType = .feature
     @State private var selectedPriority: TaskPriority = .medium
     @State private var selectedStatus: TaskStatus = .idea
-    @State private var selectedProjectID: UUID?
+    @State var selectedProjectID: UUID?
     @State private var selectedMilestone: Milestone?
     @State private var metadata: [String: String] = [:]
     @State private var selectedDetent: PresentationDetent = .large
@@ -32,7 +32,7 @@ struct TaskEditView: View {
     /// changed. Presence drives the conflict alert.
     @State private var pendingConflict: TaskEditMerge?
 
-    private var selectedProject: Project? {
+    var selectedProject: Project? {
         guard let id = selectedProjectID else { return nil }
         return projects.first { $0.id == id }
     }
@@ -46,7 +46,7 @@ struct TaskEditView: View {
     }
 
     private var canSave: Bool {
-        !name.trimmedForFormInput().isEmpty && selectedProjectID != nil
+        !name.trimmedForFormInput().isEmpty && projectSelectionState.isResolved
     }
 
     var body: some View {
@@ -136,6 +136,8 @@ extension TaskEditView {
                 selectedMilestone = nil
             }
 
+            projectSelectionRecovery
+
             Picker("Milestone", selection: $selectedMilestone.milestoneID(from: availableMilestones)) {
                 Text("None").tag(nil as UUID?)
                 ForEach(availableMilestones) { milestone in
@@ -161,7 +163,7 @@ extension TaskEditView {
 
 #if os(macOS)
 extension TaskEditView {
-    fileprivate static let labelWidth: CGFloat = 90
+    static let labelWidth: CGFloat = 90
 
     fileprivate var macOSForm: some View {
         ScrollView {
@@ -216,6 +218,8 @@ extension TaskEditView {
                                 selectedMilestone = nil
                             }
                         }
+
+                        macOSProjectSelectionRecovery
 
                         FormRow("Milestone", labelWidth: Self.labelWidth) {
                             Picker("", selection: $selectedMilestone.milestoneID(from: availableMilestones)) {
@@ -333,6 +337,10 @@ extension TaskEditView {
     /// Saves only when any conflict consent still matches the shown values.
     fileprivate func save(consentingTo shownConflict: TaskEditMerge? = nil) {
         guard let merge = currentMerge(), !merge.edited.name.isEmpty else { return }
+        guard projectSelectionState.isResolved, let project = selectedProject else {
+            errorMessage = projectSelectionState.errorMessage
+            return
+        }
         guard merge.hasChanges else {
             dismissAll()
             return
@@ -353,7 +361,7 @@ extension TaskEditView {
                     merge,
                     edited: merge.edited,
                     to: task,
-                    project: selectedProject,
+                    project: project,
                     milestone: selectedMilestone
                 )
             }
