@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var categoryHistory: [SettingsCategory] = [.general]
     @State private var historyIndex = 0
     @State private var isNavigatingHistory = false
+    @State private var mcpPortChangeCoordinator = MCPPortChangeCoordinator()
     #endif
 
     var body: some View {
@@ -315,20 +316,26 @@ extension SettingsView {
     fileprivate enum MCPLifecycleRequest {
         case start
         case stop
-        case restart
     }
 
-    /// Submits a lifecycle request without tracking it. `MCPServer` already
-    /// coalesces overlapping requests onto its latest desired state, so the
-    /// view has nothing useful to cancel.
+    /// Submits an enable/disable request without tracking it. `MCPServer`
+    /// serializes overlapping requests onto its latest desired state.
     fileprivate func scheduleMCP(_ request: MCPLifecycleRequest) {
         let port = mcpSettings.port
         Task { @MainActor in
             switch request {
             case .start: await mcpServer.start(port: port)
             case .stop: await mcpServer.stop()
-            case .restart: await mcpServer.restart(port: port)
             }
+        }
+    }
+
+    fileprivate func scheduleCommittedMCPPortChange(_ port: Int) {
+        mcpPortChangeCoordinator.enqueueCommittedPort(
+            port,
+            isEnabled: mcpSettings.isEnabled
+        ) { port in
+            await mcpServer.start(port: port)
         }
     }
 
@@ -341,10 +348,12 @@ extension SettingsView {
                         .labelsHidden()
                         .toggleStyle(.switch)
                         .onChange(of: mcpSettings.isEnabled) { _, enabled in
-                            scheduleMCP(enabled ? .start : .stop)
                             if enabled {
+                                scheduleMCP(.start)
                                 syncManager.startHeartbeat(context: modelContext)
                             } else {
+                                mcpPortChangeCoordinator.cancelPendingPortChange()
+                                scheduleMCP(.stop)
                                 syncManager.stopHeartbeat()
                             }
                         }
@@ -353,8 +362,8 @@ extension SettingsView {
                     FormRow("Port", labelWidth: Self.labelWidth) {
                         TextField("", value: $settings.port, format: .number)
                             .frame(width: 80)
-                            .onSubmit {
-                                scheduleMCP(.restart)
+                            .onChange(of: mcpSettings.port) { _, port in
+                                scheduleCommittedMCPPortChange(port)
                             }
                     }
                     FormRow("Status", labelWidth: Self.labelWidth) {
@@ -369,10 +378,13 @@ extension SettingsView {
                             }
                         }
                     }
-                    if MCPSettings.isValidPort(mcpSettings.port) {
+                    if let setupPort = MCPPortChangeState.setupCommandPort(
+                        isEnabled: mcpSettings.isEnabled,
+                        activeListenerPort: mcpServer.activePort
+                    ) {
                         FormRow("Setup", labelWidth: Self.labelWidth) {
                             let command =
-                                "claude mcp add transit --transport http http://localhost:\(mcpSettings.port)/mcp"
+                                "claude mcp add transit --transport http http://localhost:\(setupPort)/mcp"
                             Text(command)
                                 .font(.caption.monospaced())
                                 .textSelection(.enabled)
@@ -384,6 +396,11 @@ extension SettingsView {
                     Toggle("Expose maintenance tools", isOn: $settings.maintenanceToolsEnabled)
                         .toggleStyle(.switch)
                 }
+            }
+        }
+        .onDisappear {
+            Task { @MainActor in
+                await mcpPortChangeCoordinator.flushPendingPortChange()
             }
         }
     }

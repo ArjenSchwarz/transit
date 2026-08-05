@@ -1,11 +1,11 @@
 # Bugfix Report: MCP Port Listener Alignment
 
 **Date:** 2026-08-05
-**Status:** Investigating
+**Status:** Fixed
 
 ## Description of the Issue
 
-The macOS MCP Settings port field persists a numeric value when the field commits, including when it loses focus or Settings closes. The running MCP listener is restarted only by the TextField's `onSubmit` handler. Consequently, a focus-loss commit persists and advertises a new port while the embedded MCP server remains bound to its previous port.
+The macOS MCP Settings port field persisted a numeric value when the field committed, including when it lost focus or Settings closed. The running MCP listener restarted only from the TextField's `onSubmit` handler. Consequently, a focus-loss commit persisted and advertised a new port while the embedded MCP server remained bound to its previous port.
 
 **Reproduction steps:**
 1. Enable the MCP server and wait for it to listen on its configured port.
@@ -13,7 +13,7 @@ The macOS MCP Settings port field persists a numeric value when the field commit
 3. Click elsewhere or close Settings without pressing Return.
 4. Observe that the setup command uses the persisted new port while the live listener remains on the old port.
 
-**Impact:** Agents following the displayed setup command cannot connect until a later restart or app relaunch. The persisted configuration and active runtime state are misleadingly divergent.
+**Impact:** Agents following the displayed setup command could not connect until a later restart or app relaunch. The persisted configuration and active runtime state were misleadingly divergent.
 
 ## Investigation Summary
 
@@ -21,43 +21,53 @@ The macOS MCP Settings port field persists a numeric value when the field commit
 
 Expected behavior is that every committed enabled-server port value converges through the existing serialized MCP lifecycle coordinator, regardless of whether commit came from Return or focus loss. The setup command must describe the active listener, not an un-applied draft.
 
-Actual behavior is limited to `TextField.onSubmit`, so focus-loss commits receive no lifecycle request. No runtime error is emitted because the old listener remains healthy.
+Actual behavior was limited to `TextField.onSubmit`, so focus-loss commits received no lifecycle request. No runtime error was emitted because the old listener remained healthy.
 
 ### Phase 2 — Systematic inspection
 
-- `Transit/Transit/Views/Settings/SettingsView.swift` binds the port directly to `MCPSettings.port` and calls `scheduleMCP(.restart)` only from `onSubmit`.
+- `Transit/Transit/Views/Settings/SettingsView.swift` bound the port directly to `MCPSettings.port` and called `scheduleMCP(.restart)` only from `onSubmit`.
 - `Transit/Transit/MCP/MCPSettings.swift` persists every binding update through `didSet`, independently of listener state.
-- `Transit/Transit/MCP/MCPServer.swift` already has a desired-state coordinator: `start(port:)` validates ports, coalesces duplicate desired states, tears down old listeners before binding a replacement, and stops for invalid ports.
-- `SettingsView` renders the setup command directly from the persisted `mcpSettings.port`, which can differ from the active listener during an un-applied or in-flight change.
+- `Transit/Transit/MCP/MCPServer.swift` already had a desired-state coordinator: `start(port:)` validates ports, coalesces duplicate desired states, tears down old listeners before binding a replacement, and stops for invalid ports.
+- `SettingsView` rendered the setup command directly from the persisted `mcpSettings.port`, which could differ from the active listener during an un-applied or in-flight change.
 
 ### Phase 3 — Root cause analysis
 
-1. Why does focus loss leave the old listener bound? The lifecycle request exists only in `onSubmit`.
-2. Why does the displayed command change anyway? The `TextField` binding commits directly to UserDefaults-backed `MCPSettings.port`.
-3. Why is there no recovery? No observation translates that committed setting change into the server lifecycle's desired state.
-4. Why can an agent be directed incorrectly? The command uses persisted configuration rather than the server's active listener port.
+1. Why did focus loss leave the old listener bound? The lifecycle request existed only in `onSubmit`.
+2. Why did the displayed command change anyway? The `TextField` binding committed directly to UserDefaults-backed `MCPSettings.port`.
+3. Why was there no recovery? No observation translated that committed setting change into the server lifecycle's desired state.
+4. Why could an agent be directed incorrectly? The command used persisted configuration rather than the server's active listener port.
 
-**Root cause:** The Settings UI treats submit as the only port-commit signal and displays the persisted draft as if it were a confirmed listener address.
+**Root cause:** The Settings UI treated submit as the only port-commit signal and displayed the persisted draft as if it were a confirmed listener address.
 
 **Defect type:** Missing state synchronization / UI lifecycle integration.
 
-**Contributing factors:** The asynchronous lifecycle coalescer was added after the original UI behavior; it supports safe convergence but was not wired to all TextField commit paths.
+**Contributing factors:** The asynchronous lifecycle coalescer was added after the original UI behavior; it supported safe convergence but was not wired to all TextField commit paths.
 
 ### Phase 4 — Solution and verification plan
 
-Use a small, testable coordinator/state object to coalesce committed port values before sending them to the existing `MCPServer.start(port:)` desired-state coordinator. Observe the binding through `onChange`, remove the duplicate `onSubmit` restart route, cancel pending work when the server is disabled, and flush a committed pending value on view teardown. Render setup only from `MCPServer.activePort` while enabled.
+A small, testable coordinator/state object coalesces committed port values before sending them to `MCPServer.start(port:)`. The view observes the binding through `onChange`, removes the duplicate `onSubmit` restart route, cancels pending work when the server is disabled, and flushes a committed pending value when the MCP section disappears. Setup is rendered only from `MCPServer.activePort` while enabled.
 
-This preserves existing invalid-port behavior (`start(port:)` transitions to invalid and releases any listener), prevents disabled settings edits from starting a listener, and lets the lifecycle coordinator serialize final restart work.
+This preserves invalid-port behavior (`start(port:)` transitions to invalid and releases any listener), prevents disabled settings edits from starting a listener, and lets the existing lifecycle coordinator serialize final restart work.
 
 ## Resolution for the Issue
 
-Pending implementation.
+**Changes made:**
+- `Transit/Transit/MCP/MCPPortChangeCoordinator.swift` — Added pure `MCPPortChangeState` plus a MainActor debounce coordinator that drops disabled work, deduplicates the latest committed port, flushes teardown work, and delegates application to the existing lifecycle coordinator.
+- `Transit/Transit/MCP/MCPServer.swift` — Exposed `activePort` from the listener owned by the lifecycle coordinator.
+- `Transit/Transit/Views/Settings/SettingsView.swift` — Replaced submit-only restart behavior with observed committed-port scheduling; cancellation on disable; teardown flushing; and active-port setup rendering.
+- `Transit/TransitTests/MCPPortChangeCoordinatorTests.swift` — Added state and live loopback listener regression coverage.
+- `specs/mcp-server/implementation.md` — Marked the obsolete port-change limitation as resolved.
+
+**Approach rationale:** Reusing `MCPServer.start(port:)` preserves its single desired-state reconciliation path, including graceful listener handoff and invalid-port handling. A separate coordinator only manages UI timing and does not duplicate listener lifecycle logic.
+
+**Alternatives considered:**
+- Explicit Apply button — rejected because it retains a persisted-but-not-running configuration state and adds an avoidable user action.
+- Restart solely from `onSubmit` — rejected because focus loss and Settings closure commit bindings without submitting.
+- Render setup from the persisted port — rejected because it can advertise an address before the corresponding listener is active.
 
 ## Regression Test
 
-**Test files:**
-- `Transit/TransitTests/MCPPortChangeCoordinatorTests.swift`
-- `Transit/TransitTests/MCPServerLifecycleTests.swift`
+**Test file:** `Transit/TransitTests/MCPPortChangeCoordinatorTests.swift`
 
 **Test names:**
 - `committedPortQueuesOnlyTheLatestDistinctEnabledValue`
@@ -73,22 +83,22 @@ Pending implementation.
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Views/Settings/SettingsView.swift` | Observe committed port changes and present the active listener endpoint. |
-| `Transit/Transit/MCP/MCPServer.swift` | Expose the active listener port to Settings. |
-| `Transit/Transit/MCP/MCPPortChangeCoordinator.swift` | New testable port-change state and debounced coordinator. |
-| `Transit/TransitTests/MCPPortChangeCoordinatorTests.swift` | Coordinator-state regressions. |
-| `Transit/TransitTests/MCPServerLifecycleTests.swift` | Focus-loss live-listener regression. |
+| `Transit/Transit/MCP/MCPPortChangeCoordinator.swift` | New testable port state and coordinator. |
+| `Transit/Transit/MCP/MCPServer.swift` | Exposes active listener port. |
+| `Transit/Transit/Views/Settings/SettingsView.swift` | Observes committed ports and renders the active endpoint. |
+| `Transit/TransitTests/MCPPortChangeCoordinatorTests.swift` | State and live-listener regressions. |
+| `specs/mcp-server/implementation.md` | Documents resolved behavior. |
 
 ## Verification
 
 **Automated:**
-- [x] Regression tests are red before implementation: `make test-quick` fails because the new coordinator/state and active-port contract do not exist.
-- [ ] Regression tests pass
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression tests were red before implementation: `make test-quick` failed because the new coordinator/state and active-port contract did not exist.
+- [x] Regression tests pass: `make test-quick`.
+- [x] Strict lint and the ModelContainer ownership guard pass: `make lint`.
+- [ ] Full iOS suite is inconclusive: two `make test` attempts timed out. The second reached execution and reported unrelated UI failures in `testClearAll`, `testEditViewPreservesTaskMilestone`, and `testDataMaintenanceGoldenPath` before timeout; T-1821 is compiled only on macOS.
 
 **Manual verification:**
-- Pending implementation.
+- The live loopback regression starts the server, simulates a focus-loss committed port without `onSubmit`, flushes the coordinator, proves the replacement port accepts connections, and proves the old port is released.
 
 ## Prevention
 

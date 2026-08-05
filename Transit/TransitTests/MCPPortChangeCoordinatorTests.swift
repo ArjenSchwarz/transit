@@ -10,9 +10,13 @@ struct MCPPortChangeCoordinatorTests {
     @Test func committedPortQueuesOnlyTheLatestDistinctEnabledValue() {
         var state = MCPPortChangeState()
 
-        #expect(state.enqueueCommittedPort(3142, isEnabled: true))
-        #expect(!state.enqueueCommittedPort(3142, isEnabled: true))
-        #expect(state.enqueueCommittedPort(3143, isEnabled: true))
+        let queuedFirst = state.enqueueCommittedPort(3142, isEnabled: true)
+        let queuedDuplicate = state.enqueueCommittedPort(3142, isEnabled: true)
+        let queuedLatest = state.enqueueCommittedPort(3143, isEnabled: true)
+
+        #expect(queuedFirst)
+        #expect(!queuedDuplicate)
+        #expect(queuedLatest)
         #expect(state.takePendingPort() == 3143)
         #expect(state.takePendingPort() == nil)
     }
@@ -20,10 +24,12 @@ struct MCPPortChangeCoordinatorTests {
     @Test func disabledServerDoesNotQueuePortChangeOrStartLater() {
         var state = MCPPortChangeState()
 
-        #expect(!state.enqueueCommittedPort(3142, isEnabled: false))
+        let queuedWhileDisabled = state.enqueueCommittedPort(3142, isEnabled: false)
+        #expect(!queuedWhileDisabled)
         #expect(state.takePendingPort() == nil)
 
-        #expect(state.enqueueCommittedPort(3142, isEnabled: true))
+        let queuedWhileEnabled = state.enqueueCommittedPort(3142, isEnabled: true)
+        #expect(queuedWhileEnabled)
         state.cancelPendingPort()
         #expect(state.takePendingPort() == nil)
     }
@@ -51,7 +57,7 @@ struct MCPPortChangeCoordinatorTests {
 }
 
 @MainActor @Suite(.serialized)
-struct MCPPortChangeCoordinatorLiveListenerTests {
+struct MCPPortChangeLiveTests {
 
     @Test func focusLossPortCommitReplacesLiveListenerWithoutSubmit() async throws {
         let env = try MCPTestHelpers.makeEnv()

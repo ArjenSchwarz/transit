@@ -27,8 +27,8 @@ final class MCPServer {
     private var activeServer: ActiveServer?
     private var nextRunID = 0
     private var serverGeneration = 0
-
     var isRunning: Bool { activeServer != nil }
+    var activePort: Int? { activeServer?.port }
 
     /// A human-readable reason the server is not running, or `nil` when the
     /// server is running or was stopped intentionally. Set when the configured
