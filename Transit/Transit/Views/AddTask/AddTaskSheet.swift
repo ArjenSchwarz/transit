@@ -289,8 +289,8 @@ struct AddTaskSheet: View {
             from: projects, current: selectedProjectID
         )
         errorMessage = nil
-        // A pending cancellation still owns its task handle, so only a
-        // successful dismissal may reset the lifecycle for the next open.
+        // Reset form fields for every presentation. A pending cancellation still
+        // owns its task handle, so this leaves Save disabled until it settles.
         saveLifecycle.resetAfterSuccessfulDismissal()
     }
     #endif

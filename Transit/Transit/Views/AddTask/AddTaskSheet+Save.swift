@@ -28,10 +28,11 @@ extension AddTaskSheet {
         let task = Task { @MainActor in
             do {
                 try await Self.persist(draft: draft, taskService: taskService)
-                try Task.checkCancellation()
 
-                // Record success before dismissal so this view's resulting
-                // disappearance cannot cancel an operation that persisted.
+                // TaskService checks cancellation immediately before insertion.
+                // Both this continuation and `onDisappear` run on MainActor with
+                // no suspension here, so a returning persist is committed success.
+                // Record it before dismissal so disappearance cannot cancel it.
                 guard saveLifecycle.completeSave() else { return }
                 saveTask = nil
                 dismiss()
