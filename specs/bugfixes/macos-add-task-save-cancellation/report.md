@@ -57,6 +57,8 @@ The macOS Add Task view had no retained save-task handle or state transition for
 
 **What it verifies:** A deterministic `AllocationGatedCounterStore` test cancels while display-ID allocation is suspended and proves `CancellationError` plus zero persisted tasks. Companion lifecycle tests prove successful dismissal is not cancelled, a reused window cannot start a replacement save until cancellation settles, and a genuine failure reenables retry.
 
+**Test scope:** These unit tests intentionally exercise the lifecycle state machine and `TaskService` persistence boundary rather than instantiate `AddTaskSheet` and drive its SwiftUI `@State` / `@Environment` action wiring. They do not independently prove the retained `saveTask` and `onDisappear` calls; those remain integration behavior compiled with the view.
+
 **Run command:** `make test-quick`
 
 ## Affected Files
