@@ -21,8 +21,23 @@ struct AddTaskSheet: View {
     @State private var selectedProjectID: UUID?
     @State var selectedMilestone: Milestone?
     @State private var selectedDetent: PresentationDetent = .large
-    @State var isSaving = false
+    @State var saveLifecycle = AddTaskSaveLifecycle()
+    @State var saveTask: Task<Void, Never>?
     @State var errorMessage: String?
+
+    var isSaving: Bool {
+        saveLifecycle.blocksDismissal
+    }
+
+    /// This remains disabled while a prior cancellation unwinds so a newly
+    /// presented form cannot accept a Save action that cannot start yet.
+    var isSaveActionDisabled: Bool {
+        saveLifecycle.blocksSaveAction
+    }
+
+    var saveButtonTitle: String {
+        saveLifecycle.isCancellationPending ? "Cancelling…" : "Save"
+    }
 
     var selectedProject: Project? {
         guard let id = selectedProjectID else { return nil }
@@ -68,15 +83,15 @@ struct AddTaskSheet: View {
                 #endif
                 ToolbarItem(placement: .confirmationAction) {
                     #if os(macOS)
-                    Button("Save") {
-                        Task { await save() }
+                    Button(saveButtonTitle) {
+                        save()
                     }
-                    .disabled(!canSave || isSaving)
+                    .disabled(!canSave || isSaveActionDisabled)
                     #else
-                    Button("Save", systemImage: "checkmark") {
-                        Task { await save() }
+                    Button(saveButtonTitle, systemImage: "checkmark") {
+                        save()
                     }
-                    .disabled(!canSave || isSaving)
+                    .disabled(!canSave || isSaveActionDisabled)
                     #endif
                 }
             }
@@ -113,6 +128,7 @@ struct AddTaskSheet: View {
                 selectedMilestone = nil
             }
         }
+        .onDisappear { cancelSaveForDisappearance() }
     }
 
     // MARK: - iOS Layout
@@ -273,7 +289,9 @@ struct AddTaskSheet: View {
             from: projects, current: selectedProjectID
         )
         errorMessage = nil
-        isSaving = false
+        // Reset form fields for every presentation. A pending cancellation still
+        // owns its task handle, so this leaves Save disabled until it settles.
+        saveLifecycle.resetAfterSuccessfulDismissal()
     }
     #endif
 

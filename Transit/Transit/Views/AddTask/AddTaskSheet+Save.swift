@@ -1,11 +1,15 @@
 import SwiftData
 import SwiftUI
 
+/// Ties the shared creation lifecycle to Add Task terminology at its call sites
+/// and in the regression suite.
+typealias AddTaskSaveLifecycle = CreateSaveLifecycle
+
 // MARK: - Actions
 
 extension AddTaskSheet {
 
-    func save() async {
+    func save() {
         guard let project = selectedProject else { return }
         let trimmedName = name.trimmedForFormInput()
         guard !trimmedName.isEmpty else { return }
@@ -19,19 +23,45 @@ extension AddTaskSheet {
             projectID: project.id,
             milestone: selectedMilestone
         )
+        guard saveLifecycle.beginSave() else { return }
 
-        isSaving = true
-        defer { isSaving = false }
+        let task = Task { @MainActor in
+            do {
+                try await Self.persist(draft: draft, taskService: taskService)
 
-        do {
-            try await Self.persist(
-                draft: draft,
-                taskService: taskService
-            )
-            dismiss()
-        } catch {
-            errorMessage = error.localizedDescription
+                // TaskService checks cancellation immediately before insertion.
+                // Both this continuation and `onDisappear` run on MainActor with
+                // no suspension here, so a returning persist is committed success.
+                // Record it before dismissal so disappearance cannot cancel it.
+                guard saveLifecycle.completeSave() else {
+                    assertionFailure("Persisted Add Task must still own its save lifecycle")
+                    return
+                }
+                saveTask = nil
+                dismiss()
+            } catch is CancellationError {
+                finishCancelledSave()
+            } catch {
+                if Task.isCancelled {
+                    finishCancelledSave()
+                } else {
+                    saveLifecycle.completeFailure()
+                    saveTask = nil
+                    errorMessage = error.localizedDescription
+                }
+            }
         }
+        saveTask = task
+    }
+
+    func cancelSaveForDisappearance() {
+        guard saveLifecycle.cancelForDisappearance() else { return }
+        saveTask?.cancel()
+    }
+
+    func finishCancelledSave() {
+        saveLifecycle.completeCancellation()
+        saveTask = nil
     }
 
     /// Fields collected by the New Task form, ready to be persisted.
