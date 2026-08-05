@@ -1,12 +1,6 @@
 #if os(macOS)
 import Foundation
 import HTTPTypes
-import Hummingbird
-import Logging
-import NIOConcurrencyHelpers
-import NIOCore
-import NIOEmbedded
-import NIOFoundationCompat
 import SwiftData
 import Testing
 @testable import Transit
