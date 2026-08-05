@@ -863,10 +863,12 @@ extension MCPToolHandler {
             let formatter = ISO8601DateFormatter()
             let dict = milestoneToDict(milestone, formatter: formatter, detailed: true)
             return textResult(IntentHelpers.encodeJSONArray([dict]))
+        } catch MilestoneService.Error.milestoneNotFound {
+            return textResult(IntentHelpers.encodeJSONArray([]))
         } catch MilestoneService.Error.duplicateDisplayID {
             return errorResult("Duplicate milestone identifier detected for displayId \(displayId)")
         } catch {
-            return textResult(IntentHelpers.encodeJSONArray([]))
+            return errorResult("Failed to look up milestone: \(error)")
         }
     }
 
