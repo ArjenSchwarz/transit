@@ -46,10 +46,11 @@ The current implementation corrects the causation chain by dispatching all valid
 **Test names:**
 - `directToolCallNotificationExecutesMutationButSuppressesResponse`
 - `singleToolCallNotificationOverHTTPExecutesMutationWithAcceptedNoBody`
+- `singleToolCallFailureNotificationOverHTTPIsAcceptedWithNoBody`
 - `mixedBatchExecutesNotificationBeforeRequestAndSuppressesNotificationFailures`
 - `batchedInitializeNotificationIsSuppressedAndDoesNotBlockFollowingRequest`
 
-**What they verify:** A no-ID mutation executes through the handler and returns no response; a single HTTP notification persists an `add_comment` mutation while returning HTTP 202/no body; a mixed batch applies its notification status mutation before a valid request observes it and suppresses both successful and failed notification responses; and a batched `initialize` notification remains response-suppressed without preventing the following request from completing.
+**What they verify:** A no-ID mutation executes through the handler and returns no response; successful and failing single HTTP notifications both return HTTP 202/no body, with the successful `add_comment` notification persisting its mutation; a mixed batch applies its notification status mutation before a valid request observes it and suppresses both successful and failed notification responses; and a batched `initialize` notification remains response-suppressed without preventing the following request from completing.
 
 **Run command:** `make test-quick`
 
@@ -58,7 +59,7 @@ The current implementation corrects the causation chain by dispatching all valid
 | File | Change |
 |------|--------|
 | `Transit/TransitTests/MCPHTTPTestHelpers.swift` | Shared in-process HTTP request/response harness for MCP route, batch, and notification tests. |
-| `Transit/TransitTests/MCPNotificationDispatchTests.swift` | Direct, HTTP, ordered mixed-batch mutation, and batched lifecycle-notification regressions. |
+| `Transit/TransitTests/MCPNotificationDispatchTests.swift` | Direct, successful and failing single HTTP, ordered mixed-batch mutation, and batched lifecycle-notification regressions. |
 | `Transit/TransitTests/MCPServerBatchRequestTests.swift` | Migrated batch transport tests to the shared harness. |
 | `Transit/TransitTests/MCPServerRouteTests.swift` | Migrated route transport tests to the shared harness. |
 | `specs/bugfixes/mcp-notifications-acknowledged-without-executing/report.md` | Investigation and resolution record. |

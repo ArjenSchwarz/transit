@@ -70,6 +70,21 @@ struct MCPNotificationDispatchTests {
         #expect(comments.map(\.content) == ["Created over HTTP"])
     }
 
+    @Test func singleToolCallFailureNotificationOverHTTPIsAcceptedWithNoBody() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = try await respond(handler: env.handler, body: """
+        {
+          "jsonrpc":"2.0",
+          "method":"tools/call",
+          "params":{"name":"not_a_real_tool","arguments":{}}
+        }
+        """)
+
+        #expect(response.status == .accepted)
+        #expect(response.body.isEmpty, "Notification errors must not produce a JSON-RPC response")
+    }
+
     @Test func mixedBatchExecutesNotificationBeforeRequestAndSuppressesNotificationFailures() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
