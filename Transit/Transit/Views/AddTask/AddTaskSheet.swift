@@ -21,7 +21,7 @@ struct AddTaskSheet: View {
     @State private var selectedProjectID: UUID?
     @State var selectedMilestone: Milestone?
     @State private var selectedDetent: PresentationDetent = .large
-    @State var saveLifecycle = CreateSaveLifecycle()
+    @State var saveLifecycle = AddTaskSaveLifecycle()
     @State var saveTask: Task<Void, Never>?
     @State var errorMessage: String?
 
