@@ -130,6 +130,32 @@ struct MCPNotificationDispatchTests {
         #expect(task.status == .planning)
     }
 
+    @Test func batchedInitializeNotificationIsSuppressedAndDoesNotBlockFollowingRequest() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+
+        let response = try await respond(handler: env.handler, body: """
+        [
+          {
+            "jsonrpc":"2.0",
+            "method":"initialize",
+            "params":{
+              "protocolVersion":"2025-03-26",
+              "capabilities":{},
+              "clientInfo":{"name":"Test Client","version":"1.0"}
+            }
+          },
+          {"jsonrpc":"2.0","id":"after-initialize","method":"ping"}
+        ]
+        """)
+
+        #expect(response.status == .ok)
+        let objects = try #require(response.json as? [[String: Any]])
+        #expect(objects.count == 1, "The initialize notification must not produce a response")
+        let object = try #require(objects.first)
+        #expect(object["id"] as? String == "after-initialize")
+        #expect(object["result"] != nil, "A rejected lifecycle notification must not block requests after it")
+    }
+
     private func respond(
         handler: MCPToolHandler,
         body: String

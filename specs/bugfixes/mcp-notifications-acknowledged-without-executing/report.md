@@ -47,8 +47,9 @@ The current implementation corrects the causation chain by dispatching all valid
 - `directToolCallNotificationExecutesMutationButSuppressesResponse`
 - `singleToolCallNotificationOverHTTPExecutesMutationWithAcceptedNoBody`
 - `mixedBatchExecutesNotificationBeforeRequestAndSuppressesNotificationFailures`
+- `batchedInitializeNotificationIsSuppressedAndDoesNotBlockFollowingRequest`
 
-**What they verify:** A no-ID mutation executes through the handler and returns no response; a single HTTP notification persists an `add_comment` mutation while returning HTTP 202/no body; a mixed batch applies its notification status mutation before a valid request observes it and suppresses both successful and failed notification responses.
+**What they verify:** A no-ID mutation executes through the handler and returns no response; a single HTTP notification persists an `add_comment` mutation while returning HTTP 202/no body; a mixed batch applies its notification status mutation before a valid request observes it and suppresses both successful and failed notification responses; and a batched `initialize` notification remains response-suppressed without preventing the following request from completing.
 
 **Run command:** `make test-quick`
 
