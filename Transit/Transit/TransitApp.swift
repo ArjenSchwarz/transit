@@ -59,12 +59,15 @@ struct TransitApp: App {
         } else {
             config = syncManager.makeModelConfiguration(schema: schema)
         }
-        // The CloudKit mode the live container actually runs in, fixed for this launch.
-        // Everything that touches the CloudKit display-ID counter gates on this rather
-        // than on `syncManager.isSyncEnabled`, which the user can flip at any time
-        // without the container changing underneath it [T-1797, T-1857].
-        let cloudSyncActive = syncManager.isCloudSyncActive
         let containerResult = ContainerFactory.makeContainer(schema: schema, configuration: config)
+        // A fallback container is always CloudKit-free, even if the requested
+        // configuration enabled sync. Derive and record the effective mode only
+        // after the factory has selected the live container [T-1936].
+        let cloudSyncActive = CloudSyncBootstrap.effectiveActiveCloudSync(
+            requestedCloudSyncActive: syncManager.isCloudSyncActive,
+            containerOutcome: containerResult
+        )
+        syncManager.recordActiveCloudSync(cloudSyncActive)
         let container = containerResult.container
         self.container = container
         self.containerError = containerResult.error
