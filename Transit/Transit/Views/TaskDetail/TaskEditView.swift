@@ -136,6 +136,8 @@ extension TaskEditView {
                 selectedMilestone = nil
             }
 
+            projectSelectionRecovery
+
             Picker("Milestone", selection: $selectedMilestone.milestoneID(from: availableMilestones)) {
                 Text("None").tag(nil as UUID?)
                 ForEach(availableMilestones) { milestone in
@@ -161,7 +163,7 @@ extension TaskEditView {
 
 #if os(macOS)
 extension TaskEditView {
-    fileprivate static let labelWidth: CGFloat = 90
+    static let labelWidth: CGFloat = 90
 
     fileprivate var macOSForm: some View {
         ScrollView {
@@ -216,6 +218,8 @@ extension TaskEditView {
                                 selectedMilestone = nil
                             }
                         }
+
+                        macOSProjectSelectionRecovery
 
                         FormRow("Milestone", labelWidth: Self.labelWidth) {
                             Picker("", selection: $selectedMilestone.milestoneID(from: availableMilestones)) {

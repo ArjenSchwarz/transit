@@ -146,6 +146,21 @@ nonisolated struct TaskEditProjectSelectionState: Equatable {
             "The selected project is no longer available. Choose another project and try again."
         }
     }
+
+    /// Persistent in-form recovery guidance for a Save control that is
+    /// intentionally disabled while the picker selection cannot be resolved.
+    var recoveryMessage: String? {
+        isResolved ? nil : errorMessage
+    }
+
+    var recoveryAccessibilityLabel: String? {
+        guard let recoveryMessage else { return nil }
+        return "Project selection error. \(recoveryMessage)"
+    }
+
+    var recoveryAccessibilityHint: String? {
+        recoveryMessage == nil ? nil : "Select an available project to enable Save."
+    }
 }
 
 // MARK: - Applier

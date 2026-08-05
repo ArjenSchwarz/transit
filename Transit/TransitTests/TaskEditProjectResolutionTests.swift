@@ -57,20 +57,22 @@ struct TaskEditProjectResolutionTests {
         #expect(task.milestone == nil)
     }
 
-    @Test func vanishedProjectSelectionBlocksSaveAndSuppliesRetryableError() {
+    @Test func vanishedProjectSelectionBlocksSaveAndProvidesVisibleAccessibleRecovery() {
         let selection = UUID()
         let state = TaskEditProjectSelectionState(
             selectedProjectID: selection,
             resolvedProjectID: nil
         )
+        let message = "The selected project is no longer available. Choose another project and try again."
 
         #expect(state.isResolved == false)
-        #expect(
-            state.errorMessage == "The selected project is no longer available. Choose another project and try again."
-        )
+        #expect(state.errorMessage == message)
+        #expect(state.recoveryMessage == message)
+        #expect(state.recoveryAccessibilityLabel == "Project selection error. \(message)")
+        #expect(state.recoveryAccessibilityHint == "Select an available project to enable Save.")
     }
 
-    @Test func resolvedProjectSelectionCanSave() {
+    @Test func resolvedProjectSelectionCanSaveAndHidesRecoveryGuidance() {
         let selection = UUID()
         let state = TaskEditProjectSelectionState(
             selectedProjectID: selection,
@@ -78,6 +80,9 @@ struct TaskEditProjectResolutionTests {
         )
 
         #expect(state.isResolved)
+        #expect(state.recoveryMessage == nil)
+        #expect(state.recoveryAccessibilityLabel == nil)
+        #expect(state.recoveryAccessibilityHint == nil)
     }
 
     @Test func unchangedProjectDoesNotRequireAResolvedModelParameter() async throws {
