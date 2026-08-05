@@ -92,6 +92,25 @@ struct AddTaskSaveLifecycleTests {
         #expect(try context.fetch(FetchDescriptor<TransitTask>()).count == 1)
     }
 
+    @Test func cancellationPendingBlocksReplacementSaveUntilOriginalTaskSettles() {
+        var lifecycle = AddTaskSaveLifecycle()
+
+        let didBegin = lifecycle.beginSave()
+        let didRequestCancellation = lifecycle.cancelForDisappearance()
+        #expect(didBegin)
+        #expect(didRequestCancellation)
+        #expect(lifecycle.blocksDismissal == false)
+        #expect(lifecycle.isCancellationPending)
+        #expect(lifecycle.blocksSaveAction)
+        let didBeginReplacementSave = lifecycle.beginSave()
+        #expect(didBeginReplacementSave == false)
+
+        lifecycle.completeCancellation()
+        #expect(lifecycle.blocksSaveAction == false)
+        let didBeginAfterCancellation = lifecycle.beginSave()
+        #expect(didBeginAfterCancellation)
+    }
+
     @Test func failedSaveReenablesDismissalAndRetry() {
         var lifecycle = AddTaskSaveLifecycle()
 

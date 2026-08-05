@@ -31,6 +31,12 @@ nonisolated struct CreateSaveLifecycle: Equatable {
         state == .cancellationPending
     }
 
+    /// Prevents a reused creation view from accepting a replacement save until
+    /// its prior create task has either completed or finished cancellation.
+    var blocksSaveAction: Bool {
+        state != .idle
+    }
+
     /// Starts one create operation. Repeated save actions are ignored while the
     /// current operation owns the lifecycle.
     mutating func beginSave() -> Bool {

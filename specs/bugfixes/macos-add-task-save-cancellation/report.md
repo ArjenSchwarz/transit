@@ -39,7 +39,7 @@ The macOS Add Task view had no retained save-task handle or state transition for
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Views/AddTask/AddTaskSheet.swift` — retains the save task and shared lifecycle, disables existing iOS dismissal affordances from lifecycle state, cancels a pending save on disappearance, and resets the singleton window only after a successful dismissal.
+- `Transit/Transit/Views/AddTask/AddTaskSheet.swift` — retains the save task and shared lifecycle, disables existing iOS dismissal affordances from lifecycle state, cancels a pending save on disappearance, resets the singleton window only after a successful dismissal, and visibly disables replacement Save actions while a cancellation still settles.
 - `Transit/Transit/Views/AddTask/AddTaskSheet+Save.swift` — starts one retained task, completes success before dismissal, suppresses `CancellationError` alerts, and restores error/retry behavior for genuine failures.
 - `Transit/Transit/Views/Shared/CreateSaveLifecycle.swift` — generalizes T-1858's lifecycle state machine and adds success-only reset support for reusable windows.
 - `Transit/Transit/Views/Settings/MilestoneCreateSaveLifecycle.swift` — retains the existing milestone name as a compatibility alias.
@@ -55,7 +55,7 @@ The macOS Add Task view had no retained save-task handle or state transition for
 
 **Test file:** `Transit/TransitTests/AddTaskSaveLifecycleTests.swift`
 
-**What it verifies:** A deterministic `AllocationGatedCounterStore` test cancels while display-ID allocation is suspended and proves `CancellationError` plus zero persisted tasks. Companion lifecycle tests prove successful dismissal is not cancelled and a genuine failure reenables retry.
+**What it verifies:** A deterministic `AllocationGatedCounterStore` test cancels while display-ID allocation is suspended and proves `CancellationError` plus zero persisted tasks. Companion lifecycle tests prove successful dismissal is not cancelled, a reused window cannot start a replacement save until cancellation settles, and a genuine failure reenables retry.
 
 **Run command:** `make test-quick`
 

@@ -29,6 +29,16 @@ struct AddTaskSheet: View {
         saveLifecycle.blocksDismissal
     }
 
+    /// This remains disabled during cancellation unwind so a quickly reopened
+    /// macOS singleton window cannot accept a Save action that cannot start yet.
+    var isSaveActionDisabled: Bool {
+        saveLifecycle.blocksSaveAction
+    }
+
+    var saveButtonTitle: String {
+        saveLifecycle.isCancellationPending ? "Cancelling…" : "Save"
+    }
+
     var selectedProject: Project? {
         guard let id = selectedProjectID else { return nil }
         return projects.first { $0.id == id }
@@ -73,15 +83,15 @@ struct AddTaskSheet: View {
                 #endif
                 ToolbarItem(placement: .confirmationAction) {
                     #if os(macOS)
-                    Button("Save") {
+                    Button(saveButtonTitle) {
                         save()
                     }
-                    .disabled(!canSave || isSaving)
+                    .disabled(!canSave || isSaveActionDisabled)
                     #else
-                    Button("Save", systemImage: "checkmark") {
+                    Button(saveButtonTitle, systemImage: "checkmark") {
                         save()
                     }
-                    .disabled(!canSave || isSaving)
+                    .disabled(!canSave || isSaveActionDisabled)
                     #endif
                 }
             }
