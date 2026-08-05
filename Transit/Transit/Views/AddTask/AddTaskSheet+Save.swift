@@ -33,7 +33,10 @@ extension AddTaskSheet {
                 // Both this continuation and `onDisappear` run on MainActor with
                 // no suspension here, so a returning persist is committed success.
                 // Record it before dismissal so disappearance cannot cancel it.
-                guard saveLifecycle.completeSave() else { return }
+                guard saveLifecycle.completeSave() else {
+                    assertionFailure("Persisted Add Task must still own its save lifecycle")
+                    return
+                }
                 saveTask = nil
                 dismiss()
             } catch is CancellationError {

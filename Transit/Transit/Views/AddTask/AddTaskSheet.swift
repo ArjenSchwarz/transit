@@ -29,8 +29,8 @@ struct AddTaskSheet: View {
         saveLifecycle.blocksDismissal
     }
 
-    /// This remains disabled during cancellation unwind so a quickly reopened
-    /// macOS singleton window cannot accept a Save action that cannot start yet.
+    /// This remains disabled while a prior cancellation unwinds so a newly
+    /// presented form cannot accept a Save action that cannot start yet.
     var isSaveActionDisabled: Bool {
         saveLifecycle.blocksSaveAction
     }
