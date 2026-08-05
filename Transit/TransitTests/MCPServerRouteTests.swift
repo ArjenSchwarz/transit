@@ -1,10 +1,6 @@
 #if os(macOS)
 import Foundation
 import HTTPTypes
-import Hummingbird
-import Logging
-import NIOCore
-import NIOEmbedded
 import Testing
 @testable import Transit
 
@@ -101,11 +97,6 @@ struct MCPServerRouteTests {
         #expect(response.allow == nil)
     }
 
-    private struct RouteResponse {
-        let status: HTTPResponse.Status
-        let allow: String?
-    }
-
     private func respond(
         handler: MCPToolHandler,
         method: HTTPRequest.Method,
@@ -113,33 +104,16 @@ struct MCPServerRouteTests {
         origin: String? = nil,
         host: String = "127.0.0.1:3141",
         body: String = ""
-    ) async throws -> RouteResponse {
-        let responder = MCPServer.makeRouter(handler: handler).buildResponder()
-        var headers = HTTPFields()
-        if let origin {
-            headers[.origin] = origin
-        }
-        let request = Request(
-            head: HTTPRequest(
-                method: method,
-                scheme: "http",
-                authority: host,
-                path: path,
-                headerFields: headers
-            ),
-            body: RequestBody(buffer: ByteBuffer(string: body))
+    ) async throws -> MCPHTTPTestResponse {
+        try await MCPTestHelpers.respond(
+            handler: handler,
+            method: method,
+            path: path,
+            origin: origin,
+            authority: host,
+            body: body,
+            loggerLabel: "mcp-route-tests"
         )
-
-        let channel = EmbeddedChannel()
-        defer { _ = try? channel.finish() }
-        let context = BasicRequestContext(
-            source: ApplicationRequestContextSource(
-                channel: channel, logger: Logger(label: "mcp-route-tests")
-            )
-        )
-
-        let response = try await responder.respond(to: request, context: context)
-        return RouteResponse(status: response.status, allow: response.headers[.allow])
     }
 }
 
