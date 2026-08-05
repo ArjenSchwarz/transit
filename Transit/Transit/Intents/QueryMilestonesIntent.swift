@@ -79,23 +79,12 @@ struct QueryMilestonesIntent: AppIntent {
         // Single-milestone lookup by displayId. Remaining filters still apply conjunctively —
         // a milestone that does not satisfy them is filtered out, mirroring QueryTasksIntent [T-963].
         if json["displayId"] != nil {
-            // Route through IntentHelpers.parseIntValue so JSON booleans (delivered as
-            // NSNumber wrapping CFBoolean) are rejected rather than silently coerced to
-            // 1/0 and targeting M-1/M-0. A plain `as? Int` would accept them. [T-1280]
-            guard let displayId = IntentHelpers.parseIntValue(json["displayId"]) else {
-                return IntentError.invalidInput(hint: "displayId must be an integer").json
-            }
-
-            let milestone: Milestone
-            do {
-                milestone = try milestoneService.findByDisplayID(displayId)
-            } catch MilestoneService.Error.duplicateDisplayID {
-                return IntentHelpers.mapMilestoneError(.duplicateDisplayID).json
-            } catch {
-                return IntentHelpers.encodeJSONArray([])
-            }
-            let filtered = applyFilters(json, to: [milestone], resolvedProjectId: resolvedProjectId)
-            return IntentHelpers.encodeJSONArray(filtered.map { milestoneToDict($0, detailed: true) })
+            return lookupMilestoneByDisplayID(
+                json["displayId"],
+                json: json,
+                milestoneService: milestoneService,
+                resolvedProjectId: resolvedProjectId
+            )
         }
 
         // Fetch all milestones and filter in-memory. Surface storage fetch failures as
@@ -114,6 +103,34 @@ struct QueryMilestonesIntent: AppIntent {
     }
 
     // MARK: - Private Helpers
+
+    @MainActor
+    private static func lookupMilestoneByDisplayID(
+        _ rawDisplayID: Any?,
+        json: [String: Any],
+        milestoneService: MilestoneService,
+        resolvedProjectId: UUID?
+    ) -> String {
+        // Route through IntentHelpers.parseIntValue so JSON booleans (delivered as
+        // NSNumber wrapping CFBoolean) are rejected rather than silently coerced to
+        // 1/0 and targeting M-1/M-0. A plain `as? Int` would accept them. [T-1280]
+        guard let displayId = IntentHelpers.parseIntValue(rawDisplayID) else {
+            return IntentError.invalidInput(hint: "displayId must be an integer").json
+        }
+
+        let milestone: Milestone
+        do {
+            milestone = try milestoneService.findByDisplayID(displayId)
+        } catch MilestoneService.Error.milestoneNotFound {
+            return IntentHelpers.encodeJSONArray([])
+        } catch MilestoneService.Error.duplicateDisplayID {
+            return IntentHelpers.mapMilestoneError(.duplicateDisplayID).json
+        } catch {
+            return IntentError.internalError(hint: "Failed to look up milestone: \(error)").json
+        }
+        let filtered = applyFilters(json, to: [milestone], resolvedProjectId: resolvedProjectId)
+        return IntentHelpers.encodeJSONArray(filtered.map { milestoneToDict($0, detailed: true) })
+    }
 
     private static func parseInput(_ input: String) -> [String: Any]? {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
