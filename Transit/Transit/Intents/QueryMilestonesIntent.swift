@@ -179,7 +179,12 @@ struct QueryMilestonesIntent: AppIntent {
         projectService: ProjectService
     ) -> ProjectFilterResolution {
         if let projectId {
-            return .resolved(projectId)
+            switch projectService.findProject(id: projectId) {
+            case .success(let project):
+                return .resolved(project.id)
+            case .failure(let error):
+                return .error(IntentHelpers.mapProjectLookupError(error))
+            }
         }
         guard let projectName = json["project"] as? String else {
             return .unfiltered
