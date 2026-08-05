@@ -90,7 +90,7 @@ The settings are per-machine (UserDefaults, not CloudKit-synced), which is corre
 
 1. **`isRunning` state mismatch**: If Hummingbird fails to bind (e.g., port already in use), `isRunning` stays `true` because the error is swallowed in the catch block. The UI would show "Running" when the server isn't actually running.
 
-2. **Port change while running**: The settings UI allows changing the port while the server is running, but the change has no effect until the user toggles off and on. There's no automatic restart or UI indication of this.
+2. **Port change while running (resolved in T-1821)**: Settings observes each committed port value, including focus-loss commits, through a debounced coordinator that delegates to `MCPServer`'s existing desired-state lifecycle. Pending work is cancelled when MCP is disabled and flushed when Settings disappears. The setup command uses the active listener port rather than an un-applied persisted value.
 
 3. **Unused `[weak self]` capture**: The `Task.detached` closure in `MCPServer.start()` captures `[weak self]` but never references `self` inside the closure. This is harmless but unnecessary.
 
