@@ -111,7 +111,8 @@ final class SyncManager {
     var isHeartbeatRunning: Bool { heartbeatTask != nil }
 
     /// Starts a 60-second repeating heartbeat that writes to SwiftData,
-    /// triggering CloudKit to pull pending remote changes.
+    /// triggering CloudKit to pull pending remote changes. Scheduling is gated on the
+    /// launch-fixed `isCloudSyncActive` mode, not the mutable sync preference.
     func startHeartbeat(context: ModelContext) {
         stopHeartbeat()
         guard isCloudSyncActive else { return }

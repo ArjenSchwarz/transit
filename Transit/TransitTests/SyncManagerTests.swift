@@ -66,6 +66,21 @@ struct SyncManagerTests {
     // MARK: - T-1937 Regression: heartbeat follows launch mode
 
     @Test
+    func startHeartbeatSchedulesForCloudActiveLaunch() throws {
+        try withSavedDefaults {
+            UserDefaults.standard.set(true, forKey: "syncEnabled")
+            let fixture = try TestModelContainer()
+            let manager = SyncManager()
+            manager.recordActiveCloudSync(true)
+            manager.startHeartbeat(context: fixture.context)
+            defer { manager.stopHeartbeat() }
+
+            #expect(manager.isHeartbeatRunning,
+                    "A CloudKit-active launch must schedule its heartbeat without a preference change")
+        }
+    }
+
+    @Test
     func settingSyncOffKeepsHeartbeatRunningForCloudActiveLaunch() throws {
         try withSavedDefaults {
             UserDefaults.standard.set(true, forKey: "syncEnabled")
