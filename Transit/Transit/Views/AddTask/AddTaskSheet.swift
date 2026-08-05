@@ -21,8 +21,13 @@ struct AddTaskSheet: View {
     @State private var selectedProjectID: UUID?
     @State var selectedMilestone: Milestone?
     @State private var selectedDetent: PresentationDetent = .large
-    @State var isSaving = false
+    @State var saveLifecycle = CreateSaveLifecycle()
+    @State var saveTask: Task<Void, Never>?
     @State var errorMessage: String?
+
+    var isSaving: Bool {
+        saveLifecycle.blocksDismissal
+    }
 
     var selectedProject: Project? {
         guard let id = selectedProjectID else { return nil }
@@ -69,12 +74,12 @@ struct AddTaskSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     #if os(macOS)
                     Button("Save") {
-                        Task { await save() }
+                        save()
                     }
                     .disabled(!canSave || isSaving)
                     #else
                     Button("Save", systemImage: "checkmark") {
-                        Task { await save() }
+                        save()
                     }
                     .disabled(!canSave || isSaving)
                     #endif
@@ -113,6 +118,7 @@ struct AddTaskSheet: View {
                 selectedMilestone = nil
             }
         }
+        .onDisappear { cancelSaveForDisappearance() }
     }
 
     // MARK: - iOS Layout
@@ -273,7 +279,7 @@ struct AddTaskSheet: View {
             from: projects, current: selectedProjectID
         )
         errorMessage = nil
-        isSaving = false
+        saveLifecycle.resetAfterSuccessfulDismissal()
     }
     #endif
 

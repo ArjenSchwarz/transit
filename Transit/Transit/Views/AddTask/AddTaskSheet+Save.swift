@@ -1,11 +1,15 @@
 import SwiftData
 import SwiftUI
 
+/// Ties the shared creation lifecycle to Add Task terminology at its call sites
+/// and in the regression suite.
+typealias AddTaskSaveLifecycle = CreateSaveLifecycle
+
 // MARK: - Actions
 
 extension AddTaskSheet {
 
-    func save() async {
+    func save() {
         guard let project = selectedProject else { return }
         let trimmedName = name.trimmedForFormInput()
         guard !trimmedName.isEmpty else { return }
@@ -19,19 +23,41 @@ extension AddTaskSheet {
             projectID: project.id,
             milestone: selectedMilestone
         )
+        guard saveLifecycle.beginSave() else { return }
 
-        isSaving = true
-        defer { isSaving = false }
+        let task = Task { @MainActor in
+            do {
+                try await Self.persist(draft: draft, taskService: taskService)
+                try Task.checkCancellation()
 
-        do {
-            try await Self.persist(
-                draft: draft,
-                taskService: taskService
-            )
-            dismiss()
-        } catch {
-            errorMessage = error.localizedDescription
+                // Record success before dismissal so this view's resulting
+                // disappearance cannot cancel an operation that persisted.
+                guard saveLifecycle.completeSave() else { return }
+                saveTask = nil
+                dismiss()
+            } catch is CancellationError {
+                finishCancelledSave()
+            } catch {
+                if Task.isCancelled {
+                    finishCancelledSave()
+                } else {
+                    saveLifecycle.completeFailure()
+                    saveTask = nil
+                    errorMessage = error.localizedDescription
+                }
+            }
         }
+        saveTask = task
+    }
+
+    func cancelSaveForDisappearance() {
+        guard saveLifecycle.cancelForDisappearance() else { return }
+        saveTask?.cancel()
+    }
+
+    func finishCancelledSave() {
+        saveLifecycle.completeCancellation()
+        saveTask = nil
     }
 
     /// Fields collected by the New Task form, ready to be persisted.
