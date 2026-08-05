@@ -1,7 +1,7 @@
 # Bugfix Report: Vanished Task Edit Project Selection
 
 **Date:** 2026-08-05
-**Status:** Fixed — unit execution blocked by unrelated MCP-port compilation failures
+**Status:** Fixed — validated
 **Ticket:** T-2018
 
 ## Description of the Issue
@@ -36,7 +36,7 @@
 ## Resolution for the Issue
 
 **Changes made:**
-- `Transit/Transit/Services/TaskEditMerge.swift` — Adds `TaskEditProjectSelectionState` and makes `TaskEditApplier` throw `projectNotResolved` before any mutation when a merge changed the project but no model was supplied. An unchanged project still accepts a nil parameter.
+- `Transit/Transit/Services/TaskEditMerge.swift` — Adds `TaskEditProjectSelectionState` and makes `TaskEditApplier` throw `projectNotResolved` before any mutation when a merge changed the project but no matching live model was supplied. An unchanged project still accepts a nil parameter.
 - `Transit/Transit/Views/TaskDetail/TaskEditView.swift` — Disables Save unless the selected UUID resolves to a current model. Save repeats that preflight before conflict/no-change handling, sets an actionable error, and returns without dismissing when the selection vanished.
 - `Transit/Transit/Views/TaskDetail/TaskEditView+ProjectSelection.swift` — Keeps the resolved-project preflight separate so the main view remains under the enforced file-length limit.
 - `Transit/TransitTests/TaskEditConcurrentUpdateTests.swift` — Lets the shared applier fixture pass a genuine nil project for unchanged-project tests.
@@ -55,6 +55,7 @@
 
 **Tests:**
 - `changedProjectWithoutResolvedModelFailsWithoutSavingAnyEdits` — wraps the applier in the editor's `saveOrRollback` transaction, expects the typed error, and asserts name, project, and milestone remain unchanged.
+- `changedProjectWithMismatchedModelFailsWithoutSavingAnyEdits` — proves a non-nil but wrong project model cannot bypass the edited UUID check or save an unrelated edit.
 - `vanishedProjectSelectionBlocksSaveAndSuppliesRetryableError` — asserts stale UUID/no-model view state is unsaveable and supplies the retryable error.
 - `resolvedProjectSelectionCanSave` — asserts matching ID/model state remains saveable.
 - `unchangedProjectDoesNotRequireAResolvedModelParameter` — asserts unrelated edits succeed with a nil project parameter.
@@ -78,9 +79,10 @@ Existing `TaskEditOrdinaryEditTests.changingProjectClearsMilestone` continues to
 
 **Automated:**
 - [x] `make build-macos` — passed after the final source changes.
-- [ ] Focused unit test — blocked before execution because the shared `TransitTests` target has unrelated MCP-port API compile failures (`MCPPortChangeState`, `MCPPortChangeCoordinator`, and `MCPServer.activePort` are missing).
-- [ ] `make test-quick` — blocked by the same unrelated MCP-port compilation failures. The compiler did compile `TaskEditProjectResolutionTests.swift` before reaching those failures.
-- [ ] `make lint` — the SwiftData ownership guard passed and all T-2018 files lint clean; the command remains blocked by an unrelated pre-existing `type_name` violation in `MCPPortChangeCoordinatorTests.swift`.
+- [x] `make test-quick` — passed (1,316 tests), including the new project-resolution regression.
+- [x] Focused iOS `TransitTests/TaskEditProjectResolutionTests` — passed.
+- [x] `make lint` — passed, including the SwiftData ownership guard.
+- [ ] `make test` — did not complete before the runner limit after reporting unrelated UI failures (`testClearAll`, `testEditViewPreservesTaskMilestone`, and `testDataMaintenanceGoldenPath`). The latter also fails in isolation at `TransitUITests.swift:297`, before the editor opens, while the focused T-2018 iOS suite passes.
 
 **Manual verification:** The stale state is deterministically modelled by `TaskEditProjectSelectionState`; manual UI verification was not performed because the app build validates the production code and the unit target cannot execute until the MCP-port branch work is reconciled.
 

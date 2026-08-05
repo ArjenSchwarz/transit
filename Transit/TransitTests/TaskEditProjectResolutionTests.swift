@@ -30,6 +30,33 @@ struct TaskEditProjectResolutionTests {
         #expect(task.milestone == nil)
     }
 
+    @Test func changedProjectWithMismatchedModelFailsWithoutSavingAnyEdits() async throws {
+        let env = try TaskEditTestEnv.make()
+        let task = try await env.makeTask()
+        let selectedProject = Project(name: "Selected", description: "", gitRepo: nil, colorHex: "#00FF00")
+        let wrongProject = Project(name: "Wrong", description: "", gitRepo: nil, colorHex: "#0000FF")
+        env.context.insert(selectedProject)
+        env.context.insert(wrongProject)
+        try env.context.save()
+
+        let baseline = TaskEditSnapshot(task: task)
+        var edited = baseline
+        edited.name = "Edit that must not persist"
+        edited.projectID = selectedProject.id
+        let merge = TaskEditMerge(original: baseline, edited: edited, live: TaskEditSnapshot(task: task))
+
+        #expect(merge.changedFields == [.name, .project])
+        #expect(throws: TaskEditApplier.Error.projectNotResolved) {
+            try env.context.saveOrRollback {
+                try env.apply(merge, edited: edited, to: task, project: wrongProject)
+            }
+        }
+
+        #expect(task.name == baseline.name)
+        #expect(task.project?.id == env.project.id)
+        #expect(task.milestone == nil)
+    }
+
     @Test func vanishedProjectSelectionBlocksSaveAndSuppliesRetryableError() {
         let selection = UUID()
         let state = TaskEditProjectSelectionState(

@@ -181,7 +181,9 @@ struct TaskEditApplier {
         // A changed project must be represented by a live model. Failing before
         // any other field is applied preserves the caller's atomic rollback.
         if merge.changed(.project) {
-            guard let project else { throw Error.projectNotResolved }
+            guard let project, project.id == edited.projectID else {
+                throw Error.projectNotResolved
+            }
             // Moving project clears the milestone (Decision 6), so it goes first.
             if task.project?.id != project.id {
                 try taskService.changeProject(task: task, to: project, save: false)
