@@ -66,18 +66,14 @@ final class SyncManager {
 
     // MARK: - Public API
 
-    /// Toggles CloudKit sync on or off. Persists the preference to UserDefaults.
-    /// Stops the heartbeat immediately when sync is disabled; re-enabling sync
-    /// does not restart the heartbeat (a new `startHeartbeat` call is needed).
+    /// Toggles CloudKit sync on or off and persists the preference to UserDefaults.
     ///
-    /// Deliberately does **not** touch `isCloudSyncActive`: the live container keeps
-    /// whatever CloudKit mode it launched with until the app is relaunched.
+    /// Deliberately does **not** touch the heartbeat or `isCloudSyncActive`: the live
+    /// container and its heartbeat keep the CloudKit mode they launched with until the
+    /// app is relaunched. Explicit MCP lifecycle operations own heartbeat start/stop.
     func setSyncEnabled(_ enabled: Bool) {
         isSyncEnabled = enabled
         UserDefaults.standard.set(enabled, forKey: Self.syncEnabledKey)
-        if !enabled {
-            stopHeartbeat()
-        }
     }
 
     /// Records the CloudKit mode the live `ModelContainer` was actually created with.
@@ -115,10 +111,11 @@ final class SyncManager {
     var isHeartbeatRunning: Bool { heartbeatTask != nil }
 
     /// Starts a 60-second repeating heartbeat that writes to SwiftData,
-    /// triggering CloudKit to pull pending remote changes.
+    /// triggering CloudKit to pull pending remote changes. Scheduling is gated on the
+    /// launch-fixed `isCloudSyncActive` mode, not the mutable sync preference.
     func startHeartbeat(context: ModelContext) {
-        heartbeatTask?.cancel()
-        guard isSyncEnabled else { return }
+        stopHeartbeat()
+        guard isCloudSyncActive else { return }
 
         heartbeatTask = Task {
             while !Task.isCancelled {

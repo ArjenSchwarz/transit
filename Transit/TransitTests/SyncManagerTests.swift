@@ -63,31 +63,92 @@ struct SyncManagerTests {
         }
     }
 
+    // MARK: - T-1937 Regression: heartbeat follows launch mode
+
     @Test
-    func setSyncEnabled_false_stopsHeartbeat() {
-        withSavedDefaults {
+    func startHeartbeatSchedulesForCloudActiveLaunch() throws {
+        try withSavedDefaults {
+            UserDefaults.standard.set(true, forKey: "syncEnabled")
+            let fixture = try TestModelContainer()
             let manager = SyncManager()
-            // Simulate a running heartbeat by starting one (requires a context,
-            // but we can verify via isHeartbeatRunning after disable).
-            // Even without an active heartbeat, disabling sync must nil the task.
-            manager.setSyncEnabled(false)
-            #expect(manager.isSyncEnabled == false)
-            #expect(manager.isHeartbeatRunning == false)
+            manager.recordActiveCloudSync(true)
+            manager.startHeartbeat(context: fixture.context)
+            defer { manager.stopHeartbeat() }
+
+            #expect(manager.isHeartbeatRunning,
+                    "A CloudKit-active launch must schedule its heartbeat without a preference change")
         }
     }
 
     @Test
-    func setSyncEnabled_reEnable_doesNotRestartHeartbeat() {
-        withSavedDefaults {
+    func settingSyncOffKeepsHeartbeatRunningForCloudActiveLaunch() throws {
+        try withSavedDefaults {
+            UserDefaults.standard.set(true, forKey: "syncEnabled")
+            let fixture = try TestModelContainer()
             let manager = SyncManager()
-            // Disable then re-enable: heartbeat should NOT auto-restart
-            manager.setSyncEnabled(false)
-            #expect(manager.isHeartbeatRunning == false)
+            manager.recordActiveCloudSync(true)
+            manager.startHeartbeat(context: fixture.context)
+            defer { manager.stopHeartbeat() }
 
+            manager.setSyncEnabled(false)
+
+            #expect(manager.isSyncEnabled == false)
+            #expect(manager.syncChangeRequiresRestart)
+            #expect(manager.isHeartbeatRunning,
+                    "A restart-scoped preference change must not stop the active launch heartbeat")
+        }
+    }
+
+    @Test
+    func settingSyncOnDoesNotStartHeartbeatForCloudInactiveLaunch() throws {
+        try withSavedDefaults {
+            UserDefaults.standard.set(false, forKey: "syncEnabled")
+            let fixture = try TestModelContainer()
+            let manager = SyncManager()
+            manager.recordActiveCloudSync(false)
             manager.setSyncEnabled(true)
-            #expect(manager.isSyncEnabled == true)
-            #expect(manager.isHeartbeatRunning == false,
-                    "Re-enabling sync must not restart the heartbeat; a new startHeartbeat call is required")
+            manager.startHeartbeat(context: fixture.context)
+
+            #expect(manager.isSyncEnabled)
+            #expect(manager.syncChangeRequiresRestart)
+            #expect(!manager.isHeartbeatRunning,
+                    "A preference change cannot enable a CloudKit-free container before relaunch")
+        }
+    }
+
+    @Test
+    func revertingSyncPreferenceLeavesActiveLaunchHeartbeatRunning() throws {
+        try withSavedDefaults {
+            UserDefaults.standard.set(true, forKey: "syncEnabled")
+            let fixture = try TestModelContainer()
+            let manager = SyncManager()
+            manager.recordActiveCloudSync(true)
+            manager.startHeartbeat(context: fixture.context)
+            defer { manager.stopHeartbeat() }
+
+            manager.setSyncEnabled(false)
+            manager.setSyncEnabled(true)
+
+            #expect(!manager.syncChangeRequiresRestart)
+            #expect(manager.isHeartbeatRunning,
+                    "Reverting the preference must leave the launch-scoped heartbeat unchanged")
+        }
+    }
+
+    @Test
+    func explicitHeartbeatStopStillControlsActiveLaunchLifecycle() throws {
+        try withSavedDefaults {
+            UserDefaults.standard.set(true, forKey: "syncEnabled")
+            let fixture = try TestModelContainer()
+            let manager = SyncManager()
+            manager.recordActiveCloudSync(true)
+            manager.startHeartbeat(context: fixture.context)
+            manager.setSyncEnabled(false)
+
+            manager.stopHeartbeat()
+
+            #expect(!manager.isHeartbeatRunning,
+                    "Explicit MCP lifecycle shutdown must still stop the heartbeat")
         }
     }
 
