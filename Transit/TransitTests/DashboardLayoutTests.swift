@@ -4,11 +4,10 @@ import Testing
 
 @MainActor
 struct DashboardLayoutTests {
-    @Test(arguments: [320, 375, 390, 400, 428, 599])
-    func compactPortraitUsesSingleColumnAtEveryWidth(width: Int) {
+    @Test(arguments: [320, 375, 390, 399])
+    func narrowPhonePortraitUsesSingleColumn(width: Int) {
         let layout = DashboardLayoutLogic.layout(
             width: CGFloat(width),
-            horizontalSizeClass: .compact,
             verticalSizeClass: .regular,
             isPhone: true
         )
@@ -16,10 +15,30 @@ struct DashboardLayoutTests {
         #expect(layout == .singleColumn)
     }
 
+    @Test(arguments: [400, 428, 599])
+    func widePhonePortraitUsesTwoColumnKanban(width: Int) {
+        let layout = DashboardLayoutLogic.layout(
+            width: CGFloat(width),
+            verticalSizeClass: .regular,
+            isPhone: true
+        )
+
+        #expect(layout == .kanban(visibleCount: 2, initialScrollTarget: nil))
+    }
+
+    @Test func widerPhonePortraitUsesThreeColumnKanban() {
+        let layout = DashboardLayoutLogic.layout(
+            width: 600,
+            verticalSizeClass: .regular,
+            isPhone: true
+        )
+
+        #expect(layout == .kanban(visibleCount: 3, initialScrollTarget: nil))
+    }
+
     @Test func compactWidthRegularHeightUsesGeometryAdaptationForWideIPadSplitView() {
         let layout = DashboardLayoutLogic.layout(
             width: 500,
-            horizontalSizeClass: .compact,
             verticalSizeClass: .regular,
             isPhone: false
         )
@@ -30,7 +49,6 @@ struct DashboardLayoutTests {
     @Test func narrowIPadSplitViewFallsBackToSingleColumn() {
         let layout = DashboardLayoutLogic.layout(
             width: 199,
-            horizontalSizeClass: .compact,
             verticalSizeClass: .regular,
             isPhone: false
         )
@@ -41,7 +59,6 @@ struct DashboardLayoutTests {
     @Test func compactHeightRetainsLandscapeGeometryAdaptation() {
         let layout = DashboardLayoutLogic.layout(
             width: 400,
-            horizontalSizeClass: .compact,
             verticalSizeClass: .compact,
             isPhone: true
         )
@@ -49,10 +66,9 @@ struct DashboardLayoutTests {
         #expect(layout == .kanban(visibleCount: 2, initialScrollTarget: .planning))
     }
 
-    @Test func regularWidthCompactHeightRetainsPhoneLandscapeAdaptation() {
+    @Test func widePhoneLandscapeRetainsThreeColumnCap() {
         let layout = DashboardLayoutLogic.layout(
             width: 800,
-            horizontalSizeClass: .regular,
             verticalSizeClass: .compact,
             isPhone: true
         )
@@ -63,7 +79,6 @@ struct DashboardLayoutTests {
     @Test func regularIPadWidthRetainsGeometryAdaptation() {
         let layout = DashboardLayoutLogic.layout(
             width: 600,
-            horizontalSizeClass: .regular,
             verticalSizeClass: .regular,
             isPhone: false
         )
@@ -74,7 +89,6 @@ struct DashboardLayoutTests {
     @Test func regularMacWidthRetainsGeometryAdaptationAndCapsAtFiveColumns() {
         let layout = DashboardLayoutLogic.layout(
             width: 1_200,
-            horizontalSizeClass: nil,
             verticalSizeClass: nil,
             isPhone: false
         )
@@ -82,25 +96,20 @@ struct DashboardLayoutTests {
         #expect(layout == .kanban(visibleCount: 5, initialScrollTarget: nil))
     }
 
-    @Test func missingSizeClassesRetainWidthBasedPreviewFallback() {
+    @Test func missingVerticalSizeClassRetainsWidthBasedFallback() {
         let layout = DashboardLayoutLogic.layout(
             width: 400,
-            horizontalSizeClass: nil,
-            verticalSizeClass: nil,
-            isPhone: false
-        )
-
-        #expect(layout == .kanban(visibleCount: 2, initialScrollTarget: nil))
-    }
-
-    @Test func missingVerticalSizeClassDoesNotAssumePortrait() {
-        let layout = DashboardLayoutLogic.layout(
-            width: 400,
-            horizontalSizeClass: .compact,
             verticalSizeClass: nil,
             isPhone: true
         )
 
         #expect(layout == .kanban(visibleCount: 2, initialScrollTarget: nil))
+    }
+
+    @Test func narrowFallbackUsesShortLabelsAndDefaultsToActive() {
+        let labels = DashboardColumn.allCases.map { $0.primaryStatus.shortLabel }
+
+        #expect(labels == ["Idea", "Plan", "Spec", "Active", "Done"])
+        #expect(DashboardLayoutLogic.defaultSingleColumn == .inProgress)
     }
 }

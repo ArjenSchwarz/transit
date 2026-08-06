@@ -176,7 +176,7 @@ A filter button in the dashboard navigation bar opens a popover listing all proj
 
 A "Clear" action resets the filter to show all projects.
 
-The filter applies to all columns including the counts shown in column headers and the iPhone segmented control.
+The filter applies to all columns including the counts shown in column headers and, when active, the segmented single-column fallback.
 
 Filter state is ephemeral — it resets on app launch or tab switch. No need to persist it.
 
@@ -429,15 +429,13 @@ The MCP Apps spec requires servers to provide text-only fallback for all UI-enab
 ## Platform Layout
 
 ### iPhone — Portrait
-Single column visible at a time. A segmented control below the navigation bar shows all five status categories with task counts. Tapping a segment switches the visible column. Default segment on launch: **In Progress** ("Active" in the compact label).
-
-Short labels used in the segmented control: Idea, Plan, Spec, Active, Done.
+The dashboard adapts to available width using a 200-point minimum column width. Wide portrait displays show the multi-column Kanban board; only widths where one column fits use the segmented control. The segmented fallback shows Idea, Plan, Spec, Active, and Done with task counts and defaults to **In Progress** ("Active").
 
 ### iPhone — Landscape
-Three columns visible at a time. Swipe left/right to reveal additional columns. Default columns on launch: **Planning / Spec / In Progress**.
+Up to three columns are visible at a time. Swipe left/right to reveal additional columns. Default columns on launch: **Planning / Spec / In Progress**.
 
 ### iPad and Mac
-Full five-column view. All statuses visible simultaneously.
+The column count adapts to the window width, up to all five columns. Windows narrow enough for one column use the same segmented fallback.
 
 ---
 
@@ -562,10 +560,10 @@ Decisions made during the design phase, including alternatives that were conside
 - Scrollable single row with search — keeps the visual feel but adds complexity.
 **Rationale:** A dropdown is the most iOS-native pattern, takes up a single row regardless of project count, and the color dot preserves visual identification. For the Add Task sheet where you're picking one project, you don't need to see them all at once.
 
-### iPhone column navigation
-**Decision:** Segmented control with status names and task counts, defaulting to "Active" (In Progress).
-**Alternative considered:** Horizontal swipe between columns.
-**Rationale:** A segmented control gives immediate visibility into task distribution across all statuses. Swipe-based navigation hides the other columns entirely. The counts in each segment provide useful ambient information about where work is accumulating.
+### Narrow-layout column navigation
+**Decision:** When available width fits only one 200-point column, use a segmented control with status names and task counts, defaulting to "Active" (In Progress). Wider layouts retain the Kanban board.
+**Alternative considered:** Horizontal swipe between single columns without a visible selector.
+**Rationale:** The segmented fallback keeps every status discoverable when multiple readable columns cannot fit. It must not replace the Kanban board when two or more columns fit.
 
 ### Visual design direction
 **Decision:** Liquid Glass design targeting iOS 26+. Light mode uses system grouped background with translucent glass cards. Dark mode uses true black with subtle glass surfaces. Project-colored borders on task cards (1.5pt) as the primary visual identification.

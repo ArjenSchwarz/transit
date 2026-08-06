@@ -7,9 +7,9 @@
 
 ### DashboardView
 - Root view, displayed on every launch
-- Uses `DashboardLayoutLogic` with a 200pt minimum column width and horizontal/vertical size classes
-- Phone portrait (`.compact` width + `.regular` height) always uses `SingleColumnView`; iPad/macOS use width-based geometry, falling back to `SingleColumnView` only when one 200pt column fits
-- Phone landscape (including regular-width phone landscape) caps at 3 columns and defaults scroll to Planning
+- Uses `DashboardLayoutLogic` with a 200pt minimum column width and vertical size class
+- All platforms, including iPhone portrait, use width-based geometry; widths at or above 400pt retain the multi-column Kanban board, while narrower layouts use `SingleColumnView`
+- Phone landscape caps at 3 columns and defaults scroll to Planning
 - `@Query` for allTasks and projects — reactive data from SwiftData
 - `selectedProjectIDs: Set<UUID>` is ephemeral (resets on launch)
 - `buildFilteredColumns()` is a static method for testability
@@ -107,6 +107,6 @@ Implemented in `DashboardView.buildFilteredColumns()`:
 ### Gotchas
 - Always use `.contentShape(.rect)` on views with `.dropDestination` that contain Spacers or ScrollViews
 - Avoid `.scrollTargetBehavior(.paging)` with drag-and-drop — use `.viewAligned` instead
-- On iPhone portrait, cross-column drag requires the segmented control overlay (no other visible drop targets)
+- In the narrow segmented fallback, cross-column drag requires the segmented control overlay because no other columns are visible; wide portrait Kanban layouts use normal column drop targets
 - macOS window toolbar defaults to opaque background; use `.toolbarBackgroundVisibility(.hidden, for: .windowToolbar)` to make it transparent. iOS inline navigation bars are automatically translucent with Liquid Glass.
 - When adding state to services shared across scenes (like `QuickActionService`), always scope by scene session ID for iPadOS multi-window. Avoid global booleans that any scene can race to consume.

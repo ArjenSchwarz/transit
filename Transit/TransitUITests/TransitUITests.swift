@@ -177,7 +177,7 @@ final class TransitUITests: XCTestCase {
     // MARK: - Default Segment
 
     @MainActor
-    func testIPhonePortraitDefaultsToActiveSegment() throws {
+    func testIPhonePortraitUsesWidthBasedDashboardLayout() throws {
         #if os(iOS)
         let originalOrientation = XCUIDevice.shared.orientation
         XCUIDevice.shared.orientation = .portrait
@@ -188,16 +188,26 @@ final class TransitUITests: XCTestCase {
         }
         #endif
         let app = launchApp()
+        let window = app.windows.firstMatch
+        XCTAssertTrue(window.waitForExistence(timeout: 5))
+        let portraitExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate { object, _ in
+                guard let element = object as? XCUIElement else { return false }
+                return element.frame.height > element.frame.width
+            },
+            object: window
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [portraitExpectation], timeout: 5), .completed)
 
-        // [req 13.1, 13.3] Every compact-width portrait layout uses the
-        // segmented single-column dashboard and defaults to "Active".
         let segmentedControl = app.segmentedControls.firstMatch
-        XCTAssertTrue(segmentedControl.waitForExistence(timeout: 5))
-        let activeSegment = segmentedControl.buttons.matching(
-            NSPredicate(format: "label CONTAINS 'Active'")
-        ).firstMatch
-        XCTAssertTrue(activeSegment.exists)
-        XCTAssertTrue(activeSegment.isSelected)
+        XCTAssertGreaterThanOrEqual(
+            window.frame.width,
+            400,
+            "The standard iPhone 17 UI destination must exercise the wide portrait Kanban path"
+        )
+        XCTAssertFalse(segmentedControl.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Idea"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Planning"].exists)
     }
 
     // MARK: - Filter Menus

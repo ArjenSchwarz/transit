@@ -139,7 +139,7 @@ This document defines the requirements for the complete V1 implementation. The d
 1. <a name="9.1"></a>WHEN the user taps the filter button, the system SHALL present a popover listing all projects with checkboxes
 2. <a name="9.2"></a>The system SHALL support selecting multiple projects simultaneously (OR logic — show tasks from any selected project)
 3. <a name="9.3"></a>WHEN a filter is active, the filter button SHALL display the count of selected projects
-4. <a name="9.4"></a>The filter SHALL apply to all columns including task counts in column headers (per [5.9](#5.9)) and the iPhone segmented control
+4. <a name="9.4"></a>The filter SHALL apply to all columns including task counts in column headers (per [5.9](#5.9)) and the segmented single-column fallback
 5. <a name="9.5"></a>The popover SHALL include a "Clear" action that resets the filter to show all projects
 6. <a name="9.6"></a>Filter state SHALL be ephemeral — it SHALL reset on app launch
 
@@ -203,13 +203,13 @@ This document defines the requirements for the complete V1 implementation. The d
 
 **Acceptance Criteria:**
 
-1. <a name="13.1"></a>On iPhone in portrait orientation, the system SHALL display a segmented control below the navigation bar showing five status categories with task counts, with one column visible at a time
-2. <a name="13.2"></a>The iPhone segmented control SHALL use short labels: Idea, Plan, Spec, Active, Done
-3. <a name="13.3"></a>The iPhone default segment on launch SHALL be "Active" (In Progress)
-4. <a name="13.4"></a>On iPhone in landscape orientation, the system SHALL display three columns visible at a time with horizontal swipe to reveal additional columns
+1. <a name="13.1"></a>On iPhone in portrait orientation, the number of visible dashboard columns SHALL adapt to the available width using a 200-point minimum column width; when two or more columns fit, the system SHALL display the multi-column Kanban board, and when only one column fits, it SHALL display the segmented single-column layout
+2. <a name="13.2"></a>WHEN the segmented single-column layout is active, the control SHALL use short labels: Idea, Plan, Spec, Active, Done
+3. <a name="13.3"></a>WHEN the segmented single-column layout is active, its default segment on launch SHALL be "Active" (In Progress)
+4. <a name="13.4"></a>On iPhone in landscape orientation, the system SHALL display up to three columns visible at a time with horizontal swipe to reveal additional columns
 5. <a name="13.5"></a>The iPhone landscape default columns on launch SHALL be Planning, Spec, In Progress
 6. <a name="13.6"></a>On iPad and Mac, the number of visible columns SHALL adapt to the available window width — all five columns when space permits, fewer columns with horizontal scrolling when the window is narrowed
-7. <a name="13.7"></a>WHEN the available width is narrow enough to fit only a single column (e.g., iPad Split View at minimum width), the system SHALL fall back to the iPhone portrait layout with a segmented control
+7. <a name="13.7"></a>WHEN the available width on any platform is narrow enough to fit only a single 200-point column, the system SHALL use the segmented single-column layout
 
 ---
 

@@ -8,7 +8,7 @@ struct SingleColumnView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Segmented control with drop targets [req 13.1, 13.2]
+            // Segmented control for the narrow single-column fallback [req 13.1, 13.2]
             // ZStack overlays invisible drop zones on the native picker so
             // users can drag a task onto a different tab to change its status.
             ZStack {

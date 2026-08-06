@@ -62,7 +62,7 @@ Transit integrates into a developer workflow where AI agents and CI pipelines ca
 
 **Status Engine Pattern**: All status transitions go through `StatusEngine.applyTransition()`, which handles side effects (setting/clearing `completionDate`, updating `lastStatusChangeDate`). This is the single source of truth — UI drag-and-drop, detail view edits, and App Intents all use the same path via `TaskService`.
 
-**Adaptive Dashboard Layout**: `DashboardView` uses `GeometryReader` to calculate how many columns fit. iPhone portrait gets a segmented control (1 column), landscape gets 3 columns with paging, iPad/Mac gets up to 5. The static `buildFilteredColumns()` method handles column grouping, 48-hour terminal cutoff, and sorting (handoff tasks first, then by date).
+**Adaptive Dashboard Layout**: `DashboardView` uses `GeometryReader` to calculate how many 200-point columns fit on every platform. Wide iPhone portrait layouts retain the multi-column Kanban board; layouts narrow enough for only one column use the segmented control. iPhone landscape caps the visible count at 3, while iPad/Mac show up to 5. The static `buildFilteredColumns()` method handles column grouping, 48-hour terminal cutoff, and sorting (handoff tasks first, then by date).
 
 **Display ID Allocation**: Uses a CloudKit counter record with `CKModifyRecordsOperation` and `.ifServerRecordUnchanged` save policy for optimistic locking. Falls back to provisional IDs offline. Promotion triggers on app launch, foreground, and network restore via `NWPathMonitor`.
 
