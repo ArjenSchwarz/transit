@@ -227,9 +227,13 @@ final class TransitUITests: XCTestCase {
         searchField.tap()
         searchField.typeText("Ship")
 
-        let clearAll = app.buttons["dashboard.clearAllFilters"]
-        XCTAssertTrue(clearAll.waitForExistence(timeout: 5))
-        clearAll.tap()
+        // Dismiss search so the navigation toolbar returns, then use the
+        // active Clear All action whether it is direct or in the overflow.
+        app.dismissTransitSearch()
+        app.tapTransitToolbarButton(
+            identifier: "dashboard.clearAllFilters",
+            overflowLabel: "Clear All"
+        )
 
         XCTAssertTrue(app.staticTexts["Ship Active"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Backlog Idea"].waitForExistence(timeout: 5))
@@ -302,8 +306,11 @@ final class TransitUITests: XCTestCase {
         XCTAssertTrue(taskCard.waitForExistence(timeout: 5))
         taskCard.tap()
 
-        // Detail view opens — verify milestone is shown
-        let detailMilestone = app.staticTexts["v1.0 (M-1)"]
+        // Detail rows expose a combined accessibility label in the half-height
+        // sheet, so match the milestone value within that label.
+        let detailMilestone = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "v1.0 (M-1)")
+        ).firstMatch
         XCTAssertTrue(detailMilestone.waitForExistence(timeout: 5))
 
         // Tap edit button (pencil icon in toolbar)
