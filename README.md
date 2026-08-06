@@ -18,7 +18,7 @@ Transit sits alongside the existing tool ecosystem: [Orbit](https://github.com/A
 - **CLI automation** through App Intents — create tasks, update statuses, manage milestones, add comments, generate reports
 - **MCP server** (macOS) — HTTP JSON-RPC server for AI agent integration with 10 tools
 - **Agent handoff statuses** (Ready for Implementation, Ready for Review) for AI/human workflow integration
-- **Adaptive layout**: single column on iPhone portrait, multi-column on landscape/iPad/Mac
+- **Adaptive layout**: width-based multi-column Kanban on iPhone/iPad/Mac, with a segmented single-column fallback only when one column fits
 - **Drag and drop** between columns to change task status
 - **Search and filter** — by project, type, milestone, status, and text (including display ID matching)
 - **Liquid Glass** design language throughout

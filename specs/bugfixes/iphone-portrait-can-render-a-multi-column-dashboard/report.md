@@ -1,7 +1,9 @@
 # Bugfix Report: iPhone Portrait Can Render a Multi-Column Dashboard
 
 **Date:** 2026-08-02
-**Status:** Fixed
+**Status:** Superseded
+
+> **Superseded 2026-08-06:** The product decision and requirement 13.1 were corrected to restore the original width-based behavior. Wide iPhone portrait layouts use the multi-column Kanban board when at least two 200-point columns fit; only narrower layouts use the segmented single-column fallback. The investigation below remains as historical context for PR #205.
 
 ## Description of the Issue
 

@@ -29,10 +29,12 @@ final class DataMaintenanceUITests: XCTestCase {
     func testDataMaintenanceGoldenPath() throws {
         let app = launchApp(scenario: "duplicateDisplayIds")
 
-        // Open Settings from the dashboard toolbar.
-        let settingsButton = app.buttons["dashboard.settingsButton"]
-        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5))
-        settingsButton.tap()
+        // Open Settings from the dashboard toolbar. The populated maintenance
+        // scenario shows every filter, so Settings can move into the overflow.
+        app.tapTransitToolbarButton(
+            identifier: "dashboard.settingsButton",
+            overflowLabel: "Settings"
+        )
 
         // Navigate to Data Maintenance via the iOS Settings list using the
         // dataMaintenance.row accessibility identifier on the NavigationLink.
@@ -54,8 +56,9 @@ final class DataMaintenanceUITests: XCTestCase {
         )
         reassignButton.tap()
 
-        // Confirmation alert with destructive primary action.
-        let confirmButton = app.buttons["dataMaintenance.confirmButton"]
+        // SwiftUI exposes the destructive alert action as nested matching
+        // buttons, so select the first concrete match before tapping.
+        let confirmButton = app.buttons["dataMaintenance.confirmButton"].firstMatch
         XCTAssertTrue(
             confirmButton.waitForExistence(timeout: 5),
             "Confirmation alert should appear with destructive primary button"

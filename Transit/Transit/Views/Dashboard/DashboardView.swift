@@ -22,12 +22,11 @@ struct DashboardView: View {
     @State private var selectedMilestones: Set<UUID> = []
     @State private var selectedPriorities: Set<TaskPriority> = []
     @State private var sortOrder: DashboardLogic.ColumnSortOrder = .recent
-    @State private var selectedColumn: DashboardColumn = .inProgress // [req 13.3]
+    @State private var selectedColumn: DashboardColumn = DashboardLayoutLogic.defaultSingleColumn // [req 13.3]
     @State private var selectedTask: TransitTask?
     @State private var showAddTask = false
     @State private var searchText = ""
     @Environment(TaskService.self) private var taskService
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.resolvedTheme) private var resolvedTheme
     #if os(macOS)
@@ -75,7 +74,6 @@ struct DashboardView: View {
         GeometryReader { geometry in
             let layout = DashboardLayoutLogic.layout(
                 width: geometry.size.width,
-                horizontalSizeClass: sizeClass,
                 verticalSizeClass: verticalSizeClass,
                 isPhone: dashboardIsPhoneDevice()
             )

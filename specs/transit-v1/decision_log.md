@@ -363,14 +363,15 @@ Groups buttons by function. Filter and add are both task-related dashboard actio
 
 **Date**: 2026-02-09
 **Status**: accepted
+**Amended**: 2026-08-06 — clarified that width-based adaptation also applies to iPhone portrait
 
 ### Context
 
-The original requirement stated iPad and Mac always show all five columns. However, Mac windows can be resized and iPad supports Split View, meaning the available width may be too narrow for five columns.
+Available width varies on every platform: Mac windows resize, iPad supports Split View, and wider iPhone portrait displays can fit multiple readable Kanban columns. A device-orientation rule that forces every portrait phone into one stretched column wastes available space and hides the board behind segmented navigation.
 
 ### Decision
 
-The number of visible columns adapts to the available window width. All five columns show when space permits; fewer columns with horizontal scrolling when narrowed. At minimum width (single-column), fall back to the iPhone portrait layout with a segmented control.
+The number of visible columns adapts to the available window width on iPhone, iPad, and Mac, using a 200-point minimum column width. All five columns show when space permits; fewer columns show with horizontal scrolling when narrowed. At minimum width, when only one column fits, the dashboard uses the segmented single-column fallback. iPhone landscape additionally caps the visible count at three.
 
 ### Rationale
 

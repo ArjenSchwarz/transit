@@ -43,7 +43,7 @@ enum TaskStatus: String, Codable, CaseIterable {
         }
     }
 
-    /// Short labels for iPhone segmented control [req 13.2]
+    /// Short labels for the narrow segmented-control fallback [req 13.2]
     var shortLabel: String {
         switch column {
         case .idea: "Idea"

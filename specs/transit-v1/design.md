@@ -92,7 +92,7 @@ Transit/
 │   ├── Dashboard/
 │   │   ├── DashboardView.swift         # Root view, layout switching
 │   │   ├── KanbanBoardView.swift       # Multi-column board (iPad/Mac/landscape)
-│   │   ├── SingleColumnView.swift      # Segmented control layout (iPhone portrait/narrow)
+│   │   ├── SingleColumnView.swift      # Segmented control layout (width-based narrow fallback)
 │   │   ├── ColumnView.swift            # Single kanban column with header
 │   │   ├── TaskCardView.swift          # Glass card with project border
 │   │   └── FilterPopoverView.swift     # Project filter popover
@@ -196,7 +196,7 @@ enum TaskStatus: String, Codable, CaseIterable {
         self == .done || self == .abandoned
     }
 
-    /// Short labels for iPhone segmented control [req 13.2]
+    /// Short labels for the narrow segmented-control fallback [req 13.2]
     var shortLabel: String {
         switch column {
         case .idea: return "Idea"
@@ -452,15 +452,18 @@ struct DashboardView: View {
     @State private var selectedTask: TransitTask?
     @State private var showAddTask = false
     @State private var showFilter = false
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     /// Minimum width (in points) for a single kanban column.
     private static let columnMinWidth: CGFloat = 200
 
-    /// Whether the device is in iPhone landscape (compact vertical, any horizontal).
+    /// Whether this is a phone in landscape; iPad compact height remains width-adaptive.
     private var isPhoneLandscape: Bool {
-        verticalSizeClass == .compact
+        #if os(iOS)
+        UIDevice.current.userInterfaceIdiom == .phone && verticalSizeClass == .compact
+        #else
+        false
+        #endif
     }
 
     var body: some View {
@@ -1024,7 +1027,7 @@ UI tests focus on navigation flows and presentation, not business logic (which i
 | Empty column shows empty state message | [20.2] |
 | Dashboard with zero tasks shows global empty state | [20.1] |
 | Settings with zero projects shows create prompt | [20.4] |
-| iPhone portrait defaults to Active segment | [13.3] |
+| iPhone portrait uses Kanban when two columns fit and Active-segment fallback when only one fits | [13.1], [13.3] |
 | Abandoned task card shows reduced opacity | [5.7] |
 
 ### Integration Tests

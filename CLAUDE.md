@@ -84,9 +84,9 @@ Idea | Planning | Spec | In Progress | Done/Abandoned
 
 ### Platform Layout
 
-- **iPhone portrait**: segmented control, one column at a time (default: In Progress / "Active")
-- **iPhone landscape**: three columns visible, swipeable
-- **iPad/Mac**: all five columns visible
+- **iPhone portrait**: width-adaptive Kanban (two or more columns when they fit); segmented single-column fallback below 400 points (default: In Progress / "Active")
+- **iPhone landscape**: up to three columns visible, swipeable
+- **iPad/Mac**: width-adaptive Kanban, up to all five columns
 
 ### Service Layer
 
