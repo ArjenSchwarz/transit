@@ -10,17 +10,19 @@ Embedded MCP server in the Transit macOS app using Hummingbird HTTP server. Expo
 Claude Code ←→ HTTP POST /mcp (localhost:3141) ←→ MCPServer ←→ MCPToolHandler ←→ TaskService/ProjectService/CommentService ←→ SwiftData
 ```
 
-- **Transport**: Streamable HTTP, JSON-RPC 2.0 over `POST /mcp`; `GET /mcp` is explicitly handled with HTTP 405 and `Allow: POST` because Transit does not offer an SSE listening stream
+- **Transport**: Streamable HTTP at `/mcp`. `POST /mcp` carries JSON-RPC requests and client notifications; an `Accept: text/event-stream` `GET /mcp` opens the optional SSE channel for server-initiated notifications. GET without SSE negotiation remains HTTP 405 with `Allow: POST`.
 - **HTTP server**: Hummingbird 2.x (SwiftNIO-based), binds to `127.0.0.1` only
 - **Lifecycle**: Opt-in via Settings toggle. Default port 3141.
 
 ## Files
 
 - `Transit/Transit/MCP/MCPTypes.swift` — All Codable protocol types (JSON-RPC, MCP)
-- `Transit/Transit/MCP/MCPSettings.swift` — UserDefaults-backed settings (`isEnabled`, `port`)
+- `Transit/Transit/MCP/MCPSettings.swift` — UserDefaults-backed settings (`isEnabled`, `port`) and settings-scoped tool-list invalidation source
+- `Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift` — active SSE stream registration and list-change broadcasting
 - `Transit/Transit/MCP/MCPToolHandler.swift` — Tool dispatch, handler methods, helpers
 - `Transit/Transit/MCP/MCPToolDefinitions.swift` — Tool schema definitions (extracted for file length)
 - `Transit/Transit/MCP/MCPServer.swift` — Hummingbird server lifecycle and HTTP routing
+- `Transit/Transit/MCP/MCPServer+ToolListNotifications.swift` — Streamable HTTP GET negotiation and SSE notification framing
 - `Transit/Transit/MCP/MCPServerLifecycleConfiguration.swift` — bounded shutdown and no-signal `ServiceGroup` policy
 - `Transit/Transit/MCP/MCPServerDecodeTypes.swift` — request decode outcome types shared by the route and decoder
 - `Transit/Transit/MCP/MCPOriginValidator.swift` — transport-level `Origin`/`Host` validation
@@ -51,7 +53,7 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 
 - `MCPToolDefinitions` is split into `coreTools` and `maintenanceTools`; `tools(includingMaintenance:)` returns the right subset. The legacy `all` alias still resolves to `coreTools` only — anything in production should use the helper.
 - When the toggle is off, `tools/list` excludes both maintenance tools and `tools/call` for either name returns JSON-RPC `invalidParams` (-32602) with the literal message `Tool '<name>' is disabled. Enable maintenance tools in Transit Settings.` — distinct from the "Unknown tool" message used for genuinely unknown names.
-- The toggle takes effect on the next `tools/list` without restart (settings is read live).
+- The toggle takes effect on the next `tools/list` without restart. Initialization advertises `tools.listChanged: true`; clients that open the negotiated GET/SSE listening stream receive `notifications/tools/list_changed` on each real toggle change and can refresh their cached list. `MCPToolListChangeBroadcaster` is scoped to the shared `MCPSettings` instance and buffers only the newest invalidation per active stream because the notification is idempotent.
 - Dispatch handlers (`handleScanDuplicateDisplayIds`, `handleReassignDuplicateDisplayIds`) encode `DisplayIDMaintenanceTypes` (Codable structs) via a shared `encodedTextResult(_:)` helper that JSON-encodes any `Encodable` and wraps it in the `MCPToolResult.content[text]` envelope.
 
 ## Origin / Host Validation (T-1833)

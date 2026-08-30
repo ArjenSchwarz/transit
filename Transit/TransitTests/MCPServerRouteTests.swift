@@ -4,16 +4,16 @@ import HTTPTypes
 import Testing
 @testable import Transit
 
-/// Regression tests for T-1835: the advertised MCP Streamable HTTP endpoint
-/// must distinguish an unsupported method on `/mcp` from an unknown route.
+/// Regression tests for the MCP Streamable HTTP endpoint routes.
 ///
-/// MCP 2025-03-26 requires GET on the MCP endpoint to return 405 when the
-/// server does not offer an SSE listening stream. Hummingbird's unmatched
-/// route fallback previously returned 404 because only POST was registered.
+/// MCP 2025-03-26 permits GET to open an SSE listening stream when the client
+/// accepts `text/event-stream`. A GET without that required negotiation remains
+/// unsupported, while POST dispatch, origin validation, and unrelated routes
+/// keep their existing behavior.
 @MainActor @Suite(.serialized)
 struct MCPServerRouteTests {
 
-    @Test func getMcpReturnsMethodNotAllowedWithPostAllowHeader() async throws {
+    @Test func getMcpWithoutEventStreamAcceptReturnsMethodNotAllowed() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let response = try await respond(
             handler: env.handler,

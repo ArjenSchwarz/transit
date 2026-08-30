@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-- T-2169: Added a failing client-perspective regression and systematic bugfix report for maintenance-tool list changes after MCP initialization. The regression pins the missing `tools.listChanged` capability, GET/SSE listening stream, and `notifications/tools/list_changed` event before the transport fix is implemented.
+- T-2169: MCP initialization now advertises `tools.listChanged`, and clients that negotiate a Streamable HTTP GET/SSE listening channel receive `notifications/tools/list_changed` whenever **Expose maintenance tools** changes. A settings-scoped broadcaster buffers one invalidation per active stream, disconnected streams clean themselves up, fresh `tools/list` behavior remains live, and GET requests without `Accept: text/event-stream` retain the prior 405 response. A client-perspective regression covers initialization, stream negotiation, and the post-initialization toggle event.
 
 - T-2232: Sync heartbeats now fetch, mutate, and save their singleton through a fresh `ModelContext` over the live container, so background sync writes cannot persist unrelated changes pending in the shared app context. Failed heartbeat saves are rolled back and logged before the isolated context is discarded; deterministic regressions cover successful writes, fetch failures, save failures, and retry recovery.
 

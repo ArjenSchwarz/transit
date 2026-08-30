@@ -1,7 +1,7 @@
 # Bugfix Report: MCP Maintenance Toggle Client Refresh
 
 **Date:** 2026-08-30
-**Status:** Investigating
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -48,12 +48,19 @@ Transit implemented dynamic tool-list computation but not the MCP list-change co
 ## Resolution for the Issue
 
 **Changes made:**
+- `Transit/Transit/MCP/MCPTypes.swift` - added `listChanged` to the tools capability and a typed server-notification envelope.
+- `Transit/Transit/MCP/MCPSettings.swift` - publishes a tool-list invalidation only when the maintenance setting actually changes.
+- `Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift` - owns active notification streams, buffers the newest idempotent invalidation, broadcasts changes, and removes terminated streams.
+- `Transit/Transit/MCP/MCPToolHandler.swift` - advertises `tools.listChanged: true` and exposes the settings-scoped notification stream to the transport.
+- `Transit/Transit/MCP/MCPServer.swift` - validates and routes negotiated GET `/mcp` notification requests.
+- `Transit/Transit/MCP/MCPServer+ToolListNotifications.swift` - negotiates `Accept: text/event-stream` and frames server notifications as deterministic SSE data events.
 
-**Approach rationale:**
+**Approach rationale:** This implements MCP 2025-03-26's native cache-invalidation mechanism. It preserves the existing live `tools/list` behavior, requires no app or listener restart, and adds only the transport feature needed for connected clients to learn that their cache is stale. Buffering one pending event is sufficient because list-change notifications are idempotent: a client always refreshes the current full list.
 
 **Alternatives considered:**
 - Restart the Hummingbird listener on toggle — rejected because POST requests are stateless and restarting the server does not make a client discard its cached tools.
 - Add UI text requiring manual reconnection — rejected because Decision 9 explicitly targets a no-restart maintenance session and MCP provides a standard list-change notification.
+- Add stateful MCP session IDs solely for this notification — deferred because the protocol makes sessions optional and a server-wide list invalidation can be delivered through each negotiated listening stream without adding session lifecycle and header validation to every existing request.
 
 ## Regression Test
 
@@ -68,18 +75,30 @@ Transit implemented dynamic tool-list computation but not the MCP list-change co
 
 | File | Change |
 |------|--------|
-| `Transit/TransitTests/MCPToolListChangeNotificationTests.swift` | Failing regression for post-initialization toggle notification. |
-| `specs/bugfixes/mcp-maintenance-toggle-client-refresh/report.md` | Investigation and root-cause record. |
+| `CHANGELOG.md` | Records the completed T-2169 behavior. |
+| `Transit/Transit/MCP/MCPSettings.swift` | Publishes real maintenance-toggle changes. |
+| `Transit/Transit/MCP/MCPToolHandler.swift` | Advertises list changes and provides the stream. |
+| `Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift` | Broadcasts buffered invalidations to active streams. |
+| `Transit/Transit/MCP/MCPTypes.swift` | Defines capability and notification payloads. |
+| `Transit/Transit/MCP/MCPServer.swift` | Validates and routes negotiated GET/SSE requests. |
+| `Transit/Transit/MCP/MCPServer+ToolListNotifications.swift` | Serves the negotiated GET/SSE listening channel. |
+| `Transit/TransitTests/MCPServerRouteTests.swift` | Clarifies the non-SSE GET compatibility contract. |
+| `Transit/TransitTests/MCPToolListChangeNotificationTests.swift` | Covers post-initialization toggle notification end to end. |
+| `docs/agent-notes/mcp-server.md` | Documents the SSE transport and cache invalidation flow. |
+| `specs/bugfixes/mcp-maintenance-toggle-client-refresh/report.md` | Records investigation, resolution, and verification. |
 
 ## Verification
 
 **Automated:**
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Focused T-2169 regression passes (`MCPToolListChangeNotificationTests`)
+- [x] macOS unit suite passes (`make test-quick`)
+- [x] iOS simulator suite passes (`make test`: 1,286 tests, 0 failures)
+- [x] UI suite passes (`make test-ui`: 21 tests, 0 failures)
+- [x] macOS build passes (`make build-macos`)
+- [x] Linters and SwiftData ownership validator pass (`make lint`)
 
 **Manual verification:**
-- Pending implementation.
+- The focused in-process HTTP smoke test initializes a client, opens the negotiated SSE stream, toggles maintenance tools, and receives the canonical `notifications/tools/list_changed` event without reconnecting.
 
 ## Prevention
 

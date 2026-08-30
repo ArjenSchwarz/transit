@@ -7,6 +7,7 @@ final class MCPSettings {
     private static let enabledKey = "mcpServerEnabled"
     private static let portKey = "mcpServerPort"
     private static let maintenanceToolsKey = "mcpMaintenanceToolsEnabled"
+    private let toolListChangeBroadcaster = MCPToolListChangeBroadcaster()
     static let defaultPort = 3141
 
     /// Valid TCP port range. Port 0 means "any available port" to the OS and is
@@ -31,7 +32,15 @@ final class MCPSettings {
     }
 
     var maintenanceToolsEnabled: Bool {
-        didSet { UserDefaults.standard.set(maintenanceToolsEnabled, forKey: Self.maintenanceToolsKey) }
+        didSet {
+            UserDefaults.standard.set(maintenanceToolsEnabled, forKey: Self.maintenanceToolsKey)
+            guard maintenanceToolsEnabled != oldValue else { return }
+            toolListChangeBroadcaster.notifyToolsListChanged()
+        }
+    }
+
+    func toolListChangeNotifications() -> AsyncStream<MCPServerNotification> {
+        toolListChangeBroadcaster.stream()
     }
 
     init() {

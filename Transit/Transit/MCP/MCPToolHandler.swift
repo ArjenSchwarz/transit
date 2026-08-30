@@ -67,6 +67,10 @@ final class MCPToolHandler {
 
     // MARK: - JSON-RPC Dispatch
 
+    func toolListChangeNotifications() -> AsyncStream<MCPServerNotification> {
+        settings.toolListChangeNotifications()
+    }
+
     /// Returns `nil` for JSON-RPC notifications (no response required).
     func handle(_ request: JSONRPCRequest) async -> JSONRPCResponse? {
         // MCP 2025-03-26 requires a present request id to be a string or
@@ -145,7 +149,7 @@ final class MCPToolHandler {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         let result = MCPInitializeResult(
             protocolVersion: protocolVersion,
-            capabilities: MCPServerCapabilities(tools: MCPToolsCapability()),
+            capabilities: MCPServerCapabilities(tools: MCPToolsCapability(listChanged: true)),
             serverInfo: MCPServerInfo(name: "transit", version: version)
         )
         return JSONRPCResponse.success(id: id, result: result)
