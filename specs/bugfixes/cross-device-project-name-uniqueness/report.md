@@ -44,7 +44,20 @@ The project-name invariant is enforced as a local service-layer precondition eve
 
 ## Resolution for the Issue
 
-Pending implementation after the regression tests demonstrate the defect.
+**Changes made:**
+- `Transit/Transit/Services/ProjectNameReconciler.swift` adds a locale-stable name policy and deterministic, data-preserving duplicate repair. The lexicographically smallest UUID keeps the original name; other projects receive UUID-derived suffixes with collision fallback.
+- `Transit/Transit/Services/ProjectService.swift` uses the shared normalization for local validation and lookup, and exposes `reconcileDuplicateNames()` for maintenance triggers.
+- `Transit/Transit/Views/ScenePhaseModifier.swift` reconciles on launch/foreground and observes a project ID/name fingerprint so delayed CloudKit imports trigger a post-sync pass.
+- `Transit/Transit/TransitApp.swift` retries reconciliation when connectivity returns.
+- Reconciliation defers whenever the shared context has unsaved changes, preventing it from committing unrelated edits; later lifecycle, connectivity, or query-observer triggers retry it.
+
+**Approach rationale:** Deterministic renaming restores name-based automation without deleting projects or guessing how to merge descriptions, repository metadata, colors, tasks, or milestones. UUID order is stable on every peer and requires no model/schema migration.
+
+**Alternatives considered:**
+- **Direct CloudKit reservation keyed by normalized name** — rejected because offline creation cannot synchronously claim a reservation, it would add a second direct-CloudKit subsystem, and existing/offline conflicts would still require reconciliation.
+- **Merge and delete duplicate projects** — rejected because project metadata and child relationships cannot be merged without risking data loss.
+- **Add a project creation timestamp** — rejected because UUID provides a sufficient deterministic order without a CloudKit schema migration or ambiguous defaults for existing records.
+- **Ambiguity reporting only** — already present, but it leaves the invalid state and broken automation unresolved.
 
 ## Regression Test
 
@@ -63,24 +76,33 @@ Pending implementation after the regression tests demonstrate the defect.
 
 | File | Change |
 |------|--------|
-| `Transit/TransitTests/ProjectCrossDeviceUniquenessTests.swift` | Cross-device regression coverage |
+| `Transit/Transit/Services/ProjectNameReconciler.swift` | Deterministic project-name policy and reconciliation |
+| `Transit/Transit/Services/ProjectService.swift` | Shared normalization and maintenance entry point |
+| `Transit/Transit/Views/ScenePhaseModifier.swift` | Launch, foreground, and project query-observer triggers |
+| `Transit/Transit/TransitApp.swift` | Connectivity-restoration retry and service wiring |
+| `Transit/TransitTests/ProjectCrossDeviceUniquenessTests.swift` | Cross-context ambiguity, preservation, collision, idempotence, and retry regressions |
+| `docs/agent-notes/project-structure.md` | Document project reconciliation lifecycle |
+| `CHANGELOG.md` | Record the T-2080 fix |
 | `specs/bugfixes/cross-device-project-name-uniqueness/report.md` | Investigation and resolution record |
 
 ## Verification
 
 **Automated:**
 - [x] Regression test fails before the fix (`make test-quick`: missing `ProjectService.reconcileDuplicateNames` at four call sites)
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] macOS unit suite passes (`make test-quick`)
+- [x] Full iOS simulator suite passes (`make test`)
+- [x] UI suite passes (`make test-ui`)
+- [x] Linters/validators pass (`make lint`)
 
 **Manual verification:**
-- Inspect lifecycle and query-observer wiring to confirm launch, foreground, connectivity restoration, and delayed CloudKit imports all trigger or retry reconciliation.
+- Inspected `ScenePhaseModifier` and `TransitApp` wiring to confirm launch, foreground, connectivity restoration, and delayed project ID/name query changes all invoke reconciliation.
+- Confirmed maintenance exits without saving when the shared context has pending changes, leaving later triggers available to retry.
 
 ## Prevention
 
 - Treat local uniqueness checks over CloudKit data as best-effort guards, not global constraints.
 - Pair fail-closed name lookup with deterministic, data-preserving reconciliation for eventually consistent records.
+- Keep local validation, lookup, and reconciliation on one locale-stable normalization policy.
 
 ## Related
 

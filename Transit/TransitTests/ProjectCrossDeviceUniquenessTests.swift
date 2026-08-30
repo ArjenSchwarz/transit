@@ -33,12 +33,10 @@ struct ProjectCrossDeviceUniquenessTests {
         )
         winner.id = winnerID
         firstDevice.insert(winner)
-        firstDevice.insert(TransitTask(
-            name: "Device A task",
-            type: .feature,
-            project: winner,
-            displayID: .permanent(10)
-        ))
+        let firstTask = TransitTask(
+            name: "Device A task", type: .feature, project: winner, displayID: .permanent(10)
+        )
+        firstDevice.insert(firstTask)
         try firstDevice.save()
 
         let secondDevice = ModelContext(container)
@@ -50,12 +48,10 @@ struct ProjectCrossDeviceUniquenessTests {
         )
         duplicate.id = duplicateID
         secondDevice.insert(duplicate)
-        secondDevice.insert(TransitTask(
-            name: "Device B task",
-            type: .bug,
-            project: duplicate,
-            displayID: .permanent(11)
-        ))
+        let secondTask = TransitTask(
+            name: "Device B task", type: .bug, project: duplicate, displayID: .permanent(11)
+        )
+        secondDevice.insert(secondTask)
 
         // Force the reconciler to avoid a pre-existing generated-name collision.
         let reservedCollision = Project(
