@@ -65,9 +65,11 @@ Transit implemented dynamic tool-list computation but not the MCP list-change co
 ## Regression Test
 
 **Test file:** `Transit/TransitTests/MCPToolListChangeNotificationTests.swift`
-**Test name:** `maintenanceToggleAfterInitializeNotifiesConnectedClient`
+**Tests:**
+- `maintenanceToggleAfterInitializeNotifiesEveryConnectedClient`
+- `assigningExistingMaintenanceValueDoesNotNotify`
 
-**What it verifies:** Initialization advertises `tools.listChanged`, GET `/mcp` supplies an SSE listening stream, and changing the maintenance toggle emits exactly one `notifications/tools/list_changed` event to a client that initialized before the change.
+**What they verify:** Initialization advertises `tools.listChanged`, GET `/mcp` supplies independent SSE listening streams to two clients, a real maintenance-toggle change broadcasts exactly one canonical `notifications/tools/list_changed` event to each stream, and assigning the existing setting value emits no event.
 
 **Run command:** `make test-quick`
 
