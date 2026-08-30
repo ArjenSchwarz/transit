@@ -40,7 +40,11 @@ final class SyncManager {
     typealias HeartbeatFetcher =
         (ModelContext, FetchDescriptor<SyncHeartbeat>) throws -> [SyncHeartbeat]
 
+    /// Saves a heartbeat context. Injectable so tests can exercise write failures.
+    typealias HeartbeatSaver = (ModelContext) throws -> Void
+
     private let heartbeatFetcher: HeartbeatFetcher
+    private let heartbeatSaver: HeartbeatSaver
 
     /// True when the preference no longer matches the mode the live container runs in,
     /// i.e. the user changed the toggle and has not relaunched yet.
@@ -51,6 +55,9 @@ final class SyncManager {
     init(
         heartbeatFetcher: @escaping HeartbeatFetcher = { context, descriptor in
             try context.fetch(descriptor)
+        },
+        heartbeatSaver: @escaping HeartbeatSaver = { context in
+            try context.save()
         }
     ) {
         // Default to enabled if never set
@@ -62,6 +69,7 @@ final class SyncManager {
         self.isSyncEnabled = enabled
         self.isCloudSyncActive = enabled
         self.heartbeatFetcher = heartbeatFetcher
+        self.heartbeatSaver = heartbeatSaver
     }
 
     // MARK: - Public API
@@ -155,7 +163,7 @@ final class SyncManager {
         if heartbeat.modelContext == nil {
             context.insert(heartbeat)
         }
-        try? context.save()
+        try? heartbeatSaver(context)
     }
 
     // MARK: - CloudKit Schema

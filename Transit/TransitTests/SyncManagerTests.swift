@@ -155,6 +155,7 @@ struct SyncManagerTests {
     // MARK: - T-1699 Regression: heartbeat singleton fetch failures
 
     private struct FetchFailure: Swift.Error {}
+    private struct SaveFailure: Swift.Error {}
 
     private final class HeartbeatFetchController {
         var shouldFail = false
@@ -170,21 +171,44 @@ struct SyncManagerTests {
         }
     }
 
+    private final class HeartbeatSaveController {
+        var shouldFail = false
+
+        func save(context: ModelContext) throws {
+            if shouldFail {
+                throw SaveFailure()
+            }
+            try context.save()
+        }
+    }
+
     private func heartbeatCount(in context: ModelContext) throws -> Int {
         try context.fetch(FetchDescriptor<SyncHeartbeat>()).count
     }
 
+    private func projectCount(in context: ModelContext) throws -> Int {
+        try context.fetch(FetchDescriptor<Project>()).count
+    }
+
+    // MARK: - T-2232 Regression: heartbeat context isolation
+
     @Test
-    func heartbeatWithMissingSingletonInsertsAndSavesOneRecord() throws {
+    func successfulHeartbeatDoesNotSaveUnrelatedPendingChanges() throws {
         let fixture = try TestModelContainer()
         let context = fixture.context
+        context.insert(Project(name: "Pending", description: "", gitRepo: nil, colorHex: ""))
         let manager = SyncManager()
 
         manager.beat(context: context)
 
-        #expect(try heartbeatCount(in: context) == 1)
-        #expect(!context.hasChanges,
-                "A successful missing-singleton heartbeat must save its newly inserted record")
+        // Expected: the heartbeat commits independently. Actual before T-2232: saving
+        // the caller's context also committed this pending project.
+        #expect(context.hasChanges,
+                "A successful heartbeat must leave the caller's pending changes unsaved")
+        let verificationContext = ModelContext(fixture.container)
+        #expect(try heartbeatCount(in: verificationContext) == 1)
+        #expect(try projectCount(in: verificationContext) == 0,
+                "A successful heartbeat must not persist unrelated caller-context models")
     }
 
     @Test
@@ -199,36 +223,81 @@ struct SyncManagerTests {
 
         manager.beat(context: context)
 
-        #expect(try heartbeatCount(in: context) == 1)
-        #expect(existing.lastBeat > .distantPast)
-        #expect(!context.hasChanges,
-                "A successful existing-singleton heartbeat must save its updated timestamp")
+        let verificationContext = ModelContext(fixture.container)
+        let storedHeartbeat = try #require(
+            verificationContext.fetch(FetchDescriptor<SyncHeartbeat>()).first
+        )
+        #expect(try heartbeatCount(in: verificationContext) == 1)
+        #expect(storedHeartbeat.lastBeat > .distantPast)
     }
 
     @Test
-    func heartbeatFetchFailureDoesNotInsertOrSaveAndNextBeatRecovers() throws {
+    func heartbeatFetchFailureDoesNotInsertOrSaveAndNextBeatRecoversInIsolation() throws {
         let fixture = try TestModelContainer()
         let context = fixture.context
-        let pendingProject = Project(name: "Pending", description: "", gitRepo: nil, colorHex: "")
-        context.insert(pendingProject)
+        context.insert(Project(name: "Pending", description: "", gitRepo: nil, colorHex: ""))
         let fetcher = HeartbeatFetchController()
         let manager = SyncManager(heartbeatFetcher: fetcher.fetch)
         fetcher.shouldFail = true
 
         manager.beat(context: context)
 
-        #expect(try heartbeatCount(in: context) == 0,
+        let failedBeatVerification = ModelContext(fixture.container)
+        #expect(try heartbeatCount(in: failedBeatVerification) == 0,
                 "A failed singleton fetch must not be treated as a missing record")
         #expect(context.hasChanges,
-                "A failed singleton fetch must return before it can save unrelated pending changes")
+                "A failed singleton fetch must leave unrelated caller changes pending")
 
         fetcher.shouldFail = false
         manager.beat(context: context)
 
-        #expect(try heartbeatCount(in: context) == 1,
+        let recoveredBeatVerification = ModelContext(fixture.container)
+        #expect(try heartbeatCount(in: recoveredBeatVerification) == 1,
                 "The next heartbeat must retry normally after a transient fetch failure")
-        #expect(!context.hasChanges,
-                "The recovered heartbeat should retain the normal best-effort save behavior")
+        #expect(context.hasChanges,
+                "A recovered heartbeat must still leave unrelated caller changes pending")
+        #expect(try projectCount(in: recoveredBeatVerification) == 0,
+                "Recovery must not persist unrelated caller-context models")
+    }
+
+    @Test
+    func heartbeatSaveFailureDoesNotDirtyCallerContextAndNextBeatRecovers() throws {
+        let fixture = try TestModelContainer()
+        let context = fixture.context
+        let existing = SyncHeartbeat()
+        existing.lastBeat = .distantPast
+        context.insert(existing)
+        try context.save()
+        context.insert(Project(name: "Pending", description: "", gitRepo: nil, colorHex: ""))
+        let saver = HeartbeatSaveController()
+        let manager = SyncManager(heartbeatSaver: saver.save)
+        saver.shouldFail = true
+
+        manager.beat(context: context)
+
+        // Expected: only an isolated heartbeat context becomes dirty and is discarded.
+        // Actual before T-2232: the shared heartbeat model remains mutated in the caller.
+        #expect(existing.lastBeat == .distantPast,
+                "A failed heartbeat save must not leave heartbeat state dirty in the caller context")
+        #expect(context.hasChanges,
+                "The caller's unrelated pending project must remain pending")
+        let failedBeatVerification = ModelContext(fixture.container)
+        let storedAfterFailure = try #require(
+            failedBeatVerification.fetch(FetchDescriptor<SyncHeartbeat>()).first
+        )
+        #expect(storedAfterFailure.lastBeat == .distantPast)
+        #expect(try projectCount(in: failedBeatVerification) == 0)
+
+        saver.shouldFail = false
+        manager.beat(context: context)
+
+        let recoveredBeatVerification = ModelContext(fixture.container)
+        let storedAfterRecovery = try #require(
+            recoveredBeatVerification.fetch(FetchDescriptor<SyncHeartbeat>()).first
+        )
+        #expect(storedAfterRecovery.lastBeat > .distantPast)
+        #expect(context.hasChanges)
+        #expect(try projectCount(in: recoveredBeatVerification) == 0)
     }
 
     @Test

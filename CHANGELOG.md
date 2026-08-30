@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- T-2232 investigation: Added red regressions proving successful and failed sync heartbeat writes must not persist unrelated pending models or leave heartbeat mutations in the caller's `ModelContext`, plus a save-failure injection seam and root-cause report.
+
 - Restored the original width-adaptive dashboard layout: iPhone portrait keeps the multi-column Kanban board whenever at least two 200-point columns fit, and uses segmented single-column navigation only below that boundary. This supersedes T-1802 / PR #205 and corrects requirement 13.1.
 - Dashboard UI tests now dismiss the iOS search presentation, navigate toolbar overflow actions, match combined detail-row accessibility labels, and disambiguate nested alert buttons so the full iPhone 17 suite covers the restored multi-column portrait layout reliably.
 
