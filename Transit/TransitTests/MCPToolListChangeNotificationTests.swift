@@ -14,7 +14,7 @@ import Testing
 @MainActor @Suite(.serialized)
 struct MCPToolListChangeNotificationTests {
 
-    @Test func maintenanceToggleAfterInitializeNotifiesConnectedClient() async throws {
+    @Test func maintenanceToggleAfterInitializeNotifiesEveryConnectedClient() async throws {
         let env = try MCPTestHelpers.makeEnv()
         env.mcpSettings.maintenanceToolsEnabled = false
         defer { env.mcpSettings.maintenanceToolsEnabled = false }
@@ -33,24 +33,67 @@ struct MCPToolListChangeNotificationTests {
         let tools = try #require(capabilities["tools"] as? [String: Any])
         #expect(tools["listChanged"] as? Bool == true)
 
-        let response = try await notificationResponse(handler: env.handler)
-        #expect(response.status == .ok)
-        #expect(response.headers[.contentType] == "text/event-stream")
+        let firstResponse = try await notificationResponse(handler: env.handler)
+        let secondResponse = try await notificationResponse(handler: env.handler)
+        #expect(firstResponse.status == .ok)
+        #expect(firstResponse.headers[.contentType] == "text/event-stream")
+        #expect(secondResponse.status == .ok)
+        #expect(secondResponse.headers[.contentType] == "text/event-stream")
 
-        let writer = FirstEventWriter()
-        let bodyTask = Task {
+        let firstWriter = FirstEventWriter()
+        let secondWriter = FirstEventWriter()
+        let firstBodyTask = firstEventTask(response: firstResponse, writer: firstWriter)
+        let secondBodyTask = firstEventTask(response: secondResponse, writer: secondWriter)
+
+        env.mcpSettings.maintenanceToolsEnabled = true
+        try await firstBodyTask.value
+        try await secondBodyTask.value
+
+        let expected = "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/tools/list_changed\"}\n\n"
+        #expect(firstWriter.event.withLockedValue { $0 } == expected)
+        #expect(secondWriter.event.withLockedValue { $0 } == expected)
+    }
+
+    @Test func assigningExistingMaintenanceValueDoesNotNotify() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        env.mcpSettings.maintenanceToolsEnabled = false
+        let notifications = env.handler.toolListChangeNotifications()
+
+        env.mcpSettings.maintenanceToolsEnabled = false
+
+        let notification = await firstNotification(in: notifications, timeout: .milliseconds(50))
+        #expect(notification?.method == nil)
+    }
+
+    private func firstEventTask(
+        response: Response,
+        writer: FirstEventWriter
+    ) -> Task<Void, any Error> {
+        Task {
             do {
                 try await response.body.write(writer)
             } catch is FirstEventReceived {
                 // The test writer deliberately ends an otherwise long-lived SSE stream.
             }
         }
+    }
 
-        env.mcpSettings.maintenanceToolsEnabled = true
-        try await bodyTask.value
-
-        let event = writer.event.withLockedValue { $0 }
-        #expect(event == "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/tools/list_changed\"}\n\n")
+    private func firstNotification(
+        in notifications: AsyncStream<MCPServerNotification>,
+        timeout: Duration
+    ) async -> MCPServerNotification? {
+        await withTaskGroup(of: MCPServerNotification?.self) { group in
+            group.addTask {
+                await notifications.first { _ in true }
+            }
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
     }
 
     private func notificationResponse(handler: MCPToolHandler) async throws -> Response {

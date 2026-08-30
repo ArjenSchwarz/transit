@@ -24,7 +24,7 @@ extension MCPServer {
             ],
             body: ResponseBody { writer in
                 for await notification in notifications {
-                    try await writer.write(Self.serverSentEvent(notification))
+                    try await writer.write(try Self.serverSentEvent(notification))
                 }
                 try await writer.finish(nil)
             }
@@ -33,14 +33,10 @@ extension MCPServer {
 
     nonisolated private static func serverSentEvent(
         _ notification: MCPServerNotification
-    ) -> ByteBuffer {
+    ) throws -> ByteBuffer {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        guard let payload = try? encoder.encode(notification) else {
-            return ByteBuffer(
-                string: "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/tools/list_changed\"}\n\n"
-            )
-        }
+        let payload = try encoder.encode(notification)
         var event = Data("data: ".utf8)
         event.append(payload)
         event.append(contentsOf: [0x0A, 0x0A])

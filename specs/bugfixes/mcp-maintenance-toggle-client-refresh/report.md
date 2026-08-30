@@ -83,7 +83,7 @@ Transit implemented dynamic tool-list computation but not the MCP list-change co
 | `Transit/Transit/MCP/MCPServer.swift` | Validates and routes negotiated GET/SSE requests. |
 | `Transit/Transit/MCP/MCPServer+ToolListNotifications.swift` | Serves the negotiated GET/SSE listening channel. |
 | `Transit/TransitTests/MCPServerRouteTests.swift` | Clarifies the non-SSE GET compatibility contract. |
-| `Transit/TransitTests/MCPToolListChangeNotificationTests.swift` | Covers post-initialization toggle notification end to end. |
+| `Transit/TransitTests/MCPToolListChangeNotificationTests.swift` | Covers multi-client toggle fan-out and same-value notification suppression. |
 | `docs/agent-notes/mcp-server.md` | Documents the SSE transport and cache invalidation flow. |
 | `specs/bugfixes/mcp-maintenance-toggle-client-refresh/report.md` | Records investigation, resolution, and verification. |
 
@@ -98,7 +98,8 @@ Transit implemented dynamic tool-list computation but not the MCP list-change co
 - [x] Linters and SwiftData ownership validator pass (`make lint`)
 
 **Manual verification:**
-- The focused in-process HTTP smoke test initializes a client, opens the negotiated SSE stream, toggles maintenance tools, and receives the canonical `notifications/tools/list_changed` event without reconnecting.
+- The focused in-process HTTP smoke test initializes a client, opens two negotiated SSE streams, toggles maintenance tools once, and verifies both clients receive the canonical `notifications/tools/list_changed` event without reconnecting.
+- A direct broadcaster regression verifies assigning the existing maintenance-tools value does not emit a spurious notification.
 
 ## Prevention
 
