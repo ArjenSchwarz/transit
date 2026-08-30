@@ -137,6 +137,8 @@ nonisolated enum IntentHelpers {
             .invalidInput(hint: "Milestone name cannot be empty")
         case .milestoneNotFound:
             .milestoneNotFound(hint: "No matching milestone found")
+        case .projectNotFound:
+            .projectNotFound(hint: "No matching project found")
         case .duplicateName:
             .duplicateMilestoneName(hint: "A milestone with this name already exists in the project")
         case .ambiguousName:

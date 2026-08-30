@@ -443,6 +443,8 @@ final class MCPToolHandler {
             )
         } catch TaskService.Error.milestoneNotOpen {
             return errorResult("The selected milestone is no longer open")
+        } catch TaskService.Error.projectNotFound {
+            return errorResult("No matching project found")
         } catch {
             return errorResult("Task creation failed: \(error)")
         }
@@ -774,6 +776,8 @@ extension MCPToolHandler {
             return errorResult("A milestone with this name already exists in the project")
         } catch MilestoneService.Error.invalidName {
             return errorResult("Milestone name cannot be empty")
+        } catch MilestoneService.Error.projectNotFound {
+            return errorResult("No matching project found")
         } catch {
             return errorResult("Milestone creation failed: \(error)")
         }

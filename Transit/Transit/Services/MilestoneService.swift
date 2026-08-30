@@ -80,6 +80,7 @@ final class MilestoneService {
         // so a successfully allocated ID cannot turn a cancelled operation into a
         // persisted milestone (T-1765).
         try Task.checkCancellation()
+        try CreationProjectValidator.validate(project, in: modelContext, error: Error.projectNotFound)
 
         // Re-check uniqueness after the allocation await. The check above ran
         // before this method suspended, so a concurrent create could have
@@ -363,38 +364,4 @@ final class MilestoneService {
         }
     }
 
-}
-
-// MARK: - Errors
-
-extension MilestoneService {
-
-    enum Error: Swift.Error, Equatable, LocalizedError {
-        case invalidName
-        case milestoneNotFound
-        case duplicateName
-        case ambiguousName
-        case duplicateDisplayID
-        case projectRequired
-        case projectMismatch
-
-        var errorDescription: String? {
-            switch self {
-            case .invalidName:
-                "Milestone name cannot be empty."
-            case .milestoneNotFound:
-                "The specified milestone could not be found."
-            case .duplicateName:
-                "A milestone with this name already exists in the project."
-            case .ambiguousName:
-                "Multiple milestones with this name exist in the project."
-            case .duplicateDisplayID:
-                "A duplicate milestone identifier was detected."
-            case .projectRequired:
-                "Task must belong to a project before assigning a milestone."
-            case .projectMismatch:
-                "Milestone and task must belong to the same project."
-            }
-        }
-    }
 }
