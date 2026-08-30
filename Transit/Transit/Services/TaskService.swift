@@ -126,6 +126,7 @@ final class TaskService {
         // and inserting the model so a successfully allocated ID cannot turn a
         // cancelled operation into a persisted task (T-1765).
         try Task.checkCancellation()
+        try CreationProjectValidator.validate(project, in: modelContext, error: Error.projectNotFound)
         try TaskCreationMilestoneValidator.validate(
             milestone,
             projectID: project.id,

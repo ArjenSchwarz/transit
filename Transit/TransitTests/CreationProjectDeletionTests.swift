@@ -117,13 +117,8 @@ struct CreationProjectDeletionTests {
         try deleteProject(id: projectID, from: testContainer.container)
         await store.releaseAllocation()
 
-        do {
-            _ = try await creation.value
-            Issue.record("Expected a milestone project-not-found domain error")
-        } catch let error as MilestoneService.Error {
-            #expect(error.errorDescription == "The selected project could not be found.")
-        } catch {
-            Issue.record("Expected MilestoneService.Error, got \(error)")
+        await #expect(throws: MilestoneService.Error.projectNotFound) {
+            try await creation.value
         }
 
         #expect(try context.fetch(FetchDescriptor<Milestone>()).isEmpty)

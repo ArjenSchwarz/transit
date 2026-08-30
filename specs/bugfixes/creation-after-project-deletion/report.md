@@ -1,7 +1,7 @@
 # Bugfix Report: Creation After Project Deletion
 
 **Date:** 2026-08-30
-**Status:** Investigating
+**Status:** Fixed
 **Ticket:** T-2103
 
 ## Description of the Issue
@@ -49,7 +49,17 @@ Project validation and project use are separated by an asynchronous display-ID a
 
 ## Resolution for the Issue
 
-Pending implementation after the red regression checkpoint.
+Added `CreationProjectValidator`, a shared persistence-boundary check that combines the two SwiftData state sources creation must respect:
+
+1. Reject a matching project in the live context's pending-deletion set.
+2. Require the project to remain fetchable from the live context, preserving valid unsaved project inserts.
+3. Permit a matching pending insert without requiring committed storage.
+4. For previously persisted projects, require a fresh transient context to still find the committed row, bypassing stale registered objects after peer deletion.
+5. Propagate fetch failures so creation fails closed.
+
+`TaskService.createTask` and `MilestoneService.createMilestone` invoke this validator after display-ID allocation and cancellation handling, immediately before their remaining synchronous validation and insertion work. Task creation reuses `TaskService.Error.projectNotFound`; milestone creation now exposes `MilestoneService.Error.projectNotFound`, which maps to the established `PROJECT_NOT_FOUND` App Intent response and deterministic MCP project-not-found message.
+
+**Alternatives considered:** trusting only the passed model or the live-context fetch would retain the stale-object defect; using only a fresh context would incorrectly reject valid unsaved project inserts used by existing callers; changing relationship rules or replacing the shared main context would violate the app's SwiftData/CloudKit constraints. A pre-allocation check was omitted because it would not close the post-await race and would duplicate existing caller validation.
 
 ## Regression Test
 
@@ -67,15 +77,26 @@ Pending implementation after the red regression checkpoint.
 
 | File | Change |
 |------|--------|
-| `Transit/TransitTests/CreationProjectDeletionTests.swift` | Deterministic peer-deletion regressions |
-| `specs/bugfixes/creation-after-project-deletion/report.md` | Investigation and verification record |
+| `Transit/Transit/Services/CreationProjectValidator.swift` | Shared live/pending plus fresh committed-state project validation |
+| `Transit/Transit/Services/TaskService.swift` | Post-allocation task project-liveness guard |
+| `Transit/Transit/Services/MilestoneService.swift` | Post-allocation milestone project-liveness guard |
+| `Transit/Transit/Services/MilestoneService+Error.swift` | Typed `projectNotFound` domain error and localized description |
+| `Transit/Transit/Intents/IntentHelpers.swift` | Maps milestone project deletion to `PROJECT_NOT_FOUND` |
+| `Transit/Transit/MCP/MCPToolHandler.swift` | Deterministic MCP create-milestone project-not-found response |
+| `Transit/TransitTests/CreationProjectDeletionTests.swift` | Deterministic peer-deletion regressions with exact domain-error assertions |
+| `CHANGELOG.md` | Unreleased bugfix entry |
+| `specs/bugfixes/creation-after-project-deletion/report.md` | Investigation, resolution, and verification record |
+| `specs/bugfixes/creation-after-project-deletion/implementation.md` | Three-level implementation explanation and completeness assessment |
 
 ## Verification
 
 **Automated:**
-- [ ] Regression test passes
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression tests pass as part of `make test-quick`
+- [x] macOS unit suite passes: 1,803 passed, 0 failed, 0 skipped
+- [x] Full iOS scheme test passes: 1,288 top-level tests passed, 0 failed, 0 skipped (`make test`; 1,336 device-expanded passes)
+- [x] Dedicated UI suite passes: 21 top-level tests passed, 0 failed, 0 skipped (`make test-ui`; 24 device-expanded passes)
+- [x] Linters and SwiftData ownership validators pass (`make lint`)
+- [x] iOS and macOS Debug builds pass (`make build`)
 
 **Manual verification:** Not required; the gated two-context test reproduces the precise persistence window.
 
