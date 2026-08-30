@@ -141,6 +141,7 @@ extension MCPServer {
         // as a start failure for a server the caller just asked to stop.
         serverGeneration += 1
         activeServer = nil
+        toolHandler.finishToolListChangeSessions()
         await currentServer.serviceGroup.triggerGracefulShutdown()
         await currentServer.task.value
     }
@@ -198,11 +199,15 @@ extension MCPServer {
     /// channel used for server-initiated notifications.
     /// `nonisolated` keeps transport construction independent of MainActor;
     /// route callbacks execute on Hummingbird/NIO and hop to MainActor when dispatching.
-    nonisolated static func makeRouter(handler: MCPToolHandler) -> Router<BasicRequestContext> {
-        let router = Router()
-        router.get("mcp") { request, _ -> Response in
+    nonisolated static func makeRouter(handler: MCPToolHandler) -> Router<MCPRequestContext> {
+        let router = Router(context: MCPRequestContext.self)
+        router.get("mcp") { request, context -> Response in
             guard Self.isAllowedMCPRequest(request) else { return forbiddenResponse() }
-            return await Self.toolListChangeStreamResponse(request: request, handler: handler)
+            return await Self.toolListChangeStreamResponse(
+                request: request,
+                context: context,
+                handler: handler
+            )
         }
         router.post("mcp") { request, _ -> Response in
             // Validate origin before reading the body.
@@ -216,6 +221,13 @@ extension MCPServer {
                 // A single notification has no JSON-RPC response body.
                 guard let rpcResponse = await handler.handle(rpcRequest) else {
                     return Response(status: .accepted)
+                }
+                if rpcRequest.method == "initialize", rpcResponse.error == nil {
+                    let sessionID = await handler.createToolListChangeSession()
+                    return jsonResponse(
+                        rpcResponse,
+                        additionalHeaders: [.mcpSessionID: sessionID]
+                    )
                 }
                 return jsonResponse(rpcResponse)
 
@@ -377,24 +389,5 @@ extension MCPServer {
         )
     }
 
-    nonisolated private static func jsonResponse(
-        _ payload: some Encodable & Sendable
-    ) -> Response {
-        let data: Data
-        do {
-            data = try JSONEncoder().encode(payload)
-        } catch {
-            let fallback = """
-            {"jsonrpc":"2.0","id":null,\
-            "error":{"code":-32603,"message":"Encoding failed"}}
-            """
-            data = Data(fallback.utf8)
-        }
-        return Response(
-            status: .ok,
-            headers: [.contentType: "application/json"],
-            body: .init(byteBuffer: ByteBuffer(data: data))
-        )
-    }
 }
 #endif

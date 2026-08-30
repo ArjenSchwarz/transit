@@ -1,5 +1,6 @@
 #if os(macOS)
 import Foundation
+import NIOCore
 import SwiftData
 
 // swiftlint:disable file_length
@@ -67,8 +68,26 @@ final class MCPToolHandler {
 
     // MARK: - JSON-RPC Dispatch
 
-    func toolListChangeNotifications() -> AsyncStream<MCPServerNotification> {
-        settings.toolListChangeNotifications()
+    func createToolListChangeSession() -> String {
+        settings.createToolListChangeSession()
+    }
+
+    func toolListChangeNotifications(
+        sessionID: String,
+        channelClose: EventLoopFuture<Void>
+    ) -> AsyncStream<MCPServerNotification>? {
+        settings.toolListChangeNotifications(
+            sessionID: sessionID,
+            channelClose: channelClose
+        )
+    }
+
+    func finishToolListChangeSessions() {
+        settings.finishToolListChangeSessions()
+    }
+
+    var activeToolListChangeStreamCount: Int {
+        settings.activeToolListChangeStreamCount
     }
 
     /// Returns `nil` for JSON-RPC notifications (no response required).

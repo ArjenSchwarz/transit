@@ -1,5 +1,6 @@
 #if os(macOS)
 import Foundation
+import NIOCore
 
 @Observable
 final class MCPSettings {
@@ -39,8 +40,26 @@ final class MCPSettings {
         }
     }
 
-    func toolListChangeNotifications() -> AsyncStream<MCPServerNotification> {
-        toolListChangeBroadcaster.stream()
+    func createToolListChangeSession() -> String {
+        toolListChangeBroadcaster.createSession()
+    }
+
+    func toolListChangeNotifications(
+        sessionID: String,
+        channelClose: EventLoopFuture<Void>
+    ) -> AsyncStream<MCPServerNotification>? {
+        toolListChangeBroadcaster.stream(
+            sessionID: sessionID,
+            channelClose: channelClose
+        )
+    }
+
+    func finishToolListChangeSessions() {
+        toolListChangeBroadcaster.finishAllSessions()
+    }
+
+    var activeToolListChangeStreamCount: Int {
+        toolListChangeBroadcaster.activeStreamCount
     }
 
     init() {

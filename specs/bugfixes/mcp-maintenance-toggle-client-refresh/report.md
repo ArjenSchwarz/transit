@@ -49,27 +49,30 @@ Transit implemented dynamic tool-list computation but not the MCP list-change co
 
 **Changes made:**
 - `Transit/Transit/MCP/MCPTypes.swift` - added `listChanged` to the tools capability and a typed server-notification envelope.
-- `Transit/Transit/MCP/MCPSettings.swift` - publishes a tool-list invalidation only when the maintenance setting actually changes.
-- `Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift` - owns active notification streams, buffers the newest idempotent invalidation, broadcasts changes, and removes terminated streams.
-- `Transit/Transit/MCP/MCPToolHandler.swift` - advertises `tools.listChanged: true` and exposes the settings-scoped notification stream to the transport.
-- `Transit/Transit/MCP/MCPServer.swift` - validates and routes negotiated GET `/mcp` notification requests.
-- `Transit/Transit/MCP/MCPServer+ToolListNotifications.swift` - negotiates `Accept: text/event-stream` and frames server notifications as deterministic SSE data events.
+- `Transit/Transit/MCP/MCPSettings.swift` - publishes a tool-list invalidation only when the maintenance setting actually changes and owns notification sessions.
+- `Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift` - groups active streams by session, emits each JSON-RPC notification on only one stream per session, and finishes registrations when their channels close.
+- `Transit/Transit/MCP/MCPToolHandler.swift` - advertises `tools.listChanged: true` and exposes session/stream lifecycle operations to the transport.
+- `Transit/Transit/MCP/MCPRequestContext.swift` - retains each Hummingbird request channel so an idle SSE registration can observe its close future directly.
+- `Transit/Transit/MCP/MCPServer.swift` - creates a unique `Mcp-Session-Id` after successful standalone initialization, validates and routes GET `/mcp`, and finishes notification sessions during listener teardown.
+- `Transit/Transit/MCP/MCPServer+ToolListNotifications.swift` - validates session headers, parses exact `text/event-stream` media ranges and RFC quality values (including `q=0`), and frames deterministic SSE data events.
 
-**Approach rationale:** This implements MCP 2025-03-26's native cache-invalidation mechanism. It preserves the existing live `tools/list` behavior, requires no app or listener restart, and adds only the transport feature needed for connected clients to learn that their cache is stale. Buffering one pending event is sufficient because list-change notifications are idempotent: a client always refreshes the current full list.
+**Approach rationale:** This implements MCP 2025-03-26's native cache-invalidation mechanism while preserving the transport rule that one JSON-RPC message must not be duplicated across a client's concurrent listening streams. Session IDs identify which streams belong to one initialized client. Channel-close futures remove idle disconnected streams promptly, rather than waiting for a later notification write. Buffering one pending event remains sufficient because list-change notifications are idempotent: a client always refreshes the current full list.
 
 **Alternatives considered:**
 - Restart the Hummingbird listener on toggle — rejected because POST requests are stateless and restarting the server does not make a client discard its cached tools.
 - Add UI text requiring manual reconnection — rejected because Decision 9 explicitly targets a no-restart maintenance session and MCP provides a standard list-change notification.
-- Add stateful MCP session IDs solely for this notification — deferred because the protocol makes sessions optional and a server-wide list invalidation can be delivered through each negotiated listening stream without adding session lifecycle and header validation to every existing request.
+- Broadcast once per SSE connection without sessions — rejected because one client may open concurrent listening streams and MCP forbids sending the same JSON-RPC message more than once.
+- Depend only on `AsyncStream.onTermination` for disconnect cleanup — rejected because an idle socket close should remove its registration immediately and independently of response-task cancellation/write timing.
 
 ## Regression Test
 
-**Test file:** `Transit/TransitTests/MCPToolListChangeNotificationTests.swift`
-**Tests:**
-- `maintenanceToggleAfterInitializeNotifiesEveryConnectedClient`
-- `assigningExistingMaintenanceValueDoesNotNotify`
+**Test files:** `Transit/TransitTests/MCPToolListChangeNotificationTests.swift` and `Transit/TransitTests/MCPServerRouteTests.swift`
 
-**What they verify:** Initialization advertises `tools.listChanged`, GET `/mcp` supplies independent SSE listening streams to two clients, a real maintenance-toggle change broadcasts exactly one canonical `notifications/tools/list_changed` event to each stream, and assigning the existing setting value emits no event.
+**What they verify:**
+- Successful initialization advertises `tools.listChanged` and creates distinct client session IDs.
+- Two streams in one session receive exactly one canonical notification between them, while a second session independently receives one notification.
+- Closing an idle transport channel promptly unregisters its stream; same-value setting assignments remain silent.
+- GET rejects missing/unknown sessions, zero or malformed quality values, and media-type superstrings; a valid positive-quality exact media range negotiates SSE.
 
 **Run command:** `make test-quick`
 
@@ -77,31 +80,33 @@ Transit implemented dynamic tool-list computation but not the MCP list-change co
 
 | File | Change |
 |------|--------|
-| `CHANGELOG.md` | Records the completed T-2169 behavior. |
-| `Transit/Transit/MCP/MCPSettings.swift` | Publishes real maintenance-toggle changes. |
-| `Transit/Transit/MCP/MCPToolHandler.swift` | Advertises list changes and provides the stream. |
-| `Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift` | Broadcasts buffered invalidations to active streams. |
+| `CHANGELOG.md` | Records the completed session-aware behavior. |
+| `Transit/Transit/MCP/MCPSettings.swift` | Publishes real changes and owns notification sessions. |
+| `Transit/Transit/MCP/MCPToolHandler.swift` | Advertises list changes and bridges session lifecycle. |
+| `Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift` | Deduplicates delivery per session and unregisters closed streams. |
 | `Transit/Transit/MCP/MCPTypes.swift` | Defines capability and notification payloads. |
-| `Transit/Transit/MCP/MCPServer.swift` | Validates and routes negotiated GET/SSE requests. |
-| `Transit/Transit/MCP/MCPServer+ToolListNotifications.swift` | Serves the negotiated GET/SSE listening channel. |
-| `Transit/TransitTests/MCPServerRouteTests.swift` | Clarifies the non-SSE GET compatibility contract. |
-| `Transit/TransitTests/MCPToolListChangeNotificationTests.swift` | Covers multi-client toggle fan-out and same-value notification suppression. |
-| `docs/agent-notes/mcp-server.md` | Documents the SSE transport and cache invalidation flow. |
-| `specs/bugfixes/mcp-maintenance-toggle-client-refresh/report.md` | Records investigation, resolution, and verification. |
+| `Transit/Transit/MCP/MCPRequestContext.swift` | Retains the request transport channel. |
+| `Transit/Transit/MCP/MCPServer.swift` | Creates session IDs and routes/tears down GET/SSE sessions. |
+| `Transit/Transit/MCP/MCPServer+Responses.swift` | Builds JSON responses with optional session headers. |
+| `Transit/Transit/MCP/MCPServer+ToolListNotifications.swift` | Validates sessions, negotiates SSE, and frames notifications. |
+| `Transit/TransitTests/MCPHTTPTestHelpers.swift` | Supports the custom context and response/session headers. |
+| `Transit/TransitTests/MCPServerOriginValidationTests.swift` | Uses the production request context in origin regressions. |
+| `Transit/TransitTests/MCPServerRouteTests.swift` | Covers negotiation and session rejection boundaries. |
+| `Transit/TransitTests/MCPToolListChangeNotificationTests.swift` | Covers per-session delivery and prompt disconnect cleanup. |
+| `docs/agent-notes/mcp-server.md` | Documents the session-aware SSE transport. |
+| `specs/bugfixes/mcp-maintenance-toggle-client-refresh/report.md` | Records investigation, artifact fixes, and verification. |
 
 ## Verification
 
-**Automated:**
-- [x] Focused T-2169 regression passes (`MCPToolListChangeNotificationTests`)
-- [x] macOS unit suite passes (`make test-quick`)
-- [x] iOS simulator suite passes (`make test`: 1,286 tests, 0 failures)
-- [x] UI suite passes (`make test-ui`: 21 tests, 0 failures)
-- [x] macOS build passes (`make build-macos`)
-- [x] Linters and SwiftData ownership validator pass (`make lint`)
+The original T-2169 implementation passed focused tests, `make test-quick`, `make test`, `make test-ui`, `make build-macos`, and `make lint` before the artifact review. For this session/deduplication, channel-close cleanup, and strict negotiation follow-up:
+- Bounded focused `MCPToolListChangeNotificationTests`: passed (3 tests).
+- `make test-quick`: passed after the final source-file refactor.
+- `make lint`: passed, including the SwiftData ownership guard and 358 Swift files with zero violations.
+- `git diff --check`: passed.
 
-**Manual verification:**
-- The focused in-process HTTP smoke test initializes a client, opens two negotiated SSE streams, toggles maintenance tools once, and verifies both clients receive the canonical `notifications/tools/list_changed` event without reconnecting.
-- A direct broadcaster regression verifies assigning the existing maintenance-tools value does not emit a spurious notification.
+**Manual verification represented by regressions:**
+- The in-process HTTP test initializes two client sessions, opens two streams for one session and one for the other, toggles maintenance tools once, and verifies exactly one canonical event per session.
+- Direct lifecycle regressions verify same-value suppression and prompt removal when an idle channel closes.
 
 ## Prevention
 

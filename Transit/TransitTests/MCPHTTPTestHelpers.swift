@@ -19,6 +19,8 @@ extension MCPTestHelpers {
         origin: String? = nil,
         authority: String = "127.0.0.1:3141",
         contentType: String? = nil,
+        accept: String? = nil,
+        sessionID: String? = nil,
         body: String = "",
         loggerLabel: String
     ) async throws -> MCPHTTPTestResponse {
@@ -29,6 +31,12 @@ extension MCPTestHelpers {
         }
         if let contentType {
             headers[.contentType] = contentType
+        }
+        if let accept {
+            headers[.accept] = accept
+        }
+        if let sessionID {
+            headers[.mcpSessionID] = sessionID
         }
         let request = Request(
             head: HTTPRequest(
@@ -43,7 +51,7 @@ extension MCPTestHelpers {
 
         let channel = EmbeddedChannel()
         defer { _ = try? channel.finish() }
-        let context = BasicRequestContext(
+        let context = MCPRequestContext(
             source: ApplicationRequestContextSource(
                 channel: channel,
                 logger: Logger(label: loggerLabel)
@@ -56,8 +64,7 @@ extension MCPTestHelpers {
         let data = Data(buffer: writer.collated.withLockedValue { $0 })
         return MCPHTTPTestResponse(
             status: response.status,
-            contentType: response.headers[.contentType],
-            allow: response.headers[.allow],
+            headers: response.headers,
             body: data
         )
     }
@@ -65,9 +72,12 @@ extension MCPTestHelpers {
 
 nonisolated struct MCPHTTPTestResponse {
     let status: HTTPResponse.Status
-    let contentType: String?
-    let allow: String?
+    let headers: HTTPFields
     let body: Data
+
+    var contentType: String? { headers[.contentType] }
+    var allow: String? { headers[.allow] }
+    var sessionID: String? { headers[.mcpSessionID] }
 
     var json: Any? {
         guard !body.isEmpty else { return nil }
@@ -79,7 +89,7 @@ private nonisolated final class MCPHTTPTestResponseWriter: ResponseBodyWriter {
     let collated = NIOLockedValueBox(ByteBuffer())
 
     func write(_ buffer: ByteBuffer) async throws {
-        collated.withLockedValue { $0.writeImmutableBuffer(buffer) }
+        _ = collated.withLockedValue { $0.writeImmutableBuffer(buffer) }
     }
 
     func finish(_: HTTPFields?) async throws {}
