@@ -121,7 +121,7 @@ final class SyncManager {
     /// Starts a 60-second repeating heartbeat that writes to SwiftData,
     /// triggering CloudKit to pull pending remote changes. Scheduling is gated on the
     /// launch-fixed `isCloudSyncActive` mode, not the mutable sync preference.
-    func startHeartbeat(context: ModelContext) {
+    func startHeartbeat(container: ModelContainer) {
         stopHeartbeat()
         guard isCloudSyncActive else { return }
 
@@ -129,7 +129,7 @@ final class SyncManager {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(60))
                 guard !Task.isCancelled else { break }
-                beat(context: context)
+                beat(container: container)
             }
         }
     }
@@ -142,7 +142,12 @@ final class SyncManager {
 
     /// Writes a timestamp to the `SyncHeartbeat` singleton, triggering a
     /// CloudKit sync cycle that pulls pending remote changes.
-    func beat(context: ModelContext) {
+    ///
+    /// Each beat owns a fresh context so its save cannot commit changes pending in
+    /// the app's shared context. The context never escapes this method, so rolling it
+    /// back and discarding it is sufficient cleanup after a failed save.
+    func beat(container: ModelContainer) {
+        let context = ModelContext(container)
         let singletonID = SyncHeartbeat.singletonID
         let descriptor = FetchDescriptor<SyncHeartbeat>(
             predicate: #Predicate { $0.id == singletonID }
@@ -163,7 +168,15 @@ final class SyncManager {
         if heartbeat.modelContext == nil {
             context.insert(heartbeat)
         }
-        try? heartbeatSaver(context)
+
+        do {
+            try heartbeatSaver(context)
+        } catch {
+            context.rollback()
+            Self.logger.error(
+                "Skipping sync heartbeat because the save failed: \(error.localizedDescription)"
+            )
+        }
     }
 
     // MARK: - CloudKit Schema

@@ -1,7 +1,7 @@
 # Bugfix Report: Sync Heartbeat Context Isolation
 
 **Date:** 2026-08-30
-**Status:** Investigation complete; fix pending
+**Status:** Fixed
 
 ## Description of the Issue
 
@@ -47,7 +47,13 @@ The heartbeat assumes a SwiftData context save is scoped to the heartbeat model.
 
 ## Resolution for the Issue
 
-_To be completed after implementation._
+`SyncManager.startHeartbeat` and `beat` now accept the live `ModelContainer` rather than a caller-owned `ModelContext`. Every beat creates a fresh `ModelContext(container)` and performs the singleton fetch, timestamp mutation, insertion when needed, and save within that isolated unit of work. A successful heartbeat therefore persists only heartbeat-context changes and cannot clear or commit pending work in the app's shared context.
+
+Fetch failures are logged and return before mutation. Save failures call `context.rollback()`, log the error, and then discard the isolated context. Ordinary rollback is safe here because no fetched heartbeat model or context escapes `beat`; the context is immediately abandoned, so the SwiftData re-fault caveat for caller-observed models does not apply.
+
+The app launch and Settings call sites now pass their live container. A deterministic save seam remains for failure-path regression coverage.
+
+**Alternative considered:** Continue accepting a caller context and derive `context.container` inside the heartbeat. This would isolate persistence, but was rejected because a container-based API makes transaction ownership explicit and prevents future callers from assuming the supplied context participates in the beat.
 
 ## Regression Test
 
@@ -66,19 +72,24 @@ _To be completed after implementation._
 
 | File | Change |
 |------|--------|
-| `Transit/Transit/Services/SyncManager.swift` | Investigation-only injectable save seam; isolation fix pending |
-| `Transit/TransitTests/SyncManagerTests.swift` | Red regressions for successful and failed heartbeat isolation |
-| `specs/bugfixes/sync-heartbeat-context-isolation/report.md` | Root-cause analysis and verification record |
+| `Transit/Transit/Services/SyncManager.swift` | Creates a fresh heartbeat context over the supplied container; rolls back and logs failed saves |
+| `Transit/Transit/TransitApp.swift` | Passes the live model container when starting the app heartbeat |
+| `Transit/Transit/Views/Settings/SettingsView.swift` | Passes the environment context's container when starting from Settings |
+| `Transit/TransitTests/SyncManagerTests.swift` | Verifies isolation for success, fetch failure, save failure, and retry paths |
+| `CHANGELOG.md` | Records the completed T-2232 fix |
+| `specs/bugfixes/sync-heartbeat-context-isolation/report.md` | Root-cause, resolution, and verification record |
 
 ## Verification
 
 **Automated:**
-- [ ] Regression tests pass
-- [ ] Full test suite passes
-- [ ] Linters/validators pass
+- [x] Regression tests pass (`make test-quick`)
+- [x] Full iOS test suite passes (`make test`)
+- [x] UI test suite passes (`make test-ui`)
+- [x] Linters/validators pass (`make lint`)
 
 **Manual verification:**
-- Red phase must show the new isolation expectations fail against the shared-context implementation.
+- The red phase failed only the three new T-2232 isolation regressions against the shared-context implementation.
+- The same regressions passed after moving heartbeat persistence into a fresh context.
 
 ## Prevention
 

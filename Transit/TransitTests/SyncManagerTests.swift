@@ -72,7 +72,7 @@ struct SyncManagerTests {
             let fixture = try TestModelContainer()
             let manager = SyncManager()
             manager.recordActiveCloudSync(true)
-            manager.startHeartbeat(context: fixture.context)
+            manager.startHeartbeat(container: fixture.container)
             defer { manager.stopHeartbeat() }
 
             #expect(manager.isHeartbeatRunning,
@@ -87,7 +87,7 @@ struct SyncManagerTests {
             let fixture = try TestModelContainer()
             let manager = SyncManager()
             manager.recordActiveCloudSync(true)
-            manager.startHeartbeat(context: fixture.context)
+            manager.startHeartbeat(container: fixture.container)
             defer { manager.stopHeartbeat() }
 
             manager.setSyncEnabled(false)
@@ -107,7 +107,7 @@ struct SyncManagerTests {
             let manager = SyncManager()
             manager.recordActiveCloudSync(false)
             manager.setSyncEnabled(true)
-            manager.startHeartbeat(context: fixture.context)
+            manager.startHeartbeat(container: fixture.container)
 
             #expect(manager.isSyncEnabled)
             #expect(manager.syncChangeRequiresRestart)
@@ -123,7 +123,7 @@ struct SyncManagerTests {
             let fixture = try TestModelContainer()
             let manager = SyncManager()
             manager.recordActiveCloudSync(true)
-            manager.startHeartbeat(context: fixture.context)
+            manager.startHeartbeat(container: fixture.container)
             defer { manager.stopHeartbeat() }
 
             manager.setSyncEnabled(false)
@@ -142,7 +142,7 @@ struct SyncManagerTests {
             let fixture = try TestModelContainer()
             let manager = SyncManager()
             manager.recordActiveCloudSync(true)
-            manager.startHeartbeat(context: fixture.context)
+            manager.startHeartbeat(container: fixture.container)
             manager.setSyncEnabled(false)
 
             manager.stopHeartbeat()
@@ -199,7 +199,7 @@ struct SyncManagerTests {
         context.insert(Project(name: "Pending", description: "", gitRepo: nil, colorHex: ""))
         let manager = SyncManager()
 
-        manager.beat(context: context)
+        manager.beat(container: fixture.container)
 
         // Expected: the heartbeat commits independently. Actual before T-2232: saving
         // the caller's context also committed this pending project.
@@ -221,7 +221,7 @@ struct SyncManagerTests {
         try context.save()
         let manager = SyncManager()
 
-        manager.beat(context: context)
+        manager.beat(container: fixture.container)
 
         let verificationContext = ModelContext(fixture.container)
         let storedHeartbeat = try #require(
@@ -240,7 +240,7 @@ struct SyncManagerTests {
         let manager = SyncManager(heartbeatFetcher: fetcher.fetch)
         fetcher.shouldFail = true
 
-        manager.beat(context: context)
+        manager.beat(container: fixture.container)
 
         let failedBeatVerification = ModelContext(fixture.container)
         #expect(try heartbeatCount(in: failedBeatVerification) == 0,
@@ -249,7 +249,7 @@ struct SyncManagerTests {
                 "A failed singleton fetch must leave unrelated caller changes pending")
 
         fetcher.shouldFail = false
-        manager.beat(context: context)
+        manager.beat(container: fixture.container)
 
         let recoveredBeatVerification = ModelContext(fixture.container)
         #expect(try heartbeatCount(in: recoveredBeatVerification) == 1,
@@ -273,7 +273,7 @@ struct SyncManagerTests {
         let manager = SyncManager(heartbeatSaver: saver.save)
         saver.shouldFail = true
 
-        manager.beat(context: context)
+        manager.beat(container: fixture.container)
 
         // Expected: only an isolated heartbeat context becomes dirty and is discarded.
         // Actual before T-2232: the shared heartbeat model remains mutated in the caller.
@@ -289,7 +289,7 @@ struct SyncManagerTests {
         #expect(try projectCount(in: failedBeatVerification) == 0)
 
         saver.shouldFail = false
-        manager.beat(context: context)
+        manager.beat(container: fixture.container)
 
         let recoveredBeatVerification = ModelContext(fixture.container)
         let storedAfterRecovery = try #require(
@@ -309,9 +309,9 @@ struct SyncManagerTests {
             fetcher.shouldFail = true
             let manager = SyncManager(heartbeatFetcher: fetcher.fetch)
 
-            manager.startHeartbeat(context: fixture.context)
+            manager.startHeartbeat(container: fixture.container)
             defer { manager.stopHeartbeat() }
-            manager.beat(context: fixture.context)
+            manager.beat(container: fixture.container)
 
             #expect(manager.isHeartbeatRunning,
                     "A failed beat must leave the existing timer scheduled to retry at its next interval")
