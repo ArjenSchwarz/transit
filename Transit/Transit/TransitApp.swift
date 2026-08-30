@@ -288,7 +288,7 @@ struct TransitApp: App {
         // Skip MCP server in unit test host to avoid port conflicts across test runs
         guard mcpSettings.isEnabled, !Self.isUnitTestHost else { return }
         await mcpServer.start(port: mcpSettings.port)
-        syncManager.startHeartbeat(context: container.mainContext)
+        syncManager.startHeartbeat(container: container)
     }
     #endif
 

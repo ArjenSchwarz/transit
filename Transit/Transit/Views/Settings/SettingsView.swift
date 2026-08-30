@@ -350,7 +350,7 @@ extension SettingsView {
                         .onChange(of: mcpSettings.isEnabled) { _, enabled in
                             if enabled {
                                 scheduleMCP(.start)
-                                syncManager.startHeartbeat(context: modelContext)
+                                syncManager.startHeartbeat(container: modelContext.container)
                             } else {
                                 mcpPortChangeCoordinator.cancelPendingPortChange()
                                 scheduleMCP(.stop)
