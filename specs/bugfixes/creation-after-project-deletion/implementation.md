@@ -44,7 +44,7 @@ The implementation preserves CloudKit-compatible optional relationships, the sha
 
 ### Architecture Impact
 
-Project existence is now an explicit service-layer invariant at both creation boundaries rather than a caller responsibility. Automation adapters preserve their existing public error contracts: App Intents return `PROJECT_NOT_FOUND`, MCP milestone creation returns `No matching project found`, and UI callers receive the localized service error.
+Project existence is now an explicit service-layer invariant at both creation boundaries rather than a caller responsibility. Automation adapters preserve their existing public error contracts: App Intents return `PROJECT_NOT_FOUND`, MCP task and milestone creation return `No matching project found`, and UI callers receive the localized service error.
 
 ### Potential Issues
 
@@ -52,6 +52,6 @@ The transient committed-state fetch is additional creation-path I/O, but it is a
 
 ## Completeness Assessment
 
-- **Fully implemented:** task and milestone service guards, live/pending and committed-state reconciliation, exact domain errors, App Intent and MCP mappings, deterministic peer-deletion regressions, changelog, and bugfix report.
+- **Fully implemented:** task and milestone service guards, live/pending and committed-state reconciliation, exact domain errors, App Intent and MCP mappings, deterministic service- and MCP-level peer-deletion regressions, changelog, and bugfix report.
 - **Partially implemented:** none.
 - **Missing:** none for T-2103. The full macOS and iOS suites, dedicated UI suite, lint/ownership validators, and iOS/macOS builds all pass.

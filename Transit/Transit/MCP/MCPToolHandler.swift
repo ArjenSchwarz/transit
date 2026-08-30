@@ -443,6 +443,8 @@ final class MCPToolHandler {
             )
         } catch TaskService.Error.milestoneNotOpen {
             return errorResult("The selected milestone is no longer open")
+        } catch TaskService.Error.projectNotFound {
+            return errorResult("No matching project found")
         } catch {
             return errorResult("Task creation failed: \(error)")
         }

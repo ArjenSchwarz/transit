@@ -88,6 +88,43 @@ struct CreationProjectDeletionTests {
         try expectNoProjectsOrTasks(in: testContainer.container)
     }
 
+#if os(macOS)
+    @Test func mcpTaskCreationReportsProjectDeletionWithEstablishedError() async throws {
+        let store = AllocationGatedCounterStore(initialNextDisplayID: 300)
+        let env = try MCPTestHelpers.makeEnv(taskCounterStore: store)
+        let project = try makeProject(in: env.context)
+        let projectID = project.id
+
+        let creation = Task { @MainActor in
+            await env.handler.handle(MCPTestHelpers.toolCallRequest(
+                tool: "create_task",
+                arguments: [
+                    "name": "Must Not Persist",
+                    "type": "bug",
+                    "projectId": projectID.uuidString
+                ]
+            ))
+        }
+
+        let allocationStarted = await store.waitUntilAllocationStarts()
+        #expect(allocationStarted, "MCP task creation never reached the allocation suspension")
+        guard allocationStarted else {
+            creation.cancel()
+            await store.releaseAllocation()
+            _ = await creation.value
+            return
+        }
+
+        try deleteProject(id: projectID, from: env.context.container)
+        await store.releaseAllocation()
+
+        let response = await creation.value
+        #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorText(response) == "No matching project found")
+        try expectNoProjectsOrTasks(in: env.context.container)
+    }
+#endif
+
     @Test func milestoneCreationRejectsProjectDeletedDuringAllocation() async throws {
         let testContainer = try TestModelContainer()
         let context = testContainer.context

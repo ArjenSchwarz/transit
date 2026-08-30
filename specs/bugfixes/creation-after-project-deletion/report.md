@@ -67,9 +67,10 @@ Added `CreationProjectValidator`, a shared persistence-boundary check that combi
 
 **Test names:**
 - `taskCreationRejectsProjectDeletedDuringAllocation`
+- `mcpTaskCreationReportsProjectDeletionWithEstablishedError`
 - `milestoneCreationRejectsProjectDeletedDuringAllocation`
 
-**What they verify:** A deterministic allocation gate suspends each create, an independent context deletes the persisted project, and resumption must return a project-not-found domain error without leaving a pending or committed task/milestone.
+**What they verify:** A deterministic allocation gate suspends each create, an independent context deletes the persisted project, and resumption must return a project-not-found domain error without leaving a pending or committed task/milestone. The MCP regression additionally requires `create_task` to preserve the established `No matching project found` tool error on this post-allocation path.
 
 **Red checkpoint:** `run_silent make test-quick` compiled the test target and failed as expected before production changes. The result bundle reported 1,803 tests total: 1,801 passed and both new regressions failed. Task creation returned successfully when `TaskService.Error.projectNotFound` was expected; milestone creation likewise returned successfully instead of producing its project-not-found domain error.
 
@@ -82,8 +83,9 @@ Added `CreationProjectValidator`, a shared persistence-boundary check that combi
 | `Transit/Transit/Services/MilestoneService.swift` | Post-allocation milestone project-liveness guard |
 | `Transit/Transit/Services/MilestoneService+Error.swift` | Typed `projectNotFound` domain error and localized description |
 | `Transit/Transit/Intents/IntentHelpers.swift` | Maps milestone project deletion to `PROJECT_NOT_FOUND` |
-| `Transit/Transit/MCP/MCPToolHandler.swift` | Deterministic MCP create-milestone project-not-found response |
-| `Transit/TransitTests/CreationProjectDeletionTests.swift` | Deterministic peer-deletion regressions with exact domain-error assertions |
+| `Transit/Transit/MCP/MCPToolHandler.swift` | Deterministic MCP task and milestone project-not-found responses |
+| `Transit/TransitTests/MCPTestHelpers.swift` | Optional task counter-store injection for allocation-gated MCP coverage |
+| `Transit/TransitTests/CreationProjectDeletionTests.swift` | Deterministic service and MCP peer-deletion regressions with exact error assertions |
 | `CHANGELOG.md` | Unreleased bugfix entry |
 | `specs/bugfixes/creation-after-project-deletion/report.md` | Investigation, resolution, and verification record |
 | `specs/bugfixes/creation-after-project-deletion/implementation.md` | Three-level implementation explanation and completeness assessment |
@@ -92,7 +94,7 @@ Added `CreationProjectValidator`, a shared persistence-boundary check that combi
 
 **Automated:**
 - [x] Regression tests pass as part of `make test-quick`
-- [x] macOS unit suite passes: 1,803 passed, 0 failed, 0 skipped
+- [x] macOS unit suite passes: 1,804 passed, 0 failed, 0 skipped
 - [x] Full iOS scheme test passes: 1,288 top-level tests passed, 0 failed, 0 skipped (`make test`; 1,336 device-expanded passes)
 - [x] Dedicated UI suite passes: 21 top-level tests passed, 0 failed, 0 skipped (`make test-ui`; 24 device-expanded passes)
 - [x] Linters and SwiftData ownership validators pass (`make lint`)
