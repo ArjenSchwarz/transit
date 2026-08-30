@@ -7,20 +7,24 @@ Embedded MCP server in the Transit macOS app using Hummingbird HTTP server. Expo
 ## Architecture
 
 ```
-Claude Code ←→ HTTP POST /mcp (localhost:3141) ←→ MCPServer ←→ MCPToolHandler ←→ TaskService/ProjectService/CommentService ←→ SwiftData
+Claude Code ←→ HTTP POST + session GET/SSE /mcp (localhost:3141) ←→ MCPServer ←→ MCPToolHandler ←→ TaskService/ProjectService/CommentService ←→ SwiftData
 ```
 
-- **Transport**: Streamable HTTP, JSON-RPC 2.0 over `POST /mcp`; `GET /mcp` is explicitly handled with HTTP 405 and `Allow: POST` because Transit does not offer an SSE listening stream
+- **Transport**: Streamable HTTP at `/mcp`. `POST /mcp` carries JSON-RPC requests and client notifications; a successful standalone `initialize` returns an `Mcp-Session-Id`. A GET with that session ID and an exact acceptable `text/event-stream` media range opens the optional SSE channel for server-initiated notifications. Missing session IDs return 400, unknown IDs return 404, and GET without SSE negotiation remains HTTP 405 with `Allow: POST`.
 - **HTTP server**: Hummingbird 2.x (SwiftNIO-based), binds to `127.0.0.1` only
 - **Lifecycle**: Opt-in via Settings toggle. Default port 3141.
 
 ## Files
 
 - `Transit/Transit/MCP/MCPTypes.swift` — All Codable protocol types (JSON-RPC, MCP)
-- `Transit/Transit/MCP/MCPSettings.swift` — UserDefaults-backed settings (`isEnabled`, `port`)
+- `Transit/Transit/MCP/MCPSettings.swift` — UserDefaults-backed settings (`isEnabled`, `port`) and settings-scoped tool-list invalidation source
+- `Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift` — active SSE stream registration and list-change broadcasting
 - `Transit/Transit/MCP/MCPToolHandler.swift` — Tool dispatch, handler methods, helpers
 - `Transit/Transit/MCP/MCPToolDefinitions.swift` — Tool schema definitions (extracted for file length)
-- `Transit/Transit/MCP/MCPServer.swift` — Hummingbird server lifecycle and HTTP routing
+- `Transit/Transit/MCP/MCPServer.swift` — Hummingbird server lifecycle, session creation, and HTTP routing
+- `Transit/Transit/MCP/MCPServer+Responses.swift` — shared JSON response encoding and header construction
+- `Transit/Transit/MCP/MCPRequestContext.swift` — request context retaining the NIO channel for disconnect observation
+- `Transit/Transit/MCP/MCPServer+ToolListNotifications.swift` — session validation, Streamable HTTP GET negotiation, and SSE framing
 - `Transit/Transit/MCP/MCPServerLifecycleConfiguration.swift` — bounded shutdown and no-signal `ServiceGroup` policy
 - `Transit/Transit/MCP/MCPServerDecodeTypes.swift` — request decode outcome types shared by the route and decoder
 - `Transit/Transit/MCP/MCPOriginValidator.swift` — transport-level `Origin`/`Host` validation
@@ -51,7 +55,7 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 
 - `MCPToolDefinitions` is split into `coreTools` and `maintenanceTools`; `tools(includingMaintenance:)` returns the right subset. The legacy `all` alias still resolves to `coreTools` only — anything in production should use the helper.
 - When the toggle is off, `tools/list` excludes both maintenance tools and `tools/call` for either name returns JSON-RPC `invalidParams` (-32602) with the literal message `Tool '<name>' is disabled. Enable maintenance tools in Transit Settings.` — distinct from the "Unknown tool" message used for genuinely unknown names.
-- The toggle takes effect on the next `tools/list` without restart (settings is read live).
+- The toggle takes effect on the next `tools/list` without restart. Initialization advertises `tools.listChanged: true` and returns a unique session ID; each initialized session with one or more negotiated GET/SSE streams receives exactly one `notifications/tools/list_changed` on each real toggle change. `MCPToolListChangeBroadcaster` is scoped to the shared `MCPSettings` instance, deduplicates across concurrent streams in the same session, and retains only the newest pending invalidation because the notification is idempotent. The request context observes each NIO channel's close future so even an idle disconnected stream is promptly finished and unregistered.
 - Dispatch handlers (`handleScanDuplicateDisplayIds`, `handleReassignDuplicateDisplayIds`) encode `DisplayIDMaintenanceTypes` (Codable structs) via a shared `encodedTextResult(_:)` helper that JSON-encodes any `Encodable` and wraps it in the `MCPToolResult.content[text]` envelope.
 
 ## Origin / Host Validation (T-1833)

@@ -6,9 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- T-2169: MCP initialization now advertises `tools.listChanged` and returns an `Mcp-Session-Id`; negotiated Streamable HTTP GET/SSE channels receive one `notifications/tools/list_changed` per client session whenever **Expose maintenance tools** changes, even if a session has multiple listening streams. Closed channels promptly unregister their streams, fresh `tools/list` behavior remains live, and GET requires an exact acceptable `text/event-stream` media range while preserving the prior 405 response when negotiation fails. Client-perspective regressions cover session isolation, duplicate-delivery prevention, disconnect cleanup, and `Accept` quality/media-type boundaries.
+
 - T-2232: Sync heartbeats now fetch, mutate, and save their singleton through a fresh `ModelContext` over the live container, so background sync writes cannot persist unrelated changes pending in the shared app context. Failed heartbeat saves are rolled back and logged before the isolated context is discarded; deterministic regressions cover successful writes, fetch failures, save failures, and retry recovery.
 
 - T-2080: Project names imported from disconnected CloudKit devices are now reconciled deterministically instead of remaining permanently ambiguous. A locale-stable shared policy keeps the lexicographically smallest project UUID's original name and assigns collision-safe UUID suffixes to other records, preserving every project and task/milestone relationship. Launch, foreground, connectivity restoration, and live project query observation trigger or retry maintenance; reconciliation defers while the shared context has unrelated unsaved changes. Cross-context regressions cover ambiguity, deterministic generated-name collisions, relationship preservation, idempotence, and deferred retry behavior.
+
 - Restored the original width-adaptive dashboard layout: iPhone portrait keeps the multi-column Kanban board whenever at least two 200-point columns fit, and uses segmented single-column navigation only below that boundary. This supersedes T-1802 / PR #205 and corrects requirement 13.1.
 - Dashboard UI tests now dismiss the iOS search presentation, navigate toolbar overflow actions, match combined detail-row accessibility labels, and disambiguate nested alert buttons so the full iPhone 17 suite covers the restored multi-column portrait layout reliably.
 

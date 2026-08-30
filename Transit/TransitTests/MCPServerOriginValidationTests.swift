@@ -265,7 +265,7 @@ struct MCPServerOriginValidationTests {
     }
 
     private func dispatch(
-        responder: some HTTPResponder<BasicRequestContext>,
+        responder: some HTTPResponder<MCPRequestContext>,
         head: HTTPRequest,
         body: String
     ) async throws -> HTTPResponse.Status {
@@ -273,7 +273,7 @@ struct MCPServerOriginValidationTests {
 
         let channel = EmbeddedChannel()
         defer { _ = try? channel.finish() }
-        let context = BasicRequestContext(
+        let context = MCPRequestContext(
             source: ApplicationRequestContextSource(
                 channel: channel, logger: Logger(label: "mcp-origin-tests")
             )

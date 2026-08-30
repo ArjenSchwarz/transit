@@ -157,7 +157,16 @@ nonisolated struct MCPServerCapabilities: Encodable, Sendable {
 }
 
 nonisolated struct MCPToolsCapability: Encodable, Sendable {
-    // Empty object signals tool support
+    let listChanged: Bool
+}
+
+nonisolated struct MCPServerNotification: Encodable, Sendable {
+    let jsonrpc: String = "2.0"
+    let method: String
+
+    static let toolsListChanged = MCPServerNotification(
+        method: "notifications/tools/list_changed"
+    )
 }
 
 nonisolated struct MCPServerInfo: Encodable, Sendable {

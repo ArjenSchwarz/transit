@@ -4,16 +4,16 @@ import HTTPTypes
 import Testing
 @testable import Transit
 
-/// Regression tests for T-1835: the advertised MCP Streamable HTTP endpoint
-/// must distinguish an unsupported method on `/mcp` from an unknown route.
+/// Regression tests for the MCP Streamable HTTP endpoint routes.
 ///
-/// MCP 2025-03-26 requires GET on the MCP endpoint to return 405 when the
-/// server does not offer an SSE listening stream. Hummingbird's unmatched
-/// route fallback previously returned 404 because only POST was registered.
+/// MCP 2025-03-26 permits GET to open an SSE listening stream when the client
+/// accepts `text/event-stream`. A GET without that required negotiation remains
+/// unsupported, while POST dispatch, origin validation, and unrelated routes
+/// keep their existing behavior.
 @MainActor @Suite(.serialized)
 struct MCPServerRouteTests {
 
-    @Test func getMcpReturnsMethodNotAllowedWithPostAllowHeader() async throws {
+    @Test func getMcpWithoutEventStreamAcceptReturnsMethodNotAllowed() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let response = try await respond(
             handler: env.handler,
@@ -23,6 +23,75 @@ struct MCPServerRouteTests {
 
         #expect(response.status == .methodNotAllowed)
         #expect(response.allow == "POST")
+    }
+
+    @Test func eventStreamAcceptParsingRequiresExactPositiveQualityMediaRange() {
+        #expect(MCPServer.acceptsEventStream("text/event-stream"))
+        #expect(MCPServer.acceptsEventStream(
+            "application/json, TEXT/EVENT-STREAM; charset=utf-8; q=0.5"
+        ))
+        #expect(MCPServer.acceptsEventStream(
+            "text/event-stream;q=0, text/event-stream;q=0.001"
+        ))
+
+        #expect(!MCPServer.acceptsEventStream(nil))
+        #expect(!MCPServer.acceptsEventStream("application/x-text/event-stream"))
+        #expect(!MCPServer.acceptsEventStream("text/event-streaming"))
+        #expect(!MCPServer.acceptsEventStream("text/event-stream;q=0"))
+        #expect(!MCPServer.acceptsEventStream("text/event-stream;q=1.1"))
+        #expect(!MCPServer.acceptsEventStream("text/event-stream;q=.5"))
+        #expect(!MCPServer.acceptsEventStream("text/event-stream;note=\"a,b\";q=0"))
+    }
+
+    @Test func getMcpRejectsEventStreamWithZeroQuality() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let response = try await respond(
+            handler: env.handler,
+            method: .get,
+            path: "/mcp",
+            accept: "application/json, text/event-stream;q=0"
+        )
+
+        #expect(response.status == .methodNotAllowed)
+        #expect(response.allow == "POST")
+    }
+
+    @Test func getMcpRejectsEventStreamMediaTypeSuperstring() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let response = try await respond(
+            handler: env.handler,
+            method: .get,
+            path: "/mcp",
+            accept: "application/x-text/event-stream"
+        )
+
+        #expect(response.status == .methodNotAllowed)
+        #expect(response.allow == "POST")
+    }
+
+    @Test func getMcpWithEventStreamAcceptRequiresSession() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let response = try await respond(
+            handler: env.handler,
+            method: .get,
+            path: "/mcp",
+            accept: "text/event-stream; charset=utf-8; q=0.5"
+        )
+
+        #expect(response.status == .badRequest)
+    }
+
+    @Test func getMcpRejectsUnknownSession() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let response = try await respond(
+            handler: env.handler,
+            method: .get,
+            path: "/mcp",
+            accept: "text/event-stream",
+            sessionID: "unknown-session"
+        )
+
+        #expect(response.status == .notFound)
     }
 
     @Test func postMcpStillDispatchesNormally() async throws {
@@ -103,6 +172,8 @@ struct MCPServerRouteTests {
         path: String,
         origin: String? = nil,
         host: String = "127.0.0.1:3141",
+        accept: String? = nil,
+        sessionID: String? = nil,
         body: String = ""
     ) async throws -> MCPHTTPTestResponse {
         try await MCPTestHelpers.respond(
@@ -111,6 +182,8 @@ struct MCPServerRouteTests {
             path: path,
             origin: origin,
             authority: host,
+            accept: accept,
+            sessionID: sessionID,
             body: body,
             loggerLabel: "mcp-route-tests"
         )
