@@ -113,6 +113,7 @@ struct TransitApp: App {
             // connectivity must not start reaching for the CloudKit counter [T-1797].
             if cloudSyncActive {
                 connectivityMonitor.onRestore = { @Sendable in
+                    _ = try? projectService.reconcileDuplicateNames()
                     await allocator.promoteProvisionalTasks(in: context)
                     await milestoneService.promoteProvisionalMilestones()
                 }
@@ -194,6 +195,7 @@ struct TransitApp: App {
             .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
             .modifier(ScenePhaseModifier(
                 displayIDAllocator: displayIDAllocator,
+                projectService: projectService,
                 milestoneService: milestoneService,
                 modelContext: container.mainContext
             ))

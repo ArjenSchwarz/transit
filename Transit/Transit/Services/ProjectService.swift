@@ -114,10 +114,9 @@ final class ProjectService {
         }
 
         if let rawName = name {
-            let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
-            // SwiftData predicates support .localizedStandardContains but not
-            // arbitrary case-insensitive equality. Fetch all and filter in memory
-            // for exact case-insensitive match (project count is small).
+            let normalized = ProjectNamePolicy.normalized(rawName)
+            // SwiftData predicates cannot express the locale-stable normalization
+            // shared by local validation and cross-device reconciliation.
             let descriptor = FetchDescriptor<Project>()
             let allProjects: [Project]
             do {
@@ -126,15 +125,17 @@ final class ProjectService {
                 return .failure(.storageFailure(hint: "Failed to fetch projects: \(error)"))
             }
             let matches = allProjects.filter {
-                $0.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+                ProjectNamePolicy.normalized($0.name) == normalized
             }
 
             switch matches.count {
             case 0:
+                let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
                 return .failure(.notFound(hint: "No project named \"\(trimmed)\""))
             case 1:
                 return .success(matches[0])
             default:
+                let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
                 return .failure(.ambiguous(hint: "\(matches.count) projects match \"\(trimmed)\""))
             }
         }
@@ -152,16 +153,29 @@ final class ProjectService {
     ///
     /// Throws the underlying storage error when the projects cannot be read.
     /// CloudKit-backed SwiftData forbids `@Attribute(.unique)`, so this check *is*
-    /// the uniqueness invariant — reporting `false` for an unreadable store would
-    /// let create/rename commit a duplicate name with nothing underneath to stop
-    /// it (T-1614).
+    /// the local uniqueness guard. Cross-device conflicts are repaired by
+    /// `reconcileDuplicateNames()` after CloudKit imports them.
     func projectNameExists(_ name: String, excluding projectId: UUID? = nil) throws -> Bool {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = ProjectNamePolicy.normalized(name)
         let allProjects = try fetcher.fetch(FetchDescriptor<Project>())
         return allProjects.contains { project in
             if let projectId, project.id == projectId { return false }
-            return project.name.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+            return ProjectNamePolicy.normalized(project.name) == normalized
         }
+    }
+
+    // MARK: - Post-sync maintenance
+
+    /// Restores global project-name uniqueness after CloudKit imports records
+    /// independently created on different devices.
+    ///
+    /// The lexicographically smallest UUID keeps its original name because
+    /// `Project` has no creation timestamp. Every other record receives a
+    /// deterministic UUID-derived suffix. Renaming preserves both projects and
+    /// all task/milestone relationships. Returns the number of records renamed.
+    @discardableResult
+    func reconcileDuplicateNames() throws -> Int {
+        try ProjectNameReconciler(modelContext: modelContext).reconcile()
     }
 
     // MARK: - Queries
