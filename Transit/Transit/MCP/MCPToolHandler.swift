@@ -293,6 +293,8 @@ final class MCPToolHandler {
             result = handleQueryTasks(arguments)
         case "add_comment":
             result = handleAddComment(arguments)
+        case "create_project":
+            result = handleCreateProject(arguments)
         case "get_projects":
             result = handleGetProjects()
         case "create_milestone":
@@ -1186,6 +1188,54 @@ extension MCPToolHandler {
 
 extension MCPToolHandler {
 
+    private func handleCreateProject(_ args: [String: Any]) -> MCPToolResult {
+        let name: String
+        switch requiredString(args, key: "name") {
+        case .success(let value): name = value
+        case .failure(.message(let message)): return errorResult(message)
+        }
+        let colorHex: String
+        switch requiredString(args, key: "colorHex") {
+        case .success(let value): colorHex = value
+        case .failure(.message(let message)): return errorResult(message)
+        }
+        // Compare the whole range: regex $ can also match before a final newline.
+        guard let range = colorHex.range(of: "^#?[0-9A-Fa-f]{6}$", options: .regularExpression),
+              range == colorHex.startIndex..<colorHex.endIndex else {
+            return errorResult("Invalid colorHex: expected six hexadecimal digits, optionally prefixed by #")
+        }
+        for key in ["description", "gitRepo"] {
+            if let raw = args[key], !(raw is String) {
+                return errorResult("\(key) must be a string")
+            }
+        }
+        do {
+            let project = try projectService.createProject(
+                name: name,
+                description: args["description"] as? String ?? "",
+                gitRepo: args["gitRepo"] as? String,
+                colorHex: colorHex
+            )
+            return textResult(IntentHelpers.encodeJSON(projectMetadataDict(project)))
+        } catch ProjectMutationError.invalidName {
+            return errorResult("Project name must not be empty or whitespace-only")
+        } catch ProjectMutationError.duplicateName(let name) {
+            return errorResult("A project named \"\(name)\" already exists")
+        } catch {
+            return errorResult("Failed to create project: \(error)")
+        }
+    }
+
+    private func projectMetadataDict(_ project: Project) -> [String: Any] {
+        var dict: [String: Any] = [
+            "projectId": project.id.uuidString, "name": project.name,
+            "description": project.projectDescription, "colorHex": project.colorHex,
+            "activeTaskCount": projectService.activeTaskCount(for: project)
+        ]
+        if let gitRepo = project.gitRepo { dict["gitRepo"] = gitRepo }
+        return dict
+    }
+
     private func handleGetProjects() -> MCPToolResult {
         let projects: [Project]
         do {
@@ -1195,12 +1245,7 @@ extension MCPToolHandler {
         }
         var results: [[String: Any]] = []
         for project in projects {
-            var dict: [String: Any] = [
-                "projectId": project.id.uuidString, "name": project.name,
-                "description": project.projectDescription, "colorHex": project.colorHex,
-                "activeTaskCount": projectService.activeTaskCount(for: project)
-            ]
-            if let gitRepo = project.gitRepo { dict["gitRepo"] = gitRepo }
+            var dict = projectMetadataDict(project)
 
             let milestones: [Milestone]
             do {

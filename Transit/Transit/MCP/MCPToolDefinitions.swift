@@ -4,7 +4,7 @@
 
 nonisolated enum MCPToolDefinitions {
     static let coreTools: [MCPToolDefinition] = [
-        createTask, updateTaskStatus, queryTasks, addComment, getProjects,
+        createTask, updateTaskStatus, queryTasks, addComment, getProjects, createProject,
         createMilestone, queryMilestones, updateMilestone, deleteMilestone, updateTask
     ]
 
@@ -151,6 +151,21 @@ nonisolated enum MCPToolDefinitions {
             required: ["content", "authorName"]
         )
     )
+
+    static let createProject = MCPToolDefinition(
+        name: "create_project",
+        description: "Create a project. Returns projectId and metadata for subsequent task creation.",
+        inputSchema: .object(
+            properties: [
+                "name": .string("Project name (required; trimmed, non-empty, case-insensitively unique)"),
+                "colorHex": .string("Project color (required; six hexadecimal digits, optionally prefixed by #)"),
+                "description": .string("Project description (optional, defaults to an empty string)"),
+                "gitRepo": .string("Git repository URL or path (optional, free-form)")
+            ],
+            required: ["name", "colorHex"]
+        )
+    )
+
     static let getProjects = MCPToolDefinition(
         name: "get_projects",
         description: "List all projects with metadata. Returns an array of project objects sorted by name.",

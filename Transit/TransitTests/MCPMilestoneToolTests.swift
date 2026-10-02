@@ -26,7 +26,7 @@ struct MCPMilestoneToolTests {
         #expect(names.contains("update_milestone"))
         #expect(names.contains("delete_milestone"))
         #expect(names.contains("update_task"))
-        #expect(tools.count == 10)
+        #expect(tools.count == 11)
     }
 
     // MARK: - create_milestone

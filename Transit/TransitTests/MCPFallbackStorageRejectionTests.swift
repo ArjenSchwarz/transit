@@ -72,6 +72,7 @@ struct MCPFallbackStorageRejectionTests {
     /// Read-only tools are deliberately absent — see `readToolsStillWork`.
     private static func mutatingCalls() -> [(tool: String, args: [String: Any])] {
         [
+            ("create_project", ["name": "Doomed Project", "colorHex": "#123456"]),
             ("create_task", ["name": "Doomed", "type": "bug", "project": "Fallback Project"]),
             ("update_task_status", ["displayId": 1, "status": "in-progress"]),
             ("update_task", ["displayId": 1, "priority": "high"]),

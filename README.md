@@ -16,7 +16,7 @@ Transit sits alongside the existing tool ecosystem: [Orbit](https://github.com/A
 - **Reports** — generate summary reports of completed/abandoned tasks by date range
 - **Cross-device sync** via CloudKit private database
 - **CLI automation** through App Intents — create tasks, update statuses, manage milestones, add comments, generate reports
-- **MCP server** (macOS) — HTTP JSON-RPC server for AI agent integration with 10 tools
+- **MCP server** (macOS) — HTTP JSON-RPC server for AI agent integration with 11 tools
 - **Agent handoff statuses** (Ready for Implementation, Ready for Review) for AI/human workflow integration
 - **Adaptive layout**: width-based multi-column Kanban on iPhone/iPad/Mac, with a segmented single-column fallback only when one column fits
 - **Drag and drop** between columns to change task status
@@ -26,8 +26,8 @@ Transit sits alongside the existing tool ecosystem: [Orbit](https://github.com/A
 ## Requirements
 
 - iOS 26 / iPadOS 26 / macOS 26
-- Xcode 26
-- Swift 6.2
+- Xcode 27
+- Swift 6.4
 
 No backwards compatibility — this targets the latest Apple platforms exclusively.
 
@@ -64,9 +64,9 @@ All intents accept a JSON string input and return a JSON string response, includ
 
 ## MCP Server (macOS)
 
-Transit includes a built-in MCP server on macOS for AI agent integration. Enable it in Settings and configure the port (default: 3141). The server exposes 10 tools over HTTP JSON-RPC 2.0:
+Transit includes a built-in MCP server on macOS for AI agent integration. Enable it in Settings and configure the port (default: 3141). The server exposes 11 tools over HTTP JSON-RPC 2.0:
 
-`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`
+`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`
 
 ## Documentation
 

@@ -43,6 +43,8 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 
 | Tool | Description |
 |------|-------------|
+| `create_project` | Create a project (name and colorHex required; description and gitRepo optional). Returns projectId and project metadata for subsequent create_task calls. |
+| `get_projects` | List projects with metadata and milestone summaries. |
 | `create_task` | Create a new task (name and type required; at least one of project / projectId required to identify the project; description, metadata, and priority optional — priority defaults to medium, invalid priority rejects with no task created) |
 | `update_task_status` | Change task status (by displayId or taskId) |
 | `update_task` | Update a task's mutable fields — any combination of `name`, `description`, `type`, `priority`, `metadata`, and milestone assignment (`milestone` / `milestoneDisplayId` / `clearMilestone`) — in a single atomic call. Priority is non-clearable: omit to leave unchanged. Identify task by displayId or taskId. |
@@ -167,3 +169,15 @@ MCPToolHandler, App Intents, and IntentHelpers all delegate to these methods rat
 - **Always validate enum filter values in query handlers.** When a handler accepts `status`, `not_status`, or `type` as filter parameters, validate each value against the enum's `allCases` before using them. Invalid values must return `isError: true` with a message listing valid options — never silently filter to empty results. Helper: `validateEnumFilter(_:key:type:)` in `MCPToolHandler` — generic over any `RawRepresentable & CaseIterable` enum with `String` raw values (T-732).
 - **Reuse IntentHelpers instead of implementing private handler-local helpers.** `IntentHelpers` provides shared utilities for metadata extraction, JSON parsing, task/milestone resolution, and error mapping. Don't duplicate this logic in MCPToolHandler — use the shared version to ensure consistent behavior across MCP and App Intent paths (T-723).
 - **`update_task` distinguishes "omit" from "clear".** Omitting a field leaves the stored value untouched; passing `description: ""` or whitespace-only clears the description, and passing `metadata: {}` clears all metadata. An identifier-only request (no mutating field) is a no-op echo — the task is returned without a save. Both `update_task` and `UpdateTaskIntent` route through `TaskUpdateValidator` + `IntentHelpers.taskUpdateResponseDict`, so success payloads are equivalent across surfaces (enforced by `UpdateTaskAllFieldsParityTests`).
+
+## Project creation
+
+`create_project` accepts required `name` and `colorHex` strings. Names are trimmed and must be non-empty and unique under the same case-insensitive policy as UI creation. Colors must contain exactly six ASCII hexadecimal digits, optionally prefixed by `#`; case and prefix are preserved. Optional `description` defaults to `""`; `gitRepo` is omitted when absent. Both optional fields must be strings when present (JSON null is rejected). Their contents pass through unchanged, and gitRepo remains free-form like the UI field.
+
+Example `tools/call` params:
+
+```json
+{"name":"create_project","arguments":{"name":"Agent Work","colorHex":"007AFF","description":"Tasks created through MCP","gitRepo":"git@example.com:team/project.git"}}
+```
+
+Success returns a JSON object inside `content[0].text` with `projectId` (UUID), `name`, `description`, `colorHex`, `activeTaskCount: 0`, and `gitRepo` when supplied. Pass the returned `projectId` to `create_task` as its projectId argument. `get_projects` includes the new project immediately. Invalid fields, duplicate names, and storage failures return `isError: true`. Creation uses ProjectService's insert/save cleanup and is blocked while fallback storage is active.

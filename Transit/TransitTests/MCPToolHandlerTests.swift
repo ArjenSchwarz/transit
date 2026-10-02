@@ -43,7 +43,7 @@ struct MCPToolHandlerTests {
         let result = try #require(json["result"] as? [String: Any])
         let tools = try #require(result["tools"] as? [[String: Any]])
 
-        #expect(tools.count == 10)
+        #expect(tools.count == 11)
         let names = tools.compactMap { $0["name"] as? String }
         #expect(names.contains("create_task"))
         #expect(names.contains("update_task_status"))

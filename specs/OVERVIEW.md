@@ -33,6 +33,7 @@
 | [Update Task All Fields](#update-task-all-fields) | 2026-05-22 | Done | Extend update_task MCP tool and App Intent to update name, description, type, and metadata |
 | [Search Empty State](#search-empty-state) | 2026-05-31 | Done | Show ContentUnavailableView.search empty state when dashboard text search has no matches |
 | [Task Priority](#task-priority) | 2026-06-06 | Done | Add a low/medium/high priority field with board glyph, filter, and MCP/Intent support |
+| [MCP Project Creation](#mcp-project-creation) | 2026-10-02 | Ready for Review | Create projects through MCP with validation and reusable project metadata |
 
 ---
 
@@ -313,3 +314,15 @@ Add a low/medium/high priority field (default medium) to tasks, shown as a board
 - [implementation.md](task-priority/implementation.md)
 - [requirements.md](task-priority/requirements.md)
 - [tasks.md](task-priority/tasks.md)
+
+## MCP Project Creation
+
+Create projects through MCP with validation and a returned UUID for task creation (T-2377).
+
+- [requirements.md](mcp-project-creation/requirements.md)
+- [design.md](mcp-project-creation/design.md)
+- [decision_log.md](mcp-project-creation/decision_log.md)
+- [tasks.md](mcp-project-creation/tasks.md)
+- [implementation.md](mcp-project-creation/implementation.md)
+- [explanation.md](mcp-project-creation/explanation.md)
+- [pre-push-review.html](mcp-project-creation/pre-push-review.html)
