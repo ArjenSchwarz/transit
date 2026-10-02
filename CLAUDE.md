@@ -18,6 +18,8 @@ Transit is a native Apple task tracker (iOS 26 / iPadOS 26 / macOS 26) for a sin
 
 ## Build and Test Commands
 
+Lint and test preflight requires `python3` for `tests/validation/create_task_project_schema_guard.py`, which checks the CreateTaskIntent source-literal project requirement outside app test processes. Provision Python 3 on any build runner that executes the Makefile validation targets.
+
 Use the Makefile for lint and routine development checks. If build/test invocation issues occur, use the configured Xcode MCP workflow on the same checkout and destination before changing code or build settings: XcodeOpenWorkspace, XcodeSwitchScheme, XcodeSwitchRunDestination, BuildProject, and RunAllTests (or GetTestList plus RunSomeTests). Inspect GetBuildLog to distinguish source errors from invocation/environment problems.
 
 Makefile commands:

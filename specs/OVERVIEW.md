@@ -325,4 +325,4 @@ Create projects through MCP with validation and a returned UUID for task creatio
 - [tasks.md](mcp-project-creation/tasks.md)
 - [implementation.md](mcp-project-creation/implementation.md)
 - [explanation.md](mcp-project-creation/explanation.md)
-- [pre-push-review.html](mcp-project-creation/pre-push-review.html)
+- The generated `pre-push-review.html` is a local, ignored review deliverable.

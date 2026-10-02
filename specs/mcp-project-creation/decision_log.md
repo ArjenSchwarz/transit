@@ -29,3 +29,8 @@
 | Keep host-source guard macOS-only | Simulator sample proved the existing synchronous #filePath source read blocks the main thread. Runtime description checks still run on iOS, and macOS retains source-literal drift coverage. The canceled run was finalized before a fresh suite started. This temporary approach was superseded by CLI migration after the same source-read stall was sampled on macOS. |
 | Migrate source-literal guard into CLI validation | Both GUI app test runners block while opening host source paths. Preserve every assertion in repository validation and run it through lint/test preflight; runtime intent-description checks remain cross-platform. Final macOS suite passes 1823 tests plus the passing CLI guard, with no skipped app tests. |
 | Run exact pre-push-review skill locally | Explicit user request after completion; review working-tree changes because no new commits exist. Publication/push remain unauthorised. |
+
+| Publication follow-up | Rationale |
+|---|---|
+| Commit and publish a draft PR | User subsequently requested commit and pr-pilot, superseding the earlier local-only restriction. Merge and deployment remain unauthorised. |
+| Retain supplied colour and free-form repository strings | Automated review suggestion was checked: Color(hex:) accepts the permitted case/prefix formats, the public contract explicitly preserves them, and existing coverage verifies empty gitRepo. No normalisation is introduced. |
