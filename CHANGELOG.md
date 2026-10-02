@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- T-2377: MCP `create_project` accepts a required name and six-digit colour, validates optional description/repository fields and case-insensitive name uniqueness, persists through `ProjectService`, and returns project ID and metadata for subsequent task creation. Regression tests cover discovery, validation, storage failures, fallback write rejection, and project-to-task creation.
+
+### Changed
+
+- Support Xcode 27 / Swift 6.4 with AsyncAlgorithms 1.1.3, explicit sendable counter-store isolation, and compiler-compatible test fixture conformances.
+- Validate the create-task project-description source literal through a CLI guard before lint/tests, avoiding host-checkout reads that stall GUI-launched test runners.
+
 - T-2169: MCP initialization now advertises `tools.listChanged` and returns an `Mcp-Session-Id`; negotiated Streamable HTTP GET/SSE channels receive one `notifications/tools/list_changed` per client session whenever **Expose maintenance tools** changes, even if a session has multiple listening streams. Closed channels promptly unregister their streams, fresh `tools/list` behavior remains live, and GET requires an exact acceptable `text/event-stream` media range while preserving the prior 405 response when negotiation fails. Client-perspective regressions cover session isolation, duplicate-delivery prevention, disconnect cleanup, and `Accept` quality/media-type boundaries.
 
 - T-2232: Sync heartbeats now fetch, mutate, and save their singleton through a fresh `ModelContext` over the live container, so background sync writes cannot persist unrelated changes pending in the shared app context. Failed heartbeat saves are rolled back and logged before the isolated context is discarded; deterministic regressions cover successful writes, fetch failures, save failures, and retry recovery.

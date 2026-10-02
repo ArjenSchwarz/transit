@@ -8,7 +8,7 @@ import SwiftData
 final class DisplayIDAllocator: @unchecked Sendable {
 
     /// Snapshot of the counter state used for optimistic locking.
-    struct CounterSnapshot {
+    nonisolated struct CounterSnapshot: Sendable {
         let nextDisplayID: Int
         let changeTag: String?
     }
@@ -28,8 +28,8 @@ final class DisplayIDAllocator: @unchecked Sendable {
         case usedIDLookupFailed(description: String)
     }
 
-    /// Abstracts the counter persistence so tests can inject an in-memory store.
-    protocol CounterStore {
+    /// Sendable counter persistence independent of MainActor, allowing actor-backed stores.
+    nonisolated protocol CounterStore: Sendable {
         func loadCounter() async throws -> CounterSnapshot
         func saveCounter(nextDisplayID: Int, expectedChangeTag: String?) async throws
     }

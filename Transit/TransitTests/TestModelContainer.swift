@@ -52,7 +52,7 @@ struct TestModelContainer {
 
 /// An in-memory implementation of `DisplayIDAllocator.CounterStore` for tests.
 /// Supports queuing save outcomes to simulate conflicts and failures.
-actor InMemoryCounterStore: DisplayIDAllocator.CounterStore {
+actor InMemoryCounterStore {
     enum SaveOutcome {
         case success
         case conflict
@@ -130,7 +130,7 @@ actor InMemoryCounterStore: DisplayIDAllocator.CounterStore {
 /// Concurrency regressions use this to commit peer-context changes while an
 /// allocation is suspended, without relying on scheduler timing. A timeout
 /// makes changed counter-call sequences fail instead of wedging the test suite.
-actor AllocationGatedCounterStore: DisplayIDAllocator.CounterStore {
+actor AllocationGatedCounterStore {
     private var nextDisplayID: Int
     private var changeTag = 0
     private var loadCount = 0
@@ -183,3 +183,8 @@ actor AllocationGatedCounterStore: DisplayIDAllocator.CounterStore {
         changeTag += 1
     }
 }
+
+// Swift 6.4 can reject inferred nonisolated modifiers when clients are checked
+// before these actor declarations. Separate conformances avoid that order dependency.
+extension InMemoryCounterStore: DisplayIDAllocator.CounterStore {}
+extension AllocationGatedCounterStore: DisplayIDAllocator.CounterStore {}

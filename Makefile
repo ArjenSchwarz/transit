@@ -65,8 +65,14 @@ SWIFTLINT_CACHE = .swiftlint-cache
 test-model-container-ownership-guard:
 	bash tests/validation/test_model_container_ownership_guard.sh
 
+# App test runners cannot reliably read host checkout files. Keep source-literal
+# validation in the repository process before linting or launching tests.
+.PHONY: test-create-task-project-schema-guard
+test-create-task-project-schema-guard:
+	python3 tests/validation/create_task_project_schema_guard.py
+
 .PHONY: lint
-lint: test-model-container-ownership-guard
+lint: test-model-container-ownership-guard test-create-task-project-schema-guard
 	swiftlint lint --strict --cache-path $(SWIFTLINT_CACHE)
 
 .PHONY: lint-fix
@@ -137,7 +143,7 @@ build: build-ios build-macos
 
 # Testing
 .PHONY: test-quick
-test-quick: prepare-cache-dirs
+test-quick: prepare-cache-dirs test-create-task-project-schema-guard
 	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
@@ -148,7 +154,7 @@ test-quick: prepare-cache-dirs
 		$(PIPE_PRETTY)
 
 .PHONY: test
-test: prepare-cache-dirs
+test: prepare-cache-dirs test-create-task-project-schema-guard
 	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
@@ -160,7 +166,7 @@ test: prepare-cache-dirs
 		$(PIPE_PRETTY)
 
 .PHONY: test-ui
-test-ui: prepare-cache-dirs
+test-ui: prepare-cache-dirs test-create-task-project-schema-guard
 	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \

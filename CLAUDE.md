@@ -8,7 +8,7 @@ Transit is a native Apple task tracker (iOS 26 / iPadOS 26 / macOS 26) for a sin
 
 ## Tech Stack
 
-- **Swift 6.2**, **SwiftUI**, targeting **iOS/iPadOS/macOS 26 exclusively** — no backwards compatibility
+- **Swift 6.4** (Xcode 27), **SwiftUI**, targeting **iOS/iPadOS/macOS 26 exclusively** — no backwards compatibility
 - **`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`** — every type is `@MainActor` by default (see gotchas below)
 - **SwiftData** with **CloudKit** (private database) for cross-device sync
 - **App Intents** framework for CLI/automation integration via Shortcuts
@@ -18,7 +18,11 @@ Transit is a native Apple task tracker (iOS 26 / iPadOS 26 / macOS 26) for a sin
 
 ## Build and Test Commands
 
-Use the Makefile for all development tasks:
+Lint and test preflight requires `python3` for `tests/validation/create_task_project_schema_guard.py`, which checks the CreateTaskIntent source-literal project requirement outside app test processes. Provision Python 3 on any build runner that executes the Makefile validation targets.
+
+Use the Makefile for lint and routine development checks. If build/test invocation issues occur, use the configured Xcode MCP workflow on the same checkout and destination before changing code or build settings: XcodeOpenWorkspace, XcodeSwitchScheme, XcodeSwitchRunDestination, BuildProject, and RunAllTests (or GetTestList plus RunSomeTests). Inspect GetBuildLog to distinguish source errors from invocation/environment problems.
+
+Makefile commands:
 
 ```bash
 make build        # Build for both iOS and macOS
@@ -133,9 +137,9 @@ Shared intent infrastructure lives in `Intents/Shared/`: entities (`ProjectEntit
 
 ### MCP Server (macOS only)
 
-HTTP-based JSON-RPC 2.0 server using **Hummingbird**, gated behind `#if os(macOS)`. Configured via `MCPSettings` (UserDefaults-backed toggle and port). Exposes 10 tools:
+HTTP-based JSON-RPC 2.0 server using **Hummingbird**, gated behind `#if os(macOS)`. Configured via `MCPSettings` (UserDefaults-backed toggle and port). Exposes 11 tools:
 
-`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`
+`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`
 
 Key implementation files:
 - `MCP/MCPServer.swift` — Hummingbird router, lifecycle management
@@ -176,8 +180,10 @@ Frosted Panels theme with four options: Follow System (default), Universal, Ligh
 
 Services follow a consistent pattern: mutate in memory, then `save()`, rolling back on failure via `modelContext.safeRollback()` (extension in `Extensions/ModelContext+SafeRollback.swift`). For creation operations, the object is deleted on save failure instead of rolling back, because `safeRollback()` does not re-fault `@Model` properties reliably (see T-452).
 
-### Swift 6 Default MainActor Isolation
+### Swift 6.4 Default MainActor Isolation
 
+- Actor-backed counter stores use a `nonisolated` Sendable protocol and a `nonisolated` Sendable snapshot so the protocol does not inherit MainActor isolation under Swift 6.4.
+- Shared test counter actors declare their protocol conformances in extensions to avoid Swift 6.4 inferring and rejecting nonisolated actor modifiers when clients are checked first. Keep the fixtures as actors.
 - Every type is `@MainActor` by default. `@Model` classes are the exception — they follow standard isolation.
 - `Codable` conformance on enums triggers `@MainActor` isolation. Avoid `Codable` on pure data enums unless needed.
 - Color extensions using `UIColor`/`NSColor` become `@MainActor` isolated. Use `Color.resolve(in: EnvironmentValues())` instead.
@@ -222,3 +228,5 @@ Services follow a consistent pattern: mutate in memory, then `save()`, rolling b
 - `docs/transit-design-doc.md` — full design document with data model, UI specs, intent schemas
 - `docs/transit-ui-mockup.jsx` — React-based interactive mockup (reference only, not production)
 - `docs/agent-notes/` — implementation notes on architecture, constraints, and patterns
+
+Host source-literal checks belong in `tests/validation/` and run through lint/test preflight. App test processes must not synchronously read the host checkout; GUI-launched test runners can block on host-file access.
