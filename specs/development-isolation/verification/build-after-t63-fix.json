@@ -1,0 +1,17 @@
+{
+  "command": "make build-development-macos > DerivedData/isolation-build-after-t63-fix.log 2>&1",
+  "completedAtUTC": "2026-10-03T16:02:36.034704+00:00",
+  "exit": 0,
+  "target": "TransitDevelopment",
+  "configuration": "Debug",
+  "bundleID": "me.nore.ig.Transit.development",
+  "displayName": "Transit Development",
+  "executable": "TransitDevelopment",
+  "signingAllowed": false,
+  "install": false,
+  "appLaunch": false,
+  "appHostTests": false,
+  "T63SourceMatchesCommit": "46bec7c386624ce755c11940ef58bf046999cb02",
+  "testIsolationReleased": false,
+  "remainingReviewFinding": "Inactive DisplayIDAllocator convenience initializer constructs default CloudKit container/database handles"
+}

@@ -1,0 +1,12 @@
+{
+  "command": "make build-development-macos",
+  "makeExit": 2,
+  "xcodebuildExit": 65,
+  "activityLog": "DerivedData/Logs/Build/A9DFCFAF-4788-4CF4-8D39-5CDA6ADB9AAE.xcactivitylog",
+  "errors": [
+    "/Users/arjen/Documents/Codex/2026-10-02/task/transit-isolation/Transit/Transit/MCP/Reads/MCPReadService.swift:97:26: error: non-Sendable type '() -> MCPReadImportApplicability' of property 'applicability' cannot exit main actor-isolated context [#NonSendableExitingActor]",
+    "/Users/arjen/Documents/Codex/2026-10-02/task/transit-isolation/Transit/Transit/MCP/Reads/MCPReadService.swift:97:26: error: main actor-isolated property 'applicability' cannot be accessed from outside of the actor"
+  ],
+  "appLaunch": false,
+  "appHostTests": false
+}

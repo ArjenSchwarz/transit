@@ -20,6 +20,7 @@ final class DataMaintenanceUITests: XCTestCase {
 
     private func launchApp(scenario: String) -> XCUIApplication {
         let app = XCUIApplication()
+        app.launchEnvironment["TRANSIT_PERSISTENCE_MODE"] = "ui-test"
         app.launchEnvironment["TRANSIT_UI_TEST_SCENARIO"] = scenario
         app.launch()
         return app
