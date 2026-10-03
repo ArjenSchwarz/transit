@@ -30,10 +30,10 @@ struct MCPTaskQueryRequest {
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     static func parse(_ args: [String: Any]) throws -> Self {
         if let raw = args["cursor"] {
-            guard args.count == 1, let cursor = raw as? String else {
-                throw MCPTaskQueryError.invalid("Continuation requires only a string cursor")
+            guard args.count == 1 else {
+                throw MCPTaskQueryError.invalid("Continuation requires only a cursor")
             }
-            guard UUID(uuidString: cursor) != nil else {
+            guard let cursor = raw as? String, UUID(uuidString: cursor) != nil else {
                 throw MCPTaskQueryError(code: "INVALID_CURSOR", message: "Invalid cursor; start a new query")
             }
             return Self(cursor: cursor, detailLevel: "summary", includeComments: false, limit: 1, selector: .list)

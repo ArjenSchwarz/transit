@@ -46,6 +46,29 @@ struct MCPTaskQueryRequestTests {
         _ = try MCPTaskQueryRequest.parse(options.merging(["limit": 1.0]) { _, new in new })
     }
 
+    @Test func malformedCursorHasRestartGuidance() throws {
+        for cursor: Any in [42, NSNull(), "", "bad"] {
+            do {
+                _ = try MCPTaskQueryRequest.parse(["cursor": cursor])
+                Issue.record("Malformed cursor was accepted")
+            } catch let error as MCPTaskQueryError {
+                #expect(error.code == "INVALID_CURSOR")
+                #expect(error.message.contains("start a new query"))
+            }
+        }
+    }
+
+    @Test func cursorWithOtherFieldsIsInvalidInput() throws {
+        for cursor: Any in [UUID().uuidString, 42, NSNull()] {
+            do {
+                _ = try MCPTaskQueryRequest.parse(["cursor": cursor, "limit": 1])
+                Issue.record("Cursor with query options was accepted")
+            } catch let error as MCPTaskQueryError {
+                #expect(error.code == "INVALID_INPUT")
+            }
+        }
+    }
+
     @Test func advertisedBranches() throws {
         let data = try JSONEncoder().encode(MCPToolDefinitions.queryTasks.inputSchema)
         let schema = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
