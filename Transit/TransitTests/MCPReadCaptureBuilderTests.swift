@@ -127,6 +127,44 @@ struct MCPReadCaptureBuilderTests {
         #expect(view.comments.first?.content == "Orphan")
     }
 
+    @Test func savedMultiEntityChangeCannotEscapeAsMixedSuccess() throws {
+        let fixture = try diskFixture()
+        let project = Project(name: "Old", description: "", gitRepo: nil, colorHex: "blue")
+        let task = TransitTask(name: "Old", type: .feature, project: project, displayID: .permanent(1))
+        let milestone = Milestone(name: "Old", project: project, displayID: .permanent(1))
+        let comment = Comment(content: "Old", authorName: "A", isAgent: true, task: task)
+        fixture.context.insert(project)
+        fixture.context.insert(task)
+        fixture.context.insert(milestone)
+        fixture.context.insert(comment)
+        try fixture.context.save()
+        let builder = MCPReadCaptureBuilder(container: fixture.container, afterProjects: {
+            project.name = "New"
+            task.name = "New"
+            milestone.name = "New"
+            comment.content = "New"
+            try fixture.context.save()
+        })
+        #expect(throws: MCPReadCaptureError.incoherentCapture) { try builder.capture(portfolioRequest()) }
+        let coherent = try MCPReadCaptureBuilder(container: fixture.container).capture(portfolioRequest())
+        #expect(coherent.projects.first?.name == "New")
+        #expect(coherent.tasks.first?.name == "New")
+        #expect(coherent.milestones.first?.name == "New")
+        #expect(coherent.comments.first?.content == "New")
+    }
+
+    @Test func requiredCommentFailureIsNotAnEmptySuccess() throws {
+        let fixture = try TestModelContainer()
+        let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
+                                            fetchComments: { _ in throw CaptureFixtureError.fetchFailed })
+        #expect(throws: MCPReadCaptureError.storageFailure) { try builder.capture(portfolioRequest()) }
+        let projects = try builder.capture(ReadCaptureRequest(projectSelectors: nil, selection: .projects,
+                                                              completeness: .selectedRead, includeComments: true))
+        #expect(projects.projects.isEmpty && projects.comments.isEmpty)
+    }
+
+    private enum CaptureFixtureError: Error { case fetchFailed }
+
     private func portfolioRequest() -> ReadCaptureRequest {
         ReadCaptureRequest(projectSelectors: nil, selection: .portfolio,
                            completeness: .completePortfolio, includeComments: false)

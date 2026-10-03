@@ -101,10 +101,10 @@ nonisolated struct MCPReadCoordinatorTests {
             return Self.result("1")
         }
         let bytes = await coordinator.executeBatch([.read(work), .read(work)],
-                                                   admittedAt: .now - .seconds(1)) { _ in
+                                                   admittedAt: .now - .seconds(1), assemble: { _ in
             Issue.record("expired batch assembled success")
             return Self.result("unexpected")
-        }
+        })
         #expect(bytes == Data("[0,0]".utf8))
         try await Task.sleep(for: .milliseconds(30))
         #expect(coordinator.unfinishedCount == 0)
@@ -137,6 +137,108 @@ nonisolated struct MCPReadCoordinatorTests {
             #expect(publication.counts()[0] == (bytes == Data("success".utf8) ? 1 : 0))
             #expect(publication.counts().reduce(0, +) <= 1)
         }
+    }
+
+    @Test @concurrent func nearBodyCeilingRouterBatchAccountsForFallbackPreparation() async throws {
+        let coordinator = MCPReadCoordinator()
+        let input = try Self.largeBatchInput()
+        #expect(input.count > 950_000 && input.count < 1_048_576)
+        let router = Router(context: MCPRequestContext.self)
+        router.post("/read") { request, _ in
+            let body = try await request.body.collect(upTo: 1_048_576)
+            let decoded = try JSONSerialization.jsonObject(with: Data(buffer: body)) as? [[String: String]] ?? []
+            let admittedAt = ContinuousClock.now
+            let elements = try decoded.map { value -> MCPReadBatchElement in
+                let id = value["id"]
+                if value["method"] == "invalid" {
+                    return .fixed(try Self.frame(id: id, outcome: "invalid"))
+                }
+                return .read(MCPReadBatchWork(timeout: try Self.frame(id: id, outcome: "timeout"),
+                                             busy: try Self.frame(id: id, outcome: "busy"), responds: id != nil) { _ in
+                    try? await Task.sleep(for: .seconds(6))
+                    return Self.result("1")
+                })
+            }
+            let response = await coordinator.executeBatch(elements, admittedAt: admittedAt) { values in
+                Self.result(String(bytes: MCPReadBatchEncoding.array(values.map { $0?.encodedResponse }) ?? Data(),
+                                   encoding: .utf8) ?? "[]")
+            }
+            let elapsed = admittedAt.duration(to: .now)
+            print("READ_BATCH admission_to_encoded=\(elapsed) request_bytes=\(input.count)")
+            return Response(status: .ok, body: .init(byteBuffer: ByteBuffer(data: response ?? Data())))
+        }
+        let channel = EmbeddedChannel()
+        defer { _ = try? channel.finish() }
+        let context = MCPRequestContext(source: ApplicationRequestContextSource(
+            channel: channel, logger: Logger(label: "large-read-batch-fixture")))
+        let request = Request(head: HTTPRequest(method: .post, scheme: "http", authority: "localhost", path: "/read"),
+                              body: RequestBody(buffer: ByteBuffer(data: input)))
+        let start = ContinuousClock.now
+        let response = try await router.buildResponder().respond(to: request, context: context)
+        let writer = ReadResponseWriter()
+        try await response.body.write(writer)
+        let elapsed = start.duration(to: .now)
+        let bytes = Data(buffer: writer.bytes.withLockedValue { $0 })
+        let outcomes = try #require(try JSONSerialization.jsonObject(with: bytes) as? [[String: String]])
+        #expect(elapsed < .seconds(5))
+        #expect(outcomes.count == 80)
+        #expect(outcomes.filter { $0["outcome"] == "timeout" }.count == 8)
+        #expect(outcomes.filter { $0["outcome"] == "busy" }.count == 24)
+        #expect(outcomes.filter { $0["outcome"] == "invalid" }.count == 48)
+        #expect(coordinator.unfinishedCount == 8)
+        print("READ_BATCH router_and_body_elapsed=\(elapsed) response_bytes=\(bytes.count)")
+        try await Task.sleep(for: .milliseconds(1_300))
+        #expect(coordinator.unfinishedCount == 0)
+    }
+
+    @Test @concurrent func stopDuringFallbackPreparationSelectsOnlyWholeArray() async throws {
+        let coordinator = MCPReadCoordinator(cutoff: .milliseconds(50), maxOperations: 2)
+        let work = MCPReadBatchWork(timeout: Data("0".utf8), busy: Data("-1".utf8), responds: true) { _ in
+            Issue.record("invalidated batch dispatched a read")
+            return Self.result("1")
+        }
+        let bytes = await coordinator.executeBatch([.read(work), .read(work)], beforeFallbackReady: {
+            coordinator.stop()
+            coordinator.start()
+            #expect(coordinator.unfinishedCount == 2)
+            let ninth = await coordinator.execute(timeout: Data("0".utf8), busy: Data("-1".utf8)) { _ in
+                Issue.record("restart released pending physical slots")
+                return Self.result("1")
+            }
+            #expect(ninth == Data("-1".utf8))
+        }, assemble: { _ in
+            Issue.record("invalidated batch assembled success")
+            return Self.result("unexpected")
+        })
+        #expect(bytes == Data("[0,0]".utf8))
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(coordinator.unfinishedCount == 0)
+    }
+
+    @Test @concurrent func cutoffDuringFallbackPreparationNeverDispatchesExpiredWork() async throws {
+        let coordinator = MCPReadCoordinator(cutoff: .milliseconds(10))
+        let work = MCPReadBatchWork(timeout: Data("0".utf8), busy: Data("-1".utf8), responds: true) { _ in
+            Issue.record("expired pending batch dispatched")
+            return Self.result("1")
+        }
+        let bytes = await coordinator.executeBatch([.read(work), .read(work)], beforeFallbackReady: {
+            try? await Task.sleep(for: .milliseconds(20))
+        }, assemble: { _ in Self.result("unexpected") })
+        #expect(bytes == Data("[0,0]".utf8))
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(coordinator.unfinishedCount == 0)
+    }
+
+    private static func largeBatchInput() throws -> Data {
+        let longID = String(repeating: "x", count: 30_000)
+        let requests = (0..<32).map { ["jsonrpc": "2.0", "id": "\($0)-\(longID)", "method": "read"] }
+            + (0..<48).map { ["jsonrpc": "wrong", "id": "bad-\($0)", "method": "invalid"] }
+            + (0..<16).map { _ in ["jsonrpc": "2.0", "method": "notification"] }
+        return try JSONSerialization.data(withJSONObject: requests)
+    }
+
+    private static func frame(id: String?, outcome: String) throws -> Data {
+        try JSONSerialization.data(withJSONObject: ["id": id ?? "notification", "outcome": outcome])
     }
 
     private static func blockAssembly() { Thread.sleep(forTimeInterval: 0.5) }
