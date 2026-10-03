@@ -10,6 +10,9 @@
 | Q4 | 2026-10-03 | Use internal design critic followed by two independent internal peer perspectives. | External disclosure is not authorised; local peer-review-validator supplies two-peer fallback. No external AI service will receive repository/spec data. |
 | Q5 | 2026-10-03 | Preserve historic T-2380 JSON/text/isError as outcome evidence; common result additions are presentation, not receipt rewrite. | Coordinator replay reads saved resultJSON/resultIsError; T-2384 requirements 4.3,5.2–5.4 align on missing/null, unknown fields, revision/retryAction and no-effect distinctions. |
 | Q6 | 2026-10-03 | Move T-2383 Idea → Spec after scope approval. | Committed live update key `T2383.scope-approved.spec.20261003`, comment records approval and remaining gates. |
+| Q7 | 2026-10-03 | Preserve subscription opt-in while requiring installed-client tool readiness and a conforming subscription test. | Internal API peer distinguished optional client participation from server subscription conformance; avoids blocking usable tool clients on an unrequested filter. |
+| Q8 | 2026-10-03 | Request-only methods never execute notification-shaped requests. | Correctness peer identified legacy handler mutation notification dispatch; modern transport must reject that shape without effects. |
+| Q9 | 2026-10-03 | Historical variants must conform to advertised output schemas; supplement names cannot overwrite source fields. | Critic and both peer perspectives confirmed preservation alone is insufficient if schema validation rejects original fields. |
 
 ## ADR 1: Latest-only MCP protocol
 

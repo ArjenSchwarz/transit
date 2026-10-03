@@ -1,6 +1,6 @@
 # Structured MCP results: requirements review
 
-Status: critic complete; internal peer validation in progress; requirements awaiting user approval. No implementation.
+Status: critic and two independent internal peer validations complete; final targeted re-review found no remaining requirements blockers. Requirements await user approval. No implementation.
 
 ## Self-check
 
@@ -25,7 +25,19 @@ Read-only checks: standalone Codex0.160.0 and bundled Codex0.159.2 feature lists
 
 ## Peer validation
 
-Use two independent internal agents after critic: technical correctness/replay/transport and API simplicity/maintainability/scope. No external model services are authorised. Findings and disposition will be recorded before phone delivery/user gate.
+Mode: internal subagents, following the local peer-review-validator fallback. These are independent internal perspectives, not external Codex/Kiro service disclosures. The design critic ran first; technical correctness/replay/transport and API clarity/maintainability/scope peers ran next. After their edits, critic and both peers validated the final changed criteria with no remaining blockers.
+
+| Peer | Finding / rationale | Final disposition |
+| --- | --- | --- |
+| Technical correctness | Existing handler dispatches tools/call notifications then discards responses; accepting modern notification transport must not preserve that write path. | 5.3 requires a valid request ID for request-only methods and prohibits notification-shaped execution; unsupported notifications have no effects. |
+| API/scope | Subscription participation is opt-in; requiring every installed client to listen could unnecessarily block working tool clients. | 6.3 requires installed discovery/list/call readiness; subscription behavior is proven with a conforming client and installed surfaces that opt in. |
+| API/scope | Restrictive output schemas could reject preserved historical unknown or absent/null fields. | 1.3 explicitly accepts those retained historical variants. |
+
+Consensus: preserve source result evidence and distinct supplemental namespace, keep frozen metadata/revisions, keep T-63 worker/publication constraints, and prove intended client modern access. Both peers accepted the critic fixes. The subscription gate was narrowed to the standard's opt-in behavior; no deferred transport or navigation framework was added. There are no unresolved reviewer disagreements.
+
+Remaining clarification through parent: confirm whether the intended Claude surface is Claude Code, Claude Desktop, or both. This selects the migration readiness fixture; it does not authorise settings changes. No active modern-only negotiation has been claimed from embedded symbols, old-server success or version numbers.
+
+Formatting validation: all 27 acceptance criteria have unique anchors and required Markdown double-space line endings, and all six requirements have user stories. Git's default whitespace check flags those intentional skill-required line endings; a per-command check excluding end-of-line spaces verifies other whitespace errors without changing configuration. No application lint/build/test ran.
 
 ## Approval gate
 
