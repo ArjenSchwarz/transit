@@ -15,12 +15,13 @@ references:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.6](requirements.md#2.6), [5.3](requirements.md#5.3)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
-- [ ] 2. Red: add saved-capture and persistent-history feasibility tests <!-- id:vh146y1 -->
+- [-] 2. Red: add saved-capture and persistent-history feasibility tests <!-- id:vh146y1 -->
   - Add MCPReadCaptureBuilderTests using owning TestModelContainer fixtures and disposable on-disk CloudKit-free stores. Fail for missing fresh-context capture: saved writes visible, pending UI edits absent, project selector resolved inside fence, frozen relationships/physical keys, mixed save between fetches rejected.
   - Add history-fence tests for empty domain versus empty selection, purged/expired/unavailable history, mismatched store IDs and multi-entity saves; missing required comment/revision evidence fails rather than empty success.
   - Add a signed-store observation test harness for real CloudKit import/history visibility using existing configured storage without synthetic production writes. Record supported proof versus documented incoherent_capture outcome; do not claim the isolated local probe establishes remote coherence.
   - Blocked-by: vh146y0 (Define shared read contracts and injection seams on the merged foundation)
   - Stream: 1
+  - Owner: t63-foundation-runtime
   - Requirements: [2.1](requirements.md#2.1), [2.6](requirements.md#2.6), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [5.3](requirements.md#5.3)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
@@ -52,12 +53,13 @@ references:
   - Requirements: [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [3.6](requirements.md#3.6)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
-- [ ] 6. Red: add deadline, physical permit and transport feasibility tests <!-- id:vh146y5 -->
+- [-] 6. Red: add deadline, physical permit and transport feasibility tests <!-- id:vh146y5 -->
   - Add MCPReadCoordinatorTests and a minimal router-return test harness using controllable physical workers. Require encoded timeout availability withinfive seconds duringsix-second MainActor blocking;eight lingering permits/ninth busy; single winner on cancellation/timeout/success/stop/restart.
   - Add seeded generated event-sequence tests for response count, generation, no late publication, unfinished count0–8 and atomic capture-to-assembly permit transfer. Distinguish notification/no-response from admission accounting.
   - Fail for missing independent timer/batch gate: long IDs and existing1 MiB body ceiling, many invalid/busy elements, prebuilt whole-array fallback and blocked large candidate serialization. Admission time precedes fallback preparation; measure router-return availability, not just timer firing.
   - Blocked-by: vh146y0 (Define shared read contracts and injection seams on the merged foundation)
   - Stream: 1
+  - Owner: t63-foundation-runtime
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [6.2](requirements.md#6.2)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
