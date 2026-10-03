@@ -101,6 +101,32 @@ struct MCPReadCaptureBuilderTests {
         #expect(throws: MCPReadCaptureError.incoherentCapture) { try builder.capture(portfolioRequest()) }
     }
 
+    @Test func scopedPortfolioRetainsForeignMilestoneAndOrphanIdentityClosure() throws {
+        let fixture = try TestModelContainer()
+        let selected = Project(name: "Selected", description: "", gitRepo: nil, colorHex: "blue")
+        let foreign = Project(name: "Foreign", description: "", gitRepo: nil, colorHex: "green")
+        let milestone = Milestone(name: "Foreign milestone", project: foreign, displayID: .permanent(1))
+        let task = TransitTask(name: "Selected task", type: .feature, project: selected, displayID: .permanent(1))
+        task.milestone = milestone
+        let orphan = Comment(content: "Orphan", authorName: "A", isAgent: true, task: task)
+        orphan.task = nil
+        fixture.context.insert(selected)
+        fixture.context.insert(foreign)
+        fixture.context.insert(milestone)
+        fixture.context.insert(task)
+        fixture.context.insert(orphan)
+        try fixture.context.save()
+        let view = try MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture)
+            .capture(ReadCaptureRequest(projectSelectors: [.id(selected.id)], selection: .portfolio,
+                                        completeness: .completePortfolio, includeComments: false))
+        let selectedKey = try #require(view.projects.first { $0.id == selected.id }?.physicalKey)
+        #expect(view.captureScope == .projects([selectedKey]))
+        #expect(view.tasks.first?.milestoneKey == view.milestones.first?.physicalKey)
+        #expect(view.milestones.first?.storedProjectID == foreign.id)
+        #expect(view.comments.first?.taskKey == nil)
+        #expect(view.comments.first?.content == "Orphan")
+    }
+
     private func portfolioRequest() -> ReadCaptureRequest {
         ReadCaptureRequest(projectSelectors: nil, selection: .portfolio,
                            completeness: .completePortfolio, includeComments: false)
