@@ -6,7 +6,7 @@ import Testing
 
 @MainActor struct MCPResultPresentationTests {
     @Test func protectedTaskRecordAndRelationshipHaveDistinctUnavailablePointers() throws {
-        let text = "{\"record\":{\"id\":\"\(Self.taskID)\",\"displayId\":7," +
+        let text = "{\"record\":{\"taskId\":\"\(Self.taskID)\",\"displayId\":7," +
             "\"projectId\":\"\(Self.projectID)\",\"comments\":[{\"id\":\"\(Self.otherID)\"}]} }"
         let source = try Self.source(text)
         let presentation = try MCPResultAdapter.present(source, context: Self.context("update_task"))
@@ -22,38 +22,64 @@ import Testing
 
     @Test func queryArrayOrderAndUUIDsSurviveDuplicateDisplayIDs() throws {
         let records = (0..<12).map { index in
-            "{\"id\":\"\(Self.numberedID(index))\",\"displayId\":9}"
+            "{\"taskId\":\"\(Self.numberedID(index))\",\"displayId\":9}"
         }
         let source = try Self.source("{\"results\":[" + records.joined(separator: ",") + "]}")
         let presentation = try MCPResultAdapter.present(source, context: Self.context("query_tasks"))
         #expect(Self.links(presentation) == (0..<12).map { "/results/\($0)|task|\(Self.numberedID($0))" })
     }
 
+    @Test func selectorSuccessUsesNestedTaskAndSavedProjectWithoutLinkingRequestedFailures() throws {
+        let text = "{\"results\":[{\"index\":0,\"requested\":{\"displayId\":9},\"task\":{" +
+            "\"taskId\":\"\(Self.taskID)\",\"displayId\":9,\"projectId\":\"\(Self.projectID)\"}}," +
+            "{\"index\":1,\"requested\":{\"taskId\":\"\(Self.otherID)\"}," +
+            "\"error\":{\"code\":\"TASK_NOT_FOUND\",\"message\":\"Absent selector\"}}],\"nextCursor\":null}"
+        let source = try Self.source(text)
+        let presentation = try MCPResultAdapter.present(source, context: Self.context("query_tasks"))
+        #expect(Self.links(presentation) == ["/results/0/task|task|\(Self.taskID)",
+                                           "/results/0/task/projectId|project|\(Self.projectID)"])
+        #expect(presentation.evidence == .established)
+        #expect(presentation.errorCategory == nil)
+        #expect(source.originalText == text)
+    }
+
+    @Test func historicalRootTaskArrayPreservesSavedProjectReferencesAndArrayOrder() throws {
+        let text = "[{\"taskId\":\"\(Self.taskID)\",\"displayId\":9,\"projectId\":\"\(Self.projectID)\"}," +
+            "{\"taskId\":\"\(Self.otherID)\",\"displayId\":9,\"projectId\":\"\(Self.projectID)\"}]"
+        let source = try Self.source(text, origin: .retainedJSON)
+        let presentation = try MCPResultAdapter.present(source, context: Self.context("query_tasks"))
+        #expect(Self.links(presentation) == ["/0|task|\(Self.taskID)", "/0/projectId|project|\(Self.projectID)",
+                                           "/1|task|\(Self.otherID)", "/1/projectId|project|\(Self.projectID)"])
+        #expect(source.document?.originalUTF8 == Data(text.utf8))
+    }
+
     @Test func projectsArrayUsesProjectIdentityAndDoesNotSearchUnknownNestedIDs() throws {
-        let source = try Self.source("[{\"id\":\"\(Self.projectID)\",\"extra\":{\"id\":\"\(Self.taskID)\"}}]")
+        let source = try Self.source("[{\"projectId\":\"\(Self.projectID)\",\"extra\":{\"taskId\":\"\(Self.taskID)\"}}]")
         let presentation = try MCPResultAdapter.present(source, context: Self.context("get_projects"))
         #expect(Self.links(presentation) == ["/0|project|\(Self.projectID)"])
     }
 
     @Test(arguments: ["record", "currentRecord", "recordBeforeDeletion"])
     func documentedTaskEvidencePositionsUseTheirOwnPointer(field: String) throws {
-        let source = try Self.source("{\"\(field)\":{\"id\":\"\(Self.taskID)\"}}")
+        let source = try Self.source("{\"\(field)\":{\"taskId\":\"\(Self.taskID)\"}}")
         let presentation = try MCPResultAdapter.present(source, context: Self.context("update_task"))
         #expect(Self.links(presentation) == ["/\(field)|task|\(Self.taskID)"])
     }
 
     @Test func missingMalformedAndUndeclaredIdentitiesNeverInventLinks() throws {
-        let text = "{\"results\":[{}, {\"id\":null}, {\"id\":9}, {\"id\":\"not-a-uuid\"}]," +
-            "\"unknown\":{\"id\":\"\(Self.taskID)\"}}"
+        let text = "{\"results\":[{}, {\"taskId\":null}, {\"taskId\":9}, {\"taskId\":\"not-a-uuid\"}]," +
+            "\"unknown\":{\"taskId\":\"\(Self.taskID)\"}}"
         let source = try Self.source(text)
         let presentation = try MCPResultAdapter.present(source, context: Self.context("query_tasks"))
         #expect(presentation.links.isEmpty)
         let milestone = try Self.source("{\"record\":{\"id\":\"\(Self.otherID)\"}}")
         #expect(try MCPResultAdapter.present(milestone, context: Self.context("create_milestone")).links.isEmpty)
+        let wrongTaskField = try Self.source("{\"record\":{\"id\":\"\(Self.taskID)\"}}")
+        #expect(try MCPResultAdapter.present(wrongTaskField, context: Self.context("update_task")).links.isEmpty)
     }
 
     @Test func providerPositionsAreValidatedAgainstSameSourceAndSortedDeterministically() throws {
-        let source = try Self.source("{\"z\":\"\(Self.projectID)\",\"a\":{\"id\":\"\(Self.taskID)\"}}")
+        let source = try Self.source("{\"z\":\"\(Self.projectID)\",\"a\":{\"taskId\":\"\(Self.taskID)\"}}")
         let positions: [MCPResultEntityPosition] = [
             .init(entityType: .project, sourcePath: "/z"),
             .init(entityType: .task, sourcePath: "/a"),
@@ -211,7 +237,7 @@ import Testing
     }
 
     @Test func largePresentationTraversalChecksWorkerRepeatedly() throws {
-        let records = (0..<2_000).map { "{\"id\":\"\(Self.numberedID($0))\"}" }
+        let records = (0..<2_000).map { "{\"taskId\":\"\(Self.numberedID($0))\"}" }
         let source = try Self.source("{\"results\":[" + records.joined(separator: ",") + "]}")
         let count = Mutex(0)
         #expect(throws: MCPJSONCheckpointFailure.cancelled) {
@@ -258,7 +284,7 @@ import Testing
     }
 
     static func collisionInvariant(_ unknown: MCPJSONFixtureValue) throws -> Bool {
-        let text = "{\"record\":{\"id\":\"\(taskID)\"},\"source\":" + (try unknown.json()) +
+        let text = "{\"record\":{\"taskId\":\"\(taskID)\"},\"source\":" + (try unknown.json()) +
             ",\"presentation\":null,\"links\":[],\"errorCategory\":\"collision\"}"
         let source = try Self.source(text)
         let context = Self.context("update_task")

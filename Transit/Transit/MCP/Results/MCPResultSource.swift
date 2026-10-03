@@ -128,7 +128,7 @@ nonisolated enum MCPResultEntityType: String, Sendable {
     case task, project
 }
 
-/// JSON Pointer to a documented entity object or direct UUID identity token.
+/// JSON Pointer to a typed record object (taskId/projectId) or direct UUID token.
 nonisolated struct MCPResultEntityPosition: Sendable {
     let entityType: MCPResultEntityType
     let sourcePath: String
