@@ -2,7 +2,7 @@
 
 Transit agents need to know when a read describes only the endpoint's local view and when that view was captured. Headless CloudKit imports may lag, and read latency has exceeded client deadlines without an established cause. This feature makes those limits visible and gives callers a bounded success or failure response.
 
-Review status: approved in full by the user in the parent conversation on 2026-10-03, including the 30,000 ms threshold, eight unfinished-read admission limit, diagnostics, and all decisions in the requirements review. Design, tasks, and production implementation remain gated separately.
+Review status: approved in full by the user in the parent conversation on 2026-10-03, including the 30,000 ms threshold, eight unfinished-read admission limit, diagnostics, and all decisions in the requirements review. Design is also approved; tasks and production implementation remain gated separately.
 
 ## Proposed observable contract
 
@@ -12,9 +12,9 @@ Review status: approved in full by the user in the parent conversation on 2026-1
 - Freshness wait limit: 2,000 ms within the total budget. A relevant successful import is recent when its age at capture is at most 30,000 ms.
 - Compatibility: keep existing data payload shapes, selection semantics, and query cursor expiry/capacity behavior; add read metadata to the MCP result. Success data are the selected local view, not a claim of remote convergence.
 - Admission bound: at most eight unfinished covered read operations, including timed-out work still running; return `READ_BUSY` when that capacity is unavailable. This is an operation-count limit, not a total transient-memory limit.
-- Recommended latency evidence: server diagnostics distinguish queueing, refresh wait, capture/fetch, transformation, serialization, and batch aggregation, including correlated late completion/discard after a caller timeout. This diagnostics detail remains pending final requirements approval.
+- Recommended latency evidence: server diagnostics distinguish queueing, refresh wait, capture/fetch, transformation, serialization, and batch aggregation, including correlated late completion/discard after a caller timeout. This diagnostics detail is approved.
 
-The import recency threshold, admission bound, and latency diagnostics are recommendations for the requirements approval gate. Exact metadata placement and supported import observation/refresh mechanisms are design decisions, constrained by compatibility and the behavior below. “JSON-RPC batch” means several protocol request elements; `query_tasks` batch mode is one read operation selecting multiple identifiers. Each covered request element is admitted separately in received order against the global available slots; excess elements receive `READ_BUSY`, while all elements keep the common decoded-batch admission timestamp.
+The import recency threshold, admission bound, and latency diagnostics are approved requirements decisions. Exact metadata placement and supported import observation/refresh mechanisms are design decisions, constrained by compatibility and the behavior below. “JSON-RPC batch” means several protocol request elements; `query_tasks` batch mode is one read operation selecting multiple identifiers. Each covered request element is admitted separately in received order against the global available slots; excess elements receive `READ_BUSY`, while all elements keep the common decoded-batch admission timestamp.
 
 ## Non-Goals
 

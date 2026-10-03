@@ -1,6 +1,6 @@
 # Bounded read freshness — design
 
-Review status: proposed design based on approved requirements; tasks and production implementation are not approved.
+Review status: approved unchanged by the user in the parent conversation (Sentinel_541ceb19e7c8819193d04d23c5263041), including final scope/publication amendments at 5639c40. Tasks and production implementation are not approved.
 
 ## Architecture
 

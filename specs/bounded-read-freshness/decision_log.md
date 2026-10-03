@@ -57,3 +57,7 @@ T-63 and T2382 agreed one common publication lock domain with pre-encoded succes
 ## Shared scope clarification before design gate
 
 `CapturedReadView.captureScope` is typed as whole portfolio, selected resolved physical project keys, or ordinary selected query. `completePortfolio` means complete declared reusable scope plus identity/comment closure, not necessarily every global record. Closure records do not enlarge selected counts; reusable queries outside declared scope fail. T2382 requested this explicit DTO contract and T-63 confirmed it before design approval.
+
+## Design approval
+
+The user approved both designs unchanged: “Both 63 and 2382 are approved without required changes” (Sentinel_541ceb19e7c8819193d04d23c5263041), conveyed by the parent. Approval covers T-63 `5639c40` and T2382 `3932e88`, including final typed scope and publication amendments. Task planning is authorized; the task list and production implementation still require the next explicit approval.
