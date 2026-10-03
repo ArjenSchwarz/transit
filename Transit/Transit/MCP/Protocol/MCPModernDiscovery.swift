@@ -47,6 +47,8 @@ nonisolated enum MCPModernDiscovery {
         return bytes
     }
 
+    // JSONRPCId is a closed string/integer enum and this argument is nonoptional;
+    // neither null nor a missing ID can reach these complete-response encoders.
     private static func prefix(id: JSONRPCId) throws -> Data {
         var bytes = Data("{\"jsonrpc\":\"2.0\",\"id\":".utf8)
         bytes.append(try JSONEncoder().encode(id))

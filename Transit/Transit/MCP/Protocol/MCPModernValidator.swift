@@ -61,7 +61,11 @@ nonisolated enum MCPModernValidator {
     ) throws -> Envelope {
         guard input.body.count <= 1_048_576 else { throw reject(413, nil, "Request body exceeds limit") }
         let document: MCPJSONDocument
-        do { document = try MCPJSONDocument.parse(input.body) } catch {
+        do {
+            document = try MCPJSONDocument.parse(input.body)
+        } catch MCPResultBoundaryError.resourceLimit {
+            throw reject(400, -32600, "Request JSON exceeds the 32-container nesting resource limit")
+        } catch {
             throw reject(400, -32700, "Invalid JSON")
         }
         guard case .object = document.value else { throw reject(400, -32600, "Expected one request object") }
@@ -73,7 +77,14 @@ nonisolated enum MCPModernValidator {
         guard root.field("id") != nil else {
             throw reject(400, nil, "Client notifications are unsupported over HTTP")
         }
-        guard let id else { throw reject(400, -32600, "Request ID must be a string or integer") }
+        guard let id else {
+            if case .number = root.field("id") {
+                throw reject(400, -32600,
+                    "Numeric request ID must be integral and between \(Int.min) and \(Int.max); "
+                        + "use a string ID outside this range")
+            }
+            throw reject(400, -32600, "Request ID must be a string or integer")
+        }
         guard let params = root.field("params"), params.isObject else {
             throw reject(400, -32602, "Required request parameters are missing", id: id)
         }
