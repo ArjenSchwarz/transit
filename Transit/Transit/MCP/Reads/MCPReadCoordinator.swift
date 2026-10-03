@@ -90,12 +90,7 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         installTimer(entry)
         Task.detached(priority: .userInitiated) {
             defer { self.physicalFinished(entry.id) }
-            guard operation.shouldContinue() else {
-                await skipped?()
-                return
-            }
-            let prepared = await worker(operation)
-            self.offer(prepared, for: entry.id)
+            await self.prepareAndOffer(operation, skipped: skipped, worker: worker)
         }
         return await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
@@ -109,6 +104,19 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         } onCancel: {
             self.expire(entry)
         }
+    }
+
+    /// Release the prepared result and its buffers before physical finalization/receipt.
+    private func prepareAndOffer(
+        _ operation: MCPReadOperation, skipped: (@Sendable () async -> Void)?,
+        worker: @escaping @Sendable (MCPReadOperation) async -> PreparedReadResult
+    ) async {
+        guard operation.shouldContinue() else {
+            await skipped?()
+            return
+        }
+        let prepared = await worker(operation)
+        offer(prepared, for: operation.id)
     }
 
     func stop() {
