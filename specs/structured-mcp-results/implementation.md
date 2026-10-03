@@ -131,3 +131,18 @@ Explicit owner approval Sentinel_f061180ea7608191b7f8e54205bfdb00 authorised the
 Protocolb6b616e remains source-review-cleared and ready, but parent reports its GREEN delegation was rejected for missing explicit exact-suite approval. Parent requested bundled local build/lint/unit-simulator/escalation authorisation at Sentinel_8870ee330e108191b769af5f8b659855; reply pending. No protocol GREEN attempt, workaround or active heavy reservation; client activation is a separate gate. Presentation repair/lightwork may continue, while app execution waits for owner evidence and a coordinated slot.
 
 Presentation revised sourcef4bd03a fixes the demonstrated milestone-link and terminal-rejection recovery gaps and checkpoints project-position generation before allocation/every64 entries. All25 declarations/55 runs' fixtures remain byte-unchanged391c159. Parse/lint/pure typecheck passed; targeted internal critic found no new blocker. Presentation5 and protocol13 are both source-review-cleared READY drafts in isolated streams, pending separately granted application GREEN; neither runtime draft is integrated or marked complete, and commonAPI15 remains undelivered. No active app job or heavy reservation.
+
+## Live mutation pause and read-only duplicate observation
+
+Parent paused all live Transit mutations/status/comments after the owner observed duplicate records. No live T2383 mutation occurred during these local source/test iterations. Last recorded write remains the protected implementation status/comment at2026-10-03T11:08:23.475Z, key T2383.implementation-approved.20261003, UUID E46FCBBA-31BA-4C53-AD13-C3A4E3209819, committed historical revision r1:98d5c0bb10c440984383379166f4c98391519018e7c1bc694a12fcc8af04bd62. Earlier scope status/comment was09:09:18.822Z, key T2383.scope-approved.spec.20261003. Historical receipt evidence is unchanged; no replay/mutation retry or guard reset follows this observation.
+
+Using the actual running legacy query_tasks schema, read-only displayId2383 returns Duplicate task identifier detected for displayId 2383. Exact title search Return structured MCP results and navigable links returns two rows with the same UUID and displayId:
+
+| Status | Project fields | Last status change | Observed revision |
+| --- | --- | --- | --- |
+| in-progress | projectId/projectName absent (not JSON null) | 2026-10-03T11:08:23Z | r1:10dc24ef6faf70f905c7fb87a8caa608907fa7ad727eb1ab6b65370850904ee7 |
+| spec | projectId8491AAC4-CC6C-498C-B93D-99DD68424226, projectNameTransit | 2026-10-03T09:09:18Z | r1:7dba5935bf1f6055203ae0a0c5fdcd1546386144f8bd7e2c9733b6f504ee95ea |
+
+Both rows report comment UUIDs C61251A5-E503-46A6-9B6C-3011C9422E30 and4C9688F8-1B48-451B-BBAD-975E538C563D with the same comment creation/revision values. This is observation, not a cause or repair conclusion. No task/project deletion, merge, reassignment, settings change or production activation occurred. Selected Results/Protocol tests are pure; TransitApp's unit-test-host source selects an in-memory/CloudKit.none configuration and skips the MCP server, but that source inspection alone does not establish the duplicate cause.
+
+The phone helper from clean95b0d30 exited0 and sent17 Markdown documents including supplemental RED evidence; log /tmp/t2383-supplemental-red-phone.log. No user-open claim.
