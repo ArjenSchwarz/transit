@@ -36,7 +36,7 @@
 | [MCP Project Creation](#mcp-project-creation) | 2026-10-02 | Ready for Review | Create projects through MCP with validation and reusable project metadata |
 | [Batch Task Queries](#batch-task-queries) | 2026-10-03 | Done | MCP task detail selection, batch lookup, and frozen cursor pagination |
 | [MCP Write Safety](#mcp-write-safety) | 2026-10-03 | Done | Add retry-safe MCP writes, local revision preconditions, and structured saved outcomes |
-| [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | Planned | Bound MCP read completion and report immutable saved capture/import evidence |
+| [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | In Progress | Bound MCP read completion and report immutable saved capture/import evidence |
 
 ---
 
@@ -355,7 +355,7 @@ All 18 coding tasks are implemented and review findings are resolved. Verificati
 
 ## Bounded Read Freshness
 
-**Created:** 2026-10-03 · **Status:** Planned
+**Created:** 2026-10-03 · **Status:** In Progress
 
 T-63 bounds MCP reads with saved-only coherent capture, explicit import evidence, independent deadlines and frozen pagination metadata. Shared capture/publication contracts support T2382 reusable portfolio views.
 
@@ -364,3 +364,4 @@ T-63 bounds MCP reads with saved-only coherent capture, explicit import evidence
 - [Tasks](bounded-read-freshness/tasks.md)
 - [Decisions](bounded-read-freshness/decision_log.md)
 - [Task review](bounded-read-freshness/tasks-review.md)
+- [Foundation handoff](bounded-read-freshness/foundation-handoff.md)
