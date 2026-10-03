@@ -88,5 +88,47 @@ struct MCPImportEvidenceMonitorTests {
         #expect(monitor.snapshot().generation == 100)
     }
 
+    @Test func boundedWindowsFreezeEvidenceAndCloseFailClosed() throws {
+        let monitor = MCPImportEvidenceMonitor(syncActive: true, storeIdentifier: "store")
+        let date = Date()
+        let id = UUID()
+        let window = try monitor.beginObservation(applicableImportIDs: [id])
+        monitor.receive(.init(id: id, storeIdentifier: "store", kind: .import,
+                              startDate: date, endDate: date, succeeded: true))
+        let frozen = monitor.snapshot(observation: window)
+        window.close()
+        #expect(frozen.successfulImports[id] != nil)
+        let closed = monitor.snapshot(observation: window)
+        #expect(!closed.observationIsValid)
+        #expect(closed.successfulImports.isEmpty)
+        let proof = MCPImportCaptureProof(storeIdentifier: "store", visibleImportIDs: [id])
+        #expect(monitor.freshness(closed, proof: proof, asOf: date, now: .now).assessment == .unknown)
+        var windows: [MCPImportObservationWindow] = []
+        for _ in 0..<8 { windows.append(try monitor.beginObservation(applicableImportIDs: [])) }
+        #expect(throws: MCPImportObservationError.self) { try monitor.beginObservation(applicableImportIDs: []) }
+        windows.removeLast().close()
+        let replacement = try monitor.beginObservation(applicableImportIDs: [])
+        replacement.close()
+        #expect(throws: MCPImportObservationError.self) {
+            try monitor.beginObservation(applicableImportIDs: Set((0..<257).map { _ in UUID() }))
+        }
+    }
+
+    @Test func restartedObserverRejectsOldEpochCallback() {
+        let monitor = MCPImportEvidenceMonitor(syncActive: true, storeIdentifier: "store")
+        let center = NotificationCenter()
+        let date = Date()
+        monitor.start(center: center)
+        monitor.stop()
+        monitor.start(center: center)
+        monitor.receive(.init(id: UUID(), storeIdentifier: "store", kind: .import,
+                              startDate: date, endDate: date, succeeded: true), observerEpoch: 1)
+        #expect(monitor.snapshot().generation == 0)
+        monitor.receive(.init(id: UUID(), storeIdentifier: "store", kind: .import,
+                              startDate: date, endDate: date, succeeded: true), observerEpoch: 3)
+        #expect(monitor.snapshot().generation == 1)
+        monitor.stop()
+    }
+
 }
 #endif

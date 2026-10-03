@@ -23,6 +23,7 @@ nonisolated enum MCPReadRefreshPolicy {
                          recent: Bool, remaining: Duration, applicableInFlightIDs: Set<UUID> = [],
                          triggerAvailable: Bool = false) -> MCPRefreshDecision {
         guard snapshot.syncActive, policy != .cached else { return .skip(.notRequested) }
+        guard snapshot.observationIsValid else { return .skip(.unavailable) }
         if recent { return .skip(.recentImport) }
         guard triggerAvailable || !snapshot.inFlight.isDisjoint(with: applicableInFlightIDs) else {
             return .skip(.unavailable)
@@ -35,33 +36,38 @@ nonisolated enum MCPReadRefreshPolicy {
     /// callback alone never produces import_observed or a recent freshness claim.
     @concurrent static func wait(
         monitor: MCPImportEvidenceMonitor, initial: MCPImportMonitorSnapshot, duration: Duration,
-        applicableImportIDs: Set<UUID>,
+        observation: MCPImportObservationWindow,
         now: @Sendable () -> ContinuousClock.Instant = { .now },
         sleep: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) async -> MCPImportMonitorSnapshot {
+        // Caller owns the window from before decision until metadata is frozen after capture.
         let deadline = now().advanced(by: max(.zero, duration))
         while now() < deadline, !Task.isCancelled {
-            let state = monitor.snapshot()
-            let succeeded = state.lastSuccess.map {
-                applicableImportIDs.contains($0.event.id) && $0.event.id != initial.lastSuccess?.event.id
-            } ?? false
-            let failed = state.lastFailureID.map {
-                applicableImportIDs.contains($0) && (state.lastFailureGeneration ?? 0) > initial.generation
-            } ?? false
+            let state = monitor.snapshot(observation: observation)
+            guard state.observationIsValid else { return state }
+            let succeeded = state.successfulImports.contains {
+                observation.applicableImportIDs.contains($0.key) && initial.successfulImports[$0.key] == nil
+            }
+            let failed = state.failedImports.contains {
+                observation.applicableImportIDs.contains($0.key) && $0.value > initial.generation
+            }
             if succeeded || failed { return state }
             do { try await sleep(min(.milliseconds(10), now().duration(to: deadline))) } catch { break }
         }
-        return monitor.snapshot()
+        return monitor.snapshot(observation: observation)
     }
 
     static func outcome(initial: MCPImportMonitorSnapshot, final: MCPImportMonitorSnapshot,
                         proof: MCPImportCaptureProof?, applicableInFlightIDs: Set<UUID> = [],
                         triggerAvailable: Bool = false) -> ReadRefreshOutcome {
-        if let proof, proof.storeIdentifier == final.storeIdentifier, let success = final.lastSuccess,
-           proof.visibleImportIDs.contains(success.event.id),
-           success.event.id != initial.lastSuccess?.event.id { return .importObserved }
-        if let failureID = final.lastFailureID, applicableInFlightIDs.contains(failureID),
-           (final.lastFailureGeneration ?? 0) > initial.generation { return .failed }
+        guard final.observationIsValid else { return .unavailable }
+        if let proof, proof.storeIdentifier == final.storeIdentifier,
+           final.successfulImports.contains(where: {
+               proof.visibleImportIDs.contains($0.key) && initial.successfulImports[$0.key] == nil
+           }) { return .importObserved }
+        if final.failedImports.contains(where: {
+            applicableInFlightIDs.contains($0.key) && $0.value > initial.generation
+        }) { return .failed }
         return triggerAvailable || !initial.inFlight.isDisjoint(with: applicableInFlightIDs)
             ? .timeout : .unavailable
     }

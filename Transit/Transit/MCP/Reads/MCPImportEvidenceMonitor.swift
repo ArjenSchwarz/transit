@@ -46,6 +46,9 @@ nonisolated struct MCPImportMonitorSnapshot: Sendable {
     let inFlight: Set<UUID>
     let lastFailureGeneration: UInt64?
     let lastFailureID: UUID?
+    let successfulImports: [UUID: MCPObservedImport]
+    let failedImports: [UUID: UInt64]
+    let observationIsValid: Bool
 }
 
 /// The lock serializes callback values and capture fences without a MainActor hop.
@@ -63,6 +66,7 @@ nonisolated final class MCPImportEvidenceMonitor: @unchecked Sendable {
     private var observerEpoch: UInt64 = 0
     private var observer: (any NSObjectProtocol)?
     private var notificationCenter: NotificationCenter?
+    private var observations: [UUID: MCPImportWindowEvidence] = [:]
 
     init(syncActive: Bool, storeIdentifier: String?) {
         self.syncActive = syncActive
@@ -104,6 +108,7 @@ nonisolated final class MCPImportEvidenceMonitor: @unchecked Sendable {
         lock.lock()
         stopped = true
         observerEpoch &+= 1
+        observations.removeAll()
         if !inFlight.isEmpty { generation &+= 1; inFlight.removeAll() }
         let token = observer
         let center = notificationCenter
@@ -131,21 +136,57 @@ nonisolated final class MCPImportEvidenceMonitor: @unchecked Sendable {
         guard event.succeeded else {
             lastFailureGeneration = generation
             lastFailureID = event.id
+            for id in observations.keys where observations[id]?.applicableImportIDs.contains(event.id) == true {
+                observations[id]?.failures[event.id] = generation
+            }
             return
         }
         // Invalid completed evidence must never replace the last reliable success.
         guard event.startDate <= end, end <= observedAt else { return }
+        let observed = MCPObservedImport(event: event, observedAt: observedAt, monotonicAt: monotonicNow)
+        for id in observations.keys where observations[id]?.applicableImportIDs.contains(event.id) == true {
+            observations[id]?.successes[event.id] = observed
+        }
         if let previous = lastSuccess, let previousEnd = previous.event.endDate, end < previousEnd { return }
-        lastSuccess = MCPObservedImport(event: event, observedAt: observedAt, monotonicAt: monotonicNow)
+        lastSuccess = observed
     }
 
-    func snapshot() -> MCPImportMonitorSnapshot {
+    /// Register before the decision snapshot to cover completions between decision and polling.
+    func beginObservation(applicableImportIDs: Set<UUID>) throws -> MCPImportObservationWindow {
         lock.lock()
         defer { lock.unlock() }
+        guard applicableImportIDs.count <= 256 else { throw MCPImportObservationError.tooManyImports }
+        guard observations.count < 8, !stopped else { throw MCPImportObservationError.busy }
+        let id = UUID()
+        var evidence = MCPImportWindowEvidence(applicableImportIDs: applicableImportIDs)
+        if let success = lastSuccess, applicableImportIDs.contains(success.event.id) {
+            evidence.successes[success.event.id] = success
+        }
+        observations[id] = evidence
+        return MCPImportObservationWindow(id: id, applicableImportIDs: applicableImportIDs, monitor: self)
+    }
+
+    func endObservation(_ id: UUID) {
+        lock.lock()
+        observations.removeValue(forKey: id)
+        lock.unlock()
+    }
+
+    func snapshot(observation: MCPImportObservationWindow? = nil) -> MCPImportMonitorSnapshot {
+        lock.lock()
+        defer { lock.unlock() }
+        let valid = observation == nil || observation.flatMap { observations[$0.id] } != nil
+        var successes = observation.flatMap { observations[$0.id]?.successes } ?? [:]
+        var failures = observation.flatMap { observations[$0.id]?.failures } ?? [:]
+        if observation == nil, let success = lastSuccess { successes[success.event.id] = success }
+        if observation == nil, let failureID = lastFailureID, let failureGeneration = lastFailureGeneration {
+            failures[failureID] = failureGeneration
+        }
         return MCPImportMonitorSnapshot(syncActive: syncActive, storeIdentifier: storeIdentifier,
-                                        generation: generation, lastSuccess: lastSuccess,
-                                        inFlight: inFlight, lastFailureGeneration: lastFailureGeneration,
-                                        lastFailureID: lastFailureID)
+                                        generation: generation, lastSuccess: valid ? lastSuccess : nil,
+                                        inFlight: valid ? inFlight : [], lastFailureGeneration: lastFailureGeneration,
+                                        lastFailureID: valid ? lastFailureID : nil, successfulImports: successes,
+                                        failedImports: failures, observationIsValid: valid)
     }
 
     func freshness(_ snapshot: MCPImportMonitorSnapshot, proof: MCPImportCaptureProof?,
@@ -155,9 +196,10 @@ nonisolated final class MCPImportEvidenceMonitor: @unchecked Sendable {
             return ReadFreshness(syncState: .inactive, assessment: .notApplicable, assessedAt: timestamp,
                                  lastImportedAt: nil, evidence: .none, recentImportThresholdMs: 30_000)
         }
-        guard let proof, let success = snapshot.lastSuccess, let end = success.event.endDate,
-              proof.storeIdentifier == snapshot.storeIdentifier,
-              proof.visibleImportIDs.contains(success.event.id), end <= asOf,
+        guard snapshot.observationIsValid, let proof, proof.storeIdentifier == snapshot.storeIdentifier,
+              let success = snapshot.successfulImports.values.filter({ proof.visibleImportIDs.contains($0.event.id) })
+                .max(by: { ($0.event.endDate ?? .distantPast) < ($1.event.endDate ?? .distantPast) }),
+              let end = success.event.endDate, end <= asOf,
               now >= success.monotonicAt else { return Self.unknown(at: timestamp) }
         let monotonicAge = Self.seconds(success.monotonicAt.duration(to: now))
             + success.observedAt.timeIntervalSince(end)
