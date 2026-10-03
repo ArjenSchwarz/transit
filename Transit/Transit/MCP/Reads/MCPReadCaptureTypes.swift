@@ -68,8 +68,10 @@ nonisolated struct ReadTask: Sendable {
     let selectedRecordJSON: Data
     /// Authoritative MCPRecordSnapshot.task r1, minted before removing comments.
     let revision: String?
-    /// Both full fields are mandatory for completePortfolio, optional for selectedRead.
+    /// Mandatory alongside revision for completePortfolio; optional for selectedRead.
+    /// Complete portfolio captures also require complete commentKeys and comment evidence.
     let fullRecordWithoutCommentsJSON: Data?
+    /// Output bodies only; may be nil when includeComments is false, even for a portfolio.
     let requestedCommentRecordsJSON: Data?
 }
 
