@@ -45,7 +45,9 @@ nonisolated struct MCPBoundedReadRouteTests {
         let result = try #require(frame["result"] as? [String: Any])
         let payload = try Self.payload(result)
         let cursor = try #require(payload["nextCursor"] as? String)
-        let original = try #require(fixture.service.snapshots.retainedPage(for: cursor).metadataBytes)
+        let original = try await MainActor.run {
+            try #require(fixture.service.snapshots.retainedPage(for: cursor).metadataBytes)
+        }
         #expect(first.body.range(of: original) != nil)
         await MainActor.run { fixture.savedTask.name = "Changed after capture" }
         let replay = try await MCPTestHelpers.respond(handler: fixture.handler,
@@ -57,7 +59,10 @@ nonisolated struct MCPBoundedReadRouteTests {
         #expect(replay.body.range(of: original) != nil)
         #expect(replayResult["_meta"] != nil)
         #expect(replayFrame["id"] as? String == "replay")
-        #expect(fixture.service.snapshots.domain === fixture.handler.taskQuerySnapshots.domain)
+        let sameDomain = await MainActor.run {
+            fixture.service.snapshots.domain === fixture.handler.taskQuerySnapshots.domain
+        }
+        #expect(sameDomain)
     }
 
     @Test(arguments: [false, true]) @concurrent
@@ -83,8 +88,10 @@ nonisolated struct MCPBoundedReadRouteTests {
         print("T63_ROUTE invalid_tool_arguments=\(invalid) encoded_body_elapsed=\(elapsed)")
         #expect(elapsed < .seconds(5))
         await blocker.value
-        let store = fixture.service.snapshots
-        let accounting = try store.domain.accounting(for: store.publicationStoreID)
+        let accounting = try await MainActor.run {
+            let store = fixture.service.snapshots
+            return try store.domain.accounting(for: store.publicationStoreID)
+        }
         #expect(accounting.visibleEntries == 0 && accounting.visibleBytes == 0)
         let frame = try #require(response.json as? [String: Any])
         #expect(frame["id"] as? String == "bounded")

@@ -127,6 +127,7 @@ references:
   - Add shared helper contract tests for T2382 descriptor registration, portfolio read classification, snapshotId dispatch, same view identity/evidence, scoped rejection and per-store batch aggregation. Use fixtures until parent supplies approved T2382 modules; integrated acceptance cannot pass on fixtures alone.
   - Write preservation regressions for merged write safety inputs/outputs/receipts/revisions, fallback-storage mutating allow-list and maintenance tools outside freshness scope.
   - Foundation tasks 1–9 never depend on these integration tests or on T2382 modules. Keep fixture-based red tests separate from actual-module final acceptance to avoid a circular cross-ticket gate.
+  - Evidence: Actual single-route RED compiled and ran (three methods/four device executions failed); saved-only/frozen metadata, five-second valid+invalid tool-domain availability and no late cursor-root publication are unwired. Types-only captured preparation seam is supplied; lifecycle/helper/module acceptance remains outstanding. No routing GREEN claimed; see foundation-handoff.md.
   - Blocked-by: vh146y6 (Green: implement independent deadline and physical admission coordination), vh146y8 (Green: implement shared publication domain and migrate ordinary retention), vh146ya (Green: migrate covered handler reads onto captured DTO projection)
   - Stream: 1
   - Owner: t63-foundation-runtime
