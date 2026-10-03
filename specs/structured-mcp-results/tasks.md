@@ -35,7 +35,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.4](requirements.md#1.4), [2.4](requirements.md#2.4), [3.3](requirements.md#3.3)
   - References: design.md, Transit/Transit/MCP/Results/MCPJSONDocument.swift, Transit/Transit/MCP/Writes/MCPCanonicalJSON.swift
 
-- [ ] 4. RED: specify deterministic link, category and recovery presentation <!-- id:gpzncvo -->
+- [-] 4. RED: specify deterministic link, category and recovery presentation <!-- id:gpzncvo -->
   - Add MCPResultPresentationTests: documented task/project source positions, relationship pointers, conflicting display IDs, invalid UUIDs, unknown nested id fields, and deterministic repeat presentation after unrelated model changes.
   - Table-test all approved error categories, explicit provider phases, unclassified historic codes, unsupported/contradictory evidence, accepted/outcome/retryAction preservation and uncertainty precedence. Supplemental fields never overwrite colliding source names; no URI/navigation scheme.
   - Reuse task2 seeded source generator for deterministic presentation/collision properties, not only fixed examples; shrink unknown fields/positions while preserving the asserted identity/recovery invariant.

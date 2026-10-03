@@ -128,7 +128,7 @@ nonisolated enum MCPResultEntityType: String, Sendable {
     case task, project
 }
 
-/// JSON Pointer to an identity token in the provider's documented source shape.
+/// JSON Pointer to a documented entity object or direct UUID identity token.
 nonisolated struct MCPResultEntityPosition: Sendable {
     let entityType: MCPResultEntityType
     let sourcePath: String
