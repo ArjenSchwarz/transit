@@ -18,6 +18,8 @@ nonisolated enum MCPReadCaptureFence: Sendable {
 
 @MainActor
 final class MCPReadCaptureBuilder: MCPReadCaptureSource {
+    private var keyCache: [PersistentIdentifier: LocalRecordKey] = [:]
+    private var isCapturing = false
     private let container: ModelContainer
     private let fence: MCPReadCaptureFence
     private let generation: () -> UInt64
@@ -52,6 +54,9 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
     }
 
     func capture(_ request: ReadCaptureRequest) throws -> CapturedReadView {
+        guard !isCapturing else { throw MCPReadCaptureError.incoherentCapture }
+        isCapturing = true
+        defer { isCapturing = false; keyCache.removeAll(keepingCapacity: false) }
         let initialGeneration = generation()
         let before = try watermark()
         let context = ModelContext(container)
@@ -134,16 +139,21 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                 throw MCPReadCaptureError.incoherentCapture
             }
             let comments = needsTasks && (full || request.includeComments) ? try fetchComments(context) : []
-            let includedComments = request.completeness == .completePortfolio ? comments
-                : comments.filter { comment in tasks.contains { $0.id == comment.task?.id } }
+            let selectedTaskKeys = try Set(tasks.map(key))
+            let includedComments = commentsForScope(comments, request: request, tasks: tasks)
+            let commentIndex = try indexComments(includedComments)
             // Freeze identity closure separately; it never changes the declared selected scope.
             let scope: ReadCaptureScope = request.completeness == .completePortfolio
                 ? (request.projectSelectors == nil ? .wholePortfolio : .projects(selectedKeys.sorted(by: keyOrder)))
                 : .selectedQuery
             return try Copied(scope: scope, projects: projects.map(projectValue),
                               tasks: (request.completeness == .completePortfolio ? allTasks : tasks).map {
-                                  try taskValue($0, comments: includedComments, full: full,
-                                                             includeComments: request.includeComments) },
+                                  let taskKey = try key($0)
+                                  return try taskValue($0,
+                                      comments: TaskComments(canonical: commentIndex.canonical[$0.id] ?? [],
+                                                             owned: commentIndex.physical[taskKey] ?? []),
+                                      full: full, includeComments: request.includeComments,
+                                      identityOnly: !selectedTaskKeys.contains(taskKey)) },
                               milestones: (request.completeness == .completePortfolio
                                   ? allMilestones : milestones).map(milestoneValue),
                               comments: includedComments.map(commentValue))
@@ -180,10 +190,14 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
     }
 
     private func key(_ model: some PersistentModel) throws -> LocalRecordKey {
+        let identifier = model.persistentModelID
+        if let cached = keyCache[identifier] { return cached }
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.sortedKeys]
-            return LocalRecordKey(encodedIdentifier: try encoder.encode(model.persistentModelID))
+            let encoded = LocalRecordKey(encodedIdentifier: try encoder.encode(identifier))
+            keyCache[identifier] = encoded
+            return encoded
         } catch {
             throw MCPReadCaptureError.serializationFailure
         }
@@ -228,37 +242,69 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
     }
 
     private func taskValue(
-        _ task: TransitTask, comments: [Comment], full: Bool, includeComments: Bool
+        _ task: TransitTask, comments: TaskComments, full: Bool, includeComments: Bool, identityOnly: Bool
     ) throws -> ReadTask {
-        let coveredComments = comments.filter { $0.task?.id == task.id }.sorted {
-            ($0.creationDate, $0.id.uuidString) < ($1.creationDate, $1.id.uuidString)
-        }
+        let coveredComments = comments.canonical
         let taskKey = try key(task)
-        let ownedComments = try comments.filter { comment in
-            try comment.task.map { try key($0) == taskKey } ?? false
-        }
-        let snapshot = full ? try MCPRecordSnapshot.task(task) { _ in coveredComments } : nil
+        let ownedComments = comments.owned
+        let snapshot = full && !identityOnly ? try MCPRecordSnapshot.task(task) { _ in coveredComments } : nil
         var noComments = snapshot?.record
         noComments?.removeValue(forKey: "comments")
         var selected = noComments ?? ["taskId": task.id.uuidString, "name": task.name,
                                       "status": task.status.rawValue, "type": task.type.rawValue,
                                       "priority": task.priority.rawValue]
-        if includeComments {
+        if identityOnly { selected = ["taskId": task.id.uuidString, "name": task.name] }
+        if includeComments && !identityOnly {
             selected["comments"] = try coveredComments.map { try MCPRecordSnapshot.comment($0).record }
         }
         return try ReadTask(
             physicalKey: taskKey, id: task.id, permanentDisplayId: task.permanentDisplayId,
-            name: task.name, taskDescription: task.taskDescription, projectKey: task.project.map(key),
+            name: task.name, taskDescription: identityOnly ? nil : task.taskDescription,
+            projectKey: task.project.map(key),
             milestoneKey: task.milestone.map(key), storedProjectID: task.project?.id,
             storedMilestoneID: task.milestone?.id, rawStatus: task.statusRawValue,
             effectiveStatus: task.status.rawValue, rawType: task.typeRawValue, effectiveType: task.type.rawValue,
             rawPriority: task.priorityRawValue, effectivePriority: task.priority.rawValue,
-            metadata: task.metadata, metadataJSON: task.metadataJSON, creationDate: task.creationDate,
+            metadata: identityOnly ? [:] : task.metadata, metadataJSON: identityOnly ? nil : task.metadataJSON,
+            creationDate: task.creationDate,
             lastStatusChangeDate: task.lastStatusChangeDate, completionDate: task.completionDate,
             commentKeys: ownedComments.map(key), selectedRecordJSON: json(selected), revision: snapshot?.revision,
             fullRecordWithoutCommentsJSON: noComments.map(json),
-            requestedCommentRecordsJSON: includeComments
+            requestedCommentRecordsJSON: includeComments && !identityOnly
                 ? json(coveredComments.map { try MCPRecordSnapshot.comment($0).record }) : nil)
     }
+}
+private extension MCPReadCaptureBuilder {
+    func commentsForScope(_ comments: [Comment], request: ReadCaptureRequest, tasks: [TransitTask]) -> [Comment] {
+        if request.completeness == .completePortfolio && request.projectSelectors == nil { return comments }
+        let ids = Set(tasks.map(\.id))
+        return comments.filter {
+            $0.task.map { ids.contains($0.id) } ?? (request.completeness == .completePortfolio)
+        }
+    }
+
+    private struct CommentIndex {
+        let canonical: [UUID: [Comment]]
+        let physical: [LocalRecordKey: [Comment]]
+    }
+
+    private func indexComments(_ includedComments: [Comment]) throws -> CommentIndex {
+        let canonicalComments = Dictionary(grouping: includedComments.compactMap { comment in
+            comment.task.map { ($0.id, comment) }
+        }, by: { $0.0 }).mapValues { group in
+            group.map(\.1).sorted { ($0.creationDate, $0.id.uuidString) < ($1.creationDate, $1.id.uuidString) }
+        }
+        var physicalComments: [LocalRecordKey: [Comment]] = [:]
+        for comment in includedComments {
+            if let owner = comment.task { physicalComments[try key(owner), default: []].append(comment) }
+        }
+        return CommentIndex(canonical: canonicalComments, physical: physicalComments)
+    }
+
+    private struct TaskComments {
+        let canonical: [Comment]
+        let owned: [Comment]
+    }
+
 }
 #endif
