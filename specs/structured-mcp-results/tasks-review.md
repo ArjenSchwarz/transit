@@ -1,6 +1,6 @@
 # Structured MCP results: task review
 
-Status: Rune plan proposed; design approval recorded at Sentinel_717be95229c48191a7c41b6e5e467e4c. No implementation or task execution. Internal critic/peer reviews pending.
+Status: Rune plan proposed; design approval recorded at Sentinel_717be95229c48191a7c41b6e5e467e4c. No implementation or task execution. Internal critic and two independent internal peers complete; no remaining task-plan blockers.
 
 ## Rune validation
 
@@ -42,6 +42,25 @@ Read integration16–17 remains T63/T2383/T2382-owned and never supplies a batch
 
 The only design measurement risk maps to automated volume/budget RED10/GREEN11 before integration14–21. Limit failure remains deadline/capacity/no publication, not truncated success. Property-generation tasks2/4/6 define lossless/deterministic invariants; transaction/publication fixtures14/16 test failures that property roundtrips cannot establish. Every new subsystem reaches common wiring, with no orphaned provider/test harness.
 
+## Supporting documentation completion gate
+
+Documentation remains outside the coding-only Rune list. The T2383 implementation owner tracks these approved-design deliverables separately; common API15 delivery does not wait for final prose, but feature completion/final22 sign-off does:
+
+- [ ] Owner: T2383 implementation owner. After integrated seam15, create `docs/mcp-result-contract.md` from the approved design and delivered schema/fixtures: wrapper version/source/text/error presence, historic replay and frozen cursors, error/retry/reconciliation rules, path-specific saved normalization, UUID-associated unavailable links, latest-only lifecycle and client readiness. Completion evidence is the exact committed document matched to current descriptor/examples.
+- [ ] Owner: T2383 implementation owner. Correct obsolete initialization/session/GET/wire-array statements and examples in `docs/mcp-write-contract.md` and affected repository MCP documentation after modern wiring15–19; preserve application key/receipt/r1 semantics and distinguish the T2384 application batch. Completion evidence is the recorded documentation commit and a read-through against the final wire/receipt fixtures.
+
+These are required deliverables for AC1.3/3.5/4.1 and the approved parity audit, not added production scope or main-list noncoding tasks. If missing, report feature completion blocked even if coding checks pass. T2384 owns its additional batch-specific caller documentation.
+
+## Critic
+
+No coding-sequence blocker: RED/GREEN ordering, parallel pure protocol stream, early capacity risk and forward batch seam accepted. Adopted completion-tracking finding: caller docs cannot be satisfied by schema fixtures alone; explicit T2383 owner/deliverables/commit evidence and feature-completion gate now appear above without adding documentation creation to Rune tasks.
+
 ## Task approval gate
 
 Route through parent after required reviews and phone delivery: **Do the tasks look good?** The actual starwave-tasks skill requires explicit approval and limits this phase to planning artifacts; no task approval has yet been received. Implementation remains a separate authorised workflow. No settings, endpoint activation, push/merge/deployment or heavy test execution occurs here.
+
+## Independent peer review and final disposition
+
+Mode: internal critic followed by two independent internal subagent perspectives under the documented fallback; no external model service received repository/spec content. Correctness peer accepted source/replay/property/fault coverage, forward15 delivery and separate16–17 atomic reads. API/maintainability peer accepted independent protocol stream, no reverse batch edge, tooling/client gates and separate documentation completion tracking. Both validated the critic's adopted documentation finding.
+
+Minor API clarification adopted in interface1: provide compiler-valid protocols/value constructors/minimal throwing placeholders so RED fixtures execute behavioral failures, not merely missing Swift declarations. Task count, streams, stable IDs and dependencies remain unchanged. No review divergence or unresolved task-plan blocker remains. Future implementation measurements and actual client readiness remain explicit gates rather than assumed successes.

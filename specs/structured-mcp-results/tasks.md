@@ -13,6 +13,7 @@ metadata:
   - Interface-only exemption: declare macOS-gated nonisolated Sendable MCPResultSource/context/presentation/recovery, lossless document and protocol request/availability input types under Transit/Transit/MCP/Results and MCP/Protocol; no runtime implementation or T63-owned common edits.
   - Fix callable source/presentation/complete-response/fallback descriptor signatures against approved design; nil/false/true error presence stays explicit. Support protected, synthetic application-batch and unprotected-maintenance recovery without new keys.
   - One stream owns result/shared integration; stream2 may implement isolated protocol modules after these interfaces. No task is claimed or executed until owner task approval; every build/test also waits for T63 slot release.
+  - Provide compiler-valid protocol requirements/value constructors and minimal throwing placeholders where signatures require bodies; RED fixtures must execute and fail expected behavior rather than treating missing declarations/compiler errors as RED evidence.
   - Stream: 1
   - Requirements: [1.1](requirements.md#1.1), [1.4](requirements.md#1.4), [3.4](requirements.md#3.4), [5.2](requirements.md#5.2), [6.1](requirements.md#6.1)
   - References: design.md, decision_log.md
@@ -36,6 +37,7 @@ metadata:
 - [ ] 4. RED: specify deterministic link, category and recovery presentation <!-- id:gpzncvo -->
   - Add MCPResultPresentationTests: documented task/project source positions, relationship pointers, conflicting display IDs, invalid UUIDs, unknown nested id fields, and deterministic repeat presentation after unrelated model changes.
   - Table-test all approved error categories, explicit provider phases, unclassified historic codes, unsupported/contradictory evidence, accepted/outcome/retryAction preservation and uncertainty precedence. Supplemental fields never overwrite colliding source names; no URI/navigation scheme.
+  - Reuse task2 seeded source generator for deterministic presentation/collision properties, not only fixed examples; shrink unknown fields/positions while preserving the asserted identity/recovery invariant.
   - Blocked-by: gpzncvn (GREEN: implement owned lossless JSON documents and source factories)
   - Stream: 1
   - Requirements: [1.2](requirements.md#1.2), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.5](requirements.md#3.5), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4)
@@ -52,6 +54,7 @@ metadata:
 - [ ] 6. RED: specify complete response encoding and preeffect fallback selection <!-- id:gpzncvq -->
   - Add MCPResultEncoderTests for complete modern/text/structured/_meta/RPC bytes, valid request-ID correlation, exact optional isError, source fragments and safe surrounding JSON escaping.
   - Use synthetic protected/batch/maintenance sources to prove fallback bytes are fully deliverable before effects, failed preparation invokes zero effects, and later selection never calls any failed source/presentation/envelope encoder again. Batch fixture uses summary serialization_failed/effect evidence unestablished and original indexes/tool/key/UUID; no production mutate_tasks dependency.
+  - Reuse task2 seeded source values to property-check full encoding: exact source/text presence and numbers survive wrapping, malicious surrounding strings cannot escape fields, metadata remains outside source; fixed transaction/fallback fault tests stay separate.
   - Blocked-by: gpzncvp (GREEN: implement source-only presentation and typed provider selectors)
   - Stream: 1
   - Requirements: [1.1](requirements.md#1.1), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.4](requirements.md#2.4), [3.2](requirements.md#3.2), [3.4](requirements.md#3.4), [5.4](requirements.md#5.4)
@@ -135,6 +138,7 @@ metadata:
 - [ ] 16. RED: prove frozen retention and atomic modern publication under faults <!-- id:gpzncw0 -->
   - Extend ordinary and T2382 reusable snapshot test suites using T63 fake clocks/barriers and real owner store seams; frozen text/payload/presentation/meta/policy/expiry/r1 survive edits/import changes and freshRPCIDs without reread/reclassification.
   - Inject required comment/history/capture/parser faults, explicit selector absence, expanded capacity failure, cancellation while encoding/preparing/offering, expired/stale publication, listener stop/restart and blocked physical finalizers. Assert no unpublished IDs/partial records, no serialization under gate,8 unfinished physical slots survive restart.
+  - Explicit includeComments:false full/reusable-page cases must retain the original canonical comment-covered r1, even after later comment changes; only bodies are omitted.
   - Blocked-by: gpzncvz (GREEN: integrate common source/schema/fallback and modern dispatch at handoff)
   - Stream: 1
   - Requirements: [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [3.3](requirements.md#3.3), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2)

@@ -69,3 +69,5 @@
 | --- | --- | --- | --- |
 | Q18 | 2026-10-03 | Design approved; proceed Rune task planning only. | Owner “2383 and 2384 are approved”, parent-verified Sentinel_717be95229c48191a7c41b6e5e467e4c; T2383 7970a9c, T2384 a5950e99. |
 | Q19 | 2026-10-03 | Deliver synthetic-provider-tested common API before real T2384 integration. | T2384 accepts noncircular T63 handoff → common seam → batch consumer sequence; T2383 has no production batch dependency. |
+| Q20 | 2026-10-03 | Keep caller-doc deliverables outside coding-only Rune tasks, with T2383 owner and final completion gate. | Task critic found schema fixtures alone do not discharge promised docs; task-review tracks exact documents/commits after15 without blocking common API delivery. |
+| Q21 | 2026-10-03 | Interface1 must compile so RED fixtures fail behavior. | API task peer clarification; no task/DAG/scope change. |
