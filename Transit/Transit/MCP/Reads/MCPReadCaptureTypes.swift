@@ -145,6 +145,30 @@ nonisolated struct ReadMilestoneIdentity: Sendable {
     let milestoneDescription: String?
 }
 
+/// Scalar selector input copied inside the saved fence, before canonical serialization.
+nonisolated struct ReadTaskSelectionValue: Sendable {
+    let physicalKey: LocalRecordKey
+    let id: UUID
+    let permanentDisplayId: Int?
+    let name: String
+    let taskDescription: String?
+    let storedProjectID: UUID?
+    let storedMilestoneID: UUID?
+    let rawStatus: String
+    let rawType: String
+    let effectivePriority: String
+}
+
+nonisolated struct ReadMilestoneSelectionValue: Sendable {
+    let physicalKey: LocalRecordKey
+    let identity: ReadMilestoneIdentity
+}
+
+typealias ReadTaskBodySelection =
+    @MainActor @Sendable ([ReadTaskSelectionValue]) throws -> Set<LocalRecordKey>
+typealias ReadMilestoneBodySelection =
+    @MainActor @Sendable ([ReadMilestoneSelectionValue]) throws -> Set<LocalRecordKey>
+
 nonisolated struct ReadCaptureRequest: Sendable {
     let projectSelectors: [ReadProjectSelector]?
     let selection: ReadCaptureSelection
@@ -157,16 +181,24 @@ nonisolated struct ReadCaptureRequest: Sendable {
     /// Runs after milestone fetch and before task fetch. False means no task values are needed.
     let validateMilestones: (@MainActor @Sendable ([ReadMilestoneIdentity]) throws -> Bool)?
 
+    /// Optional selectedRead body selection; completePortfolio rejects these narrowing hooks.
+    let selectTaskBodies: ReadTaskBodySelection?
+    let selectMilestoneBodies: ReadMilestoneBodySelection?
+
     init(projectSelectors: [ReadProjectSelector]?, selection: ReadCaptureSelection,
          completeness: CaptureCompleteness, includeComments: Bool,
          validateProjects: (@MainActor @Sendable ([ReadProjectIdentity]) throws -> Void)? = nil,
-         validateMilestones: (@MainActor @Sendable ([ReadMilestoneIdentity]) throws -> Bool)? = nil) {
+         validateMilestones: (@MainActor @Sendable ([ReadMilestoneIdentity]) throws -> Bool)? = nil,
+         selectTaskBodies: ReadTaskBodySelection? = nil,
+         selectMilestoneBodies: ReadMilestoneBodySelection? = nil) {
         self.projectSelectors = projectSelectors
         self.selection = selection
         self.completeness = completeness
         self.includeComments = includeComments
         self.validateProjects = validateProjects
         self.validateMilestones = validateMilestones
+        self.selectTaskBodies = selectTaskBodies
+        self.selectMilestoneBodies = selectMilestoneBodies
     }
 }
 

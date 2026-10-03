@@ -65,6 +65,10 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
 
     func capture(_ request: ReadCaptureRequest) throws -> CapturedReadView {
         guard !isCapturing else { throw MCPReadCaptureError.incoherentCapture }
+        guard request.completeness != .completePortfolio
+            || (request.selectTaskBodies == nil && request.selectMilestoneBodies == nil) else {
+            throw MCPReadCaptureError.incoherentCapture
+        }
         isCapturing = true
         defer { isCapturing = false; keyCache.removeAll(keepingCapacity: false) }
         let initialGeneration = generation()
@@ -142,17 +146,16 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                 guard request.projectSelectors != nil else { return true }
                 return try milestone.project.map { selectedKeys.contains(try key($0)) } ?? false
             }
-            let full: Bool
-            switch request.selection {
-            case .portfolio, .tasks(detail: .fullRecord): full = true
-            default: full = false
-            }
+            let bodyKeys = try request.selectTaskBodies?(tasks.map(taskSelectionValue)) ?? Set(tasks.map(key))
+            let milestoneBodyKeys = try milestoneBodyKeys(request, all: allMilestones, scoped: milestones)
+            let bodyTasks = try tasks.filter { bodyKeys.contains(try key($0)) }
+            let full = fullRecordSelection(request.selection)
             guard request.completeness != .completePortfolio || full else {
                 throw MCPReadCaptureError.incoherentCapture
             }
-            let comments = needsTasks && (full || request.includeComments) ? try fetchComments(context) : []
-            let selectedTaskKeys = try Set(tasks.map(key))
-            let includedComments = commentsForScope(comments, request: request, tasks: tasks)
+            let comments = try commentEvidence(request, context: context, bodyTasks: bodyTasks,
+                                               needed: needsTasks && (full || request.includeComments))
+            let includedComments = commentsForScope(comments, request: request, tasks: bodyTasks)
             let commentIndex = try indexComments(includedComments)
             // Freeze identity closure separately; it never changes the declared selected scope.
             let scope: ReadCaptureScope = request.completeness == .completePortfolio
@@ -160,10 +163,12 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                 : .selectedQuery
             return try Copied(scope: scope, projects: projects.map(projectValue),
                               tasks: copyTaskValues(request.completeness == .completePortfolio ? allTasks : tasks,
-                                  selectedKeys: selectedTaskKeys, comments: commentIndex,
+                                  selectedKeys: bodyKeys, comments: commentIndex,
                                   full: full, includeComments: request.includeComments),
                               milestones: (request.completeness == .completePortfolio
-                                  ? allMilestones : milestones).map(milestoneValue),
+                                  ? allMilestones : milestones).map {
+                                      try milestoneValue($0, canonical: milestoneBodyKeys.contains(try key($0)))
+                                  },
                               comments: includedComments.map(commentValue))
         } catch let error as MCPTaskQueryError {
             throw error
@@ -212,15 +217,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
         }
     }
 
-    private func projectValue(_ project: Project) throws -> ReadProject {
-        try ReadProject(physicalKey: key(project), id: project.id, name: project.name,
-                        projectDescription: project.projectDescription, gitRepo: project.gitRepo,
-                        colorHex: project.colorHex, taskKeys: (project.tasks ?? []).map(key),
-                        milestoneKeys: (project.milestones ?? []).map(key),
-                        selectedRecordJSON: json(MCPRecordSnapshot.project(project).record))
-    }
-
-    private func milestoneValue(_ milestone: Milestone) throws -> ReadMilestone {
+    private func milestoneValue(_ milestone: Milestone, canonical: Bool) throws -> ReadMilestone {
         try ReadMilestone(physicalKey: key(milestone), id: milestone.id,
                           permanentDisplayId: milestone.permanentDisplayId, name: milestone.name,
                           milestoneDescription: milestone.milestoneDescription,
@@ -228,7 +225,8 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                           rawStatus: milestone.statusRawValue, effectiveStatus: milestone.status.rawValue,
                           creationDate: milestone.creationDate, lastStatusChangeDate: milestone.lastStatusChangeDate,
                           completionDate: milestone.completionDate, taskKeys: (milestone.tasks ?? []).map(key),
-                          selectedRecordJSON: json(MCPRecordSnapshot.milestone(milestone).record))
+                          selectedRecordJSON: json(canonical ? MCPRecordSnapshot.milestone(milestone).record
+                            : ["milestoneId": milestone.id.uuidString, "name": milestone.name]))
     }
 
     private func commentValue(_ comment: Comment) throws -> ReadCommentEvidence {
@@ -272,6 +270,40 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
     }
 }
 private extension MCPReadCaptureBuilder {
+    private func projectValue(_ project: Project) throws -> ReadProject {
+        try ReadProject(physicalKey: key(project), id: project.id, name: project.name,
+                        projectDescription: project.projectDescription, gitRepo: project.gitRepo,
+                        colorHex: project.colorHex, taskKeys: (project.tasks ?? []).map(key),
+                        milestoneKeys: (project.milestones ?? []).map(key),
+                        selectedRecordJSON: json(MCPRecordSnapshot.project(project).record))
+    }
+
+    private func milestoneBodyKeys(_ request: ReadCaptureRequest, all: [Milestone],
+                                   scoped: [Milestone]) throws -> Set<LocalRecordKey> {
+        if let select = request.selectMilestoneBodies {
+            return try select(all.map {
+                ReadMilestoneSelectionValue(physicalKey: try key($0), identity: milestoneIdentity($0))
+            })
+        }
+        let values = request.completeness == .completePortfolio && request.projectSelectors != nil ? scoped : all
+        return try Set(values.map(key))
+    }
+
+    private func fullRecordSelection(_ selection: ReadCaptureSelection) -> Bool {
+        switch selection {
+        case .portfolio, .tasks(detail: .fullRecord): true
+        default: false
+        }
+    }
+
+    private func commentEvidence(_ request: ReadCaptureRequest, context: ModelContext,
+                                 bodyTasks: [TransitTask], needed: Bool) throws -> [Comment] {
+        // A selected empty result needs no comments. Complete portfolio still requires
+        // the full orphan/comment diagnostic domain, including an empty task domain.
+        guard needed, request.completeness == .completePortfolio || !bodyTasks.isEmpty else { return [] }
+        return try fetchComments(context)
+    }
+
     private func key(_ model: some PersistentModel) throws -> LocalRecordKey {
         let identifier = model.persistentModelID
         if let cached = keyCache[identifier] { return cached }
@@ -286,14 +318,25 @@ private extension MCPReadCaptureBuilder {
         }
     }
 
+    private func taskSelectionValue(_ task: TransitTask) throws -> ReadTaskSelectionValue {
+        try ReadTaskSelectionValue(physicalKey: key(task), id: task.id, permanentDisplayId: task.permanentDisplayId,
+            name: task.name, taskDescription: task.taskDescription, storedProjectID: task.project?.id,
+            storedMilestoneID: task.milestone?.id, rawStatus: task.statusRawValue, rawType: task.typeRawValue,
+            effectivePriority: task.priority.rawValue)
+    }
+
+    private func milestoneIdentity(_ milestone: Milestone) -> ReadMilestoneIdentity {
+        ReadMilestoneIdentity(id: milestone.id, permanentDisplayId: milestone.permanentDisplayId, name: milestone.name,
+            storedProjectID: milestone.project?.id, rawStatus: milestone.statusRawValue,
+            milestoneDescription: milestone.milestoneDescription)
+    }
+
     func fetchEntities(_ request: ReadCaptureRequest, in context: ModelContext)
         throws -> ([TransitTask], [Milestone]) {
         let (needsTasks, needsMilestones) = neededEntities(request.selection)
         let allMilestones = needsMilestones ? try fetchMilestones(context) : []
         let needsTaskValues = try request.validateMilestones?(allMilestones.map {
-            ReadMilestoneIdentity(id: $0.id, permanentDisplayId: $0.permanentDisplayId, name: $0.name,
-                storedProjectID: $0.project?.id, rawStatus: $0.statusRawValue,
-                milestoneDescription: $0.milestoneDescription)
+            milestoneIdentity($0)
         }) ?? needsTasks
         let allTasks = needsTasks && needsTaskValues ? try fetchTasks(context) : []
         return (allTasks, allMilestones)

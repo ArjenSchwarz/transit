@@ -45,7 +45,7 @@ final class MCPReadService {
             if let cursor = query?.cursor {
                 let page = try snapshots.retainedPage(for: cursor)
                 if let requested = query?.readPolicy, let retained = page.policy, requested != retained {
-                    throw MCPTaskQueryError(code: "SNAPSHOT_CONFLICT",
+                    throw MCPTaskQueryError(code: "INVALID_INPUT",
                                             message: "readPolicy conflicts with retained query")
                 }
                 return try MCPPreparedToolRead(text: page.text, frozenMetadataBytes: page.metadataBytes)
@@ -59,7 +59,7 @@ final class MCPReadService {
             default: throw MCPTaskQueryError.invalid("Unsupported covered read")
             }
             let request = captureRequest(tool: tool, arguments: arguments, selection: selection,
-                                         includeComments: query?.includeComments ?? false)
+                                         includeComments: query?.includeComments ?? false, query: query)
             let applicable = applicability()
             let observation = try? monitor.beginObservation(applicableImportIDs: applicable.inFlightImportIDs)
             defer { observation?.close() }
@@ -84,7 +84,7 @@ final class MCPReadService {
     }
 
     private func captureRequest(tool: String, arguments: [String: Any], selection: ReadCaptureSelection,
-                                includeComments: Bool) -> ReadCaptureRequest {
+                                includeComments: Bool, query: MCPTaskQueryRequest?) -> ReadCaptureRequest {
         let fields = arguments.mapValues(AnyCodable.init)
         let state = ValidationState()
         return ReadCaptureRequest(projectSelectors: nil, selection: selection,
@@ -103,6 +103,7 @@ final class MCPReadService {
                     }
                 }, validateMilestones: { milestones in
                     let args = fields.mapValues(\.value)
+                    state.milestones = milestones
                     if tool == "query_tasks" {
                         if case .noMatch = try MCPReadProjection.milestoneFilter(args, project: state.project,
                                                                                milestones: milestones) { return false }
@@ -118,11 +119,21 @@ final class MCPReadService {
                     }
                     guard let match = matches.first else { return false }
                     return MCPReadProjection.matchesMilestone(match, arguments: args, projectID: state.project?.id)
+                }, selectTaskBodies: { values in
+                    guard let query else { return Set(values.map(\.physicalKey)) }
+                    let filters = try MCPReadProjection.taskFilters(fields.mapValues(\.value),
+                        project: state.project, milestones: state.milestones)
+                    return try MCPReadProjection.taskBodyKeys(values, request: query, filters: filters)
+                }, selectMilestoneBodies: { values in
+                    guard tool == "query_milestones" else { return [] }
+                    return try MCPReadProjection.milestoneBodyKeys(values, arguments: fields.mapValues(\.value),
+                        projectID: state.project?.id)
                 })
     }
 
     private final class ValidationState {
         var project: ReadProjectIdentity?
+        var milestones: [ReadMilestoneIdentity] = []
     }
 
     private func capture(request: ReadCaptureRequest,
@@ -197,6 +208,7 @@ final class MCPReadService {
 
     private func failure(_ error: Error, tool: String, operation: MCPReadOperation,
                          policy: MCPReadPolicy) throws -> MCPPreparedToolRead {
+        let failureCode = tool == "query_tasks" ? "QUERY_FAILED" : "READ_FAILED"
         let category: ReadFailureCategory?
         let code: String
         let message: String
@@ -204,15 +216,15 @@ final class MCPReadService {
         case let query as MCPTaskQueryError:
             category = nil; code = query.code; message = query.message
         case MCPReadCaptureError.incoherentCapture:
-            category = .incoherentCapture; code = "READ_FAILED"; message = "Saved capture could not be proved coherent"
+            category = .incoherentCapture; code = failureCode; message = "Saved capture could not be proved coherent"
         case MCPReadCaptureError.serializationFailure:
-            category = .serializationFailure; code = "READ_FAILED"; message = "Read serialization failed"
+            category = .serializationFailure; code = failureCode; message = "Read serialization failed"
         case PublicationRejection.busy:
             category = .busy; code = "READ_BUSY"; message = "Read publication changed; retry the request"
         case ReadExecutionError.timeout:
             category = .timeout; code = "READ_TIMEOUT"; message = "Read exceeded its original admission budget"
         default:
-            category = .storageFailure; code = "READ_FAILED"; message = "Saved read storage failed"
+            category = .storageFailure; code = failureCode; message = "Saved read storage failed"
         }
         let metadata = category.map { MCPReadResultMetadata.failure(ReadFailureMetadata(
             requestId: operation.id.uuidString, category: $0,

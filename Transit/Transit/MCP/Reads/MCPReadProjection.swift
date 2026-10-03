@@ -19,16 +19,9 @@ enum MCPReadProjection {
                 })
         case .list, .single:
             guard let filters = try filters(arguments, view: view) else { return [] }
-            var tasks = available
-            if case .single(let id) = request.selector {
-                tasks = tasks.filter { $0.permanentDisplayId == id }
-                guard tasks.count <= 1 else {
-                    throw MCPTaskQueryError(code: "AMBIGUOUS_TASK_ID",
-                        message: "Duplicate task identifier detected for displayId \(id)")
-                }
-            }
-            return try tasks.filter { matches($0, filters: filters) }.sorted { $0.id.uuidString < $1.id.uuidString }
-                .map { try task($0, view: view, request: request) }
+            let keys = try taskBodyKeys(available.map(selectionValue), request: request, filters: filters)
+            return try available.filter { keys.contains($0.physicalKey) }
+                .sorted { $0.id.uuidString < $1.id.uuidString }.map { try task($0, view: view, request: request) }
         }
     }
 
@@ -152,11 +145,16 @@ enum MCPReadProjection {
     static func filters(_ args: [String: Any], view: CapturedReadView) throws -> MCPQueryFilters? {
         let project = try project(args, view: view)
         try validateTaskScalars(args)
-        let milestoneIDs: Set<UUID>?
-        switch try milestoneFilter(args, project: project.map { ReadProjectIdentity(id: $0.id, name: $0.name) },
+        return try taskFilters(args, project: project.map { ReadProjectIdentity(id: $0.id, name: $0.name) },
             milestones: view.milestones.map { ReadMilestoneIdentity(id: $0.id,
                 permanentDisplayId: $0.permanentDisplayId, name: $0.name, storedProjectID: $0.storedProjectID,
-                rawStatus: $0.rawStatus, milestoneDescription: $0.milestoneDescription) }) {
+                rawStatus: $0.rawStatus, milestoneDescription: $0.milestoneDescription) })
+    }
+
+    static func taskFilters(_ args: [String: Any], project: ReadProjectIdentity?,
+                            milestones: [ReadMilestoneIdentity]) throws -> MCPQueryFilters? {
+        let milestoneIDs: Set<UUID>?
+        switch try milestoneFilter(args, project: project, milestones: milestones) {
         case .noFilter: milestoneIDs = nil
         case .matched(let ids): milestoneIDs = ids
         case .noMatch: return nil
@@ -211,6 +209,17 @@ enum MCPReadProjection {
     }
 
     private static func matches(_ task: ReadTask, filters: MCPQueryFilters) -> Bool {
+        matches(selectionValue(task), filters: filters)
+    }
+
+    static func selectionValue(_ task: ReadTask) -> ReadTaskSelectionValue {
+        ReadTaskSelectionValue(physicalKey: task.physicalKey, id: task.id, permanentDisplayId: task.permanentDisplayId,
+            name: task.name, taskDescription: task.taskDescription, storedProjectID: task.storedProjectID,
+            storedMilestoneID: task.storedMilestoneID, rawStatus: task.rawStatus, rawType: task.rawType,
+            effectivePriority: task.effectivePriority)
+    }
+
+    static func matches(_ task: ReadTaskSelectionValue, filters: MCPQueryFilters) -> Bool {
         if let values = filters.statuses, !values.isEmpty, !values.contains(task.rawStatus) { return false }
         if let values = filters.notStatuses, !values.isEmpty, values.contains(task.rawStatus) { return false }
         if let type = filters.type, type != task.rawType { return false }
