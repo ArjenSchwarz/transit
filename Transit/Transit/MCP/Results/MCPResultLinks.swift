@@ -52,8 +52,9 @@ nonisolated enum MCPResultLinks {
         switch tool {
         case "query_tasks": return try taskQueryPositions(value, checkpoint: checkpoint)
         case "get_projects":
-            guard case .array(let records) = value else { return [] }
-            return records.indices.map { .init(entityType: .project, sourcePath: "/\($0)") }
+            return try projectArrayPositions(value, suffix: "", checkpoint: checkpoint)
+        case "query_milestones":
+            return try projectArrayPositions(value, suffix: "/projectId", checkpoint: checkpoint)
         case "create_task", "update_task", "update_task_status":
             return ["/record", "/currentRecord", "/recordBeforeDeletion"].flatMap(taskPositions)
         case "create_project":
@@ -67,6 +68,19 @@ nonisolated enum MCPResultLinks {
             }
         default: return []
         }
+    }
+
+    private static func projectArrayPositions(_ value: MCPJSONValue, suffix: String,
+                                              checkpoint: @Sendable () throws -> Void) throws
+        -> [MCPResultEntityPosition] {
+        guard case .array(let records) = value else { return [] }
+        var positions: [MCPResultEntityPosition] = []
+        for index in records.indices {
+            // Check before allocating the next chunk of positions, including the first.
+            if index.isMultiple(of: 64) { try checkpoint() }
+            positions.append(.init(entityType: .project, sourcePath: "/\(index)" + suffix))
+        }
+        return positions
     }
 
     private static func taskQueryPositions(_ value: MCPJSONValue,

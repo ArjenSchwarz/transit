@@ -30,7 +30,8 @@ nonisolated struct MCPResultClassification {
         }
         if outcome == "uncertain" { category = .outcomeUncertain }
         if context.mutationRecovery != nil, category == .serializationFailure { category = .outcomeUncertain }
-        let recovery = recovery(category: category, evidence: evidence, outcome: outcome, retry: retry,
+        let savedRetry = MCPResultSavedRetryEvidence(code: code, outcome: outcome, retryAction: retry)
+        let recovery = recovery(category: category, evidence: evidence, saved: savedRetry,
                                 mutation: context.mutationRecovery)
         return MCPResultClassification(evidence: evidence, category: category, recovery: recovery)
     }
@@ -47,14 +48,18 @@ nonisolated struct MCPResultClassification {
     }
 
     private static func recovery(category: MCPResultErrorCategory?, evidence: MCPResultEvidence,
-                                 outcome: String?, retry: String?,
-                                 mutation: MCPMutationRecoveryContext?) -> MCPResultRecovery? {
+                                 saved: MCPResultSavedRetryEvidence, mutation: MCPMutationRecoveryContext?)
+        -> MCPResultRecovery? {
         guard let category else { return nil }
         if let mutation {
+            let knownInternalRejection = saved.outcome == "rejected" &&
+                ["INTERNAL_ERROR", "INTERRUPTED_BEFORE_COMMIT"].contains(saved.code ?? "")
+            let unknownCode = saved.code.map { categories[$0] == nil } ?? false
             let uncertain = evidence == .unestablished || category == .outcomeUncertain ||
-                category == .unclassifiedHistorical || category == .internalFailure
-            let sourceRetry = outcome == "rejected" && retry == "new_request_new_key" ||
-                ["rejected", "in_progress"].contains(outcome ?? "") && retry == "retry_same_request"
+                category == .unclassifiedHistorical || unknownCode ||
+                (category == .internalFailure && !knownInternalRejection)
+            let sourceRetry = saved.outcome == "rejected" && saved.retryAction == "new_request_new_key" ||
+                ["rejected", "in_progress"].contains(saved.outcome ?? "") && saved.retryAction == "retry_same_request"
             if !uncertain, sourceRetry {
                 return MCPResultRecovery(direction: .followSource, mutation: mutation)
             }
@@ -90,5 +95,10 @@ nonisolated struct MCPResultClassification {
         "OUTCOME_UNCERTAIN": .outcomeUncertain, "INTERNAL_ERROR": .internalFailure,
         "INTERRUPTED_BEFORE_COMMIT": .internalFailure
     ]
+}
+nonisolated private struct MCPResultSavedRetryEvidence: Sendable {
+    let code: String?
+    let outcome: String?
+    let retryAction: String?
 }
 #endif
