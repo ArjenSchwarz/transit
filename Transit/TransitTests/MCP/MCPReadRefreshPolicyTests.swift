@@ -69,7 +69,8 @@ struct MCPReadRefreshPolicyTests {
                               startDate: date, endDate: nil, succeeded: false))
         let initial = monitor.snapshot()
         let final = await MCPReadRefreshPolicy.wait(monitor: monitor, initial: initial,
-                                                    duration: .milliseconds(50), sleep: { _ in
+                                                    duration: .milliseconds(50),
+                                                    applicableImportIDs: [id], sleep: { _ in
             monitor.receive(.init(id: id, storeIdentifier: "store", kind: .import,
                                   startDate: date, endDate: date, succeeded: true))
         })
@@ -83,7 +84,8 @@ struct MCPReadRefreshPolicyTests {
         let initial = monitor.snapshot()
         let start = ContinuousClock.now
         let final = await MCPReadRefreshPolicy.wait(monitor: monitor, initial: initial,
-                                                    duration: .milliseconds(20))
+                                                    duration: .milliseconds(20),
+                                                    applicableImportIDs: initial.inFlight)
         #expect(start.duration(to: .now) < .milliseconds(500))
         #expect(final.generation == initial.generation)
     }

@@ -35,14 +35,20 @@ nonisolated enum MCPReadRefreshPolicy {
     /// callback alone never produces import_observed or a recent freshness claim.
     @concurrent static func wait(
         monitor: MCPImportEvidenceMonitor, initial: MCPImportMonitorSnapshot, duration: Duration,
+        applicableImportIDs: Set<UUID>,
         now: @Sendable () -> ContinuousClock.Instant = { .now },
         sleep: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) async -> MCPImportMonitorSnapshot {
         let deadline = now().advanced(by: max(.zero, duration))
         while now() < deadline, !Task.isCancelled {
             let state = monitor.snapshot()
-            if state.lastSuccess?.event.id != initial.lastSuccess?.event.id
-                || (state.lastFailureGeneration ?? 0) > initial.generation { return state }
+            let succeeded = state.lastSuccess.map {
+                applicableImportIDs.contains($0.event.id) && $0.event.id != initial.lastSuccess?.event.id
+            } ?? false
+            let failed = state.lastFailureID.map {
+                applicableImportIDs.contains($0) && (state.lastFailureGeneration ?? 0) > initial.generation
+            } ?? false
+            if succeeded || failed { return state }
             do { try await sleep(min(.milliseconds(10), now().duration(to: deadline))) } catch { break }
         }
         return monitor.snapshot()
