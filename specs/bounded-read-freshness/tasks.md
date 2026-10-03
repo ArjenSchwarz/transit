@@ -34,12 +34,13 @@ references:
   - Requirements: [2.1](requirements.md#2.1), [2.6](requirements.md#2.6), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [5.3](requirements.md#5.3)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
-- [ ] 4. Red: add import-evidence and bounded-refresh policy tests <!-- id:vh146y3 -->
+- [-] 4. Red: add import-evidence and bounded-refresh policy tests <!-- id:vh146y3 -->
   - Add MCPImportEvidenceMonitorTests and MCPReadRefreshPolicyTests with injected clocks, event source, store matching and capture-applicability proof. Cover unrelated/setup/export, queued callbacks, in-flight success/failure, retained last success, future/inconsistent wall clocks and30-second boundary.
   - Fail for missing policy: cached/default/inactive, invalid enum/type precedence, recent-import skip, unsupported trigger/no in-flight immediate unavailable,two-second/remaining/zero wait, observed success>failed>timeout>unavailable and total timeout precedence.
   - Use synthetic evidence only in tests; production must never infer store match/import visibility from heartbeat, local save or notification arrival time.
   - Blocked-by: vh146y0 (Define shared read contracts and injection seams on the merged foundation)
   - Stream: 2
+  - Owner: t63-import-runtime
   - Requirements: [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [3.6](requirements.md#3.6)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
