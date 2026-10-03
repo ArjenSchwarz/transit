@@ -19,7 +19,9 @@ struct TestModelContainer {
     private static var retainedContainers: [ModelContainer] = []
 
     init() throws {
-        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
+        let schema = Schema([
+            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
+        ])
         let config = ModelConfiguration(
             "TransitTests-\(UUID().uuidString)",
             schema: schema,

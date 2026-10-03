@@ -89,8 +89,8 @@ struct MCPCommentFetchFailureTests {
         )
         let displayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": displayId, "status": "planning",
                 "comment": "Persisted exactly once", "authorName": "TestBot"
@@ -98,7 +98,7 @@ struct MCPCommentFetchFailureTests {
         ))
 
         let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["status"] as? String == "planning")
+        #expect((result["record"] as? [String: Any])?["status"] as? String == "planning")
         #expect((result["comment"] as? [String: Any])?["content"] as? String == "Persisted exactly once")
         #expect(failingFetcher.fetchCallCount == 0)
 

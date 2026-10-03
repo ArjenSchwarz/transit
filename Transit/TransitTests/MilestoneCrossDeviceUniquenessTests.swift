@@ -158,8 +158,8 @@ struct MilestoneCrossDeviceUniquenessTests {
         ))
         try env.context.save()
 
-        let request = MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let request = try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Must not be created",
                 "type": "feature",

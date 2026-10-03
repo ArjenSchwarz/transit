@@ -42,7 +42,9 @@ final class ProjectService {
     /// name (case-insensitive) already exists. Rethrows the underlying storage
     /// error when the duplicate check itself cannot be read (T-1614).
     @discardableResult
-    func createProject(name: String, description: String, gitRepo: String?, colorHex: String) throws -> Project {
+    func createProject(
+        name: String, description: String, gitRepo: String?, colorHex: String, save: Bool = true
+    ) throws -> Project {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
             throw ProjectMutationError.invalidName
@@ -51,7 +53,7 @@ final class ProjectService {
             throw ProjectMutationError.duplicateName(trimmedName)
         }
         let project = Project(name: trimmedName, description: description, gitRepo: gitRepo, colorHex: colorHex)
-        try modelContext.insertOrDelete(project)
+        try modelContext.insertOrDelete(project, save: save ? { try $0.save() } : { _ in })
         return project
     }
 

@@ -123,8 +123,8 @@ struct MCPNonIntegerDisplayIdTests {
     @Test func updateStatusWithNonIntegerDisplayIdReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": "abc", "status": "planning"]
         ))
 
@@ -138,8 +138,8 @@ struct MCPNonIntegerDisplayIdTests {
     @Test func addCommentWithNonIntegerDisplayIdReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": "abc",
                 "content": "A comment",
@@ -157,8 +157,8 @@ struct MCPNonIntegerDisplayIdTests {
     @Test func updateTaskWithNonIntegerDisplayIdReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": "abc"]
         ))
 
@@ -172,8 +172,8 @@ struct MCPNonIntegerDisplayIdTests {
     @Test func updateMilestoneWithNonIntegerDisplayIdReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["displayId": "abc", "name": "Updated"]
         ))
 
@@ -187,8 +187,8 @@ struct MCPNonIntegerDisplayIdTests {
     @Test func deleteMilestoneWithNonIntegerDisplayIdReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "delete_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "delete_milestone",
             arguments: ["displayId": "abc"]
         ))
 
@@ -209,8 +209,8 @@ struct MCPNonIntegerDisplayIdTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["milestoneId": milestoneId, "name": "v2.0"]
         ))
 
@@ -227,8 +227,8 @@ struct MCPNonIntegerDisplayIdTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "delete_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "delete_milestone",
             arguments: ["milestoneId": milestoneId]
         ))
 
@@ -246,8 +246,8 @@ struct MCPNonIntegerDisplayIdTests {
 
         // Both displayId (malformed) and milestoneId (valid) are present.
         // The handler must reject due to malformed displayId, not fall back to milestoneId.
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: [
                 "displayId": "abc",
                 "milestoneId": milestone.id.uuidString,
@@ -273,8 +273,8 @@ struct MCPNonIntegerDisplayIdTests {
 
         // Both displayId (malformed) and milestoneId (valid) are present.
         // The handler must reject due to malformed displayId, not fall back to milestoneId.
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "delete_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "delete_milestone",
             arguments: [
                 "displayId": "abc",
                 "milestoneId": milestone.id.uuidString

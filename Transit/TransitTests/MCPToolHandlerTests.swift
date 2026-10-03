@@ -98,8 +98,8 @@ struct MCPToolHandlerTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "New Task",
                 "type": "feature",
@@ -107,7 +107,7 @@ struct MCPToolHandlerTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["taskId"] is String)
         #expect(result["status"] as? String == "idea")
         #expect(result["displayId"] as? Int == 1)
@@ -116,8 +116,8 @@ struct MCPToolHandlerTests {
     @Test func createTaskMissingNameReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["type": "bug"]
         ))
 
@@ -128,8 +128,8 @@ struct MCPToolHandlerTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "Task", "type": "epic", "projectId": project.id.uuidString]
         ))
 
@@ -140,20 +140,20 @@ struct MCPToolHandlerTests {
         let env = try MCPTestHelpers.makeEnv()
         MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "Task", "type": "bug", "project": "Alpha"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["status"] as? String == "idea")
     }
 
     @Test func createTaskUnknownProjectReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "Task", "type": "bug", "project": "Nonexistent"]
         ))
 
@@ -166,8 +166,8 @@ struct MCPToolHandlerTests {
         let env = try MCPTestHelpers.makeEnv()
         MCPTestHelpers.makeProject(in: env.context, name: "Decoy")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "Task", "type": "bug", "projectId": "not-a-uuid", "project": "Decoy"]
         ))
 
@@ -181,8 +181,8 @@ struct MCPToolHandlerTests {
         let env = try MCPTestHelpers.makeEnv()
         MCPTestHelpers.makeProject(in: env.context, name: "Decoy")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "Task", "type": "bug", "projectId": 123, "project": "Decoy"]
         ))
 
@@ -194,8 +194,8 @@ struct MCPToolHandlerTests {
     @Test func createTaskNumericProjectIdWithoutFallbackReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "Task", "type": "bug", "projectId": 123]
         ))
 
@@ -230,13 +230,14 @@ struct MCPToolHandlerTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).first?.statusRawValue == "idea")
+
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": 1, "status": "planning"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["previousStatus"] as? String == "idea")
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["status"] as? String == "planning")
     }
 
@@ -247,13 +248,14 @@ struct MCPToolHandlerTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).first?.statusRawValue == "idea")
+
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["taskId": task.id.uuidString, "status": "in-progress"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["previousStatus"] as? String == "idea")
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["status"] as? String == "in-progress")
     }
 
@@ -271,13 +273,14 @@ struct MCPToolHandlerTests {
         task.lastStatusChangeDate = originalStatusChangeDate
         task.completionDate = originalCompletionDate
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).first?.statusRawValue == "done")
+
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": displayId, "status": "done"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["previousStatus"] as? String == "done")
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["status"] as? String == "done")
         #expect(task.lastStatusChangeDate == originalStatusChangeDate)
         #expect(task.completionDate == originalCompletionDate)
@@ -286,8 +289,8 @@ struct MCPToolHandlerTests {
     @Test func updateStatusMissingStatusReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": 1]
         ))
 
@@ -297,8 +300,8 @@ struct MCPToolHandlerTests {
     @Test func updateStatusTaskNotFoundReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": 999, "status": "done"]
         ))
 

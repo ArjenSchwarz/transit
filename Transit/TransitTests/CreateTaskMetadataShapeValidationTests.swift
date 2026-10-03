@@ -95,20 +95,20 @@ struct CreateTaskMetadataShapeValidationTests {
     @Test func mcpCreateTaskRejectsEveryNonObjectMetadataShapeWithoutMutation() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
-        let validResponse = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let validResponse = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task without metadata",
                 "type": "feature",
                 "projectId": project.id.uuidString
             ]
         ))
-        let validTaskID = try #require(try MCPTestHelpers.decodeResult(validResponse)["taskId"] as? String)
+        let validTaskID = try #require(try MCPTestHelpers.decodeSavedRecord(validResponse)["taskId"] as? String)
         let validTaskUUID = try #require(UUID(uuidString: validTaskID))
 
         for entry in nonObjectValues {
-            let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-                tool: "create_task",
+            let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
                 arguments: [
                     "name": "Task with invalid metadata \(entry.label)",
                     "type": "feature",

@@ -218,7 +218,8 @@ struct MCPServerOriginValidationTests {
 
     private static let createTaskBody = """
     {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"create_task",\
-    "arguments":{"project":"Transit","name":"Origin test task","type":"bug"}}}
+    "arguments":{"project":"Transit","name":"Origin test task","type":"bug",\
+    "idempotencyKey":"origin-test"}}}
     """
 
     private func respond(

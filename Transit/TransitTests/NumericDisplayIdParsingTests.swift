@@ -141,15 +141,15 @@ struct NumericDisplayIdMCPTests {
 
         // Double value simulates what JSONSerialization produces from {"displayId": 42}
         let response = await env.handler.handle(
-            MCPTestHelpers.toolCallRequest(
-                tool: "update_task_status",
+            try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
                 arguments: ["displayId": 42 as Double, "status": "planning"]
             )
         )
 
         let isErr = try MCPTestHelpers.isError(response)
         #expect(!isErr, "Expected success but got error")
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["status"] as? String == "planning")
     }
 
@@ -205,8 +205,8 @@ struct NumericDisplayIdMCPTests {
         env.context.insert(milestone)
 
         let response = await env.handler.handle(
-            MCPTestHelpers.toolCallRequest(
-                tool: "create_task",
+            try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
                 arguments: [
                     "name": "New task",
                     "type": "feature",
@@ -236,8 +236,8 @@ struct NumericDisplayIdMCPTests {
         env.context.insert(milestone)
 
         let response = await env.handler.handle(
-            MCPTestHelpers.toolCallRequest(
-                tool: "update_task",
+            try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
                 arguments: ["displayId": 42 as Double, "milestoneDisplayId": 1 as Double]
             )
         )

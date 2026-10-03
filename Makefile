@@ -142,6 +142,83 @@ build-macos: prepare-cache-dirs
 build: build-ios build-macos
 
 # Testing
+# Nested macro sandboxing is unavailable in some already-sandboxed runners.
+# Set MCP_PROBE_SWIFT_FLAGS=-disable-sandbox there; the outer runner policy stays active.
+MCP_PROBE_SWIFT_FLAGS ?=
+MCP_PROBE_MODELS = Transit/Transit/Models/{Project,TransitTask,Comment,Milestone,SyncHeartbeat,DisplayID,TaskPriority,TaskStatus,TaskType,MilestoneStatus,MCPWriteReceipt}.swift
+.PHONY: test-mcp-write-guards
+test-mcp-write-guards: prepare-cache-dirs
+	xcrun swiftc $(MCP_PROBE_SWIFT_FLAGS) -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
+		Transit/Transit/MCP/Writes/{MCPCanonicalJSON,MCPLocalReservationStore}.swift tests/mcp-write-probe/GuardProbe.swift \
+		-o $(DERIVED_DATA)/mcp-write-guard-probe
+	python3 tests/mcp-write-probe/guards.py $(DERIVED_DATA)/mcp-write-guard-probe
+
+.PHONY: test-mcp-write-foundation
+test-mcp-write-foundation: prepare-cache-dirs
+	xcrun swiftc $(MCP_PROBE_SWIFT_FLAGS) -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
+		$(MCP_PROBE_MODELS) Transit/Transit/MCP/Writes/{MCPCanonicalJSON,MCPRecordSnapshot,MCPRecordRevision,MCPLocalReservationStore,MCPWriteReceiptStore}.swift \
+		Transit/Transit/Services/CommentService.swift Transit/Transit/Extensions/ModelContext+{Save,SafeRollback}.swift \
+		tests/mcp-write-probe/FoundationProbe.swift -o $(DERIVED_DATA)/mcp-write-foundation-probe
+	$(DERIVED_DATA)/mcp-write-foundation-probe
+
+.PHONY: test-mcp-write-services
+MCP_PROBE_SERVICES = Transit/Transit/Services/{TaskService,TaskService+Error,MilestoneService,MilestoneService+Error,ProjectService,CommentService,ModelFetching,UsedDisplayIDs,DisplayIDAllocator,DisplayIDRecordLookup,CloudKitCounterStore,CreationProjectValidator,TaskCreationMilestoneValidator,ProjectNameReconciler,MilestoneNameReconciler,StatusEngine,PersistenceAvailability,ContainerFactory}.swift
+MCP_PROBE_DEPENDENCIES ?= $(DERIVED_DATA)/Build/Products/Debug
+.PHONY: format-mcp-write
+format-mcp-write:
+	xcrun swift-format format --in-place --configuration tests/mcp-write-probe/swift-format.json \
+		Transit/Transit/MCP/Writes/{MCPWriteCommand,MCPWriteCoordinator,MCPWriteOutcome}.swift \
+		Transit/Transit/MCP/{MCPToolDefinitions,MCPToolHandler,MCPTypes}.swift \
+		Transit/TransitTests/{MCPWriteCoordinatorTests,MCPWriteContractTests}.swift \
+		tests/mcp-write-probe/CoordinatorProbe.swift
+
+.PHONY: check-mcp-write-handler
+.PHONY: check-mcp-write-lifecycle-syntax
+check-mcp-write-lifecycle-syntax:
+	xcrun swiftc -frontend -parse -swift-version 6 Transit/Transit/TransitApp.swift Transit/TransitTests/*.swift
+
+.PHONY: check-mcp-write-handler-syntax
+check-mcp-write-handler-syntax:
+	xcrun swiftc -frontend -parse -swift-version 6 \
+		Transit/Transit/MCP/{MCPToolHandler,MCPToolDefinitions,MCPTypes}.swift
+
+check-mcp-write-handler: prepare-cache-dirs
+	xcrun swiftc $(MCP_PROBE_SWIFT_FLAGS) -swift-version 6 -typecheck -default-isolation MainActor \
+		-module-cache-path $(CLANG_MODULE_CACHE) -I $(MCP_PROBE_DEPENDENCIES) \
+		$(MCP_PROBE_MODELS) $(MCP_PROBE_SERVICES) Transit/Transit/MCP/Writes/*.swift \
+		Transit/Transit/MCP/{MCPTypes,MCPToolDefinitions,MCPToolHandler,MCPSettings,MCPToolListChangeBroadcaster,MCPHelperTypes}.swift \
+		Transit/Transit/Services/{DisplayIDMaintenanceService,DisplayIDMaintenanceTypes}.swift \
+		Transit/Transit/Intents/{IntentHelpers,IntentError,TaskUpdateValidator,QueryMilestonesIntent}.swift \
+		Transit/Transit/Intents/Shared/TaskFetching.swift \
+		Transit/Transit/Extensions/ModelContext+{Save,SafeRollback}.swift
+
+.PHONY: test-mcp-write-coordinator
+test-mcp-write-coordinator: prepare-cache-dirs
+	xcrun swiftc $(MCP_PROBE_SWIFT_FLAGS) -swift-version 6 -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
+		$(MCP_PROBE_MODELS) $(MCP_PROBE_SERVICES) Transit/Transit/MCP/Writes/*.swift \
+		Transit/Transit/MCP/{MCPTypes,MCPToolDefinitions}.swift \
+		Transit/Transit/Intents/{IntentHelpers,IntentError,TaskUpdateValidator}.swift \
+		Transit/Transit/Extensions/ModelContext+{Save,SafeRollback}.swift \
+		tests/mcp-write-probe/CoordinatorProbe.swift -o $(DERIVED_DATA)/mcp-write-coordinator-probe
+	$(DERIVED_DATA)/mcp-write-coordinator-probe
+
+test-mcp-write-services: prepare-cache-dirs
+	xcrun swiftc $(MCP_PROBE_SWIFT_FLAGS) -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
+		$(MCP_PROBE_MODELS) Transit/Transit/Services/{TaskService,TaskService+Error,MilestoneService,MilestoneService+Error,ProjectService,CommentService,ModelFetching,UsedDisplayIDs,DisplayIDAllocator,DisplayIDRecordLookup,CloudKitCounterStore,CreationProjectValidator,TaskCreationMilestoneValidator,ProjectNameReconciler,MilestoneNameReconciler,StatusEngine,PersistenceAvailability,ContainerFactory}.swift \
+		Transit/Transit/Intents/{IntentHelpers,IntentError}.swift Transit/Transit/Extensions/ModelContext+{Save,SafeRollback}.swift \
+		tests/mcp-write-probe/ServiceProbe.swift -o $(DERIVED_DATA)/mcp-write-service-probe
+	$(DERIVED_DATA)/mcp-write-service-probe
+
+.PHONY: test-mcp-write-persistence
+test-mcp-write-persistence: prepare-cache-dirs
+	xcrun swiftc $(MCP_PROBE_SWIFT_FLAGS) -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
+		$(MCP_PROBE_MODELS) \
+		Transit/Transit/Extensions/ModelContext+SafeRollback.swift tests/mcp-write-probe/Probe.swift \
+		-o $(DERIVED_DATA)/mcp-write-disk-probe
+	python3 tests/mcp-write-probe/run.py $(DERIVED_DATA)/mcp-write-disk-probe
+
+TEST_TARGETS ?= TransitTests
+
 .PHONY: test-quick
 test-quick: prepare-cache-dirs test-create-task-project-schema-guard
 	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
@@ -150,7 +227,7 @@ test-quick: prepare-cache-dirs test-create-task-project-schema-guard
 		-destination 'platform=macOS' \
 		-configuration Debug \
 		$(XCODEBUILD_CACHE_FLAGS) \
-		-only-testing:TransitTests \
+		$(foreach target,$(TEST_TARGETS),-only-testing:$(target)) \
 		$(PIPE_PRETTY)
 
 .PHONY: test

@@ -22,8 +22,10 @@ struct MCPToolHandlerCommentTests {
         )
 
         // No-op status change WITH a new comment
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).first?.statusRawValue == "planning")
+
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": displayId, "status": "planning",
                 "comment": "Fresh note", "authorName": "NewAgent"
@@ -31,8 +33,7 @@ struct MCPToolHandlerCommentTests {
         ))
 
         let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["previousStatus"] as? String == "planning")
-        #expect(result["status"] as? String == "planning")
+        #expect((result["record"] as? [String: Any])?["status"] as? String == "planning")
 
         // The returned comment must be the NEW one, not the stale old one
         let comment = try #require(result["comment"] as? [String: Any])
@@ -54,8 +55,8 @@ struct MCPToolHandlerCommentTests {
         futureComment.creationDate = Date.now.addingTimeInterval(60 * 60)
         try env.context.save()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": displayId, "status": "planning",
                 "comment": "Created by this call", "authorName": "CurrentAgent"
@@ -76,7 +77,7 @@ struct MCPToolHandlerCommentTests {
 
     @Test func updateStatusWithCommentSaveFailureReturnsErrorAndRollsBack() async throws {
         let env = try MCPTestHelpers.makeEnv(
-            taskStatusSave: { _ in throw SaveFailure.simulated }
+            writeCommitSave: { _ in throw SaveFailure.simulated }
         )
         let project = MCPTestHelpers.makeProject(in: env.context)
         let task = try await env.taskService.createTask(
@@ -84,8 +85,8 @@ struct MCPToolHandlerCommentTests {
         )
         let displayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": displayId, "status": "planning",
                 "comment": "Must not survive", "authorName": "CurrentAgent"
@@ -93,7 +94,11 @@ struct MCPToolHandlerCommentTests {
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        #expect(try MCPTestHelpers.errorText(response).contains("Status update failed"))
+        #expect(try MCPTestHelpers.errorCode(response) == "INTERNAL_ERROR")
+        let outcome = try MCPTestHelpers.decodeResult(response)
+        #expect(outcome["outcome"] as? String == "rejected")
+        #expect(outcome["accepted"] as? Bool == true)
+        #expect(outcome["replayExpiresAt"] is String)
         #expect(task.status == .idea)
         #expect(try env.commentService.fetchComments(for: task.id).isEmpty)
 
@@ -116,13 +121,13 @@ struct MCPToolHandlerCommentTests {
         )
 
         // No-op status change WITHOUT a comment — must not return stale comment
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": displayId, "status": "planning"]
         ))
 
         let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["comment"] == nil, "No-op without comment should not return stale comment details")
+        #expect(result["comment"] is NSNull, "No-op without comment should not return stale comment details")
     }
 }
 

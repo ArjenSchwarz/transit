@@ -29,30 +29,9 @@ struct MCPFallbackStorageRejectionTests {
             ? FallbackOutcomeFixture.degraded
             : FallbackOutcomeFixture.makeHealthy()
 
-        let testContainer = try TestModelContainer()
-
-        let context = testContainer.context
-        let taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
-        let milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
-        let commentService = CommentService(modelContext: context)
-        let settings = MCPSettings()
-        settings.maintenanceToolsEnabled = true
-
-        let handler = MCPToolHandler(
-            taskService: TaskService(modelContext: context, displayIDAllocator: taskAllocator),
-            projectService: ProjectService(modelContext: context),
-            commentService: commentService,
-            milestoneService: MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator),
-            maintenanceService: DisplayIDMaintenanceService(
-                modelContext: context,
-                taskAllocator: taskAllocator,
-                milestoneAllocator: milestoneAllocator,
-                commentService: commentService
-            ),
-            settings: settings,
-            persistence: persistence
-        )
-        return Env(handler: handler, context: context, persistence: persistence)
+        let env = try MCPTestHelpers.makeEnv(persistence: persistence)
+        env.mcpSettings.maintenanceToolsEnabled = true
+        return Env(handler: env.handler, context: env.context, persistence: persistence)
     }
 
     @discardableResult
@@ -93,7 +72,7 @@ struct MCPFallbackStorageRejectionTests {
             seedProjectAndTask(in: env.context)
 
             let response = await env.handler.handle(
-                MCPTestHelpers.toolCallRequest(tool: call.tool, arguments: call.args)
+                try MCPTestHelpers.protectedToolCallRequest(in: env.context, tool: call.tool, arguments: call.args)
             )
 
             #expect(try MCPTestHelpers.isError(response), "\(call.tool) should be rejected")
@@ -110,8 +89,8 @@ struct MCPFallbackStorageRejectionTests {
         let project = Project(name: "Fallback Project", description: "", gitRepo: nil, colorHex: "#FF0000")
         env.context.insert(project)
 
-        _ = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        _ = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "Doomed", "type": "bug", "project": "Fallback Project"]
         ))
 
@@ -123,8 +102,8 @@ struct MCPFallbackStorageRejectionTests {
         let env = try makeEnv()
         let (_, task) = seedProjectAndTask(in: env.context)
 
-        _ = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status", arguments: ["displayId": 1, "status": "done"]
+        _ = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status", arguments: ["displayId": 1, "status": "done"]
         ))
 
         #expect(task.statusRawValue == TaskStatus.idea.rawValue)
@@ -169,8 +148,8 @@ struct MCPFallbackStorageRejectionTests {
         let project = Project(name: "Fallback Project", description: "", gitRepo: nil, colorHex: "#FF0000")
         env.context.insert(project)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "Fine", "type": "bug", "project": "Fallback Project"]
         ))
 

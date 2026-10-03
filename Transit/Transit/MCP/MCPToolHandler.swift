@@ -19,7 +19,6 @@ final class MCPToolHandler {
     let taskService: TaskService
     let taskFetcher: any TaskFetching
     let projectService: ProjectService
-    private let commentService: CommentService
     let commentFetcher: any CommentFetching
     let milestoneService: MilestoneService
     let milestoneFetcher: any MilestoneFetching
@@ -27,6 +26,7 @@ final class MCPToolHandler {
     private let maintenanceService: DisplayIDMaintenanceService
     private let settings: MCPSettings
     private let persistence: PersistenceAvailability
+    private let writeCoordinator: MCPWriteCoordinator?
 
     let taskQuerySnapshots: MCPTaskQuerySnapshotStore
     private(set) var taskQueryAdmissionOpen = true
@@ -57,25 +57,26 @@ final class MCPToolHandler {
         milestoneService: MilestoneService,
         maintenanceService: DisplayIDMaintenanceService,
         settings: MCPSettings,
-        persistence: PersistenceAvailability = .shared,
+        persistence: PersistenceAvailability? = nil,
         taskFetcher: (any TaskFetching)? = nil,
         commentFetcher: (any CommentFetching)? = nil,
         milestoneFetcher: (any MilestoneFetching)? = nil,
         milestoneDisplayIDFinder: (any MilestoneDisplayIDFinding)? = nil,
-        taskQuerySnapshots: MCPTaskQuerySnapshotStore? = nil
+        taskQuerySnapshots: MCPTaskQuerySnapshotStore? = nil,
+        writeCoordinator: MCPWriteCoordinator? = nil
     ) {
         self.taskService = taskService
         self.taskFetcher = taskFetcher ?? taskService
         self.projectService = projectService
-        self.commentService = commentService
         self.commentFetcher = commentFetcher ?? commentService
         self.milestoneService = milestoneService
         self.milestoneFetcher = milestoneFetcher ?? milestoneService
         self.milestoneDisplayIDFinder = milestoneDisplayIDFinder ?? milestoneService
         self.maintenanceService = maintenanceService
         self.settings = settings
-        self.persistence = persistence
+        self.persistence = persistence ?? .shared
         self.taskQuerySnapshots = taskQuerySnapshots ?? MCPTaskQuerySnapshotStore()
+        self.writeCoordinator = writeCoordinator
     }
 
     // MARK: - JSON-RPC Dispatch
@@ -174,7 +175,8 @@ final class MCPToolHandler {
             return invalidInitializeParams(id: id, message: error.message)
         }
 
-        let protocolVersion = Self.supportedProtocolVersions.contains(requestedProtocolVersion)
+        let protocolVersion =
+            Self.supportedProtocolVersions.contains(requestedProtocolVersion)
             ? requestedProtocolVersion
             : Self.latestSupportedProtocolVersion
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -256,7 +258,8 @@ final class MCPToolHandler {
         params: AnyCodable?
     ) async -> JSONRPCResponse {
         guard let dict = params?.value as? [String: Any],
-              let name = dict["name"] as? String else {
+            let name = dict["name"] as? String
+        else {
             return JSONRPCResponse.error(
                 id: id,
                 code: JSONRPCErrorCode.invalidParams,
@@ -284,6 +287,30 @@ final class MCPToolHandler {
             )
         }
 
+        if MCPWriteCommand.protectedTools.contains(name) {
+            let result: MCPToolResult
+            if let writeCoordinator {
+                result = await writeCoordinator.execute(tool: name, arguments: arguments)
+            } else {
+                do {
+                    let command = try MCPWriteCommand.validate(tool: name, arguments: arguments)
+                    result = MCPWriteOutcome.result(
+                        MCPWriteOutcome.failure(
+                            tool: name, key: command.key,
+                            failure: .init("PERSISTENCE_UNAVAILABLE", "Protected write storage is not available"),
+                            accepted: false, retryAction: "retry_same_request"
+                        ), isError: true)
+                } catch {
+                    result = MCPWriteOutcome.result(
+                        MCPWriteOutcome.failure(
+                            tool: name, key: arguments["idempotencyKey"] as? String,
+                            failure: MCPWriteFailure.from(error), accepted: false
+                        ), isError: true)
+                }
+            }
+            return JSONRPCResponse.success(id: id, result: result)
+        }
+
         // Reject mutations while Transit is running on the in-memory fallback container. The
         // write would look successful and then vanish on restart, and an MCP client never sees
         // the app's degraded-storage alert, so success is indistinguishable from durable
@@ -297,28 +324,12 @@ final class MCPToolHandler {
 
         let result: MCPToolResult
         switch name {
-        case "create_task":
-            result = await handleCreateTask(arguments)
-        case "update_task_status":
-            result = handleUpdateStatus(arguments)
         case "query_tasks":
             result = handleQueryTasks(arguments)
-        case "add_comment":
-            result = handleAddComment(arguments)
-        case "create_project":
-            result = handleCreateProject(arguments)
         case "get_projects":
             result = handleGetProjects()
-        case "create_milestone":
-            result = await handleCreateMilestone(arguments)
         case "query_milestones":
             result = handleQueryMilestones(arguments)
-        case "update_milestone":
-            result = handleUpdateMilestone(arguments)
-        case "delete_milestone":
-            result = handleDeleteMilestone(arguments)
-        case "update_task":
-            result = handleUpdateTask(arguments)
         case "scan_duplicate_display_ids":
             result = handleScanDuplicateDisplayIds()
         case "reassign_duplicate_display_ids":
@@ -356,277 +367,6 @@ final class MCPToolHandler {
 
     // MARK: - create_task
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
-    private func handleCreateTask(_ args: [String: Any]) async -> MCPToolResult {
-        let name: String
-        switch requiredString(args, key: "name") {
-        case .success(let value): name = value
-        case .failure(.message(let message)): return errorResult(message)
-        }
-        guard args["type"] != nil else {
-            return errorResult("Missing required argument: type")
-        }
-        guard let typeRaw = args["type"] as? String else {
-            return errorResult("type must be a string")
-        }
-        guard let taskType = TaskType(rawValue: typeRaw) else {
-            let valid = TaskType.allCases.map(\.rawValue).joined(separator: ", ")
-            return errorResult("Invalid type: \(typeRaw). Must be one of: \(valid)")
-        }
-        // A present metadata value must be an object. Keep the distinction from omission so
-        // malformed values cannot be silently converted to nil by stringMetadata [T-1991].
-        if let rawMetadata = args["metadata"], !IntentHelpers.isMetadataObject(rawMetadata) {
-            return errorResult("metadata must be an object")
-        }
-
-        // Priority is optional and defaults to medium. A present-but-invalid value
-        // is rejected before any task is created (Req 5.5).
-        let priority: TaskPriority
-        if let priorityRaw = args["priority"] {
-            guard let priorityStr = priorityRaw as? String else {
-                return errorResult("priority must be a string")
-            }
-            guard let parsed = TaskPriority(rawValue: priorityStr) else {
-                let valid = TaskPriority.allCases.map(\.rawValue).joined(separator: ", ")
-                return errorResult("Invalid priority: \(priorityStr). Must be one of: \(valid)")
-            }
-            priority = parsed
-        } else {
-            priority = .medium
-        }
-
-        // Reject malformed or non-string projectId when the key is present
-        // [T-743, T-788].
-        let projectId: UUID?
-        switch parseProjectIdArgument(args) {
-        case .failure(.message(let message)): return errorResult(message)
-        case .success(let parsed): projectId = parsed
-        }
-        // Reject a present non-string `project` when projectId is absent [T-1453].
-        // Without this guard `as? String` silently drops the malformed value and the
-        // request falls through to the generic missing-project error instead of
-        // surfacing the type mismatch. projectId-takes-precedence is preserved: when a
-        // valid projectId is present the `project` name is ignored regardless of type.
-        if projectId == nil, let rawProject = args["project"], !(rawProject is String) {
-            return errorResult("project must be a string")
-        }
-        let projectName = args["project"] as? String
-        let project: Project
-        switch projectService.findProject(id: projectId, name: projectName) {
-        case .success(let found):
-            project = found
-        case .failure(let error):
-            return errorResult(IntentHelpers.mapProjectLookupError(error).hint)
-        }
-
-        // Pre-validate milestone before creating the task to avoid orphans.
-        // Reject non-integer milestoneDisplayId when key is present [T-613]
-        if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
-            return errorResult("milestoneDisplayId must be an integer")
-        }
-        var resolvedMilestone: Milestone?
-        if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
-            do {
-                resolvedMilestone = try milestoneService.findByDisplayID(milestoneDisplayId)
-            } catch MilestoneService.Error.milestoneNotFound {
-                return errorResult("No milestone with displayId \(milestoneDisplayId)")
-            } catch MilestoneService.Error.duplicateDisplayID {
-                return errorResult("Duplicate milestone identifier detected for displayId \(milestoneDisplayId)")
-            } catch {
-                return errorResult("Failed to find milestone: \(error)")
-            }
-            guard let milestoneProject = resolvedMilestone?.project,
-                  milestoneProject.id == project.id else {
-                return errorResult("Milestone and task must belong to the same project")
-            }
-        } else if args["milestone"] != nil {
-            // Reject non-string milestone values [T-1114]. Without this guard
-            // a numeric or boolean milestone arg would fall through to the
-            // "absent" branch and the task would be created without the
-            // requested assignment.
-            guard let milestoneName = args["milestone"] as? String else {
-                return errorResult("milestone must be a string")
-            }
-            do {
-                guard let milestone = try milestoneService.findByName(milestoneName, in: project) else {
-                    return errorResult("No milestone named '\(milestoneName)' in project '\(project.name)'")
-                }
-                resolvedMilestone = milestone
-            } catch MilestoneService.Error.ambiguousName {
-                return errorResult(
-                    "Multiple milestones named '\(milestoneName)' exist in project '\(project.name)'"
-                )
-            } catch {
-                return errorResult("Failed to look up milestone: \(error)")
-            }
-        }
-
-        // Reject non-string description: as? String silently drops
-        // present-but-wrong-type values, making a malformed request look successful. [T-1192]
-        if args["description"] != nil, args["description"] as? String == nil {
-            return errorResult("description must be a string")
-        }
-
-        let task: TransitTask
-        do {
-            task = try await taskService.createTask(
-                name: name,
-                description: args["description"] as? String,
-                type: taskType,
-                project: project,
-                metadata: IntentHelpers.stringMetadata(from: args["metadata"]),
-                priority: priority,
-                milestone: resolvedMilestone
-            )
-        } catch TaskService.Error.milestoneNotOpen {
-            return errorResult("The selected milestone is no longer open")
-        } catch TaskService.Error.projectNotFound {
-            return errorResult("No matching project found")
-        } catch {
-            return errorResult("Task creation failed: \(error)")
-        }
-
-        var response: [String: Any] = [
-            "taskId": task.id.uuidString,
-            "status": task.statusRawValue,
-            "priority": task.priority.rawValue
-        ]
-        if let displayId = task.permanentDisplayId {
-            response["displayId"] = displayId
-        }
-        if let milestone = task.milestone {
-            var milestoneDict: [String: Any] = [
-                "milestoneId": milestone.id.uuidString,
-                "name": milestone.name
-            ]
-            if let mDisplayId = milestone.permanentDisplayId {
-                milestoneDict["displayId"] = mDisplayId
-            }
-            response["milestone"] = milestoneDict
-        }
-        return textResult(IntentHelpers.encodeJSON(response))
-    }
-
-    // MARK: - update_task_status
-
-    private func handleUpdateStatus(_ args: [String: Any]) -> MCPToolResult {
-        // When the "status" argument is present it MUST be a string — a non-string
-        // value would otherwise be silently dropped by `as? String` and misreported
-        // as missing. Reject it before any mutation, like the milestone paths [T-1544].
-        guard args["status"] != nil else {
-            return errorResult("Missing required argument: status")
-        }
-        guard let statusString = args["status"] as? String else {
-            return errorResult("status must be a string")
-        }
-        guard let newStatus = TaskStatus(rawValue: statusString) else {
-            let valid = TaskStatus.allCases.map(\.rawValue).joined(separator: ", ")
-            return errorResult("Invalid status: \(statusString). Must be one of: \(valid)")
-        }
-
-        // Reject non-integer displayId when key is present [T-634]
-        if args["displayId"] != nil, IntentHelpers.parseIntValue(args["displayId"]) == nil {
-            return errorResult("displayId must be an integer")
-        }
-
-        let task: TransitTask
-        switch resolveTaskArgument(args) {
-        case .success(let resolved): task = resolved
-        case .failure(.message(let message)): return errorResult(message)
-        }
-
-        // Reject non-string comment/authorName: as? String silently drops
-        // present-but-wrong-type values, dropping the audit-trail entry. [T-1205]
-        if args["comment"] != nil, !(args["comment"] is String) {
-            return errorResult("comment must be a string")
-        }
-        if args["authorName"] != nil, !(args["authorName"] is String) {
-            return errorResult("authorName must be a string")
-        }
-        let commentText = args["comment"] as? String
-        let commentAuthor = args["authorName"] as? String
-        if let commentError = validateCommentArgs(comment: commentText, author: commentAuthor) {
-            return commentError
-        }
-
-        let previousStatus = task.statusRawValue
-        let createdComment: Comment?
-        do {
-            createdComment = try taskService.updateStatus(
-                task: task, to: newStatus,
-                comment: commentText, commentAuthor: commentAuthor, commentService: commentService
-            )
-        } catch {
-            return errorResult("Status update failed: \(error)")
-        }
-
-        var response = statusResponse(task: task, previousStatus: previousStatus, newStatus: newStatus)
-        response["comment"] = createdComment.map(commentResponse)
-        return textResult(IntentHelpers.encodeJSON(response))
-    }
-
-}
-
-// MARK: - create_milestone
-
-extension MCPToolHandler {
-
-    // swiftlint:disable:next cyclomatic_complexity
-    private func handleCreateMilestone(_ args: [String: Any]) async -> MCPToolResult {
-        let name: String
-        switch requiredString(args, key: "name") {
-        case .success(let value): name = value
-        case .failure(.message(let message)): return errorResult(message)
-        }
-
-        // Reject malformed or non-string projectId when the key is present
-        // [T-743, T-788].
-        let projectId: UUID?
-        switch parseProjectIdArgument(args) {
-        case .failure(.message(let message)): return errorResult(message)
-        case .success(let parsed): projectId = parsed
-        }
-        // Reject a present non-string `project` when projectId is absent [T-1453].
-        // Mirrors handleCreateTask: a malformed `project` must surface as a type
-        // mismatch rather than being silently dropped by `as? String`.
-        if projectId == nil, let rawProject = args["project"], !(rawProject is String) {
-            return errorResult("project must be a string")
-        }
-        let projectName = args["project"] as? String
-        let project: Project
-        switch projectService.findProject(id: projectId, name: projectName) {
-        case .success(let found):
-            project = found
-        case .failure(let error):
-            return errorResult(IntentHelpers.mapProjectLookupError(error).hint)
-        }
-
-        // Reject non-string description: as? String silently drops
-        // present-but-wrong-type values, making a malformed request look successful. [T-1192]
-        if args["description"] != nil, args["description"] as? String == nil {
-            return errorResult("description must be a string")
-        }
-
-        let milestone: Milestone
-        do {
-            milestone = try await milestoneService.createMilestone(
-                name: name,
-                description: args["description"] as? String,
-                project: project
-            )
-        } catch MilestoneService.Error.duplicateName {
-            return errorResult("A milestone with this name already exists in the project")
-        } catch MilestoneService.Error.invalidName {
-            return errorResult("Milestone name cannot be empty")
-        } catch MilestoneService.Error.projectNotFound {
-            return errorResult("No matching project found")
-        } catch {
-            return errorResult("Milestone creation failed: \(error)")
-        }
-
-        let formatter = ISO8601DateFormatter()
-        return textResult(IntentHelpers.encodeJSON(milestoneToDict(milestone, formatter: formatter)))
-    }
 }
 
 // MARK: - query_milestones
@@ -672,8 +412,10 @@ extension MCPToolHandler {
 
         let filtered = allMilestones.filter { milestoneMatches($0, args: args, projectFilter: projectFilter) }
         let formatter = ISO8601DateFormatter()
-        let results = filtered.map { milestoneToDict($0, formatter: formatter) }
-        return textResult(IntentHelpers.encodeJSONArray(results))
+        do {
+            let results = try filtered.map { try milestoneToDict($0, formatter: formatter) }
+            return textResult(IntentHelpers.encodeJSONArray(results))
+        } catch { return errorResult("Failed to capture milestones: \(error)") }
     }
 
     /// Returns true when `milestone` satisfies the project/status/search filters in `args`.
@@ -690,7 +432,7 @@ extension MCPToolHandler {
             if milestone.statusRawValue != statusSingle { return false }
         }
         if let search = args["search"] as? String,
-           !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let nameMatch = milestone.name.localizedCaseInsensitiveContains(search)
             let descMatch = milestone.milestoneDescription?.localizedCaseInsensitiveContains(search) ?? false
             if !nameMatch && !descMatch { return false }
@@ -707,7 +449,7 @@ extension MCPToolHandler {
                 return textResult(IntentHelpers.encodeJSONArray([]))
             }
             let formatter = ISO8601DateFormatter()
-            let dict = milestoneToDict(milestone, formatter: formatter, detailed: true)
+            let dict = try milestoneToDict(milestone, formatter: formatter, detailed: true)
             return textResult(IntentHelpers.encodeJSONArray([dict]))
         } catch MilestoneService.Error.milestoneNotFound {
             return textResult(IntentHelpers.encodeJSONArray([]))
@@ -742,7 +484,7 @@ extension MCPToolHandler {
                 return .error("project must be a string")
             }
             if let name = args["project"] as? String,
-               !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 switch projectService.findProject(id: nil, name: name) {
                 case .success(let found):
                     return .resolved(found.id)
@@ -755,301 +497,13 @@ extension MCPToolHandler {
     }
 }
 
-// MARK: - update_milestone
-
-extension MCPToolHandler {
-
-    private func handleUpdateMilestone(_ args: [String: Any]) -> MCPToolResult {
-        let milestone: Milestone
-        switch resolveMilestone(from: args) {
-        case .success(let found): milestone = found
-        case .failure(.message(let message)): return errorResult(message)
-        }
-
-        let previousStatus = milestone.statusRawValue
-
-        // Validate all inputs before applying any changes (T-391: avoid partial updates)
-        let validated: ValidatedMilestoneUpdate
-        switch validateMilestoneUpdate(args, milestone: milestone) {
-        case .valid(let update): validated = update
-        case .invalid(let error): return error
-        }
-
-        // Apply all changes in memory, then save atomically
-        applyMilestoneUpdate(validated, to: milestone)
-
-        if validated.hasChanges {
-            do {
-                try milestoneService.save()
-            } catch {
-                return errorResult("Update failed: \(error)")
-            }
-        }
-
-        let formatter = ISO8601DateFormatter()
-        var response = milestoneToDict(milestone, formatter: formatter)
-        response["previousStatus"] = previousStatus
-        return textResult(IntentHelpers.encodeJSON(response))
-    }
-
-    private struct ValidatedMilestoneUpdate {
-        let status: MilestoneStatus?
-        let name: String?
-        let description: FieldChange<String>
-        var hasChanges: Bool { status != nil || name != nil || description.isChange }
-    }
-
-    private enum MilestoneValidation {
-        case valid(ValidatedMilestoneUpdate)
-        case invalid(MCPToolResult)
-    }
-
-    private func validateMilestoneUpdate(
-        _ args: [String: Any], milestone: Milestone
-    ) -> MilestoneValidation {
-        // When the key is present it MUST be a string — a non-string value (e.g. integer,
-        // boolean, null) would otherwise be silently dropped by `as? String`, letting other
-        // update fields (name, description) apply with the malformed status quietly ignored [T-830].
-        var newStatus: MilestoneStatus?
-        if args["status"] != nil {
-            guard let statusRaw = args["status"] as? String else {
-                return .invalid(errorResult("status must be a string"))
-            }
-            guard let parsed = MilestoneStatus(rawValue: statusRaw) else {
-                let valid = MilestoneStatus.allCases.map(\.rawValue).joined(separator: ", ")
-                return .invalid(errorResult("Invalid status: \(statusRaw). Must be one of: \(valid)"))
-            }
-            newStatus = parsed
-        }
-
-        // Validate name. When the key is present it MUST be a string — a non-string
-        // value (integer, boolean, null, array) would otherwise be silently dropped
-        // by `as? String`, letting other update fields apply with the malformed
-        // rename quietly ignored [T-1230].
-        var trimmedName: String?
-        if let rawName = args["name"] {
-            guard let newName = rawName as? String else {
-                return .invalid(errorResult("name must be a string"))
-            }
-            let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else {
-                return .invalid(errorResult("Milestone name cannot be empty"))
-            }
-            if let conflict = milestoneRenameConflict(trimmed, milestone: milestone) {
-                return .invalid(conflict)
-            }
-            trimmedName = trimmed
-        }
-
-        // Validate description. Same reasoning as name: a present-but-non-string
-        // value must be rejected rather than silently dropped [T-1230]. An empty
-        // or whitespace-only string is an explicit clear signal that sets the
-        // description back to nil, mirroring update_task's clear semantics [T-1555].
-        let newDescription: FieldChange<String>
-        if let rawDescription = args["description"] {
-            guard let descriptionString = rawDescription as? String else {
-                return .invalid(errorResult("description must be a string"))
-            }
-            let trimmed = descriptionString.trimmingCharacters(in: .whitespacesAndNewlines)
-            newDescription = trimmed.isEmpty ? .clear : .set(trimmed)
-        } else {
-            newDescription = .noChange
-        }
-
-        return .valid(ValidatedMilestoneUpdate(
-            status: newStatus, name: trimmedName, description: newDescription
-        ))
-    }
-
-    /// Error result for a rename that collides with an existing milestone in the same
-    /// project, or `nil` when the name is free.
-    ///
-    /// A failed duplicate check reports the storage error rather than "no conflict":
-    /// CloudKit-backed SwiftData has no unique constraint, so this check is the whole
-    /// uniqueness invariant and a swallowed fetch failure would commit a duplicate
-    /// name [T-1614].
-    private func milestoneRenameConflict(_ name: String, milestone: Milestone) -> MCPToolResult? {
-        guard let project = milestone.project else { return nil }
-        do {
-            guard try milestoneService.milestoneNameExists(name, in: project, excluding: milestone.id) else {
-                return nil
-            }
-            return errorResult("A milestone with this name already exists in the project")
-        } catch {
-            return errorResult("Milestone name check failed: \(error)")
-        }
-    }
-
-    private func applyMilestoneUpdate(_ update: ValidatedMilestoneUpdate, to milestone: Milestone) {
-        // T-923: Skip timestamp writes when the requested status matches the
-        // current status so same-status retries don't rewrite completion dates.
-        if let newStatus = update.status, milestone.statusRawValue != newStatus.rawValue {
-            milestone.statusRawValue = newStatus.rawValue
-            milestone.lastStatusChangeDate = Date.now
-            milestone.completionDate = newStatus.isTerminal ? Date.now : nil
-        }
-        if let name = update.name {
-            milestone.name = name
-        }
-        switch update.description {
-        case .noChange:
-            break
-        case .set(let value):
-            milestone.milestoneDescription = value
-        case .clear:
-            milestone.milestoneDescription = nil
-        }
-    }
-}
-
-// MARK: - delete_milestone
-
-extension MCPToolHandler {
-
-    private func handleDeleteMilestone(_ args: [String: Any]) -> MCPToolResult {
-        let milestone: Milestone
-        switch resolveMilestone(from: args) {
-        case .success(let found): milestone = found
-        case .failure(.message(let message)): return errorResult(message)
-        }
-
-        let milestoneId = milestone.id.uuidString
-        let displayId = milestone.permanentDisplayId
-        let name = milestone.name
-        let affectedTasks = (milestone.tasks ?? []).count
-
-        do {
-            try milestoneService.deleteMilestone(milestone)
-        } catch {
-            return errorResult("Delete failed: \(error)")
-        }
-
-        var response: [String: Any] = [
-            "deleted": true,
-            "milestoneId": milestoneId,
-            "name": name,
-            "affectedTasks": affectedTasks
-        ]
-        if let displayId { response["displayId"] = displayId }
-        return textResult(IntentHelpers.encodeJSON(response))
-    }
-}
-
-// MARK: - update_task
-
-extension MCPToolHandler {
-
-    /// Updates one or more mutable fields on a task in a single atomic call.
-    ///
-    /// Field validation, milestone resolution, and applier logic are delegated
-    /// to `TaskUpdateValidator` so that the MCP tool and `UpdateTaskIntent`
-    /// share identical semantics. The identifier-resolution preamble preserves
-    /// the existing T-634/T-808 behavior — present-but-malformed identifiers
-    /// surface as field-specific INVALID_INPUT messages, not as a generic
-    /// not-found. The response shape is built by
-    /// `IntentHelpers.taskUpdateResponseDict` (AC 9.1).
-    private func handleUpdateTask(_ args: [String: Any]) -> MCPToolResult {
-        // Identifier resolution (preserve existing T-634 / T-808 behavior)
-        // Reject non-integer displayId when key is present [T-634]
-        if args["displayId"] != nil, IntentHelpers.parseIntValue(args["displayId"]) == nil {
-            return errorResult("displayId must be an integer")
-        }
-
-        let task: TransitTask
-        switch resolveTaskArgument(args) {
-        case .success(let resolved): task = resolved
-        case .failure(.message(let message)): return errorResult(message)
-        }
-
-        // Validate every field before applying any change. The validator is
-        // pure — no mutations occur on success or failure, so an early return
-        // here leaves the task untouched.
-        let update: ValidatedTaskUpdate
-        switch TaskUpdateValidator.validate(args, task: task, milestoneService: milestoneService) {
-        case .success(let validated):
-            update = validated
-        case .failure(let error):
-            return errorResult(error.mcpMessage)
-        }
-
-        // No-op echo: when the request includes only an identifier (and no
-        // mutating field), skip the save and return the current task JSON.
-        guard update.hasChanges else {
-            return textResult(IntentHelpers.encodeJSON(IntentHelpers.taskUpdateResponseDict(task)))
-        }
-
-        // Apply in memory. If a service call throws between the two underlying
-        // service calls (`updateTask` then `setMilestone`), explicitly roll
-        // back so any partial mutation does not leak into the saved state.
-        do {
-            try TaskUpdateValidator.apply(
-                update, to: task, taskService: taskService, milestoneService: milestoneService
-            )
-        } catch {
-            taskService.rollback()
-            return errorResult("Update failed: \(error)")
-        }
-
-        // Save. `TaskService.save()` already calls `safeRollback()` on failure.
-        do {
-            try taskService.save()
-        } catch {
-            return errorResult("Update failed: \(error)")
-        }
-
-        return textResult(IntentHelpers.encodeJSON(IntentHelpers.taskUpdateResponseDict(task)))
-    }
-}
-
 // MARK: - get_projects, add_comment & Helpers
 
 extension MCPToolHandler {
 
-    private func handleCreateProject(_ args: [String: Any]) -> MCPToolResult {
-        let name: String
-        switch requiredString(args, key: "name") {
-        case .success(let value): name = value
-        case .failure(.message(let message)): return errorResult(message)
-        }
-        let colorHex: String
-        switch requiredString(args, key: "colorHex") {
-        case .success(let value): colorHex = value
-        case .failure(.message(let message)): return errorResult(message)
-        }
-        // Compare the whole range: regex $ can also match before a final newline.
-        guard let range = colorHex.range(of: "^#?[0-9A-Fa-f]{6}$", options: .regularExpression),
-              range == colorHex.startIndex..<colorHex.endIndex else {
-            return errorResult("Invalid colorHex: expected six hexadecimal digits, optionally prefixed by #")
-        }
-        for key in ["description", "gitRepo"] {
-            if let raw = args[key], !(raw is String) {
-                return errorResult("\(key) must be a string")
-            }
-        }
-        do {
-            let project = try projectService.createProject(
-                name: name,
-                description: args["description"] as? String ?? "",
-                gitRepo: args["gitRepo"] as? String,
-                colorHex: colorHex
-            )
-            return textResult(IntentHelpers.encodeJSON(projectMetadataDict(project)))
-        } catch ProjectMutationError.invalidName {
-            return errorResult("Project name must not be empty or whitespace-only")
-        } catch ProjectMutationError.duplicateName(let name) {
-            return errorResult("A project named \"\(name)\" already exists")
-        } catch {
-            return errorResult("Failed to create project: \(error)")
-        }
-    }
-
-    private func projectMetadataDict(_ project: Project) -> [String: Any] {
-        var dict: [String: Any] = [
-            "projectId": project.id.uuidString, "name": project.name,
-            "description": project.projectDescription, "colorHex": project.colorHex,
-            "activeTaskCount": projectService.activeTaskCount(for: project)
-        ]
-        if let gitRepo = project.gitRepo { dict["gitRepo"] = gitRepo }
+    private func projectMetadataDict(_ project: Project) throws -> [String: Any] {
+        var dict = try MCPRecordSnapshot.project(project).record
+        dict["activeTaskCount"] = projectService.activeTaskCount(for: project)
         return dict
     }
 
@@ -1062,7 +516,10 @@ extension MCPToolHandler {
         }
         var results: [[String: Any]] = []
         for project in projects {
-            var dict = projectMetadataDict(project)
+            var dict: [String: Any]
+            do { dict = try projectMetadataDict(project) } catch {
+                return errorResult("Failed to capture project: \(error)")
+            }
 
             let milestones: [Milestone]
             do {
@@ -1078,108 +535,10 @@ extension MCPToolHandler {
         return textResult(IntentHelpers.encodeJSONArray(results))
     }
 
-    private func handleAddComment(_ args: [String: Any]) -> MCPToolResult {
-        // Distinguish a missing required field from a present-but-non-string one.
-        // A bare `as? String` would silently drop a number/bool/array/null and
-        // misreport it as "Missing required argument", so reject the type
-        // mismatch with a field-specific message first, mirroring
-        // update_task_status [T-1205, T-1579].
-        let content: String
-        switch requiredString(args, key: "content") {
-        case .success(let value): content = value
-        case .failure(.message(let message)): return errorResult(message)
-        }
-        let authorName: String
-        switch requiredString(args, key: "authorName") {
-        case .success(let value): authorName = value
-        case .failure(.message(let message)): return errorResult(message)
-        }
-
-        // Reject non-integer displayId when key is present [T-634]
-        if args["displayId"] != nil, IntentHelpers.parseIntValue(args["displayId"]) == nil {
-            return errorResult("displayId must be an integer")
-        }
-
-        let task: TransitTask
-        switch resolveTaskArgument(args) {
-        case .success(let resolved): task = resolved
-        case .failure(.message(let message)): return errorResult(message)
-        }
-
-        let comment: Comment
-        do {
-            comment = try commentService.addComment(
-                to: task, content: content, authorName: authorName, isAgent: true
-            )
-        } catch CommentService.Error.emptyContent {
-            return errorResult("Comment content cannot be empty")
-        } catch CommentService.Error.emptyAuthorName {
-            return errorResult("Author name cannot be empty")
-        } catch {
-            return errorResult("Failed to add comment: \(error)")
-        }
-
-        return textResult(IntentHelpers.encodeJSON(commentResponse(comment)))
-    }
-
     // MARK: - Helpers
-
-    private func validateCommentArgs(comment: String?, author: String?) -> MCPToolResult? {
-        guard let comment, !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return nil
-        }
-        guard let author, !author.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return errorResult("authorName is required when comment is provided")
-        }
-        return nil
-    }
-
-    private func statusResponse(
-        task: TransitTask, previousStatus: String, newStatus: TaskStatus
-    ) -> [String: Any] {
-        var res: [String: Any] = [
-            "taskId": task.id.uuidString, "previousStatus": previousStatus, "status": newStatus.rawValue
-        ]
-        if let displayId = task.permanentDisplayId { res["displayId"] = displayId }
-        return res
-    }
-
-    private func commentResponse(_ comment: Comment) -> [String: Any] {
-        let formatter = ISO8601DateFormatter()
-        return [
-            "id": comment.id.uuidString,
-            "authorName": comment.authorName,
-            "content": comment.content,
-            "creationDate": formatter.string(from: comment.creationDate)
-        ]
-    }
 
     enum ResolveError: Error {
         case message(String)
-    }
-
-    /// Resolves the task identified by `args`, mapping resolver failures to MCP messages.
-    ///
-    /// Shared by every task mutation tool so the three surfaces cannot drift apart.
-    /// `duplicateDisplayID` needs its own branch: more than one task carries the
-    /// requested display ID, which the operator repairs with display-ID maintenance.
-    /// The catch-all used to report it as "provide either displayId or taskId", so
-    /// duplicate-ID corruption was indistinguishable from a missing task. Wording
-    /// mirrors the milestone resolver's duplicate branch. [T-1837]
-    private func resolveTaskArgument(_ args: [String: Any]) -> Result<TransitTask, ResolveError> {
-        do {
-            return .success(try taskService.resolveTask(from: args))
-        } catch TaskService.Error.invalidIdentifier(let field) {
-            // Reject malformed identifiers with a field-specific message
-            // instead of returning the generic not-found error. [T-808]
-            return .failure(.message(IntentHelpers.invalidIdentifierHint(for: field)))
-        } catch TaskService.Error.duplicateDisplayID {
-            return .failure(.message(
-                duplicateTaskIdentifierMessage(displayId: IntentHelpers.parseIntValue(args["displayId"]))
-            ))
-        } catch {
-            return .failure(.message("Provide either displayId (integer) or taskId (UUID string)"))
-        }
     }
 
     /// Message for a display ID matched by more than one task. [T-1837]
@@ -1206,26 +565,6 @@ extension MCPToolHandler {
             return .failure(.message("Invalid arguments: must be a JSON object"))
         }
         return .success(dict)
-    }
-
-    /// Validates a required string argument by key, distinguishing a missing
-    /// field from a present-but-malformed one. Returns `.success(value)` for a
-    /// non-empty string, or `.failure` with "Missing required argument: <key>"
-    /// when absent/empty and "<key> must be a string" when present but not a
-    /// string (number, boolean, array, null). Without the explicit type check a
-    /// bare `as? String` collapses malformed values into the missing-field
-    /// error [T-1579].
-    private func requiredString(_ args: [String: Any], key: String) -> Result<String, ResolveError> {
-        guard let raw = args[key] else {
-            return .failure(.message("Missing required argument: \(key)"))
-        }
-        guard let value = raw as? String else {
-            return .failure(.message("\(key) must be a string"))
-        }
-        guard !value.isEmpty else {
-            return .failure(.message("Missing required argument: \(key)"))
-        }
-        return .success(value)
     }
 
     /// Validates a UUID-shaped argument by key. Returns `.success(nil)` when the
@@ -1289,52 +628,10 @@ extension MCPToolHandler {
         return nil
     }
 
-    private func resolveMilestone(from args: [String: Any]) -> Result<Milestone, ResolveError> {
-        // Reject non-integer displayId when key is present [T-634]
-        if args["displayId"] != nil {
-            guard let displayId = IntentHelpers.parseIntValue(args["displayId"]) else {
-                return .failure(.message("displayId must be an integer"))
-            }
-            do {
-                return .success(try milestoneService.findByDisplayID(displayId))
-            } catch MilestoneService.Error.duplicateDisplayID {
-                return .failure(.message("Duplicate milestone identifier detected for displayId \(displayId)"))
-            } catch {
-                return .failure(.message("No milestone with displayId \(displayId)"))
-            }
-        } else if args["milestoneId"] != nil {
-            // Validate type and UUID format separately from presence [T-769, T-810]
-            guard let idStr = args["milestoneId"] as? String,
-                  let milestoneId = UUID(uuidString: idStr) else {
-                return .failure(.message("milestoneId must be a valid UUID string"))
-            }
-            do {
-                return .success(try milestoneService.findByID(milestoneId))
-            } catch {
-                return .failure(.message("No milestone with milestoneId \(idStr)"))
-            }
-        } else {
-            return .failure(.message("Provide either displayId (integer) or milestoneId (UUID string)"))
-        }
-    }
-
     private func milestoneToDict(
-        _ milestone: Milestone, formatter: ISO8601DateFormatter, detailed: Bool = false
-    ) -> [String: Any] {
-        var dict: [String: Any] = [
-            "milestoneId": milestone.id.uuidString,
-            "name": milestone.name,
-            "status": milestone.statusRawValue,
-            "creationDate": formatter.string(from: milestone.creationDate),
-            "lastStatusChangeDate": formatter.string(from: milestone.lastStatusChangeDate)
-        ]
-        if let displayId = milestone.permanentDisplayId { dict["displayId"] = displayId }
-        if let description = milestone.milestoneDescription { dict["description"] = description }
-        if let projectId = milestone.project?.id.uuidString { dict["projectId"] = projectId }
-        if let projectName = milestone.project?.name { dict["projectName"] = projectName }
-        if let completionDate = milestone.completionDate {
-            dict["completionDate"] = formatter.string(from: completionDate)
-        }
+        _ milestone: Milestone, formatter _: ISO8601DateFormatter, detailed: Bool = false
+    ) throws -> [String: Any] {
+        var dict = try MCPRecordSnapshot.milestone(milestone).record
         let tasks = milestone.tasks ?? []
         dict["taskCount"] = tasks.count
         if detailed {

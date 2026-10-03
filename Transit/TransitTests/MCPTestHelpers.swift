@@ -13,21 +13,26 @@ struct MCPTestEnv {
     let maintenanceService: DisplayIDMaintenanceService
     let mcpSettings: MCPSettings
     let context: ModelContext
+    let writeCoordinator: MCPWriteCoordinator
+    let sidecarDirectory: URL
 }
 
 @MainActor
 enum MCPTestHelpers {
 
+    // swiftlint:disable:next function_body_length
     static func makeEnv(
-        taskCreateSave: @escaping (ModelContext) throws -> Void = { try $0.save() },
-        taskStatusSave: @escaping (ModelContext) throws -> Void = { try $0.save() },
+        taskCreateSave: ((ModelContext) throws -> Void)? = nil,
+        taskStatusSave: ((ModelContext) throws -> Void)? = nil,
+        writeCommitSave: ((ModelContext) throws -> Void)? = nil,
         projectFetcher: (any ModelFetching)? = nil,
         taskFetcher: (any TaskFetching)? = nil,
         commentFetcher: (any CommentFetching)? = nil,
         milestoneFetcher: (any MilestoneFetching)? = nil,
         milestoneDisplayIDFinder: (any MilestoneDisplayIDFinding)? = nil,
         milestoneServiceFetcher: (any ModelFetching)? = nil,
-        taskCounterStore: (any DisplayIDAllocator.CounterStore)? = nil
+        taskCounterStore: (any DisplayIDAllocator.CounterStore)? = nil,
+        persistence: PersistenceAvailability? = nil
     ) throws -> MCPTestEnv {
         let testContainer = try TestModelContainer()
         let context = testContainer.context
@@ -36,8 +41,8 @@ enum MCPTestHelpers {
         let taskService = TaskService(
             modelContext: context,
             displayIDAllocator: taskAllocator,
-            createSave: taskCreateSave,
-            statusSave: taskStatusSave
+            createSave: taskCreateSave ?? { try $0.save() },
+            statusSave: taskStatusSave ?? { try $0.save() }
         )
         let projectService = ProjectService(modelContext: context, fetcher: projectFetcher)
         let commentService = CommentService(modelContext: context)
@@ -57,13 +62,26 @@ enum MCPTestHelpers {
         let mcpSettings = MCPSettings()
         // Default to off so existing tests don't see maintenance tools unless they opt in.
         mcpSettings.maintenanceToolsEnabled = false
+        let sidecar = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let writeCoordinator = MCPWriteCoordinator(
+            services: MCPWriteCommandServices(tasks: taskService, projects: projectService,
+                comments: commentService, milestones: milestoneService, context: context),
+            sidecarDirectory: sidecar, persistence: persistence,
+            save: { context, stage in
+                if case .commit = stage, let injectedSave = writeCommitSave ?? taskCreateSave ?? taskStatusSave {
+                    try injectedSave(context)
+                } else {
+                    try context.save()
+                }
+            }
+        )
         let handler = MCPToolHandler(
             taskService: taskService, projectService: projectService,
             commentService: commentService, milestoneService: milestoneService,
-            maintenanceService: maintenanceService, settings: mcpSettings,
+            maintenanceService: maintenanceService, settings: mcpSettings, persistence: persistence,
             taskFetcher: taskFetcher, commentFetcher: commentFetcher,
             milestoneFetcher: milestoneFetcher,
-            milestoneDisplayIDFinder: milestoneDisplayIDFinder
+            milestoneDisplayIDFinder: milestoneDisplayIDFinder, writeCoordinator: writeCoordinator
         )
         return MCPTestEnv(
             handler: handler,
@@ -73,7 +91,7 @@ enum MCPTestHelpers {
             milestoneService: milestoneService,
             maintenanceService: maintenanceService,
             mcpSettings: mcpSettings,
-            context: context
+            context: context, writeCoordinator: writeCoordinator, sidecarDirectory: sidecar
         )
     }
 
@@ -140,7 +158,13 @@ enum MCPTestHelpers {
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         let result = try #require(json?["result"] as? [String: Any])
         let content = try #require(result["content"] as? [[String: Any]])
-        return try #require(content.first?["text"] as? String)
+        let text = try #require(content.first?["text"] as? String)
+        if let bytes = text.data(using: .utf8),
+           let envelope = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any],
+           let error = envelope["error"] as? [String: Any], let message = error["message"] as? String {
+            return message
+        }
+        return text
     }
 
     /// Decodes the JSON-RPC `error` object from a response. Use this for cases

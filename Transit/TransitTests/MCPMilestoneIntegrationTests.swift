@@ -22,15 +22,15 @@ struct MCPMilestoneIntegrationTests {
             name: "Task A", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: [
                 "displayId": 1,
                 "milestoneDisplayId": milestone.permanentDisplayId!
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         let milestoneInfo = try #require(result["milestone"] as? [String: Any])
         #expect(milestoneInfo["name"] as? String == "v1.0")
     }
@@ -43,12 +43,12 @@ struct MCPMilestoneIntegrationTests {
             name: "Task A", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": 1, "milestone": "v1.0"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         let milestoneInfo = try #require(result["milestone"] as? [String: Any])
         #expect(milestoneInfo["name"] as? String == "v1.0")
     }
@@ -64,12 +64,12 @@ struct MCPMilestoneIntegrationTests {
         )
         try env.milestoneService.setMilestone(milestone, on: task)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": 1, "clearMilestone": true]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["milestone"] == nil)
     }
 
@@ -84,8 +84,8 @@ struct MCPMilestoneIntegrationTests {
             name: "Task A", description: nil, type: .feature, project: projectA
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: [
                 "displayId": 1,
                 "milestoneDisplayId": milestone.permanentDisplayId!
@@ -102,8 +102,8 @@ struct MCPMilestoneIntegrationTests {
             name: "Task A", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": 1, "milestoneDisplayId": 999]
         ))
 
@@ -117,8 +117,8 @@ struct MCPMilestoneIntegrationTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
         _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "New Task",
                 "type": "feature",
@@ -127,7 +127,7 @@ struct MCPMilestoneIntegrationTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         let milestoneInfo = try #require(result["milestone"] as? [String: Any])
         #expect(milestoneInfo["name"] as? String == "v1.0")
     }
@@ -139,8 +139,8 @@ struct MCPMilestoneIntegrationTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "New Task",
                 "type": "feature",
@@ -149,7 +149,7 @@ struct MCPMilestoneIntegrationTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         let milestoneInfo = try #require(result["milestone"] as? [String: Any])
         #expect(milestoneInfo["name"] as? String == "v1.0")
     }
@@ -158,8 +158,8 @@ struct MCPMilestoneIntegrationTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "New Task",
                 "type": "feature",
@@ -177,8 +177,8 @@ struct MCPMilestoneIntegrationTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Orphan Candidate",
                 "type": "bug",
@@ -198,8 +198,8 @@ struct MCPMilestoneIntegrationTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Orphan Candidate",
                 "type": "bug",
@@ -223,8 +223,8 @@ struct MCPMilestoneIntegrationTests {
             name: "v1.0", description: nil, project: projectB
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Orphan Candidate",
                 "type": "feature",

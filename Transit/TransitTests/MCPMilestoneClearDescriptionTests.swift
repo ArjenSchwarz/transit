@@ -18,12 +18,12 @@ struct MCPMilestoneClearDescriptionTests {
             name: "v1.0", description: "old", project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["milestoneId": milestone.id.uuidString, "description": "  text  "]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["description"] as? String == "text")
         let refreshed = try env.milestoneService.findByID(milestone.id)
         #expect(refreshed.milestoneDescription == "text")
@@ -36,12 +36,12 @@ struct MCPMilestoneClearDescriptionTests {
             name: "v1.0", description: "current", project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["milestoneId": milestone.id.uuidString, "description": ""]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["description"] == nil, "Response should omit description when cleared")
         let refreshed = try env.milestoneService.findByID(milestone.id)
         #expect(refreshed.milestoneDescription == nil)
@@ -54,12 +54,12 @@ struct MCPMilestoneClearDescriptionTests {
             name: "v1.0", description: "current", project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["milestoneId": milestone.id.uuidString, "description": "   "]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["description"] == nil, "Response should omit description when cleared")
         let refreshed = try env.milestoneService.findByID(milestone.id)
         #expect(refreshed.milestoneDescription == nil)
@@ -73,8 +73,8 @@ struct MCPMilestoneClearDescriptionTests {
             name: "v1.0", description: "current", project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: [
                 "milestoneId": milestone.id.uuidString,
                 "description": "",
@@ -82,7 +82,7 @@ struct MCPMilestoneClearDescriptionTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["description"] == nil, "Response should omit description when cleared")
         #expect(result["status"] as? String == "done")
         let refreshed = try env.milestoneService.findByID(milestone.id)

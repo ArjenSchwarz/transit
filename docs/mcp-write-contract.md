@@ -1,0 +1,59 @@
+# MCP write contract
+
+Transit protects `create_task`, `create_project`, `create_milestone`, `add_comment`, `update_task`,
+`update_task_status`, `update_milestone` and `delete_milestone`. Each requires `idempotencyKey`.
+The four update/deletion tools also require the target's `expectedRevision` from a full read response.
+Unknown fields and malformed inputs are rejected before accepting a key. Maintenance tools and App
+Intents retain their existing input contracts.
+
+Keys are case-sensitive and match `[A-Za-z0-9._:-]{1,128}`. Generate a fresh UUID for each logical write.
+The namespace is one local store plus tool name, independent of JSON-RPC request ID, connection and
+MCP session. Request identity includes every argument except the key, including the original revision.
+Object order is ignored; array order, Boolean versus number, absence versus null and explicit versus
+omitted defaults remain significant. JSON numbers are compared by value.
+
+For example, read `query_tasks` with `{"displayId":42}`, then call `update_task` with:
+
+```json
+{"taskId":"<taskId from read>","name":"Reviewed","expectedRevision":"<revision from read>","idempotencyKey":"<fresh UUID>"}
+```
+
+If the response is lost, repeat those exact arguments with that same key. A retained completion
+replays the original saved record, revision and metadata even after editing or deleting the target.
+Reusing a retained key with different arguments returns `IDEMPOTENCY_KEY_REUSED` without mutation.
+
+Protected responses are JSON in MCP `content[0].text`. Committed responses include `contractVersion:1`,
+`tool`, `idempotencyKey`, `outcome:"committed"`, `accepted:true`, `entityId`, the full saved `record`,
+`completedAt` and `replayExpiresAt`. The record contains its `revision`. Status with a comment also
+returns the full saved `comment`; both persist together. Milestone deletion returns `deleted:true`
+and `recordBeforeDeletion`, including its pre-deletion revision; it has no surviving milestone revision.
+
+Errors set MCP `isError:true` and contain `error:{code,message}`, `outcome`, `accepted` and `retryAction`.
+Malformed protocol envelopes and unknown/disabled tools continue to use JSON-RPC errors.
+
+| Outcome | Meaning | Action |
+|---|---|---|
+| `rejected` | Proven no effect from this requested write. Accepted rejections are retained with expiry. | `new_request_new_key` after correction; storage-unavailable/busy requests use `retry_same_request`. |
+| `in_progress` | Matching accepted work is active. | `retry_same_request`. |
+| `uncertain` | Storage cannot establish the whole operation's commitment. | `reconcile`; never automatically issue a fresh-key retry. |
+
+`accepted` is true for a confirmed durable payload binding, false for proven non-acceptance, and null
+when retry storage cannot determine earlier acceptance. `REVISION_CONFLICT` is a retained no-effect
+rejection containing `currentRecord` and its revision. Inspect that record before writing with a new
+key. `INTERRUPTED_BEFORE_COMMIT` proves that an accepted operation's atomic domain/result save did
+not complete; it is retained as a rejection rather than rerunning the operation.
+
+Completed outcomes are retained for seven days from completion. Their absolute `replayExpiresAt`
+does not extend on replay. Stop treating retries after that deadline as protected: once removed, a
+key may be accepted as new work. Unresolved bindings never expire under this policy. Cross-device
+deduplication is not provided, even when CloudKit synchronizes receipt records.
+
+Revisions match `r1:[0-9a-f]{64}` and compare exact locally observed entity content. Task revisions
+cover its own stored fields, assignments and comment content/membership; parent project/milestone
+renames do not invalidate the task. Milestone revisions exclude its task collection; project revisions
+exclude child collections. No-ops keep their revision; restoring identical covered content restores
+the same token. Tokens are neither timestamps nor monotonic counters. Edits not yet imported from
+CloudKit cannot be detected, and later sync merges can still conflict.
+
+These outcome and revision semantics are shared vocabulary for T-2384. They introduce no batch
+mutation application or dry-run behavior; existing ordered JSON-RPC batches remain non-atomic.

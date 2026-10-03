@@ -17,8 +17,8 @@ struct MCPMilestoneRenameValidationTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: [
                 "milestoneId": milestone.id.uuidString,
                 "name": 123,
@@ -43,8 +43,8 @@ struct MCPMilestoneRenameValidationTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: [
                 "milestoneId": milestone.id.uuidString,
                 "name": false
@@ -63,8 +63,8 @@ struct MCPMilestoneRenameValidationTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: [
                 "milestoneId": milestone.id.uuidString,
                 "name": NSNull(),
@@ -89,8 +89,8 @@ struct MCPMilestoneRenameValidationTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: [
                 "milestoneId": milestone.id.uuidString,
                 "name": ["v2.0"]
@@ -111,8 +111,8 @@ struct MCPMilestoneRenameValidationTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: [
                 "milestoneId": milestone.id.uuidString,
                 "description": 42,
@@ -139,8 +139,8 @@ struct MCPMilestoneRenameValidationTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: [
                 "milestoneId": milestone.id.uuidString,
                 "description": NSNull(),
