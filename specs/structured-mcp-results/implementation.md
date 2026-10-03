@@ -85,3 +85,10 @@ Cap RED amendment128823d remains in isolated stream1 pending exactshortslot gran
 
 
 Integrated `make lint` passed host guards and409 Swift files with0 violations; log `/tmp/t2383-integrated-red-lint.log`. User-requested phone helper ran from the clean ticket worktree and exited0, transferring13 changed Markdown documents including the approved nesting amendment and source/protocol RED evidence; log `/tmp/t2383-implementation-phone.log`. Transfer success does not establish that the user opened/read them. Cap RED refinement128823d is ready in stream1 awaiting an explicit next shortslot grant; no heavy process or GREEN runtime implementation is active.
+
+
+## Approved cap RED execution
+
+Parent granted exclusive source CAPRED128823d after T2384 GREEN drained. Exact same focused source command compiled and executed; make2/xcode65,23 declarations22failed1passed (50 expandedruns49failed1passed). New31/32/33/wide/retained/checkpoint cases fail against notImplemented as expected; independent shrinker passes. Evidenceed9f2fb integrated into the ticket branch, preserving owner requirements amendment and corrected task dependency. Heavy pipeline drained/released promptly to T63 repair; no GREEN app run in that grant.
+
+Parent authorised source/parser3 GREEN source drafting while its focused GREEN test slot remains pending. Compiler-required escaping Sendable checkpoint facade may retain the callback only within synchronous parser lifetime, never within returned document/source/fragments; no renewal of original deadline. Task3 remains incomplete and API15 undelivered until their actual gates pass.
