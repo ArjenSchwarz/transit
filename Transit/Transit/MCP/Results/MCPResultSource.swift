@@ -166,7 +166,58 @@ nonisolated struct MCPResultMetadata: Sendable {
         document: MCPJSONDocument,
         checkpoint: @escaping @Sendable () throws -> Void = {}
     ) throws -> MCPResultMetadata {
-        throw MCPResultBoundaryError.notImplemented
+        try checkpoint()
+        guard case .object(let members) = document.value else { throw MCPResultBoundaryError.invalidJSON }
+        for member in members {
+            try checkpoint()
+            guard try validKey(member.name, checkpoint: checkpoint) else {
+                throw MCPResultBoundaryError.invalidJSON
+            }
+        }
+        try checkpoint()
+        return MCPResultMetadata(document: document)
+    }
+
+    /// Modern metadata permits an optional DNS prefix followed by an ASCII name.
+    /// Nested JSON member names remain unrestricted and are never reconstructed.
+    private static func validKey(_ key: String, checkpoint: @Sendable () throws -> Void) throws -> Bool {
+        for (index, byte) in key.utf8.enumerated() {
+            if index.isMultiple(of: 256) { try checkpoint() }
+            guard (0x20...0x7E).contains(byte) else { return false }
+        }
+        let parts = key.split(separator: "/", omittingEmptySubsequences: false)
+        guard parts.count <= 2 else { return false }
+        if parts.count == 2 {
+            let labels = parts[0].split(separator: ".", omittingEmptySubsequences: false)
+            for label in labels {
+                try checkpoint()
+                guard let first = label.utf8.first, Self.isLetter(first),
+                      let last = label.utf8.last, Self.isAlphaNumeric(last),
+                      try allowed(label, punctuation: [45], checkpoint: checkpoint) else { return false }
+            }
+        }
+        guard let name = parts.last else { return false }
+        if name.isEmpty { return true }
+        guard let first = name.utf8.first, Self.isAlphaNumeric(first),
+              let last = name.utf8.last, Self.isAlphaNumeric(last) else { return false }
+        return try allowed(name, punctuation: [45, 46, 95], checkpoint: checkpoint)
+    }
+
+    private static func allowed(_ text: Substring, punctuation: [UInt8],
+                                checkpoint: @Sendable () throws -> Void) throws -> Bool {
+        for (index, byte) in text.utf8.enumerated() {
+            if index.isMultiple(of: 256) { try checkpoint() }
+            guard isAlphaNumeric(byte) || punctuation.contains(byte) else { return false }
+        }
+        return true
+    }
+
+    private static func isLetter(_ byte: UInt8) -> Bool {
+        (65...90).contains(byte) || (97...122).contains(byte)
+    }
+
+    private static func isAlphaNumeric(_ byte: UInt8) -> Bool {
+        isLetter(byte) || (48...57).contains(byte)
     }
 }
 #endif
