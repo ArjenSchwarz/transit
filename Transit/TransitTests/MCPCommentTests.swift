@@ -255,10 +255,10 @@ struct MCPCommentTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: [:]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let first = try #require(results.first)
         let comments = try #require(first["comments"] as? [[String: Any]])
         #expect(comments.count == 1)
@@ -283,10 +283,10 @@ struct MCPCommentTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: [:]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let first = try #require(results.first)
         let comments = try #require(first["comments"] as? [[String: Any]])
         #expect(comments.count == 2)
@@ -303,10 +303,10 @@ struct MCPCommentTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: [:]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let first = try #require(results.first)
         let comments = try #require(first["comments"] as? [[String: Any]])
         #expect(comments.isEmpty)

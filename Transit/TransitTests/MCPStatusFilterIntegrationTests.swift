@@ -24,10 +24,11 @@ struct MCPStatusFilterIntegrationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": ["idea", "planning"], "project": "Alpha"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "status": ["idea", "planning"], "project": "Alpha"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let names = Set(results.compactMap { $0["name"] as? String })
         #expect(names == ["AlphaIdea", "AlphaPlanning"])
     }
@@ -52,10 +53,11 @@ struct MCPStatusFilterIntegrationTests {
         // Exclude done, filter to bugs only
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["not_status": ["done"], "type": "bug"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "not_status": ["done"], "type": "bug"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "ActiveBug")
     }
@@ -70,10 +72,11 @@ struct MCPStatusFilterIntegrationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": displayId, "unfinished": true]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "displayId": displayId, "unfinished": true]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Active")
     }
@@ -92,10 +95,11 @@ struct MCPStatusFilterIntegrationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": displayId, "unfinished": true]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "displayId": displayId, "unfinished": true]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.isEmpty)
     }
 
@@ -112,10 +116,11 @@ struct MCPStatusFilterIntegrationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": "planning", "project": "MyProject"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "status": "planning", "project": "MyProject"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Planning")
     }

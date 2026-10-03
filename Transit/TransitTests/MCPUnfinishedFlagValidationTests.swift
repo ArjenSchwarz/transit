@@ -31,13 +31,14 @@ struct MCPUnfinishedFlagValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["unfinished": "true"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "unfinished": "true"]
         ))
 
         // Expected: error rejecting the malformed flag.
         // Previous (buggy) behaviour: silently treated as false, returning all tasks.
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("unfinished must be a boolean"))
     }
 
@@ -46,11 +47,12 @@ struct MCPUnfinishedFlagValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["unfinished": 1]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "unfinished": 1]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("unfinished must be a boolean"))
     }
 
@@ -59,11 +61,12 @@ struct MCPUnfinishedFlagValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["unfinished": NSNull()]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "unfinished": NSNull()]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("unfinished must be a boolean"))
     }
 
@@ -72,11 +75,12 @@ struct MCPUnfinishedFlagValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["unfinished": true]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "unfinished": true]
         ))
 
         #expect(try MCPTestHelpers.isError(response) == false)
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let names = results.compactMap { $0["name"] as? String }
         #expect(names.contains("Open task"))
         #expect(!names.contains("Finished task"))
@@ -87,11 +91,11 @@ struct MCPUnfinishedFlagValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: [:]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
         #expect(try MCPTestHelpers.isError(response) == false)
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 2)
     }
 }

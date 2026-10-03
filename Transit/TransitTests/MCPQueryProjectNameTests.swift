@@ -5,6 +5,7 @@ import Testing
 @testable import Transit
 
 @MainActor @Suite(.serialized)
+// swiftlint:disable:next type_body_length
 struct MCPQueryProjectNameTests {
 
     private struct FetchFailure: Swift.Error {}
@@ -40,10 +41,11 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["project": "Alpha"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "project": "Alpha"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "A1")
     }
@@ -55,10 +57,11 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["project": "myproject"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "project": "myproject"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
     }
 
@@ -67,11 +70,12 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["project": "Nonexistent"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "project": "Nonexistent"]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        #expect(try MCPTestHelpers.errorText(response) == "No project named \"Nonexistent\"")
+        #expect(try MCPTestHelpers.queryErrorMessage(response) == "No project named \"Nonexistent\"")
     }
 
     @Test func queryByProjectIdReturnsMatchingTasks() async throws {
@@ -83,10 +87,11 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["projectId": alpha.id.uuidString]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "projectId": alpha.id.uuidString]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "A1")
     }
@@ -96,11 +101,12 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["projectId": "not-a-uuid"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "projectId": "not-a-uuid"]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        #expect(try MCPTestHelpers.errorText(response) == "Invalid projectId: expected a UUID string")
+        #expect(try MCPTestHelpers.queryErrorMessage(response) == "Invalid projectId: expected a UUID string")
     }
 
     @Test func queryWithNullProjectIdReturnsValidationError() async throws {
@@ -108,11 +114,12 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["projectId": NSNull()]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "projectId": NSNull()]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        #expect(try MCPTestHelpers.errorText(response) == "Invalid projectId: expected a UUID string")
+        #expect(try MCPTestHelpers.queryErrorMessage(response) == "Invalid projectId: expected a UUID string")
     }
 
     @Test func queryProjectLookupFetchFailureReturnsInternalErrorEnvelope() async throws {
@@ -121,11 +128,12 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["projectId": projectID.uuidString]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "projectId": projectID.uuidString]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        #expect(try MCPTestHelpers.errorText(response).hasPrefix("Failed to fetch project:"))
+        #expect(try MCPTestHelpers.queryErrorMessage(response).hasPrefix("Failed to fetch project:"))
     }
 
     @Test func queryTaskFetchFailureReturnsErrorEnvelope() async throws {
@@ -133,11 +141,11 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: [:]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        #expect(try MCPTestHelpers.errorText(response).hasPrefix("Failed to fetch tasks:"))
+        #expect(try MCPTestHelpers.queryErrorMessage(response).hasPrefix("Failed to fetch tasks:"))
     }
 
     @Test func queryMilestoneNameFetchFailureReturnsExactErrorInsteadOfEmptyArray() async throws {
@@ -145,12 +153,13 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestone": "v1.0"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "milestone": "v1.0"]
         ))
 
         #expect(try MCPTestHelpers.isError(response), "A failed filter fetch must not look like no matches")
         #expect(
-            try MCPTestHelpers.errorText(response)
+            try MCPTestHelpers.queryErrorMessage(response)
                 == "Failed to fetch milestones: simulated milestone fetch failure"
         )
     }
@@ -162,10 +171,11 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestone": "v9.0"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "milestone": "v9.0"]
         ))
 
-        #expect(try MCPTestHelpers.decodeArrayResult(response).isEmpty)
+        #expect(try MCPTestHelpers.decodeQueryResults(response).isEmpty)
     }
 
     @Test func queryMilestoneDisplayIDFetchFailureReturnsExactErrorInsteadOfEmptyArray() async throws {
@@ -173,12 +183,13 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestoneDisplayId": 1]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "milestoneDisplayId": 1]
         ))
 
         #expect(try MCPTestHelpers.isError(response), "A failed lookup must not look like no matches")
         #expect(
-            try MCPTestHelpers.errorText(response)
+            try MCPTestHelpers.queryErrorMessage(response)
                 == "Failed to look up milestone: simulated milestone fetch failure"
         )
     }
@@ -188,11 +199,12 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestone": "v1.0", "status": "not-a-status"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "milestone": "v1.0", "status": "not-a-status"]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        #expect(try MCPTestHelpers.errorText(response).contains("Invalid status: not-a-status"))
+        #expect(try MCPTestHelpers.queryErrorMessage(response).contains("Invalid status: not-a-status"))
     }
 
     @Test func queryByNonexistentProjectIdMatchesIntentProjectNotFound() async throws {
@@ -202,11 +214,12 @@ struct MCPQueryProjectNameTests {
 
         let mcpResponse = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["projectId": projectIDString]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "projectId": projectIDString]
         ))
 
         #expect(try MCPTestHelpers.isError(mcpResponse))
-        let mcpHint = try MCPTestHelpers.errorText(mcpResponse)
+        let mcpHint = try MCPTestHelpers.queryErrorMessage(mcpResponse)
 
         let intentResponse = QueryTasksIntent.execute(
             input: "{\"projectId\":\"\(projectIDString)\"}",
@@ -233,10 +246,11 @@ struct MCPQueryProjectNameTests {
         // projectId points to Beta, project name says "Alpha" — projectId wins
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["projectId": beta.id.uuidString, "project": "Alpha"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "projectId": beta.id.uuidString, "project": "Alpha"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "B1")
     }
@@ -249,10 +263,11 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["project": "  "]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "project": "  "]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 2)
     }
 
@@ -267,10 +282,11 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["project": "Alpha", "status": "planning"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "project": "Alpha", "status": "planning"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Planned")
     }
@@ -285,7 +301,8 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["project": "Alpha"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "project": "Alpha"]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
@@ -299,10 +316,11 @@ struct MCPQueryProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["project": "Alpha", "type": "bug"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "project": "Alpha", "type": "bug"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Bug")
     }

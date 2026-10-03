@@ -129,6 +129,7 @@ extension MCPServer {
     }
 
     private func tearDownCurrentServer() async {
+        toolHandler.setTaskQueryAdmission(open: false)
         guard let currentServer = activeServer else { return }
 
         // Task cancellation only cancels ServiceGroup's child tasks; it does
@@ -146,18 +147,23 @@ extension MCPServer {
         await currentServer.task.value
     }
 
+    /// Ignore completion from a listener replaced by a newer generation.
+    func listenerDidExit(generation: Int, failure: String?) {
+        guard serverGeneration == generation else { return }
+        toolHandler.setTaskQueryAdmission(open: false)
+        activeServer = nil
+        if let failure { startError = failure }
+    }
+
     private func launchServer(port: Int, runID: Int) {
         serverGeneration += 1
         let currentGeneration = serverGeneration
         startError = nil
 
+        toolHandler.setTaskQueryAdmission(open: true)
         let handler = toolHandler
         let setNotRunning = { @MainActor [weak self] (failure: String?) in
-            guard let self, self.serverGeneration == currentGeneration else { return }
-            self.activeServer = nil
-            if let failure {
-                self.startError = failure
-            }
+            self?.listenerDidExit(generation: currentGeneration, failure: failure)
         }
         let app = Application(
             router: Self.makeRouter(handler: handler),

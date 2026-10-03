@@ -206,6 +206,8 @@ nonisolated struct JSONSchema: Encodable, Sendable {
     let type: String
     let properties: [String: JSONSchemaProperty]?
     let required: [String]?
+    var oneOf: [JSONSchema]?
+    var additionalProperties: Bool?
 
     static func object(
         properties: [String: JSONSchemaProperty],

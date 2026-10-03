@@ -117,6 +117,15 @@ enum MCPTestHelpers {
         return try #require(try JSONSerialization.jsonObject(with: textData) as? [[String: Any]])
     }
 
+    static func decodeQueryResults(_ response: JSONRPCResponse?) throws -> [[String: Any]] {
+        try #require(decodeResult(response)["results"] as? [[String: Any]])
+    }
+
+    static func queryErrorMessage(_ response: JSONRPCResponse?) throws -> String {
+        let error = try #require(decodeResult(response)["error"] as? [String: Any])
+        return try #require(error["message"] as? String)
+    }
+
     static func isError(_ response: JSONRPCResponse?) throws -> Bool {
         let unwrapped = try #require(response, "Expected a JSON-RPC response but got nil")
         let data = try JSONEncoder().encode(unwrapped)

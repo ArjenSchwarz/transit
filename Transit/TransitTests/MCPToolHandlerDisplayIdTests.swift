@@ -20,10 +20,11 @@ struct MCPToolHandlerDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": 1]
+            arguments: ["detailLevel": "full", "includeComments": true, "limit": 100,
+                "displayId": 1]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         let task = try #require(results.first)
         #expect(task["name"] as? String == "Lookup Me")
@@ -37,10 +38,11 @@ struct MCPToolHandlerDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": 999]
+            arguments: ["detailLevel": "full", "includeComments": true, "limit": 100,
+                "displayId": 999]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.isEmpty)
     }
 
@@ -53,10 +55,11 @@ struct MCPToolHandlerDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": 1, "status": "planning"]
+            arguments: ["detailLevel": "full", "includeComments": true, "limit": 100,
+                "displayId": 1, "status": "planning"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.isEmpty)
     }
 
@@ -69,10 +72,11 @@ struct MCPToolHandlerDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": 1, "type": "bug"]
+            arguments: ["detailLevel": "full", "includeComments": true, "limit": 100,
+                "displayId": 1, "type": "bug"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Bug Task")
     }
@@ -86,10 +90,11 @@ struct MCPToolHandlerDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": 1]
+            arguments: ["detailLevel": "full", "includeComments": true, "limit": 100,
+                "displayId": 1]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let task = try #require(results.first)
         // description key should be present but null (serialized as NSNull)
         #expect(task["name"] as? String == "No Desc")
@@ -107,10 +112,11 @@ struct MCPToolHandlerDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": displayId]
+            arguments: ["detailLevel": "full", "includeComments": true, "limit": 100,
+                "displayId": displayId]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.isEmpty)
     }
 
@@ -124,10 +130,10 @@ struct MCPToolHandlerDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: [:]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let task = try #require(results.first)
         #expect(task["description"] == nil)
         #expect(task["metadata"] == nil)

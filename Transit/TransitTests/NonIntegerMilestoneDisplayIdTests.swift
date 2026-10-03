@@ -132,11 +132,12 @@ struct NonIntegerMilestoneDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestoneDisplayId": "abc"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "milestoneDisplayId": "abc"]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("milestoneDisplayId must be an integer"))
     }
 
@@ -145,11 +146,12 @@ struct NonIntegerMilestoneDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestoneDisplayId": 1.5]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "milestoneDisplayId": 1.5]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("milestoneDisplayId must be an integer"))
     }
 

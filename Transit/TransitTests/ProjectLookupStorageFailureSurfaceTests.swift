@@ -88,7 +88,8 @@ struct ProjectLookupStorageFailureSurfaceTests {
         ))
         let queryTasks = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["projectId": projectID]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "projectId": projectID]
         ))
         let createMilestone = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "create_milestone",
@@ -105,7 +106,7 @@ struct ProjectLookupStorageFailureSurfaceTests {
         let idLookupFailure = "Failed to fetch project: simulated project fetch failure"
         let nameLookupFailure = "Failed to fetch projects: simulated project fetch failure"
         #expect(try MCPTestHelpers.errorText(createTask) == idLookupFailure)
-        #expect(try MCPTestHelpers.errorText(queryTasks) == idLookupFailure)
+        #expect(try MCPTestHelpers.queryErrorMessage(queryTasks) == idLookupFailure)
         #expect(try MCPTestHelpers.errorText(createMilestone) == idLookupFailure)
         #expect(try MCPTestHelpers.errorText(queryMilestones) == nameLookupFailure)
         #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)

@@ -27,10 +27,11 @@ struct MCPStatusFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": ["idea", "planning"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "status": ["idea", "planning"]]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let names = Set(results.compactMap { $0["name"] as? String })
         #expect(names == ["Idea", "Planning"])
     }
@@ -48,10 +49,11 @@ struct MCPStatusFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": "planning"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "status": "planning"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Planning")
     }
@@ -74,10 +76,11 @@ struct MCPStatusFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["not_status": ["done", "abandoned"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "not_status": ["done", "abandoned"]]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Active")
     }
@@ -104,10 +107,11 @@ struct MCPStatusFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["unfinished": true]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "unfinished": true]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Active")
     }
@@ -126,10 +130,11 @@ struct MCPStatusFilterTests {
         // unfinished=true excludes done+abandoned, not_status adds planning to exclusion
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["unfinished": true, "not_status": ["planning"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "unfinished": true, "not_status": ["planning"]]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Idea")
     }
@@ -150,10 +155,11 @@ struct MCPStatusFilterTests {
         // Include idea+planning, but exclude planning → only idea remains
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": ["idea", "planning"], "not_status": ["planning"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "status": ["idea", "planning"], "not_status": ["planning"]]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Idea")
     }
@@ -174,10 +180,11 @@ struct MCPStatusFilterTests {
         // status=done + unfinished=true → contradictory, should return empty
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": ["done"], "unfinished": true]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "status": ["done"], "unfinished": true]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.isEmpty)
     }
 
@@ -198,10 +205,11 @@ struct MCPStatusFilterTests {
         // Empty status (treated as absent = all statuses) + not_status excludes done
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": [String](), "not_status": ["done"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "status": [String](), "not_status": ["done"]]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Idea")
     }
@@ -222,10 +230,11 @@ struct MCPStatusFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["not_status": "done"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "not_status": "done"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Idea")
     }
@@ -242,10 +251,11 @@ struct MCPStatusFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": [String](), "not_status": [String]()]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "status": [String](), "not_status": [String]()]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 2)
     }
 

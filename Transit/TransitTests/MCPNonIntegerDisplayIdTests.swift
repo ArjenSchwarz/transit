@@ -19,11 +19,12 @@ struct MCPNonIntegerDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": displayId]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "displayId": displayId]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("displayId must be an integer"))
     }
 
@@ -36,11 +37,12 @@ struct MCPNonIntegerDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": 1.5]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "displayId": 1.5]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("displayId must be an integer"))
     }
 
@@ -53,10 +55,11 @@ struct MCPNonIntegerDisplayIdTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": 1]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "displayId": 1]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Task")
     }

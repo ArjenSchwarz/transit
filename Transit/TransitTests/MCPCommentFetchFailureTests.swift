@@ -32,12 +32,13 @@ struct MCPCommentFetchFailureTests {
         let displayId = try #require(task.permanentDisplayId)
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "query_tasks", arguments: ["displayId": displayId]
+            tool: "query_tasks", arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "displayId": displayId]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
         #expect(
-            try MCPTestHelpers.errorText(response)
+            try MCPTestHelpers.queryErrorMessage(response)
                 == "Failed to fetch comments: simulated comment fetch failure"
         )
     }
@@ -51,12 +52,12 @@ struct MCPCommentFetchFailureTests {
         )
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "query_tasks", arguments: [:]
+            tool: "query_tasks", arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
         #expect(
-            try MCPTestHelpers.errorText(response)
+            try MCPTestHelpers.queryErrorMessage(response)
                 == "Failed to fetch comments: simulated comment fetch failure"
         )
     }
@@ -70,11 +71,12 @@ struct MCPCommentFetchFailureTests {
         let displayId = try #require(task.permanentDisplayId)
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "query_tasks", arguments: ["displayId": displayId]
+            tool: "query_tasks", arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "displayId": displayId]
         ))
 
         #expect(try !MCPTestHelpers.isError(response))
-        let result = try #require(MCPTestHelpers.decodeArrayResult(response).first)
+        let result = try #require(MCPTestHelpers.decodeQueryResults(response).first)
         #expect((result["comments"] as? [[String: Any]])?.isEmpty == true)
     }
 

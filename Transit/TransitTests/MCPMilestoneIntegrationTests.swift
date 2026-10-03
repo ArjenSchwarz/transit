@@ -258,10 +258,11 @@ struct MCPMilestoneIntegrationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestoneDisplayId": 1]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "milestoneDisplayId": 1]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "In Milestone")
     }
@@ -279,10 +280,10 @@ struct MCPMilestoneIntegrationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: [:]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let first = try #require(results.first)
         let milestoneInfo = try #require(first["milestone"] as? [String: Any])
         #expect(milestoneInfo["name"] as? String == "v1.0")
@@ -317,10 +318,11 @@ struct MCPMilestoneIntegrationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestone": "v1.0"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "milestone": "v1.0"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 2, "Both tasks from identically-named milestones should be returned")
         let names = Set(results.compactMap { $0["name"] as? String })
         #expect(names.contains("Task A"))
@@ -350,10 +352,11 @@ struct MCPMilestoneIntegrationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestone": "v1.0", "project": "Alpha"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "milestone": "v1.0", "project": "Alpha"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Task A")
     }

@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 import SwiftData
 import Testing
@@ -229,11 +230,12 @@ struct BoolAsIntIdRejectionMCPTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": Self.trueNum]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "displayId": Self.trueNum]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("displayId must be an integer"))
     }
 
@@ -246,11 +248,12 @@ struct BoolAsIntIdRejectionMCPTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestoneDisplayId": Self.falseNum]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "milestoneDisplayId": Self.falseNum]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("milestoneDisplayId must be an integer"))
     }
 

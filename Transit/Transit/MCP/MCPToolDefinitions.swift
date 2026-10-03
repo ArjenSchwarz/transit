@@ -2,7 +2,8 @@
 
 // MARK: - Tool Definitions
 
-nonisolated enum MCPToolDefinitions {
+nonisolated // swiftlint:disable:next type_body_length
+enum MCPToolDefinitions {
     static let coreTools: [MCPToolDefinition] = [
         createTask, updateTaskStatus, queryTasks, addComment, getProjects, createProject,
         createMilestone, queryMilestones, updateMilestone, deleteMilestone, updateTask
@@ -100,14 +101,27 @@ nonisolated enum MCPToolDefinitions {
         )
     )
 
-    // swiftlint:disable:next line_length
-    private static let queryTasksDescription = "Search and filter tasks. All filters are optional — omit all to return every task. Use displayId for single-task lookup with full details. Use project for case-insensitive name filtering. status accepts an array of statuses to include. not_status accepts an array of statuses to exclude. priority accepts an array of priorities to include. unfinished=true excludes done and abandoned tasks (merged with not_status if both provided). Use search for case-insensitive substring matching on task name and description."
+    private static let queryTasksDescription = """
+    Query tasks with required detailLevel (summary/full), includeComments (boolean), and limit (1–100).
+    Filters are optional; displayId accepts the same filters. Choose at most one selector: displayId,
+    taskIds or displayIds (batches of 1–100 identifiers, no filters). Returns {results,nextCursor,expiresAt}.
+    Lists sort by task UUID; batch outcomes retain input order/index, requested identity, and task or error
+    (TASK_NOT_FOUND/AMBIGUOUS_TASK_ID). Full detail includes nullable description and nonempty metadata.
+    Continue with only cursor. Results are frozen for five minutes; replay does not extend expiry.
+    Whole-query errors are {error:{code,message}}: INVALID_INPUT, AMBIGUOUS_TASK_ID, AMBIGUOUS_FILTER,
+    QUERY_FAILED, INVALID_CURSOR (start a new query), QUERY_EXPIRED, QUERY_UNAVAILABLE, or
+    QUERY_CAPACITY_EXCEEDED (reduce scope/comments or retry after expiry). Unknown fields are rejected.
+    status/not_status/priority accept arrays; unfinished excludes done/abandoned; search matches name/description.
+    """
 
-    static let queryTasks = MCPToolDefinition(
-        name: "query_tasks",
-        description: queryTasksDescription,
-        inputSchema: .object(
-            properties: [
+    private static let queryTaskProperties: [String: JSONSchemaProperty] = [
+                "detailLevel": .stringEnum("Required task detail", values: ["summary", "full"]),
+                "includeComments": .boolean("Required: include comments ordered by creation date and UUID"),
+                "limit": .integer("Required page size, 1 through 100"),
+                "taskIds": .array("Batch of 1 through 100 UUIDs; no filters or other selectors"),
+                "displayIds": .array(
+                    "Batch of 1 through 100 integer IDs; no filters or other selectors", itemType: "integer"
+                ),
                 "displayId": .integer("Task display ID for single-task lookup (e.g. 42 for T-42)"),
                 "status": .array(
                     "Filter by status (include tasks matching any listed status)",
@@ -131,9 +145,16 @@ nonisolated enum MCPToolDefinitions {
                 "search": .string("Text search on task name and description (case-insensitive substring match)"),
                 "milestone": .string("Filter by milestone name"),
                 "milestoneDisplayId": .integer("Filter by milestone display ID (e.g. 3 for M-3)")
-            ],
-            required: []
-        )
+            ]
+
+    static let queryTasks = MCPToolDefinition(
+        name: "query_tasks", description: queryTasksDescription,
+        inputSchema: JSONSchema(type: "object", properties: nil, required: nil, oneOf: [
+            JSONSchema(type: "object", properties: queryTaskProperties,
+                       required: ["detailLevel", "includeComments", "limit"], additionalProperties: false),
+            JSONSchema(type: "object", properties: ["cursor": .string("Opaque next-page cursor; send alone")],
+                       required: ["cursor"], additionalProperties: false)
+        ])
     )
 
     private static let addCommentDescription = "Add a comment to a task. Identify the task by displayId or taskId."

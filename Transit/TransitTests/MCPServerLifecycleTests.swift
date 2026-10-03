@@ -14,7 +14,32 @@ import Testing
 /// task cancellation by cancelling children rather than invoking Hummingbird's
 /// listener-closing graceful-shutdown path. Both versions could race a rebind.
 @MainActor @Suite(.serialized)
+// swiftlint:disable:next type_body_length
 struct MCPServerLifecycleTests {
+
+    @Test func stopAndRestartInvalidateQueryPages() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let server = MCPServer(toolHandler: env.handler)
+        let port = try availableLoopbackPort()
+        await server.start(port: port)
+        try #require(await waitUntilListening(port: port))
+        let token = UUID().uuidString
+        try env.handler.taskQuerySnapshots.publish(
+            pages: ["first", "second"], cursors: [token],
+            deadline: ContinuousClock.now.advanced(by: .seconds(300))
+        )
+        await server.restart(port: port)
+        try #require(await waitUntilListening(port: port))
+        #expect(throws: (any Error).self) { try env.handler.taskQuerySnapshots.page(for: token) }
+        #expect(env.handler.taskQueryAdmissionOpen)
+        await server.stop()
+        #expect(!env.handler.taskQueryAdmissionOpen)
+        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+            tool: "query_tasks", arguments: ["cursor": token]
+        ))
+        let result = try MCPTestHelpers.decodeResult(response)
+        #expect((result["error"] as? [String: String])?["code"] == "QUERY_UNAVAILABLE")
+    }
 
     @Test func stopReturnsOnlyAfterListenerReleasesPort() async throws {
         let env = try MCPTestHelpers.makeEnv()

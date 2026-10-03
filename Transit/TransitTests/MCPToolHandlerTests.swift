@@ -212,11 +212,12 @@ struct MCPToolHandlerTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["projectId": 123, "project": "Alpha"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "projectId": 123, "project": "Alpha"]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("projectId") && errorMessage.contains("UUID"))
     }
 
@@ -314,10 +315,10 @@ struct MCPToolHandlerTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: [:]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 2)
     }
 
@@ -332,10 +333,11 @@ struct MCPToolHandlerTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": "planning"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "status": "planning"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "A")
     }
@@ -348,10 +350,11 @@ struct MCPToolHandlerTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["type": "bug"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "type": "bug"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Bug")
     }
@@ -363,10 +366,10 @@ struct MCPToolHandlerTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: [:]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let first = try #require(results.first)
         #expect(first["projectName"] as? String == "Alpha")
         #expect(first["projectId"] is String)

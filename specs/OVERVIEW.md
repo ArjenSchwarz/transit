@@ -34,6 +34,7 @@
 | [Search Empty State](#search-empty-state) | 2026-05-31 | Done | Show ContentUnavailableView.search empty state when dashboard text search has no matches |
 | [Task Priority](#task-priority) | 2026-06-06 | Done | Add a low/medium/high priority field with board glyph, filter, and MCP/Intent support |
 | [MCP Project Creation](#mcp-project-creation) | 2026-10-02 | Ready for Review | Create projects through MCP with validation and reusable project metadata |
+| [Batch Task Queries](#batch-task-queries) | 2026-10-03 | Planned | MCP task detail selection, batch lookup, and frozen cursor pagination |
 
 ---
 
@@ -326,3 +327,12 @@ Create projects through MCP with validation and a returned UUID for task creatio
 - [implementation.md](mcp-project-creation/implementation.md)
 - [explanation.md](mcp-project-creation/explanation.md)
 - The generated `pre-push-review.html` is a local, ignored review deliverable.
+
+## Batch Task Queries
+
+Extend MCP `query_tasks` with explicit detail/comment options, batch identity lookup, and bounded pages over five-minute frozen results (T-2379).
+
+- [requirements.md](batch-task-queries/requirements.md)
+- [design.md](batch-task-queries/design.md)
+- [decision_log.md](batch-task-queries/decision_log.md)
+- [tasks.md](batch-task-queries/tasks.md)
