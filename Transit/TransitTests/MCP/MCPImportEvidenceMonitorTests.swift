@@ -54,5 +54,39 @@ struct MCPImportEvidenceMonitorTests {
         #expect(monitor.freshness(snapshot, proof: proof, asOf: date.addingTimeInterval(-1),
                                   now: now).assessment == .unknown)
     }
+
+    @Test func malformedImportAndClockJumpsFailClosed() {
+        let date = Date(timeIntervalSince1970: 100)
+        let now = ContinuousClock.now
+        let id = UUID()
+        let monitor = MCPImportEvidenceMonitor(syncActive: true, storeIdentifier: "store")
+        monitor.receive(.init(id: id, storeIdentifier: "store", kind: .import,
+                              startDate: date, endDate: date.addingTimeInterval(1), succeeded: true),
+                        observedAt: date, monotonicNow: now)
+        #expect(monitor.snapshot().lastSuccess == nil)
+        monitor.receive(.init(id: id, storeIdentifier: "store", kind: .import,
+                              startDate: date, endDate: date, succeeded: true),
+                        observedAt: date, monotonicNow: now)
+        let snapshot = monitor.snapshot()
+        let proof = MCPImportCaptureProof(storeIdentifier: "store", visibleImportIDs: [id])
+        #expect(monitor.freshness(snapshot, proof: proof, asOf: date.addingTimeInterval(2),
+                                  now: now.advanced(by: .seconds(20))).assessment == .unknown)
+        let wrongStore = MCPImportCaptureProof(storeIdentifier: "other", visibleImportIDs: [id])
+        #expect(monitor.freshness(snapshot, proof: wrongStore, asOf: date, now: now).lastImportedAt == nil)
+        let inactive = MCPImportEvidenceMonitor(syncActive: false, storeIdentifier: "store")
+        #expect(inactive.freshness(inactive.snapshot(), proof: proof, asOf: date,
+                                   now: now).assessment == .notApplicable)
+    }
+
+    @Test func concurrentCallbackCopiesAreSerializedBeforeFenceRead() {
+        let date = Date()
+        let monitor = MCPImportEvidenceMonitor(syncActive: true, storeIdentifier: "store")
+        DispatchQueue.concurrentPerform(iterations: 100) { _ in
+            monitor.receive(.init(id: UUID(), storeIdentifier: "store", kind: .import,
+                                  startDate: date, endDate: date, succeeded: true))
+        }
+        #expect(monitor.snapshot().generation == 100)
+    }
+
 }
 #endif
