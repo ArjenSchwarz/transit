@@ -60,7 +60,7 @@ nonisolated struct MCPResultClassification {
                 (category == .internalFailure && !knownInternalRejection)
             let sourceRetry = saved.outcome == "rejected" && saved.retryAction == "new_request_new_key" ||
                 ["rejected", "in_progress"].contains(saved.outcome ?? "") && saved.retryAction == "retry_same_request"
-            if !uncertain, sourceRetry {
+            if case .protectedWrite = mutation, !uncertain, sourceRetry {
                 return MCPResultRecovery(direction: .followSource, mutation: mutation)
             }
             if case .unprotectedMaintenance = mutation {
