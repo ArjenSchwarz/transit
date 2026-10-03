@@ -1,0 +1,24 @@
+{
+  "parent": "feeb7df8e115edcc0139072c08c0968c3ce157dc",
+  "isolationSource": "9ba4297b9747673f3a39486e7ff66ced16f8b741",
+  "sourceLint": {
+    "files": 418,
+    "violations": 0
+  },
+  "branchRuntimeVerified": false,
+  "T63FreshnessIntegrated": false,
+  "fileSHA256": {
+    "Transit/Transit/TransitApp.swift": "d6cf9dcb0ae63527b1c87554ce4b57b25c5cbeed26609e148b63ed9379a7514d",
+    "Transit/Transit.xcodeproj/project.pbxproj": "207934daaf68fae13c31519b428b8100e552a0a99353b0a8525ae6a4e2bd79cd",
+    "Transit/Transit/MCP/MCPToolHandler.swift": "7f22d19518bd414c45ac21c11d2a706a73121fb87611313b487952fbab11862a",
+    "Transit/Transit/MCP/MCPServer.swift": "06203ada49b19f12ce7f8451a17c89b59510841b78cb2e8bb3a2e716ee60ec51",
+    "Transit/Transit/MCP/Results/MCPResultSource.swift": "5b76185af16f19d83ef63d64fb8c2ba413c6d39068d9c9cebae4688c8df54528",
+    "Transit/Transit/MCP/Results/MCPResultAdapter.swift": "79b811c3e4efd0dc7d1d1b620c599d72d9918e408e9f013bd3ef34cc1d5bc3ae",
+    "Transit/Transit/MCP/Results/MCPJSONDocument.swift": "7efd3387f8b262d2a253343ce976f562dab830fe7aa2954832c6a11e1fae725c",
+    "Transit/Transit/MCP/Results/MCPResultSchemas.swift": "8b04c77a5f6cc4ea5bfc00d7db65ab42aa65cf9e80df1147798ff7ad5a6e38d1",
+    "Transit/Transit/MCP/Results/MCPResultEncoder.swift": "04312c20b65530522cebfdb220ec7c958425de033aad916dbe643f3f6b81f973",
+    "Transit/Transit/MCP/Protocol/MCPModernRequest.swift": "d6b0d60edddfcb1a2ae1dc33991f3d80e71b4c0f4ed87e550ebe64e1ab643b3d",
+    "Transit/Transit/MCP/Protocol/MCPModernDiscovery.swift": "3f25bd80fe59c6f62a0f5817e8c1d5560d5772ad1a13403e2f561a949f9e0a67",
+    "Transit/Transit/MCP/Protocol/MCPModernValidator.swift": "bc26ae2fd0d0864ee2c2d48526fd9c1cc4f4160132c7c12dc25aa551115d206a"
+  }
+}

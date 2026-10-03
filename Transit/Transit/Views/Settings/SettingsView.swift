@@ -110,7 +110,8 @@ struct SettingsView: View {
             TextField("Your Name", text: $userDisplayName)
             LabeledContent("About Transit", value: appVersion)
             VStack(alignment: .leading, spacing: 4) {
-                Toggle("iCloud Sync", isOn: $syncEnabled)
+                Toggle("iCloud Sync", isOn: syncPreference)
+                    .disabled(!syncManager.cloudSyncAllowed)
                     .onChange(of: syncEnabled) { _, enabled in
                         syncManager.setSyncEnabled(enabled)
                     }
@@ -153,7 +154,15 @@ struct SettingsView: View {
     }
 
     var syncFootnote: String {
-        Self.syncFootnote(requiresRestart: syncManager.syncChangeRequiresRestart)
+        guard syncManager.cloudSyncAllowed else { return "This copy keeps its data on this device." }
+        return Self.syncFootnote(requiresRestart: syncManager.syncChangeRequiresRestart)
+    }
+
+    private var syncPreference: Binding<Bool> {
+        Binding(
+            get: { syncManager.cloudSyncAllowed && syncEnabled },
+            set: { if syncManager.cloudSyncAllowed { syncEnabled = $0 } }
+        )
     }
 
     private func projectRow(_ project: Project) -> some View {
@@ -445,7 +454,8 @@ extension SettingsView {
                 }
                 FormRow("iCloud Sync", labelWidth: Self.labelWidth) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Toggle("", isOn: $syncEnabled)
+                        Toggle("", isOn: syncPreference)
+                            .disabled(!syncManager.cloudSyncAllowed)
                             .labelsHidden()
                             .toggleStyle(.switch)
                             .onChange(of: syncEnabled) { _, enabled in
