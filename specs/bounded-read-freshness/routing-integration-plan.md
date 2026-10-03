@@ -1,6 +1,6 @@
 # Task 12 remainder and staged task 13 integration
 
-Prepared against `54bfe98`. This is an implementation handoff proposal, not a task 13 implementation or verification claim. The actual single-router RED remains `099415e`: four device executions failed after successful compilation. No further app job is authorized at this checkpoint.
+Prepared against `54bfe98`, with capability/server RED evidence on `e3812b1`. The parent authorized Stage A source implementation after actual routing/capability RED; no new product approval or T2382 delivery is required for generic routing repair. This document does not claim task 13 GREEN. Actual single-router RED remains `099415e`: four device executions failed after successful compilation. Capability RED ran three failing executions; stopped-server baseline ran eight executions with three failures and five preservation controls passing. Both exclusive test slots were released after drain. Further app jobs require a new grant.
 
 ## Stage A: independent bounded routing and lifecycle
 
@@ -12,10 +12,25 @@ Implement the already declared `MCPReadCapturedPreparing` on the existing servic
 
 The concrete server injection seam should pass the same coordinator to construction and every router generation; constructing a new coordinator in `makeRouter` or `launchServer` would lose the physical-work bound. Existing listener fences remain authoritative for socket release.
 
-Two small interfaces need confirmation before source implementation:
+Two small interfaces were confirmed as routine task 13 integration choices; neither has runtime binding yet:
 
 - Preallocated operation UUID accepted by single-read admission, with a default UUID for existing callers, to encode machine fallback correlation before admission. Reject an already-live UUID without replacing its entry. The actual JSON-RPC ID remains a separate value.
 - An operation-specific physical-completion receipt for deterministic tests. It completes only after worker finalization and private publication cleanup, resumes outside the common lock, and does not turn terminal selection into permit release. Completed-receipt storage must be bounded or caller-owned.
+
+`MCPReadAdmission(operationID:physicalCompletion:)` now declares those caller-owned values. Capability RED at `e3812b1` compiled and ran three failing methods; final acceptance must remove its test-only baseline adapter and call the real coordinator admission overload directly. The callback may run after `unfinishedCount` reaches zero, so tests await both independently with bounded waits. There is no completed-receipt registry.
+
+### Exact direct-coordinator lifecycle fixture plan
+
+Use the existing `MCPReadCoordinator` directly, not a new runtime wrapper. Proposed task 13 plumbing is `MCPServer(toolHandler:readCoordinator:)` and `MCPServer.makeRouter(handler:readCoordinator:)`, both retaining the same injected instance. `TransitApp` constructs one coordinator/domain/launch-fixed monitor/service. Existing `DesiredState`, `serverGeneration`, `ActiveServer`, `ServiceGroup.triggerGracefulShutdown()` and listener-task completion remain responsible for listener reconciliation/socket release.
+
+The additional fixture file is `MCPReadServerCoordinatorLifecycleTests.swift`; it is not supplied or run yet because the injection plumbing is absent. Use existing loopback-port/lifecycle test helpers rather than replacing shutdown fences:
+
+1. Start the actual listener with the injected coordinator and matching ordinary-store domain. Start eight direct admitted workers with unique preallocated IDs and caller-owned physical receipts; each signals start and awaits a release latch. Stop the server, await all eight terminal fallbacks, restart the same listener port, and assert a new operation is busy while old workers remain physical. Release the old latch, await each receipt plus count drain, then assert new-generation work succeeds. Also assert the server/router retained the same coordinator reference, rather than constructing a replacement.
+2. Observe the actual first listener generation, restart, then invoke `listenerDidExit` with that recorded old generation. Assert the replacement remains running with admission open; admit and finish current work. The existing unmatched `-1` callback fixture is only a preservation control and cannot satisfy this assertion. A narrow read-only generation inspection seam is sufficient if needed; do not replace lifecycle state or add an independent generation owner.
+3. Prepare an ordinary private cursor candidate with the operation ID, signal its prepared state and latch before full RPC encoding. Stop selects preencoded ID-correct fallback; release late preparation and assert candidate never becomes visible, private charge clears exactly once, and the physical receipt follows cleanup. Success counterpart must preserve exact frozen metadata bytes and actual escaped RPC ID in the complete selected response before the common gate.
+4. Force outer encoding failure after private reservation ownership exists. Invoke the dispatcher's actual failure-cleanup path, assert its complete preencoded failure has the original RPC ID, zero visible/pending retained charge, and one physical receipt. A fixture encoder may inject this failure; it must not implement a different publication gate or duplicate T2382 retention logic.
+
+These tests must call the actual injected server and real admission overload once implementation exists. An interface-only compile/capability RED is labeled separately; it cannot substitute compiled behavioral lifecycle or final helper acceptance. No sockets/tests are launched without the exclusive slot.
 
 ## Remaining task 12 fixtures
 
