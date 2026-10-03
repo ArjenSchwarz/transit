@@ -141,3 +141,5 @@ make test-quick TEST_TARGETS='TransitTests/MCPReadAdmissionContractTests Transit
 ```
 
 The existing actual-router RED evidence remains separate. Remaining actual-server lifecycle, write-preservation and real helper registration/replay acceptance follows the staged `routing-integration-plan.md`; task 12 is still in progress and task 13 has no runtime implementation.
+
+The separately prepared `MCPReadServerPreservationTests` uses existing server/router APIs: three stopped-read executions expect no capture identity and a busy terminal category, while five controls preserve stale-callback admission, original protected-write receipt replay, revision conflict/comment atomicity, stopped maintenance dispatch, and fallback-storage mutation exclusion. These six methods/eight executions have not run. The stale callback uses an unmatched generation against an unlaunched server; it does not establish replacement-listener or unfinished-worker lifecycle acceptance. That acceptance still needs one injected coordinator lifetime and the real admission/physical receipt API. No WriteCoordinator-owned source or tests are changed.
