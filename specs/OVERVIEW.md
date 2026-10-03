@@ -376,6 +376,8 @@ Immutable source/presentation results, supported-link availability and modern-on
 - [Source GREEN evidence](structured-mcp-results/source-green.md)
 - [Presentation GREEN evidence](structured-mcp-results/presentation-green.md)
 - [Protocol GREEN evidence](structured-mcp-results/protocol-green.md)
+- [Encoder RED preparation](structured-mcp-results/encoder-red.md)
+- [Encoder fixture review](structured-mcp-results/encoder-review.md)
 - [Isolation integration](structured-mcp-results/isolation-integration-plan.md)
 - [Presentation RED evidence](structured-mcp-results/presentation-red.md)
 - [Presentation supplemental RED evidence](structured-mcp-results/presentation-supplemental-red.md)
