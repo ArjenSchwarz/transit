@@ -27,9 +27,10 @@ extension MCPToolHandler {
     }
 
     private func queryResults(_ request: MCPTaskQueryRequest, args: [String: Any]) throws -> [[String: Any]] {
+        let formatter = ISO8601DateFormatter()
         switch request.selector {
         case .taskIDs, .displayIDs:
-            return try batchQueryResults(request)
+            return try batchQueryResults(request, formatter: formatter)
         case .list, .single:
             guard let filters = try taskQueryFilters(args) else { return [] }
             let tasks: [TransitTask]
@@ -51,11 +52,13 @@ extension MCPToolHandler {
                 }
             }
             return try tasks.filter { filters.matches($0) }.sorted { $0.id.uuidString < $1.id.uuidString }
-                .map { try queryTaskDictionary($0, request: request) }
+                .map { try queryTaskDictionary($0, request: request, formatter: formatter) }
         }
     }
 
-    private func batchQueryResults(_ request: MCPTaskQueryRequest) throws -> [[String: Any]] {
+    private func batchQueryResults(
+        _ request: MCPTaskQueryRequest, formatter: ISO8601DateFormatter
+    ) throws -> [[String: Any]] {
         let tasks: [TransitTask]
         do { tasks = try taskFetcher.fetchAllTasks() } catch {
             throw MCPTaskQueryError(code: "QUERY_FAILED", message: "Failed to fetch tasks: \(error)")
@@ -78,7 +81,9 @@ extension MCPToolHandler {
             var outcome: [String: Any] = ["index": position, "requested": input.requested]
             let matches = index[input.key] ?? []
             if matches.count == 1, let task = matches.first {
-                if serialized[task.id] == nil { serialized[task.id] = try queryTaskDictionary(task, request: request) }
+                if serialized[task.id] == nil {
+                    serialized[task.id] = try queryTaskDictionary(task, request: request, formatter: formatter)
+                }
                 outcome["task"] = serialized[task.id]
             } else {
                 let code = matches.isEmpty ? "TASK_NOT_FOUND" : "AMBIGUOUS_TASK_ID"
@@ -92,8 +97,9 @@ extension MCPToolHandler {
         }
     }
 
-    private func queryTaskDictionary(_ task: TransitTask, request: MCPTaskQueryRequest) throws -> [String: Any] {
-        let formatter = ISO8601DateFormatter()
+    private func queryTaskDictionary(
+        _ task: TransitTask, request: MCPTaskQueryRequest, formatter: ISO8601DateFormatter
+    ) throws -> [String: Any] {
         var dict = IntentHelpers.taskToDict(task, formatter: formatter, detailed: request.detailLevel == "full")
         if request.detailLevel == "full" {
             dict["description"] = task.taskDescription.map { $0 as Any } ?? NSNull()

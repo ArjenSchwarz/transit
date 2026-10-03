@@ -43,7 +43,7 @@ struct MCPTaskQueryFailureTests {
         comments.values = [second, first]
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks", arguments: [
-                "displayIds": [42, 42, -1], "detailLevel": "summary", "includeComments": true, "limit": 2
+                "displayIds": [42, 42, -1], "detailLevel": "summary", "includeComments": true, "limit": 1
             ]
         ))
         let page = try MCPTestHelpers.decodeResult(response)
@@ -58,12 +58,20 @@ struct MCPTaskQueryFailureTests {
         let cursor = try #require(page["nextCursor"] as? String)
         task.name = "Edited"
         first.content = "Edited comment"
+        let newComment = Transit.Comment(content: "New comment", authorName: "Agent", isAgent: true, task: task)
+        comments.values = [first, newComment]
         comments.shouldFail = true
         tasks.shouldFail = true
         let next = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks", arguments: ["cursor": cursor]
         ))
         #expect(try !MCPTestHelpers.isError(next))
+        let nextResults = try MCPTestHelpers.decodeQueryResults(next)
+        let frozenTask = try #require(nextResults[0]["task"] as? [String: Any])
+        #expect(frozenTask["name"] as? String == "Task")
+        let frozenComments = try #require(frozenTask["comments"] as? [[String: Any]])
+        #expect(frozenComments.map { $0["content"] as? String } == ["First", "Second"])
+        #expect(frozenComments.map { $0["id"] as? String } == [first.id.uuidString, second.id.uuidString])
         #expect(tasks.calls == 1)
         #expect(comments.calls == 1)
     }

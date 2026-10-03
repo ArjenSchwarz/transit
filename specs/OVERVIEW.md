@@ -336,3 +336,4 @@ Extend MCP `query_tasks` with explicit detail/comment options, batch identity lo
 - [design.md](batch-task-queries/design.md)
 - [decision_log.md](batch-task-queries/decision_log.md)
 - [tasks.md](batch-task-queries/tasks.md)
+- [implementation.md](batch-task-queries/implementation.md)

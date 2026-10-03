@@ -32,7 +32,7 @@ The app uses a separate `ModelContext` for services (created in `TransitApp.init
 
 - `MCPToolHandler` has `commentService` dependency (passed in init).
 - `add_comment` tool: resolves task by displayId or taskId, calls `addComment` with `isAgent: true`.
-- `query_tasks` / display ID lookup: `taskToDict` includes a `comments` array in every task response.
+- `query_tasks` / display ID lookup: `includeComments: true` includes a comments array ordered by creation date ascending, then comment UUID ascending. `includeComments: false` omits comments and skips comment fetching. Requested comments are frozen with the task values for cursor pagination.
 - `MCPToolHandler` uses a `resolveTask(from:)` helper (returns `Result<TransitTask, String>`) shared by `update_task_status` and `add_comment`.
 
 ### App Intents
