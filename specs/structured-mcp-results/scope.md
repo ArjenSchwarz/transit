@@ -1,22 +1,47 @@
 # T-2383: Structured MCP results — scope review
 
-Status: proposed scope/name; awaiting parent-mediated user approval. No requirements, design, tasks or implementation have been approved.
+Status: original scope direction accepted subject to the requested protocol assessment (parent Sentinel_4fd40b3fecf48191a57ce03897d3e7ec); revised protocol scope/name confirmation pending. No requirements, design, tasks or implementation have been approved.
 
 ## Recommendation and gate
 
 Use the full Starwave spec workflow. Proposed feature name: `structured-mcp-results` (user may override). The user explicitly requested full specs; this also changes a public wire contract and its relationship to persisted replay. Scope/name approval starts requirements, followed by separate requirements, design and task approvals. Implementation needs separate authorisation.
 
-**First approval question:** Approve the full-spec path, name `structured-mcp-results`, and proposed scope below, including explicit unavailable links while T-572 remains unimplemented?
+**Remaining approval question (through parent):** Approve `structured-mcp-results` with latest stable `2026-07-28` support plus a legacy `2025-03-26` compatibility path, including the transport changes below; or select the smaller interim `2025-11-25` scope? Explicit unavailable links remain recommended while T-572 is unimplemented.
 
 ## Proposed scope
 
-- Add documented object-valued MCP `structuredContent` for existing result-bearing tools, with identities, normalized saved values, canonical revisions where applicable, and machine-readable success/error information.
-- Preserve existing text payload shapes and saved replay bytes. Array-valued legacy reads need a documented object wrapper in the structured channel; choose its shape during requirements/design rather than changing text arrays.
+- Add documented MCP `structuredContent` for existing result-bearing tools, with identities, normalized saved values, canonical revisions where applicable, and machine-readable success/error information.
+- Preserve existing text payload shapes and saved replay bytes. Latest MCP allows array-valued structured reads; object wrappers are a contract choice, not a latest-version requirement. Choose the shape and old-client presentation during requirements/design.
 - Specify categories for caller errors, absent records, conflicts, retryable storage/admission failures and uncertain write outcomes. Keep existing error codes, `isError`, T-2380 `accepted`/`outcome`/`retryAction`, and JSON-RPC protocol errors meaningful. Unknown failures must not acquire a guessed retry guarantee.
 - Define complete/failed read and mutation-result semantics. A failed required read must not imply an empty collection. Distinguish explicit selector-level missing outcomes from whole-read failure; do not invent partial success after a committed write or safe fresh-key retry for uncertainty.
 - Document actual field normalization and equality with saved readback. Preserve exact content covered by revisions rather than introducing a new trimming pass.
 - Define task/project link availability explicitly. Publish URLs only when backed by a supported entity-opening scheme. With current support absent, recommend an explicit unavailable result; T-572 owns the navigation feature. A proposed `transit://` string is not a supported link.
-- Resolve MCP protocol compatibility: code currently negotiates at most `2025-03-26`; official `2025-06-18` defines object-valued structured results/output schemas. Requirements/design must decide negotiation and old-client behavior before schema wiring.
+- Target latest stable `2026-07-28` with legacy compatibility if the revised scope is approved. Review version-aware transport/result presentation and schema wiring with T-63 before production edits.
+
+## Latest MCP assessment (2026-10-03)
+
+The official versioning page marks `2026-07-28` Current, and the GitHub release calls it stable. It supersedes `2025-11-25`; the user's July date is correct. The earlier `2025-06-18` citation establishes structured-result history, not the recommended latest version. [Versioning](https://modelcontextprotocol.io/docs/2026-07-28/learn/versioning), [stable release](https://github.com/modelcontextprotocol/modelcontextprotocol/releases/tag/2026-07-28).
+
+**Recommendation:** design for latest stable with dual-era compatibility, contingent on approval of the additional transport work. Avoid advertising latest support by changing the initialization constant alone. If this ticket must stay focused on serialization, use `2025-11-25` as an interim structured-result revision and defer the modern transport migration explicitly. It is still a compatibility change, not a free constant update.
+
+| Contract | Latest standard | Concrete repository consequence |
+| --- | --- | --- |
+| Version selection | Every modern request declares version/capabilities in `params._meta`; `server/discover` is mandatory; unsupported versions report supported versions. No modern initialization handshake. | Replace the single-version assumption in `MCPToolHandler.handleInitialize` with era-aware dispatch. Keep legacy initialization for existing clients; inspect modern metadata before mutation or store admission. Add discovery and version-error tests. |
+| Legacy interoperation | Dual-era servers may serve both paths. Legacy clients cannot fall forward to modern-only servers. | Recommend preserving `2025-03-26` handshake/text behavior. Store legacy negotiated state separately from per-request modern metadata; select behavior before dispatch. Prove that malformed modern requests cannot silently execute through a permissive legacy route. |
+| HTTP | Modern requests use matching protocol/method/name headers and single-message POSTs. Invalid required headers are rejected; GET and protocol sessions are removed. | `MCPServer.makeRouter` currently accepts POST without version headers, accepts JSON-RPC arrays and emits session IDs on initialization. Add era-aware validation before dispatch. Retain array handling only for legacy compatibility; modern requests must not enter legacy batch assembly. T-2384 application batching is one tool call and remains valid. |
+| Notifications | Modern long-lived change listening is `subscriptions/listen` POST; legacy GET/session listening is separate. | Adapt `MCPServer+ToolListNotifications`, handler/settings notification registration and disconnect/lifecycle cleanup. Retain legacy tool-list-change streams. Preserve T-63 generation invalidation and physical-read accounting through either path. |
+| Result presentation | Modern ordinary results carry `resultType:complete`; list results add caching fields. | Add version-aware common result/list/discovery envelopes. Pick conservative list cache policy and verify maintenance toggle changes still reach both subscription types. Do not confuse protocol cache hints with T-63 capture freshness or snapshot expiry. |
+| Structured data | Latest allows any JSON value; supplied output schemas must match structured results. Text JSON compatibility is recommended. | Existing array text can have an array structured counterpart on latest. Interim `2025-11-25` uses an object-valued result; avoiding two public payload shapes may justify a shared wrapper, but that is a user/design decision. Existing `JSONSchema` and `MCPToolDefinition` lack output-schema support. Use only schema constructs needed by these tools; no generic schema engine requirement is implied. |
+| Security | Origin validation remains required; localhost binding and authentication are recommended. | Current source already binds `127.0.0.1` and validates Origin/Host before body access. Preserve this. Current local unauthenticated deployment requires an explicit assessment in design; do not silently introduce OAuth, remote listening or new credentials as part of a version update. |
+| Lost responses | Latest transport does not use SSE event-ID redelivery. | T-2380 idempotency keys and saved outcomes remain application recovery evidence; new JSON-RPC IDs do not mean new write keys. T-2384 item keys recover committed results when aggregate delivery/encoding fails. |
+
+Sources for the table: [version compatibility](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning), [HTTP binding](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http), [tools and structured content](https://modelcontextprotocol.io/specification/2026-07-28/server/tools), [release changes](https://modelcontextprotocol.io/specification/2026-07-28/changelog), [interim HTTP contract](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports).
+
+Planning impact: serialization can be isolated, but latest-version transport and notification migration cannot run concurrently as another writer of T-63's existing common files. Specify integration interfaces and delivery order with T-63, retaining its sole-writer rule. Both modern and legacy encoders must honor read deadline/atomic-publication constraints; do not add a second post-publication encoding pass. Frozen captures must survive era-specific presentation without changing revisions or saved text. A response's full encoded size, including structured duplication and modern metadata, must enter the agreed retention/deadline accounting.
+
+T-2384 coordination received: ordered per-item outcomes with nested original T-2380 result, no new durable batch-key namespace, and aggregate failure after commits must never imply no effect. This is compatible with a proposed immutable JSON-value/preserved-text adapter. Preserve `accepted`, `outcome`, `retryAction`, `isError` and historic absent/null distinctions. Category mapping must not override the source retry direction. These are coordination constraints, not an approved new batch requirement here.
+
+No upgrade or requirements generation occurred during this assessment. Await revised scope/name confirmation before moving T-2383 to Spec. Requirements, design and tasks retain their independent approval gates.
 
 ## Exclusions
 
