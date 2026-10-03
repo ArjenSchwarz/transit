@@ -28,3 +28,34 @@
 **Client evidence and blocker:** standalone Codex `0.160.0`, bundled `0.159.2`, both read-only feature lists report `mcp_2026_07_28` false. The [exact 0.160.0 protocol-mode source](https://raw.githubusercontent.com/openai/codex/rust-v0.160.0/codex-rs/rmcp-client/src/protocol_mode.rs) includes modern lifecycle but defaults to Legacy. Binary marker inspection confirms modern methods, not enabled negotiation. [Official OpenAI MCP docs](https://learn.chatgpt.com/docs/extend/mcp?surface=cli) establish HTTP support but do not document latest-version activation. Actual desktop host overrides are unverified. Claude Code `2.1.288` has SDK2 modern symbols; cached `tengu_mcp_protocol_negotiation_http` is true, with no environment/settings override observed for MCP_SDK_GENERATION or MCP_PROTOCOL_NEGOTIATION. [Official Claude runtime docs](https://code.claude.com/docs/en/mcp#mcp-client-runtimes) describe conditional runtime selection and feature flags; this supports readiness but does not prove an active modern-only connection. Claude Desktop `2.19675.0` was inspected read-only: its `app.asar` has modern `2026-07-28` version selection, `server/discover`, `subscriptions/listen` and per-request metadata in the bundled `.vite/build/mcp-runtime/directMcpHost.js`/main SDK code. This is installed implementation evidence, not proof its active runtime/Transit connector chooses modern mode. The conventional Desktop config and MCP log show no identifiable Transit negotiation; alternate connector routes were not inferred. Official [Desktop local MCP guide](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop) establishes local MCP support but does not state the protocol revision. Both Code and Desktop remain live-negotiation verification prerequisites. No configs/server modified. Existing successful tool calls against legacy Transit prove only old-server connectivity.
 
 **Verification path:** design/task plan must validate actual Codex/Claude surfaces against an isolated modern protocol fixture before enabling a production migration. If modern mode is disabled/unavailable, stop at the migration gate and report required approved client activation/upgrade; do not add legacy support or change client settings silently. This is a prerequisite, not permission to run an external-model agent.
+
+## Quick decisions: design
+
+| ID | Date | Decision | Evidence / reason |
+| --- | --- | --- | --- |
+| Q11 | 2026-10-03 | Requirements approved; proceed design only. | Parent verified owner message 2026-10-03T09:51:37.926279Z Sentinel_39b0ca45b1b8819180ac6d9600578f0b, “Structured MCP results requirements also approved”. |
+| Q12 | 2026-10-03 | ttlMs zero/public for discovery and tool lists; deterministic name order. | Definitions depend on local availability; no personalised responses, no stale settings cache required. |
+| Q13 | 2026-10-03 | Unavailable UUID-and-source-pointer link sidecar; explicit tool selector tables. | Avoid guessing IDs in unknown historical fields and preserve replay determinism. |
+| Q14 | 2026-10-03 | Generated plain error text and malformed retained JSON have separate declared origins. | JSON parse failure alone cannot establish that saved evidence is an ordinary message. |
+
+## ADR 2: Immutable source and separate presentation envelope
+
+**Status:** proposed design decision; technical choice routed through parent for owner input.
+
+**Context:** historic JSON may contain arbitrary unknown field names. Flattening category/links into that object would either overwrite saved evidence or silently change the supplemental contract. Reads also use arrays and scalar JSON values. T2384 needs nested original JSON/text/optional isError independent of aggregate diagnostics.
+
+**Decision:** common structured contract version1 uses source.kind/payload and a separate presentation containing evidence, links, category and recovery. Text and optional isError are retained independently. A lossless immutable JSON document validates/inserts the whole original JSON fragment without a Double roundtrip; presentation never rewrites the original payload.
+
+**Consequences:** consumers follow source.payload rather than consuming a flat structured record. Common schema constrains wrapper/source variants but intentionally permits any original JSON value/unknown historic fields. Current tool shapes are documented separately. Raw fragment insertion requires a validated complete document and targeted parser/encoder property checks. This adds parser work but avoids lossy generic AnyCodable conversion across actor boundaries. No receipt format migration or alternate canonicalizer is introduced.
+
+**Alternatives:** flat original JSON plus reserved fields cannot satisfy collision safety; metadata-only supplements separate fields but do not supply a self-contained versioned structured contract. Re-encoding Foundation numeric values risks changing unknown historical numbers. A new persisted presentation receipt would change storage/replay semantics and create migration work outside scope.
+
+## ADR 3: Complete response preparation before publication or write effects
+
+**Status:** proposed design decision.
+
+**Context:** T63 can publish retained views only with a winning complete response; T2380/T2384 can commit before a response encoder fails. Calling a generic encoder again while handling its failure can hide the outcome or lose request correlation.
+
+**Decision:** covered reads finish all text/structured/meta/modern envelope bytes before the existing atomic publication gate. Protected single/batch writes prepare a complete compact modern uncertainty/reconcile response before effects, correlated to the RPC ID and original keys, then select those ready bytes on post-effect encoding failure without invoking the failed encoder again. Fallback preparation failure blocks dispatch. Cancellation suppresses delivery but never rewrites commitment evidence.
+
+**Consequences:** expanded retained fragments count toward existing store budgets; unsafe generic response fallbacks are excluded from may-commit paths. The common encoder offers complete-byte preparation; T2384 supplies its compact aggregate and preserves per-item effects/keys. Read physical finalizers and write durable transactions remain owned by their approved components.

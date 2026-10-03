@@ -1,6 +1,6 @@
 # Structured MCP results: requirements review
 
-Status: critic and two independent internal peer validations complete; final targeted re-review found no remaining requirements blockers. Requirements await user approval. No implementation.
+Status: critic and two independent internal peer validations complete; final targeted re-review found no remaining requirements blockers. Requirements approved by parent-verified owner message Sentinel_39b0ca45b1b8819180ac6d9600578f0b. No implementation.
 
 ## Self-check
 
@@ -41,4 +41,4 @@ Formatting validation: all 27 acceptance criteria have unique anchors and requir
 
 ## Approval gate
 
-Send reviewed requirements to the user's phone via `/Users/arjen/bin/send-md-to-phone`, then route through parent: **Do the requirements look good or do you want additional changes?** Requirements approval starts design, not implementation.
+Owner requirements approval verified by parent: 2026-10-03T09:51:37.926279Z, Sentinel_39b0ca45b1b8819180ac6d9600578f0b, “Structured MCP results requirements also approved”. Design is authorised; tasks/implementation remain gated. Earlier pending-approval statements are superseded by this verified evidence.

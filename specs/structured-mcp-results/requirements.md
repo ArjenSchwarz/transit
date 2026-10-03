@@ -83,4 +83,4 @@ Transit agents need saved records and recovery information they can consume dire
 
 ## Approval
 
-Requirements are proposed. Scope approval does not approve these criteria. After internal critic and peer reviews, send the reviewed document to the phone and ask through parent: “Do the requirements look good or do you want additional changes?” Design starts only after explicit requirements approval.
+Approved by the owner on 2026-10-03 at 09:51:37.926279Z: “Structured MCP results requirements also approved” (parent-verified Sentinel_39b0ca45b1b8819180ac6d9600578f0b). This authorises design; design and task approvals remain separate gates. No implementation is authorised.
