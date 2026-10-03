@@ -23,3 +23,7 @@ This review establishes neither application GREEN nor API15 delivery. Preparatio
 ## First GREEN oracle diagnosis
 
 The two failed methods are fixture-oracle defects, not evidence of encoder corruption: Foundation JSONSerialization rejects valid1E-9999 before raw byte extraction. The encoder's raw insertion does not convert these numbers. Review approves a narrow validation-only surrogate copy after strict numeric lexical validation, using Foundation only for complete structure/escape/trailing validation and ignoring its decoded tree. Raw extraction/equality must remain on original bytes; preserve all14 methods/inputs/assertions and production depth32 semantics. Add standalone helper controls for malformed numeric spelling, escaped strings and trailing junk. The attempt remains12 passes/2 failures and task7 requires a new authorised rerun. No source edits or tests were performed by the critic.
+
+## Oracle correction review
+
+Reviewed exact ffe2c33. Strict grammar rejects malformed numbers before validation-only substitution; quoted strings remain intact, and Foundation validates the full disposable structure. Original bytes alone supply extraction/equality. Production files and all14 test methods remain unchanged. No blocker to requesting the same-suite guarded rerun; task7 is pending application GREEN and API15 undelivered. No reviewer source edits or tests occurred.

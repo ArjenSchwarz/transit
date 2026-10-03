@@ -23,3 +23,11 @@ A post-body hang recurred. Both exact owned processes were sampled before any te
 Evidence .codex-cache/t2383-encoder-green-3ba1cfb/results.md includes manifests, commands, console-method classifications, source/fixture hashes, both samples and scoped cleanup. Prior RED logs/raw bundle remain unchanged.
 
 Parent authorised a narrow helper correction after drain: lexically validate number tokens outside strings, reject malformed spelling/junk, substitute0 only in a disposable Foundation structural-validation copy, discard the decoded tree, and keep raw locating/equality on original bytes. Preserve all14 method files/inputs/assertions and the production parser cap/semantics. Source-only correction and helper controls are delegated; critic review and a fresh focused guarded grant are required before rerun. No app/GREEN retry, production/live/client-setting change follows this attempt.
+
+## Narrow oracle correction readiness
+
+Parent-approved fixture-only correction ffe2c33 changes rawFragment's validation call and adds MCPJSONEnvelopeFixtureValidation. It strictly validates numeric spellings/token boundaries outside quoted strings before substituting valid numbers with0 in a disposable Foundation structural-validation copy. Escaped strings remain intact; Foundation checks complete structure/escapes/trailing input and its decoded tree is ignored. Raw locating and exact equality use original bytes exclusively.
+
+Actual-helper standalone controls passed11 valid/20 malformed cases, including underflow/huge exponents, exact integer/-0, escaped quotes/numeric-looking strings, wrapped depth32, bad leading zero/fraction/exponent/adjacent junk/trailing input/escapes. Parse, targeted lint and pure module/test typechecks pass. Production Results source is byte-identical to3ba1cfb and both14-method test files to a480d06; no assertion/input was weakened. Evidence .codex-cache/encoder-oracle-correction/manifest.json, SHA2565c04988715f0bc5b7e8f5d40a3a99cdc51898961fdb66687dbb78b0005cc7fa0.
+
+Internal critic cleared the correction with no rerun blocker. The parent received the same focused two-suite guarded GREEN request. No app rerun has occurred under the correction; task7 remains in progress and API15 undelivered.
