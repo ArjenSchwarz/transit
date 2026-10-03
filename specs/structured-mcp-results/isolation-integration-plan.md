@@ -1,6 +1,8 @@
 # Isolation integration preparation
 
-Status: original source-only recommendation below is superseded by the parent-delivered exact-base isolation component f7cbb04287062d5c1bf7f3780816d1a9b97eb19f. Parent authorised consuming that component and exclusive dedicated smoke followed by the previously approved presentation/protocol GREEN suites, serially. Preserve original handler/server signatures. T63 integration remains separate. No production launch, MCP activation or live write is authorised.
+Status: integrated source awaiting branch-local isolated runtime verification. Crossed parent instructions first authorised the exact-base f7cbb04 component, consumed as 9f6808e; the later selected b500543 path was then confirmed. Reverted only that owned component as b7625fd, and merged b500543 as a540514, preserving both overview entries. No component was double-applied. Presentation f4bd03a and protocol b6b616e were merged for the explicitly granted focused GREEN slot; combined clean source is fbbe7cb0ff0dd884dc79f6f9cedf652946065275.
+
+Isolation/App/project/Makefile/configuration/scheme/service/runner files have zero diff from b500543; the development configuration guard passed. The slot covers fresh dedicated smoke, signed-host/xctestrun preflight, and then the two focused suites serially on the same guarded configuration. Runtime verification is pending; no production launch, MCP activation or live write is authorised. Shared source ownership remains unchanged.
 
 ## Exact checkpoints
 
