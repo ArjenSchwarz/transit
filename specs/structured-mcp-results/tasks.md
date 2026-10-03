@@ -52,7 +52,7 @@ metadata:
   - Requirements: [1.2](requirements.md#1.2), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.5](requirements.md#3.5), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4)
   - References: design.md, Transit/Transit/MCP/Results/MCPResultAdapter.swift
 
-- [ ] 6. RED: specify complete response encoding and preeffect fallback selection <!-- id:gpzncvq -->
+- [-] 6. RED: specify complete response encoding and preeffect fallback selection <!-- id:gpzncvq -->
   - Add MCPResultEncoderTests for complete modern/text/structured/_meta/RPC bytes, valid request-ID correlation, exact optional isError, source fragments and safe surrounding JSON escaping.
   - Use synthetic protected/batch/maintenance sources to prove fallback bytes are fully deliverable before effects, failed preparation invokes zero effects, and later selection never calls any failed source/presentation/envelope encoder again. Batch fixture uses summary serialization_failed/effect evidence unestablished and original indexes/tool/key/UUID; no production mutate_tasks dependency.
   - Reuse task2 seeded source values to property-check full encoding: exact source/text presence and numbers survive wrapping, malicious surrounding strings cannot escape fields, metadata remains outside source; fixed transaction/fallback fault tests stay separate.

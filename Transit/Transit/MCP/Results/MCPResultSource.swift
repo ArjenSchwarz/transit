@@ -156,6 +156,17 @@ nonisolated struct MCPResultRecovery: Sendable {
 
 /// Metadata is an independent namespace, never inserted into original payloads.
 nonisolated struct MCPResultMetadata: Sendable {
-    let fields: [String: MCPJSONValue]
+    let document: MCPJSONDocument
+
+    private init(document: MCPJSONDocument) {
+        self.document = document
+    }
+
+    static func make(
+        document: MCPJSONDocument,
+        checkpoint: @escaping @Sendable () throws -> Void = {}
+    ) throws -> MCPResultMetadata {
+        throw MCPResultBoundaryError.notImplemented
+    }
 }
 #endif
