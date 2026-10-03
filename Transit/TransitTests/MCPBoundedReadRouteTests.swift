@@ -62,7 +62,7 @@ nonisolated struct MCPBoundedReadRouteTests {
 
     @Test(arguments: [false, true]) @concurrent
     func actualRouterDeadlineCoversValidAndInvalidToolArguments(invalid: Bool) async throws {
-        let fixture = try await Self.fixture()
+        let fixture = try await Self.fixture(twoTasks: true)
         let started = DispatchSemaphore(value: 0)
         let blocker = Task { @MainActor in Self.blockMainActor(started) }
         Self.waitForStart(started)
@@ -83,6 +83,9 @@ nonisolated struct MCPBoundedReadRouteTests {
         print("T63_ROUTE invalid_tool_arguments=\(invalid) encoded_body_elapsed=\(elapsed)")
         #expect(elapsed < .seconds(5))
         await blocker.value
+        let store = fixture.service.snapshots
+        let accounting = try store.domain.accounting(for: store.publicationStoreID)
+        #expect(accounting.visibleEntries == 0 && accounting.visibleBytes == 0)
         let frame = try #require(response.json as? [String: Any])
         #expect(frame["id"] as? String == "bounded")
         let result = try #require(frame["result"] as? [String: Any])
