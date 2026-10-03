@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- T-2380: Eight standard MCP writes require retry keys, and task/milestone updates require revision preconditions. Local receipts retain saved outcomes for seven days, durable guards protect uncertain requests across restart, and full-record reads return content revisions for conflict detection.
 - T-2377: MCP `create_project` accepts a required name and six-digit colour, validates optional description/repository fields and case-insensitive name uniqueness, persists through `ProjectService`, and returns project ID and metadata for subsequent task creation. Regression tests cover discovery, validation, storage failures, fallback write rejection, and project-to-task creation.
 
 ### Changed
