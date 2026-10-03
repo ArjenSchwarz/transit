@@ -44,6 +44,47 @@ struct MCPReadCaptureScopeTests {
         #expect(identity["description"] == nil && identity["metadata"] == nil && identity["comments"] == nil)
     }
 
+    @Test func scopedForeignMilestoneKeepsClosureWithoutCanonicalDateSerialization() throws {
+        let fixture = try TestModelContainer()
+        let selected = Project(name: "Selected", description: "", gitRepo: nil, colorHex: "blue")
+        let foreign = Project(name: "Foreign", description: "", gitRepo: nil, colorHex: "red")
+        let milestone = Milestone(name: "Foreign milestone", project: foreign, displayID: .permanent(9))
+        let task = TransitTask(name: "Selected task", type: .feature, project: selected, displayID: .permanent(1))
+        task.milestone = milestone
+        fixture.context.insert(selected)
+        fixture.context.insert(foreign)
+        fixture.context.insert(milestone)
+        fixture.context.insert(task)
+        try fixture.context.save()
+        let revision = try MCPRecordSnapshot.task(task, in: fixture.context).revision
+        let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
+            fetchMilestones: { context in
+                let values = try context.fetch(FetchDescriptor<Milestone>())
+                let corrupt = try #require(values.first)
+                corrupt.creationDate = Date(timeIntervalSinceReferenceDate: .nan)
+                #expect(throws: (any Error).self) { try MCPRecordSnapshot.milestone(corrupt) }
+                return values
+            })
+        let view = try builder.capture(ReadCaptureRequest(projectSelectors: [.id(selected.id)], selection: .portfolio,
+                                                         completeness: .completePortfolio, includeComments: false))
+        let captured = try #require(view.tasks.first { $0.id == task.id })
+        let closure = try #require(view.milestones.first { $0.id == milestone.id })
+        let foreignKey = try #require(view.projects.first { $0.id == foreign.id }?.physicalKey)
+        #expect(captured.revision == revision && captured.fullRecordWithoutCommentsJSON != nil)
+        #expect(captured.milestoneKey == closure.physicalKey)
+        #expect(closure.projectKey == foreignKey && closure.taskKeys == [captured.physicalKey])
+        #expect(closure.permanentDisplayId == 9 && closure.name == "Foreign milestone")
+        #expect(closure.rawStatus == "open" && closure.effectiveStatus == "open")
+        #expect(closure.creationDate.timeIntervalSinceReferenceDate.isNaN)
+        let record = try #require(JSONSerialization.jsonObject(with: closure.selectedRecordJSON) as? [String: String])
+        #expect(record == ["milestoneId": milestone.id.uuidString, "name": "Foreign milestone"])
+        try MCPReadCaptureValidation.validateReusableCapture(view)
+        #expect(throws: MCPReadCaptureError.serializationFailure) {
+            try builder.capture(ReadCaptureRequest(projectSelectors: nil, selection: .portfolio,
+                                                   completeness: .completePortfolio, includeComments: false))
+        }
+    }
+
     @Test func volumeCaptureReportsPhysicalAndEncodingCostsSeparately() throws {
         let setupStart = ContinuousClock.now
         let fixture = try TestModelContainer()
