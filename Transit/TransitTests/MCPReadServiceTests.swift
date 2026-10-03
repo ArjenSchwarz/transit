@@ -10,8 +10,8 @@ struct MCPReadServiceTests {
         let builder: MCPReadCaptureBuilder
         var calls = 0
         var failure: MCPReadCaptureError?
-        init(_ fixture: TestModelContainer) {
-            builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture)
+        init(_ fixture: TestModelContainer, builder: MCPReadCaptureBuilder? = nil) {
+            self.builder = builder ?? MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture)
         }
         func capture(_ request: ReadCaptureRequest) throws -> CapturedReadView {
             calls += 1
@@ -97,13 +97,109 @@ struct MCPReadServiceTests {
         #expect(view.comments.isEmpty)
     }
 
-    private func execute(_ service: MCPReadService, arguments: [String: Any]) async throws -> [String: Any] {
+    @Test(arguments: ["query_tasks", "query_milestones"])
+    func projectThenScalarValidationPrecedesDependentFetchFailure(tool: String) async throws {
+        let fixture = try TestModelContainer()
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "blue")
+        fixture.context.insert(project)
+        try fixture.context.save()
+        var fetched = false
+        let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
+            fetchTasks: { _ in fetched = true; throw CocoaError(.fileReadUnknown) },
+            fetchMilestones: { _ in fetched = true; throw CocoaError(.fileReadUnknown) })
+        let service = MCPReadService(source: Source(fixture, builder: builder),
+            monitor: MCPImportEvidenceMonitor(syncActive: false, storeIdentifier: nil),
+            snapshots: MCPTaskQuerySnapshotStore())
+        var args: [String: Any] = ["project": "Missing", "status": 123]
+        if tool == "query_tasks" {
+            args.merge(["detailLevel": "summary", "includeComments": false, "limit": 100]) { _, new in new }
+        }
+        let missing = try await execute(service, arguments: args, tool: tool)
+        let missingText = try #require((missing["content"] as? [[String: Any]])?.first?["text"] as? String)
+        #expect(missingText.contains("No project named"))
+        #expect(!fetched)
+        args["project"] = "P"
+        let malformed = try await execute(service, arguments: args, tool: tool)
+        let malformedText = try #require((malformed["content"] as? [[String: Any]])?.first?["text"] as? String)
+        #expect(malformedText.contains("Invalid status"))
+        #expect(!fetched)
+        args["status"] = tool == "query_tasks" ? "idea" : "open"
+        let failed = try await execute(service, arguments: args, tool: tool)
+        #expect(try metadataObject(failed)["category"] as? String == "storage_failure")
+        #expect(fetched)
+    }
+
+    @Test(arguments: ["query_tasks", "query_milestones"])
+    func milestoneResolutionPrecedesDependentTaskFetch(tool: String) async throws {
+        let fixture = try TestModelContainer()
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "blue")
+        let first = Milestone(name: "M", project: project, displayID: .permanent(9))
+        let duplicate = Milestone(name: "M", project: project, displayID: .permanent(9))
+        let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .permanent(63))
+        task.milestone = first
+        fixture.context.insert(project)
+        fixture.context.insert(first)
+        fixture.context.insert(duplicate)
+        fixture.context.insert(task)
+        try fixture.context.save()
+        var fetched = false
+        let source = Source(fixture, builder: MCPReadCaptureBuilder(container: fixture.container,
+            fence: .actorOnlyTestFixture, fetchTasks: { _ in fetched = true; throw CocoaError(.fileReadUnknown) }))
+        let service = MCPReadService(source: source, monitor: MCPImportEvidenceMonitor(
+            syncActive: false, storeIdentifier: nil), snapshots: MCPTaskQuerySnapshotStore())
+        var args: [String: Any] = ["project": "P"]
+        if tool == "query_tasks" {
+            args.merge(["detailLevel": "summary", "includeComments": false, "limit": 100]) { _, new in new }
+        }
+        let key = tool == "query_tasks" ? "milestoneDisplayId" : "displayId"
+        args[key] = 9
+        let ambiguous = try await execute(service, arguments: args, tool: tool)
+        let ambiguousText = try #require((ambiguous["content"] as? [[String: Any]])?.first?["text"] as? String)
+        #expect(ambiguousText.contains("Duplicate milestone identifier"))
+        #expect(!fetched)
+        args[key] = 77
+        let absent = try await execute(service, arguments: args, tool: tool)
+        #expect(absent["isError"] == nil)
+        #expect(!fetched)
+        fixture.context.delete(duplicate)
+        try fixture.context.save()
+        args[key] = 9
+        if tool == "query_milestones" {
+            args["status"] = "done"
+            let filtered = try await execute(service, arguments: args, tool: tool)
+            #expect(filtered["isError"] == nil && !fetched)
+            args.removeValue(forKey: "status")
+        }
+        let failed = try await execute(service, arguments: args, tool: tool)
+        #expect(try metadataObject(failed)["category"] as? String == "storage_failure")
+        #expect(fetched)
+    }
+
+    @Test func validEmptyInactiveReadHasCaptureMetadata() async throws {
+        let fixture = try TestModelContainer()
+        let service = MCPReadService(source: Source(fixture), monitor: MCPImportEvidenceMonitor(
+            syncActive: false, storeIdentifier: nil), snapshots: MCPTaskQuerySnapshotStore())
+        let result = try await execute(service, arguments: ["detailLevel": "summary", "includeComments": false,
+                                                            "limit": 100])
+        #expect(result["isError"] == nil)
+        let meta = try metadataObject(result)
+        #expect(meta["snapshotId"] is String && meta["asOf"] is String)
+        #expect((meta["freshness"] as? [String: Any])?["assessment"] as? String == "not_applicable")
+        #expect((meta["read"] as? [String: Any])?["refreshOutcome"] as? String == "not_requested")
+    }
+
+    private func execute(_ service: MCPReadService, arguments: [String: Any],
+                         tool: String = "query_tasks") async throws -> [String: Any] {
+        let env = try MCPTestHelpers.makeEnv()
+        let handler = MCPToolHandler(taskService: env.taskService, projectService: env.projectService,
+            commentService: env.commentService, milestoneService: env.milestoneService,
+            maintenanceService: env.maintenanceService, settings: env.mcpSettings, readService: service)
         let coordinator = MCPReadCoordinator(domain: service.snapshots.domain)
         let fields = arguments.mapValues(AnyCodable.init)
         let bytes = await coordinator.execute(timeout: Data("timeout".utf8), busy: Data("busy".utf8)) { operation in
             do {
-                let prepared = try await service.prepare(tool: "query_tasks",
-                    arguments: fields.mapValues(\.value), operation: operation)
+                let prepared = try await handler.prepareCoveredRead(
+                    MCPReadToolRequest(tool: tool, arguments: fields), operation: operation)
                 let rejection = Data("rejected".utf8)
                 return PreparedReadResult(encodedResponse: prepared.encodedToolResult,
                     publications: prepared.publications,
