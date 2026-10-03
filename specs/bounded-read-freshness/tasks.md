@@ -78,13 +78,14 @@ references:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [6.2](requirements.md#6.2)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
-- [ ] 8. Red: add atomic publication and ordinary-cursor race tests <!-- id:vh146y7 -->
+- [x] 8. Red: add atomic publication and ordinary-cursor race tests <!-- id:vh146y7 -->
   - Add MCPReadPublicationDomainTests with test retention participants and ordinary MCPTaskQuerySnapshotStore. Cover pending+visible capacity, expiry between lookup/append, stale CAS=>READ_BUSY, collision allocation, v4 ordinary/v8 reusable routing after expiry.
   - Fail for missing aggregate transaction: two creates, two appends and create+append in the same store/batch, concurrent independent requests, child-to-aggregate reservation transfer without gap/double count; validate all candidates before any commit and swap each store once.
   - Generated timeout/stop/disconnect/success races require exactly-once discard, no IDs in chosen success without publication, no child publication before selected whole batch, preencoded rejection selection and large-copy/destruction outside domain lock.
   - Assert charged capacity numerically: child-to-aggregate transfer preserves the total charge, and each rollback returns the original charge exactly once.
   - Blocked-by: vh146y2 (Green: implement and verify the fenced saved capture builder), vh146y6 (Green: implement independent deadline and physical admission coordination)
   - Stream: 1
+  - Owner: t63-publication-runtime
   - Requirements: [1.4](requirements.md#1.4), [1.6](requirements.md#1.6), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
