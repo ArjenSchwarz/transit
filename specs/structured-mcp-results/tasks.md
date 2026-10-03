@@ -101,7 +101,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [2.2](requirements.md#2.2), [3.3](requirements.md#3.3), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2)
   - References: design.md, Transit/Transit/MCP/Results/MCPResultEncoder.swift
 
-- [ ] 12. RED: specify modern request validation and stateless discovery <!-- id:gpzncvw -->
+- [-] 12. RED: specify modern request validation and stateless discovery <!-- id:gpzncvw -->
   - Add MCPModernValidatorTests/DiscoveryTests with pure immutable availability inputs: metadata/header/code/status matrix, Base64 name sentinel/UTF8, conflicting headers, modern-only versions and data.supported, readable versus omitted error IDs, arrays/null IDs/unknown methods and notification-shaped tools/call zero dispatch.
   - Test complete discovery/tool-list result, zero/public cache metadata, stable name order and optional capability validation without prior-request state. These new-file fixtures use synthetic definitions; no T63 common/router edits before handoff.
   - Blocked-by: gpzncvl (Define immutable result and modern protocol boundary interfaces)
@@ -112,7 +112,7 @@ metadata:
 - [ ] 13. GREEN: implement pure modern-only validator and discovery values <!-- id:gpzncvx -->
   - Implement MCPModernRequest.swift/MCPModernValidator.swift/MCPModernDiscovery.swift from task12 fixtures; per-request metadata only, standard errors, request-only method classification, immutable availability.
   - Expose validated protocol classification to later router wiring; covered tool arguments remain unvalidated until admitted bounded worker. No session/initialize/GET stream/wire arrays, resource/prompt/sampling features or client settings. Pass task12.
-  - Blocked-by: gpzncvw (RED: specify modern request validation and stateless discovery)
+  - Blocked-by: gpzncvw (RED: specify modern request validation and stateless discovery), gpzncvn (GREEN: implement owned lossless JSON documents and source factories)
   - Stream: 2
   - Requirements: [3.2](requirements.md#3.2), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.6](requirements.md#5.6)
   - References: design.md, Transit/Transit/MCP/Protocol/MCPModernValidator.swift
