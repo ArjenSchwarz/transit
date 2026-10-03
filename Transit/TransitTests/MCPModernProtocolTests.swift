@@ -38,7 +38,8 @@ struct MCPModernProtocolTests {
         for (key, value) in overrides { headers[key] = value }
         return MCPModernRequestInput(httpMethod: httpMethod,
             headers: headers.map { MCPModernHeader(name: $0.key, value: $0.value) } + extra,
-            body: try JSONSerialization.data(withJSONObject: body, options: [.fragmentsAllowed]))
+            body: try JSONSerialization.data(withJSONObject: body,
+                                             options: [.fragmentsAllowed, .withoutEscapingSlashes]))
     }
 
     private func rejection(_ input: MCPModernRequestInput) throws -> MCPModernRejection {
