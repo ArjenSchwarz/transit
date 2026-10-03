@@ -163,6 +163,24 @@ struct MCPReadCaptureBuilderTests {
         #expect(projects.projects.isEmpty && projects.comments.isEmpty)
     }
 
+    @Test func canonicalSerializationFailureKeepsItsCategory() throws {
+        let fixture = try TestModelContainer()
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "blue")
+        let task = TransitTask(name: "T", type: .feature, project: project, displayID: .permanent(1))
+        let comment = Comment(content: "C", authorName: "A", isAgent: true, task: task)
+        fixture.context.insert(project)
+        fixture.context.insert(task)
+        fixture.context.insert(comment)
+        try fixture.context.save()
+        let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
+            fetchComments: { context in
+                let comments = try context.fetch(FetchDescriptor<Transit.Comment>())
+                comments.first?.creationDate = Date(timeIntervalSince1970: .infinity)
+                return comments
+            })
+        #expect(throws: MCPReadCaptureError.serializationFailure) { try builder.capture(portfolioRequest()) }
+    }
+
     private enum CaptureFixtureError: Error { case fetchFailed }
 
     private func portfolioRequest() -> ReadCaptureRequest {
