@@ -134,11 +134,13 @@ The caller-owned `MCPReadAdmission` value carries a preallocated operation UUID 
 
 `MCPReadHelperContractTests` checks runtime service conformance to the declared generic preparation protocol before exercising saved DTO identity, exact capsule metadata, original operation identity/budget and an observation window held through transformation. Observation capacity is checked inside the transform and after preparation to prove release. This is generic preparation acceptance, not actual T2382 module acceptance or proof of CloudKit import visibility. Current missing conformance is an intended runtime RED rather than an absent-method compile failure.
 
-These three new methods are prepared, not compiled or executed. Strict lint is the only requested check at this checkpoint. The next focused app command requires a new exclusive slot:
+These three methods compiled and ran under the exclusive slot. Actual xcresult reports three top-level/device executions, zero passed, three failed, zero skipped, and no compile failure. Duplicate requested identity returned the test adapter's second-worker bytes instead of busy; caller completion remained absent after bounded drain/receipt waits; the service recorded its missing protocol conformance. These are interface-capability RED results, not evidence that production supports and ignores caller identity/receipt. Exact command:
 
 ```sh
 make test-quick TEST_TARGETS='TransitTests/MCPReadAdmissionContractTests TransitTests/MCPReadHelperContractTests'
 ```
+
+Evidence is retained outside Git at `/Users/arjen/Documents/Codex/2026-10-03/task/t63-review-evidence/capability/`: `red.log`, `red.xcresult`, `red-summary.json`, `red-tests.json` and strict `lint.log` (zero violations across 431 files). Source checkpoint was `cb3aeefb9d131934150e7211dc832062da7148fd`, including the receipt-order correction `a9553bc`. App process and physical latch workers drained; the heavy slot was released. No further app job is authorized. For task 13 acceptance, remove the baseline admission adapter and call the implemented API directly; then run the complete helper assertions beyond the conformance guard.
 
 The existing actual-router RED evidence remains separate. Remaining actual-server lifecycle, write-preservation and real helper registration/replay acceptance follows the staged `routing-integration-plan.md`; task 12 is still in progress and task 13 has no runtime implementation.
 
