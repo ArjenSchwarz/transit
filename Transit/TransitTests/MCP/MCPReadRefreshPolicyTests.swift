@@ -90,5 +90,29 @@ struct MCPReadRefreshPolicyTests {
         #expect(final.generation == initial.generation)
     }
 
+    @Test func applicableCompletionSurvivesLaterUnrelatedSameStoreEvents() async {
+        for succeeds in [true, false] {
+            let date = Date()
+            let relevant = UUID()
+            let unrelated = UUID()
+            let monitor = MCPImportEvidenceMonitor(syncActive: true, storeIdentifier: "store")
+            monitor.receive(.init(id: relevant, storeIdentifier: "store", kind: .import,
+                                  startDate: date, endDate: nil, succeeded: false))
+            let initial = monitor.snapshot()
+            let final = await MCPReadRefreshPolicy.wait(monitor: monitor, initial: initial,
+                                                        duration: .milliseconds(20),
+                                                        applicableImportIDs: [relevant], sleep: { _ in
+                monitor.receive(.init(id: relevant, storeIdentifier: "store", kind: .import,
+                                      startDate: date, endDate: date, succeeded: succeeds))
+                monitor.receive(.init(id: unrelated, storeIdentifier: "store", kind: .import,
+                                      startDate: date, endDate: date, succeeded: succeeds))
+            })
+            let proof = MCPImportCaptureProof(storeIdentifier: "store", visibleImportIDs: [relevant])
+            #expect(MCPReadRefreshPolicy.outcome(initial: initial, final: final, proof: proof,
+                                                applicableInFlightIDs: [relevant])
+                    == (succeeds ? .importObserved : .failed))
+        }
+    }
+
 }
 #endif
