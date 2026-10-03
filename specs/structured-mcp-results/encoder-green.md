@@ -1,6 +1,6 @@
 # Encoder implementation draft
 
-Status: task7/gpzncvr remains in progress. The guarded attempt on3ba1cfb reached12 passes and2 fixture-oracle failures; full GREEN is unverified. API15 remains undelivered.
+Status: task7/gpzncvr is complete after corrected guarded GREEN14/14, clean exit0 and finalised xcresult. Earlier oracle failures and teardown limits remain recorded below. API15 remains undelivered.
 
 MCPResultEncoder now freezes complete tool-level bytes and wraps them with fresh current string/integer RPC IDs, preserving resultType, original text, structured source kind/payload/evidence, optional isError and independent metadata. Original source and metadata documents are inserted as their validated raw UTF8 fragments; member ordering, numeric lexemes, escapes, scalar-distinct nested keys and null/presence survive. The sealed fragment initializer remains local to the encoder; fragments retain Data only and never originating IDs or callbacks.
 
@@ -37,3 +37,15 @@ Internal critic cleared the correction with no rerun blocker. The parent receive
 Parent delegated a new exclusive guarded rerun on ffe2c33 (observed49f18ba documentation only). Before any process launch, per-command require_escalated automatic review rejected the whole build/preparation command: it treated the delegated grant as untrusted assistant context and could not establish a trusted-owner exception to the original heavy-test prohibition. No build/test/preparation session, process or new run artifact was created. The command was not retried through default permissions, another worker or wrapper; no global permission/configuration change occurred.
 
 Parent received the exact restriction and a request for explicit owner transcript/approval evidence supporting a reviewed retry of the same command. The unused reservation was released; fresh parent slot confirmation is required before any future retry. Task7 remains runtime-blocked, source/fixture identities unchanged, and API15 undelivered. The prior12/2 attempt remains the latest runtime evidence. This is an approval provenance restriction, not a new source defect.
+
+## Corrected guarded GREEN acceptance
+
+Owner approval Sentinel_10e284fb472881918fb01fad1bde10d2 explicitly approved all testing and necessary fix reruns, in response to Sentinel_5b0aef7ba7508191ac141c72ac13cde3 (local isolated development builds/lint/unit/simulator tests and per-command escalation; live data/client activation/deployment separate). The original runner had become unavailable. Parent explicitly authorised one replacement after this fresh approval, preserving the action and ordinary review. Before replacement, escalated process inspection found no former owned encoder pipeline.
+
+The replacement submitted the SAME preserved command exactly once through normal per-command review; SHA25608ee54389a2da2f87c8878b90bba9d81cf50c0aeb2f46d42652230d7b66ce4db. Review accepted and the guarded build started. No command alteration, permission change or alternate approval route occurred. Observed source7547294 differs49f18ba only in blocker documentation; production Results remains3ba1cfb, both14-method filesa480d06 and corrected helperffe2c33.
+
+Build-for-testing and new actual signed-development-host/xctestrun preflight exited0. The same two restricted suites ran serially under unit-test/smoke/exact-host guards with fresh result paths. Both completed cleanly:14 methods/14 executions passed, zero failures/skips and no runtime warnings, test commandexit0. The finalised xcresult confirms these counts. This executes the earlier unreachable exact raw-source/_meta and depth32 assertions as well as all64 seeded/18 optional-error loop samples and synthetic fallback/checkpoint cases. No teardown hang, sampling or cleanup intervention was needed on this corrected run.
+
+Read-only escalated process inspection found no owned build/test pipeline or guarded host; the slot was released immediately before extraction. Prior RED and failed GREEN hashes were checked unchanged. Evidence .codex-cache/t2383-encoder-oracle-green-ffe2c33/results.md, commands.json, xcresult-summary.json, source-fixture-sha256.json and artifact-sha256.json; final result DerivedData/t2383-encoder-red-a480d06/EncoderOracleGreen.xcresult. Initial summary extraction encountered a sandbox cache restriction; the same read-only extraction succeeded under normal per-command escalation, without test replay.
+
+Rune7/gpzncvr is complete. Next ready task8/gpzncvs is schema RED preparation; schema/provider/preparation-budget and production selection gates remain ahead. API15 is not delivered. No production/live/client-setting activity occurred and subsequent heavy slots still require parent coordination.

@@ -27,3 +27,7 @@ The two failed methods are fixture-oracle defects, not evidence of encoder corru
 ## Oracle correction review
 
 Reviewed exact ffe2c33. Strict grammar rejects malformed numbers before validation-only substitution; quoted strings remain intact, and Foundation validates the full disposable structure. Original bytes alone supply extraction/equality. Production files and all14 test methods remain unchanged. No blocker to requesting the same-suite guarded rerun; task7 is pending application GREEN and API15 undelivered. No reviewer source edits or tests occurred.
+
+## Corrected runtime GREEN
+
+Finalised xcresult confirms all14 methods/executions passed,0failures/0skips; build/preflight/test exit0 with no hang/intervention. Production source and all14 method assertions remain unchanged; only the previously reviewed independent validation helper was corrected. Earlier exact-fragment/depth assertions and all source/error samples now execute. Source critic and oracle critic were already clear; no new code change or test failure justifies repeating verification. Preparation accounting/capacity and real production selection remain separate later obligations.

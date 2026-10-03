@@ -61,7 +61,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.4](requirements.md#2.4), [3.2](requirements.md#3.2), [3.4](requirements.md#3.4), [5.4](requirements.md#5.4)
   - References: design.md, Transit/Transit/MCP/Results/MCPResultEncoder.swift
 
-- [-] 7. GREEN: implement complete result bytes and provider-owned mutation fallbacks <!-- id:gpzncvr -->
+- [x] 7. GREEN: implement complete result bytes and provider-owned mutation fallbacks <!-- id:gpzncvr -->
   - Implement MCPResultEncoder.swift validated fragment writer and complete immutable fallback preparation accepting provider-owned logical source/context/metadata. Retained tool fragments omit RPC ID; encode fresh outer IDs only.
   - Keep preencoded response selection separate from encoding; maintenance reconciliation carries no invented key, protected recovery preserves original tool/key, batch payload remains untouched. Pass task6; this new-file API is deliverable to T2384 without waiting for production batch wiring.
   - Blocked-by: gpzncvq (RED: specify complete response encoding and preeffect fallback selection)
