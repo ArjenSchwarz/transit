@@ -69,7 +69,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.4](requirements.md#2.4), [3.2](requirements.md#3.2), [3.4](requirements.md#3.4), [5.4](requirements.md#5.4)
   - References: design.md, Transit/Transit/MCP/Results/MCPResultEncoder.swift
 
-- [-] 8. RED: validate structured output schemas across every source variant <!-- id:gpzncvs -->
+- [x] 8. RED: validate structured output schemas across every source variant <!-- id:gpzncvs -->
   - Add MCPResultSchemaTests exporting actual generated descriptors/result fixtures to a test-owned temporary directory, plus tests/validation/validate_mcp_result_schemas.py host runner; app test processes do not read the host checkout.
   - Use a standards-compliant Draft202012 validator for schemas and instance fixtures: arrays/scalars/null, JSON/text/unreadable, success/errors, historical unknown names/types, missing/null/false, synthetic batch originals. Reject malformed wrapper/presentation and unreadable-with-payload variants; no network refs. Schema-tool prerequisite must be met before validation is claimed.
   - Blocked-by: gpzncvr (GREEN: implement complete result bytes and provider-owned mutation fallbacks)

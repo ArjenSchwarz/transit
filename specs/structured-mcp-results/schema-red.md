@@ -1,6 +1,16 @@
 # Structured result schema RED preparation
 
-Task8/gpzncvs is in progress. Fixture commit912ddbc is ready for the next parent-coordinated test slot. No guarded application build/test has run for this task; task9 and DELIVERED15/gpzncvz remain pending.
+## Actual guarded RED and review
+
+Task8/gpzncvs is complete after meaningful reviewed RED on fixture912ddbc (observed HEAD83e5ff7 adds only documentation). The exact reviewed commands were accepted by normal per-command review. Build and signed development-host preflight exited0. Actual Swift Testing console records two functions/one suite, two caught notImplemented issues and no incidental fixture assertions. The app-owned export contains36 actual wire fixtures and37 malformed plans, status incomplete/failure notImplemented and zero schemas. This establishes the intended descriptor boundary; it does not establish schema conformance.
+
+Finalization stalled. Both identity-verified processes were sampled before any termination. Runner22170 was terminated after a bounded stall; guarded host22178 exited with it, so no host signal was sent. Actual test command exit143; summary extraction exit64 because unfinalized SchemaRed.xcresult lacks Info.plist. No finalized counts or normal-exit claim. Samples show XCTestDriver/XCTTestRunSession/XCTWaiter and runner waitForBuild; no collectSimulatorDiagnostics match was observed and cause remains unproven. No replay, diagnostics suppression or second app command occurred.
+
+All owned processes drained and the heavy slot was released immediately, before extraction/bookkeeping. Host validation received actual exit143 and failed closed, exit1. Independent export coverage/mutation-path checks pass, prior encoder artifact hashes remain unchanged, and internal runtime critic clears meaningful RED with these precise limits. Evidence: .codex-cache/schema-red-preparation/results.md, actual-commands.json, app-export/, samples/cleanup JSON and app-artifact-sha256.json. Task9 source implementation is next; its GREEN requires its own coordinated slot. DELIVERED15/gpzncvz remains pending. Routine checkpoint delivery is now held under the owner's revised preference; evidence remains local.
+
+## Historical fixture preparation
+
+Fixture commit912ddbc was prepared for the parent-coordinated test slot. The following preparation record predates the guarded run above.
 
 ## Fixtures and host validator
 
