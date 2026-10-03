@@ -23,6 +23,20 @@ nonisolated struct MCPResultSource: Sendable {
     let kind: MCPResultSourceKind
     let evidence: MCPResultEvidence
 
+    private init(
+        originalText: String,
+        originalIsError: Bool?,
+        document: MCPJSONDocument?,
+        kind: MCPResultSourceKind,
+        evidence: MCPResultEvidence
+    ) {
+        self.originalText = originalText
+        self.originalIsError = originalIsError
+        self.document = document
+        self.kind = kind
+        self.evidence = evidence
+    }
+
     static func make(
         text: String,
         isError: Bool?,
