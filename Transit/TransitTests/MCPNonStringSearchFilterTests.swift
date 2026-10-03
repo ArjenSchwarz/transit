@@ -24,11 +24,12 @@ struct MCPNonStringSearchFilterTests {
         // Numeric `search` must not fall through to "no filter applied" and return all tasks.
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": 42]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": 42]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("search") && errorMessage.contains("string"))
     }
 
@@ -39,11 +40,12 @@ struct MCPNonStringSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": true]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": true]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("search") && errorMessage.contains("string"))
     }
 
@@ -54,11 +56,12 @@ struct MCPNonStringSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": ["login"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": ["login"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("search") && errorMessage.contains("string"))
     }
 
@@ -83,11 +86,12 @@ struct MCPNonStringSearchFilterTests {
         // return every task — it must be rejected.
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestone": 42]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "milestone": 42]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("milestone") && errorMessage.contains("string"))
     }
 
@@ -98,11 +102,12 @@ struct MCPNonStringSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestone": false]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "milestone": false]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("milestone") && errorMessage.contains("string"))
     }
 
@@ -113,11 +118,12 @@ struct MCPNonStringSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["milestone": ["v1.0"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "milestone": ["v1.0"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("milestone") && errorMessage.contains("string"))
     }
 
@@ -166,10 +172,11 @@ struct MCPNonStringSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": "login"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": "login"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Fix login")
     }

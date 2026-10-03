@@ -109,7 +109,8 @@ struct MCPDuplicateTaskDisplayIDTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": 42]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "displayId": 42]
         ))
 
         try expectDuplicateError(response, displayId: 42)

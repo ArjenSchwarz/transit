@@ -18,11 +18,12 @@ struct MCPQueryTasksTypeArrayValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["type": ["bug"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "type": ["bug"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("type"))
         #expect(text.contains("expected a string"))
     }
@@ -32,11 +33,12 @@ struct MCPQueryTasksTypeArrayValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["type": ["bug", "feature"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "type": ["bug", "feature"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("type"))
         #expect(text.contains("expected a string"))
     }
@@ -55,7 +57,8 @@ struct MCPQueryTasksTypeArrayValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["type": ["bug"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "type": ["bug"]]
         ))
 
         // Bug behaviour: array is dropped to nil and both tasks are returned.

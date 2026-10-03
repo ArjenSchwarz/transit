@@ -24,11 +24,12 @@ struct MCPNonStringSearchTests {
         // Numeric `search` must not fall through to "no filter applied".
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": 123]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": 123]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("search") && errorMessage.contains("string"))
     }
 
@@ -41,11 +42,12 @@ struct MCPNonStringSearchTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": true]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": true]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("search") && errorMessage.contains("string"))
     }
 
@@ -58,11 +60,12 @@ struct MCPNonStringSearchTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": ["login"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": ["login"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("search") && errorMessage.contains("string"))
     }
 
@@ -76,11 +79,12 @@ struct MCPNonStringSearchTests {
         // An object `search` (JSON `{}`) must be rejected, not silently dropped.
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": ["key": "value"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": ["key": "value"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("search") && errorMessage.contains("string"))
     }
 
@@ -166,10 +170,11 @@ struct MCPNonStringSearchTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": "  "]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": "  "]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 2)
     }
 }

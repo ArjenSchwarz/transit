@@ -81,10 +81,10 @@ struct MCPPriorityTests {
         )
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "query_tasks", arguments: [:]
+            tool: "query_tasks", arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let byName = Dictionary(uniqueKeysWithValues: results.compactMap { dict -> (String, String)? in
             guard let name = dict["name"] as? String, let priority = dict["priority"] as? String else {
                 return nil
@@ -108,10 +108,11 @@ struct MCPPriorityTests {
         )
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "query_tasks", arguments: ["priority": "high"]
+            tool: "query_tasks", arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "priority": "high"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "High")
     }
@@ -130,10 +131,11 @@ struct MCPPriorityTests {
         )
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "query_tasks", arguments: ["priority": ["high", "low"]]
+            tool: "query_tasks", arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "priority": ["high", "low"]]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         let names = Set(results.compactMap { $0["name"] as? String })
         #expect(names == ["High", "Low"])
     }
@@ -149,10 +151,10 @@ struct MCPPriorityTests {
         )
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "query_tasks", arguments: [:]
+            tool: "query_tasks", arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 2)
     }
 
@@ -164,11 +166,12 @@ struct MCPPriorityTests {
         )
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "query_tasks", arguments: ["priority": "urgent"]
+            tool: "query_tasks", arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "priority": "urgent"]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let message = try MCPTestHelpers.errorText(response)
+        let message = try MCPTestHelpers.queryErrorMessage(response)
         #expect(message.contains("priority"))
     }
 }

@@ -109,7 +109,7 @@ struct MCPNotificationDispatchTests {
             "method":"tools/call",
             "params":{
               "name":"query_tasks",
-              "arguments":{"displayId":\(displayId)}
+              "arguments":{"displayId":\(displayId),"detailLevel":"full","includeComments":false,"limit":100}
             }
           },
           {
@@ -133,7 +133,7 @@ struct MCPNotificationDispatchTests {
         let content = try #require(result["content"] as? [[String: Any]])
         let text = try #require(content.first?["text"] as? String)
         let returnedTasks = try #require(
-            try JSONSerialization.jsonObject(with: Data(text.utf8)) as? [[String: Any]]
+            (try JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])?["results"] as? [[String: Any]]
         )
         #expect(returnedTasks.map { $0["status"] as? String } == ["planning"])
         #expect(task.status == .planning)

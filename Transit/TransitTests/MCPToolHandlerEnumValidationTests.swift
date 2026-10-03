@@ -5,6 +5,7 @@ import Testing
 @testable import Transit
 
 @MainActor @Suite(.serialized)
+// swiftlint:disable:next type_body_length
 struct MCPToolHandlerEnumValidationTests {
 
     // MARK: - query_tasks: invalid status filter
@@ -14,11 +15,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": ["not-a-status"]]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "status": ["not-a-status"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("Invalid status"))
         #expect(text.contains("not-a-status"))
     }
@@ -28,11 +30,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": "bogus"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "status": "bogus"]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("Invalid status"))
         #expect(text.contains("bogus"))
     }
@@ -42,11 +45,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": ["idea", "not-real"]]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "status": ["idea", "not-real"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("not-real"))
     }
 
@@ -57,11 +61,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["not_status": ["fake-status"]]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "not_status": ["fake-status"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("Invalid not_status"))
         #expect(text.contains("fake-status"))
     }
@@ -71,11 +76,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["not_status": "invalid"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "not_status": "invalid"]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("Invalid not_status"))
     }
 
@@ -86,11 +92,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["type": "epic"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "type": "epic"]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("Invalid type"))
         #expect(text.contains("epic"))
     }
@@ -106,10 +113,11 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": ["idea"]]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "status": ["idea"]]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
     }
 
@@ -122,10 +130,11 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["not_status": ["done", "abandoned"]]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "not_status": ["done", "abandoned"]]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
     }
 
@@ -138,10 +147,11 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["type": "bug"]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "type": "bug"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
     }
 
@@ -218,11 +228,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": 123]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "status": 123]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("status"))
     }
 
@@ -231,11 +242,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["not_status": true]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "not_status": true]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("not_status"))
     }
 
@@ -244,11 +256,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["type": 5]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "type": 5]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("type"))
     }
 
@@ -257,11 +270,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": ["idea", 123] as [Any]]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "status": ["idea", 123] as [Any]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("status"))
     }
 
@@ -270,11 +284,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["not_status": ["done", true] as [Any]]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "not_status": ["done", true] as [Any]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("not_status"))
     }
 
@@ -283,11 +298,12 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": ["foo": "bar"]]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "status": ["foo": "bar"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let text = try MCPTestHelpers.errorText(response)
+        let text = try MCPTestHelpers.queryErrorMessage(response)
         #expect(text.contains("status"))
     }
 
@@ -330,7 +346,8 @@ struct MCPToolHandlerEnumValidationTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["status": 123]
+            arguments: ["detailLevel": "summary", "includeComments": true,
+                "limit": 100, "status": 123]
         ))
 
         // Bug behaviour: filter is silently treated as absent and all tasks are returned.

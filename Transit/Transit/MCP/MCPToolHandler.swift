@@ -16,17 +16,27 @@ extension MilestoneService: MilestoneDisplayIDFinding {}
 // swiftlint:disable:next type_body_length
 final class MCPToolHandler {
 
-    private let taskService: TaskService
-    private let taskFetcher: any TaskFetching
-    private let projectService: ProjectService
+    let taskService: TaskService
+    let taskFetcher: any TaskFetching
+    let projectService: ProjectService
     private let commentService: CommentService
-    private let commentFetcher: any CommentFetching
-    private let milestoneService: MilestoneService
-    private let milestoneFetcher: any MilestoneFetching
-    private let milestoneDisplayIDFinder: any MilestoneDisplayIDFinding
+    let commentFetcher: any CommentFetching
+    let milestoneService: MilestoneService
+    let milestoneFetcher: any MilestoneFetching
+    let milestoneDisplayIDFinder: any MilestoneDisplayIDFinding
     private let maintenanceService: DisplayIDMaintenanceService
     private let settings: MCPSettings
     private let persistence: PersistenceAvailability
+
+    let taskQuerySnapshots: MCPTaskQuerySnapshotStore
+    private(set) var taskQueryAdmissionOpen = true
+
+    func setTaskQueryAdmission(open: Bool) {
+        taskQueryAdmissionOpen = open
+        taskQuerySnapshots.clear()
+    }
+
+    func clearTaskQuerySnapshots() { taskQuerySnapshots.clear() }
 
     /// Tools that only read.
     private static let readOnlyToolNames: Set<String> = [
@@ -51,7 +61,8 @@ final class MCPToolHandler {
         taskFetcher: (any TaskFetching)? = nil,
         commentFetcher: (any CommentFetching)? = nil,
         milestoneFetcher: (any MilestoneFetching)? = nil,
-        milestoneDisplayIDFinder: (any MilestoneDisplayIDFinding)? = nil
+        milestoneDisplayIDFinder: (any MilestoneDisplayIDFinding)? = nil,
+        taskQuerySnapshots: MCPTaskQuerySnapshotStore? = nil
     ) {
         self.taskService = taskService
         self.taskFetcher = taskFetcher ?? taskService
@@ -64,6 +75,7 @@ final class MCPToolHandler {
         self.maintenanceService = maintenanceService
         self.settings = settings
         self.persistence = persistence
+        self.taskQuerySnapshots = taskQuerySnapshots ?? MCPTaskQuerySnapshotStore()
     }
 
     // MARK: - JSON-RPC Dispatch
@@ -551,201 +563,6 @@ final class MCPToolHandler {
         var response = statusResponse(task: task, previousStatus: previousStatus, newStatus: newStatus)
         response["comment"] = createdComment.map(commentResponse)
         return textResult(IntentHelpers.encodeJSON(response))
-    }
-
-    // MARK: - query_tasks
-
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
-    private func handleQueryTasks(_ args: [String: Any]) -> MCPToolResult {
-        // Reject malformed or non-string projectId when the key is present
-        // [T-665, T-788].
-        let parsedProjectId: UUID?
-        switch parseProjectIdArgument(args) {
-        case .failure(.message(let message)): return errorResult(message)
-        case .success(let parsed): parsedProjectId = parsed
-        }
-        // Reject non-string `project` filter [T-1116].
-        if args["project"] != nil, !(args["project"] is String) {
-            return errorResult("project must be a string")
-        }
-        // Resolve a valid project ID to an existing project before filtering [T-1783].
-        var projectFilter: UUID?
-        var resolvedProject: Project?
-        if let pid = parsedProjectId {
-            // A valid UUID is still an invalid project filter when no matching
-            // project exists. Resolve it before applying the in-memory filter so
-            // MCP matches the project-name and QueryTasksIntent contracts.
-            switch projectService.findProject(id: pid) {
-            case .success(let found):
-                resolvedProject = found
-                projectFilter = found.id
-            case .failure(let err): return errorResult(IntentHelpers.mapProjectLookupError(err).hint)
-            }
-        } else if let name = args["project"] as? String,
-                  !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            switch projectService.findProject(id: nil, name: name) {
-            case .success(let found):
-                resolvedProject = found
-                projectFilter = found.id
-            case .failure(let err): return errorResult(IntentHelpers.mapProjectLookupError(err).hint)
-            }
-        }
-
-        // Validate every remaining filter before resolving a milestone. A no-match or
-        // storage failure must not let a malformed filter look like a valid empty result.
-        // This also preserves validation when displayId would otherwise return early. [T-1608]
-        // Reject non-integer milestoneDisplayId when key is present [T-613].
-        if args["milestoneDisplayId"] != nil, IntentHelpers.parseIntValue(args["milestoneDisplayId"]) == nil {
-            return errorResult("milestoneDisplayId must be an integer")
-        }
-        // Reject non-string `milestone` name filter [T-1266]. Without this guard a
-        // numeric/boolean/array milestone falls through the `as? String` cast below
-        // to the "no milestone filter" branch, returning every task unfiltered.
-        if args["milestone"] != nil, !(args["milestone"] is String) {
-            return errorResult("milestone must be a string")
-        }
-        // Validate enum filters before building MCPQueryFilters [T-732].
-        if let error = validateEnumFilter(args, key: "status", type: TaskStatus.self) { return error }
-        if let error = validateEnumFilter(args, key: "not_status", type: TaskStatus.self) { return error }
-        // type is a single-value filter (schema declares a string enum; read back as
-        // args["type"] as? String). Reject arrays so they aren't silently dropped. [T-1404]
-        if let error = validateEnumFilter(args, key: "type", type: TaskType.self, allowArray: false) {
-            return error
-        }
-        // priority is a multi-value filter (schema declares an array, mirroring status).
-        if let error = validateEnumFilter(args, key: "priority", type: TaskPriority.self, allowArray: true) {
-            return error
-        }
-        // Reject a present-but-non-boolean `unfinished` flag [T-1095]. A plain
-        // `as? Bool` would silently coerce "true"/1/null to false, returning
-        // done/abandoned tasks even though the caller requested unfinished-only.
-        if let unfinishedArg = args["unfinished"], IntentHelpers.parseBoolValue(unfinishedArg) == nil {
-            return errorResult("unfinished must be a boolean")
-        }
-        // Reject non-string `search` filter [T-1156]. A present non-string value must not be
-        // silently dropped by `as? String`, which would broaden results instead of erroring.
-        if args["search"] != nil, !(args["search"] is String) {
-            return errorResult("search must be a string")
-        }
-        // Reject non-integer displayId before a milestone no-match or failure can return early [T-634].
-        if args["displayId"] != nil, IntentHelpers.parseIntValue(args["displayId"]) == nil {
-            return errorResult("displayId must be an integer")
-        }
-
-        // Resolve milestone filter.
-        var milestoneFilter: Set<UUID>?
-        if let milestoneDisplayId = IntentHelpers.parseIntValue(args["milestoneDisplayId"]) {
-            do {
-                milestoneFilter = [try milestoneDisplayIDFinder.findByDisplayID(milestoneDisplayId).id]
-            } catch MilestoneService.Error.milestoneNotFound {
-                return textResult(IntentHelpers.encodeJSONArray([]))
-            } catch MilestoneService.Error.duplicateDisplayID {
-                return errorResult("Duplicate milestone identifier detected for displayId \(milestoneDisplayId)")
-            } catch {
-                return errorResult("Failed to look up milestone: \(error)")
-            }
-        } else if let milestoneName = args["milestone"] as? String,
-                  !milestoneName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            if let projectFilter {
-                // Scoped to a single project — at most one milestone matches.
-                guard let project = resolvedProject else {
-                    return textResult(IntentHelpers.encodeJSONArray([]))
-                }
-                do {
-                    guard let milestone = try milestoneService.findByName(milestoneName, in: project) else {
-                        return textResult(IntentHelpers.encodeJSONArray([]))
-                    }
-                    milestoneFilter = [milestone.id]
-                } catch MilestoneService.Error.ambiguousName {
-                    return errorResult(
-                        "Multiple milestones named '\(milestoneName)' exist in project '\(project.name)'"
-                    )
-                } catch {
-                    return errorResult("Failed to look up milestone: \(error)")
-                }
-            } else {
-                // No project filter — collect ALL milestones with this name across projects.
-                // A storage failure must remain distinct from a valid no-match response. [T-1608]
-                let allMilestones: [Milestone]
-                do {
-                    allMilestones = try milestoneFetcher.fetchAllMilestones()
-                } catch {
-                    return errorResult("Failed to fetch milestones: \(error)")
-                }
-                let matchingIds = Set(
-                    allMilestones
-                        .filter {
-                            MilestoneNamePolicy.normalized($0.name)
-                                == MilestoneNamePolicy.normalized(milestoneName)
-                        }
-                        .map(\.id)
-                )
-                if matchingIds.isEmpty {
-                    return textResult(IntentHelpers.encodeJSONArray([]))
-                }
-                milestoneFilter = matchingIds
-            }
-        }
-
-        let search = (args["search"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let filters = MCPQueryFilters.from(
-            args: args, type: args["type"] as? String, projectId: projectFilter,
-            search: search?.isEmpty == true ? nil : search,
-            milestoneIds: milestoneFilter
-        )
-
-        // Single-task lookup by displayId — returns early with detailed response.
-        if let displayId = IntentHelpers.parseIntValue(args["displayId"]) {
-            return handleDisplayIdLookup(displayId, filters: filters)
-        }
-
-        // Full-table query.
-        let allTasks: [TransitTask]
-        do {
-            allTasks = try taskFetcher.fetchAllTasks()
-        } catch {
-            return errorResult("Failed to fetch tasks: \(error)")
-        }
-
-        let filtered = allTasks.filter { filters.matches($0) }
-        let isoFormatter = ISO8601DateFormatter()
-        let results: [[String: Any]]
-        do {
-            results = try filtered.map { try taskToDict($0, formatter: isoFormatter) }
-        } catch {
-            return errorResult("Failed to fetch comments: \(error)")
-        }
-        return textResult(IntentHelpers.encodeJSONArray(results))
-    }
-
-    private func handleDisplayIdLookup(
-        _ displayId: Int, filters: MCPQueryFilters
-    ) -> MCPToolResult {
-        let task: TransitTask
-        do {
-            task = try taskService.findByDisplayID(displayId)
-        } catch TaskService.Error.taskNotFound {
-            return textResult(IntentHelpers.encodeJSONArray([]))
-        } catch TaskService.Error.duplicateDisplayID {
-            // Name the duplicate explicitly rather than leaking the raw error, so
-            // query_tasks reports it the same way the mutation tools do. [T-1837]
-            return errorResult(duplicateTaskIdentifierMessage(displayId: displayId))
-        } catch {
-            return errorResult("Lookup failed: \(error)")
-        }
-
-        guard filters.matches(task) else {
-            return textResult(IntentHelpers.encodeJSONArray([]))
-        }
-
-        let isoFormatter = ISO8601DateFormatter()
-        let dict: [String: Any]
-        do {
-            dict = try taskToDict(task, formatter: isoFormatter, detailed: true)
-        } catch {
-            return errorResult("Failed to fetch comments: \(error)")
-        }
-        return textResult(IntentHelpers.encodeJSONArray([dict]))
     }
 
 }
@@ -1366,13 +1183,13 @@ extension MCPToolHandler {
     }
 
     /// Message for a display ID matched by more than one task. [T-1837]
-    private func duplicateTaskIdentifierMessage(displayId: Int?) -> String {
+    func duplicateTaskIdentifierMessage(displayId: Int?) -> String {
         guard let displayId else { return "Duplicate task identifier detected" }
         return "Duplicate task identifier detected for displayId \(displayId)"
     }
 
-    private func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }
-    private func errorResult(_ message: String) -> MCPToolResult {
+    func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }
+    func errorResult(_ message: String) -> MCPToolResult {
         MCPToolResult(content: [.text(message)], isError: true)
     }
 
@@ -1415,7 +1232,7 @@ extension MCPToolHandler {
     /// key is absent, `.success(uuid)` when the value is a valid UUID string,
     /// or `.failure(.message(...))` when the key is present but the value is not
     /// a valid UUID string (covers non-string types too) [T-743, T-788].
-    private func parseProjectIdArgument(_ args: [String: Any]) -> Result<UUID?, ResolveError> {
+    func parseProjectIdArgument(_ args: [String: Any]) -> Result<UUID?, ResolveError> {
         guard args["projectId"] != nil else { return .success(nil) }
         guard let pidStr = args["projectId"] as? String, let pid = UUID(uuidString: pidStr) else {
             return .failure(.message("Invalid projectId: expected a UUID string"))
@@ -1436,7 +1253,7 @@ extension MCPToolHandler {
     /// If the key is present but the value is neither a String nor a [String] (e.g. a number,
     /// boolean, dictionary, or array containing non-string elements), this returns a
     /// field-specific error so malformed shapes cannot be silently treated as absent. [T-809, T-830]
-    private func validateEnumFilter<E: RawRepresentable & CaseIterable>(
+    func validateEnumFilter<E: RawRepresentable & CaseIterable>(
         _ args: [String: Any], key: String, type: E.Type, allowArray: Bool = true
     ) -> MCPToolResult? where E.RawValue == String {
         guard let raw = args[key] else { return nil }
@@ -1548,17 +1365,6 @@ extension MCPToolHandler {
         return dict
     }
 
-    private func taskToDict(
-        _ task: TransitTask, formatter: ISO8601DateFormatter, detailed: Bool = false
-    ) throws -> [String: Any] {
-        var dict = IntentHelpers.taskToDict(task, formatter: formatter, detailed: detailed)
-        let comments = try commentFetcher.fetchComments(for: task.id)
-        dict["comments"] = comments.map { [
-            "id": $0.id.uuidString, "authorName": $0.authorName, "content": $0.content,
-            "isAgent": $0.isAgent, "creationDate": formatter.string(from: $0.creationDate)
-        ] as [String: Any] }
-        return dict
-    }
 }
 
 #endif

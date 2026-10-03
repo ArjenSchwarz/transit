@@ -168,11 +168,12 @@ struct NumericDisplayIdMCPTests {
         let response = await env.handler.handle(
             MCPTestHelpers.toolCallRequest(
                 tool: "query_tasks",
-                arguments: ["displayId": 10 as Double]
+                arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "displayId": 10 as Double]
             )
         )
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
     }
 
@@ -264,11 +265,12 @@ struct NumericDisplayIdMCPTests {
         let response = await env.handler.handle(
             MCPTestHelpers.toolCallRequest(
                 tool: "query_tasks",
-                arguments: ["milestoneDisplayId": 2 as Double]
+                arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "milestoneDisplayId": 2 as Double]
             )
         )
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
     }
 }

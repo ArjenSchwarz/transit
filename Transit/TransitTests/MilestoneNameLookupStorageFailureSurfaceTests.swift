@@ -136,13 +136,16 @@ struct MilestoneNameLookupFailureTests {
         ))
         let queryResponse = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["projectId": project.id.uuidString, "milestone": "Sprint"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "projectId": project.id.uuidString, "milestone": "Sprint"]
         ))
 
-        for response in [createResponse, updateResponse, queryResponse] {
+        for response in [createResponse, updateResponse] {
             #expect(try MCPTestHelpers.isError(response))
             #expect(try MCPTestHelpers.errorText(response) == expectedHint)
         }
+        #expect(try MCPTestHelpers.isError(queryResponse))
+        #expect(try MCPTestHelpers.queryErrorMessage(queryResponse) == expectedHint)
         #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).count == 1)
         #expect(task.name == "Existing")
         #expect(task.milestone == nil)

@@ -42,12 +42,14 @@ struct MCPQueryTasksValidationPrecedenceTests {
 
                 let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
                     tool: "query_tasks",
-                    arguments: arguments
+                    arguments: arguments.merging([
+                        "detailLevel": "summary", "includeComments": true, "limit": 100
+                    ]) { _, new in new }
                 ))
 
                 #expect(try MCPTestHelpers.isError(response))
                 #expect(
-                    try MCPTestHelpers.errorText(response).contains(malformedFilter.expectedError),
+                    try MCPTestHelpers.queryErrorMessage(response).contains(malformedFilter.expectedError),
                     "Expected \(malformedFilter.expectedError) before resolving \(milestoneFilter)"
                 )
             }

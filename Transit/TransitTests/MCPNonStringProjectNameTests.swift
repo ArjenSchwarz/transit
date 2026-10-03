@@ -24,11 +24,12 @@ struct MCPNonStringProjectNameTests {
         // Numeric `project` must not fall through to "no filter applied".
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["project": 123]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "project": 123]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("project") && errorMessage.contains("string"))
     }
 
@@ -41,11 +42,12 @@ struct MCPNonStringProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["project": true]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "project": true]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("project") && errorMessage.contains("string"))
     }
 
@@ -58,11 +60,12 @@ struct MCPNonStringProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["project": ["Alpha"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "project": ["Alpha"]]
         ))
 
         #expect(try MCPTestHelpers.isError(response))
-        let errorMessage = try MCPTestHelpers.errorText(response)
+        let errorMessage = try MCPTestHelpers.queryErrorMessage(response)
         #expect(errorMessage.contains("project") && errorMessage.contains("string"))
     }
 
@@ -131,10 +134,11 @@ struct MCPNonStringProjectNameTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["project": "  "]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "project": "  "]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 2)
     }
 }

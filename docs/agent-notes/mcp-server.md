@@ -48,8 +48,20 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 | `create_task` | Create a new task (name and type required; at least one of project / projectId required to identify the project; description, metadata, and priority optional — priority defaults to medium, invalid priority rejects with no task created) |
 | `update_task_status` | Change task status (by displayId or taskId) |
 | `update_task` | Update a task's mutable fields — any combination of `name`, `description`, `type`, `priority`, `metadata`, and milestone assignment (`milestone` / `milestoneDisplayId` / `clearMilestone`) — in a single atomic call. Priority is non-clearable: omit to leave unchanged. Identify task by displayId or taskId. |
-| `query_tasks` | List tasks with optional status/type/priority/project filters (priority accepts an array of values to include); includes comments |
+| `query_tasks` | Required detailLevel, includeComments, and limit (1–100); returns frozen {results,nextCursor,expiresAt} pages. Existing filters or single displayId; taskIds/displayIds batches reject filters. Continuations send only cursor. |
 | `add_comment` | Add a comment to a task (by displayId or taskId); always sets `isAgent: true` |
+
+### Task query snapshots (T-2379)
+
+`MCPTaskQueryRequest` validates initial options and cursor-only continuation.
+`MCPToolHandler+TaskQuery` copies all selected task/comment values into JSON pages
+synchronously on MainActor before publication. `MCPTaskQuerySnapshotStore` retains
+encoded pages for five minutes with monotonic expiry, at most eight multi-page
+snapshots and 16 MiB. Capacity rejection preserves existing cursors; reads do not
+extend lifetime. One-page results are byte-limited but need no retained snapshot.
+The listener closes query admission and clears snapshots before shutdown awaits,
+on generation-checked current-listener exit, and before reopening on launch.
+Whole-query tool errors contain a structured `{error:{code,message}}` object.
 
 ### Maintenance tools (gated, default off)
 

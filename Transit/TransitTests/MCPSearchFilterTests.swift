@@ -19,10 +19,11 @@ struct MCPSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": "login"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": "login"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Fix login bug")
     }
@@ -39,10 +40,11 @@ struct MCPSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": "authentication"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": "authentication"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Task A")
     }
@@ -56,10 +58,11 @@ struct MCPSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": "fix login"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": "fix login"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
     }
 
@@ -75,10 +78,11 @@ struct MCPSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": "login", "type": "bug"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": "login", "type": "bug"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Fix login bug")
     }
@@ -96,10 +100,11 @@ struct MCPSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": "fix", "status": ["planning"]]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": "fix", "status": ["planning"]]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Fix logout bug")
     }
@@ -116,10 +121,11 @@ struct MCPSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": "   "]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": "   "]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 2)
     }
 
@@ -132,10 +138,11 @@ struct MCPSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": "something"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": "something"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.isEmpty)
     }
 
@@ -154,10 +161,11 @@ struct MCPSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": "auth"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": "auth"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 2)
         let names = Set(results.compactMap { $0["name"] as? String })
         #expect(names == ["Auth task", "Update docs"])
@@ -172,10 +180,11 @@ struct MCPSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": 1, "search": "login"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "displayId": 1, "search": "login"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 1)
         #expect(results.first?["name"] as? String == "Fix login bug")
     }
@@ -189,10 +198,11 @@ struct MCPSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["displayId": 1, "search": "dashboard"]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "displayId": 1, "search": "dashboard"]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.isEmpty)
     }
 
@@ -208,10 +218,11 @@ struct MCPSearchFilterTests {
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",
-            arguments: ["search": ""]
+            arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
+                "search": ""]
         ))
 
-        let results = try MCPTestHelpers.decodeArrayResult(response)
+        let results = try MCPTestHelpers.decodeQueryResults(response)
         #expect(results.count == 2)
     }
 }

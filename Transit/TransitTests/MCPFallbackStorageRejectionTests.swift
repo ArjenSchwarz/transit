@@ -139,10 +139,11 @@ struct MCPFallbackStorageRejectionTests {
         seedProjectAndTask(in: env.context)
 
         let tasks = await env.handler.handle(
-            MCPTestHelpers.toolCallRequest(tool: "query_tasks", arguments: [:])
+            MCPTestHelpers.toolCallRequest(
+                tool: "query_tasks", arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100])
         )
         #expect(try MCPTestHelpers.isError(tasks) == false)
-        #expect(try MCPTestHelpers.decodeArrayResult(tasks).count == 1)
+        #expect(try MCPTestHelpers.decodeQueryResults(tasks).count == 1)
 
         let projects = await env.handler.handle(
             MCPTestHelpers.toolCallRequest(tool: "get_projects", arguments: [:])
