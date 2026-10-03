@@ -107,6 +107,50 @@ nonisolated struct MCPLocalReservation: Codable, Equatable, Sendable {
         }
     }
 
+    /// The process lock and MainActor keep this verified snapshot stable for the
+    /// whole maintenance pass. Validate every binding before changing any file.
+    func reconcileTerminalBindings(_ terminal: [MCPLocalReservation], now: Date) throws {
+        var snapshot: [BindingKey: MCPLocalReservation] = [:]
+        for binding in try all() {
+            guard snapshot.updateValue(binding, forKey: BindingKey(binding)) == nil else { throw Error.inconsistent }
+        }
+        for binding in terminal {
+            guard binding.scopeID == scopeID, binding.formatVersion == 1,
+                  let expiry = binding.expiresAt, expiry.timeIntervalSinceReferenceDate.isFinite else {
+                throw Error.inconsistent
+            }
+            if let saved = snapshot[BindingKey(binding)] {
+                guard saved.receiptID == binding.receiptID, saved.requestJSON == binding.requestJSON,
+                      saved.formatVersion == binding.formatVersion,
+                      saved.expiresAt == nil || saved.expiresAt == expiry else { throw Error.inconsistent }
+            }
+        }
+        for binding in terminal {
+            let key = BindingKey(binding)
+            if snapshot[key]?.expiresAt == nil { try persist(binding) }
+            snapshot[key] = binding
+        }
+        for binding in snapshot.values where binding.expiresAt.map({ $0 <= now }) == true {
+            try FileManager.default.removeItem(at: file(tool: binding.tool, key: binding.key))
+            try Self.syncDirectory(guardsDirectory)
+        }
+    }
+
+    struct BindingKey: Hashable {
+        let tool: String
+        let key: String
+
+        init(_ binding: MCPLocalReservation) {
+            tool = binding.tool
+            key = binding.key
+        }
+
+        init(tool: String, key: String) {
+            self.tool = tool
+            self.key = key
+        }
+    }
+
     func all() throws -> [MCPLocalReservation] {
         let files = try FileManager.default.contentsOfDirectory(at: guardsDirectory,
                                                                includingPropertiesForKeys: nil)

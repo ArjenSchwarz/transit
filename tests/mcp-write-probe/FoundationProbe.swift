@@ -68,9 +68,16 @@ struct MCPWriteFoundationProbe {
         receipt.stateRawValue = "committed"
         receipt.completedAt = Date(timeIntervalSinceReferenceDate: 10)
         receipt.expiresAt = Date(timeIntervalSinceReferenceDate: 604810)
-        receipt.resultJSON = """
-        {"contractVersion":1,"tool":"create_project","idempotencyKey":"key","outcome":"committed","accepted":true}
-        """
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "#112233")
+        let snapshot = try MCPRecordSnapshot.project(project)
+        let result: [String: Any] = [
+            "contractVersion": 1, "tool": "create_project", "idempotencyKey": "key",
+            "outcome": "committed", "accepted": true, "entityId": project.id.uuidString,
+            "record": snapshot.record,
+            "completedAt": MCPRecordSnapshot.timestamp(receipt.completedAt!),
+            "replayExpiresAt": MCPRecordSnapshot.timestamp(receipt.expiresAt!)
+        ]
+        receipt.resultJSON = String(data: try JSONSerialization.data(withJSONObject: result), encoding: .utf8)!
         receipt.resultIsError = false
         try context.save()
         let durable = try store.lookup(tool: "create_project", key: "key", durable: true)

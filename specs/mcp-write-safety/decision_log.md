@@ -19,6 +19,8 @@
 | Q13 | 2026-10-03 | Retain In Progress status after coding and focused review. | All 16 tasks are implemented, but full application/transport verification and required Git commits are blocked by the current environment; do not claim these gates passed. |
 | Q14 | 2026-10-03 | Add application-gate red/green tasks 17–18 and preserve established domain behavior. | Actual execution exposed compiler issues and 16 contract/fixture failures; fixes distinguish mandatory safety/full-write-record changes from unintended validation, normalization and summary-query regressions. |
 | Q15 | 2026-10-03 | Complete implementation verification and move to review. | Permission restrictions resolved; all 18 tasks complete, focused 115/115, macOS 1,853/1,853 and iOS unit/UI 1,308/1,308 pass. Final review has no material findings; implementation and changelog commits are confirmed. |
+| Q16 | 2026-10-03 | Validate one keyed guard snapshot and one receipt pass per cleanup. | Pre-push review found repeated guard scans made maintenance quadratic; a per-pass snapshot preserves validation and lock semantics without a stale persistent cache. |
+| Q17 | 2026-10-03 | Require complete terminal envelopes before replay and reuse shared scalar parsers. | Malformed receipts must remain uncertain; exact integer boundaries must agree with existing intent parsing. Focused regression probes passed. |
 
 ## Decision 1: Limit Revisions to Defined Entity State
 

@@ -18,6 +18,18 @@ import Testing
         }
     }
 
+    @Test func exactIntegerBoundaryIsAccepted() throws {
+        let args: [String: Any] = ["displayId": Int.max, "content": "C", "authorName": "A", "idempotencyKey": "max"]
+        _ = try MCPWriteCommand.validate(tool: "add_comment", arguments: args)
+        for value in [true, 1.5, Double(Int.max), NSNumber(value: UInt64.max)] as [Any] {
+            var invalid = args
+            invalid["displayId"] = value
+            #expect(throws: (any Error).self) {
+                try MCPWriteCommand.validate(tool: "add_comment", arguments: invalid)
+            }
+        }
+    }
+
     @Test func malformedInputsRemainPreAcceptance() {
         let valid: [String: Any] = ["name": "P", "colorHex": "#112233", "idempotencyKey": "key"]
         for value in [true, 1, NSNull(), "", "key\n", String(repeating: "a", count: 129)] as [Any] {

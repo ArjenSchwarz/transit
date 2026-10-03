@@ -68,6 +68,8 @@ Transit includes a built-in MCP server on macOS for AI agent integration. Enable
 
 `create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`
 
+The eight write tools require an `idempotencyKey`. Task/milestone updates and milestone deletion also require the target's current `expectedRevision`. Read a revision before updating, and retry an interrupted request with the same key and arguments. Responses use structured saved-record outcomes; see the [MCP write contract](docs/mcp-write-contract.md) for examples, seven-day replay retention, conflicts, and local-store limits. App Intent inputs are unchanged.
+
 ## Documentation
 
 - `specs/transit-v1/` — requirements, design, architecture, tasks, and decision log

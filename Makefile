@@ -199,7 +199,7 @@ test-mcp-write-coordinator: prepare-cache-dirs
 		Transit/Transit/MCP/{MCPTypes,MCPToolDefinitions}.swift \
 		Transit/Transit/Intents/{IntentHelpers,IntentError,TaskUpdateValidator}.swift \
 		Transit/Transit/Extensions/ModelContext+{Save,SafeRollback}.swift \
-		tests/mcp-write-probe/CoordinatorProbe.swift -o $(DERIVED_DATA)/mcp-write-coordinator-probe
+		tests/mcp-write-probe/{CoordinatorProbe,CoordinatorRegressionProbe}.swift -o $(DERIVED_DATA)/mcp-write-coordinator-probe
 	$(DERIVED_DATA)/mcp-write-coordinator-probe
 
 test-mcp-write-services: prepare-cache-dirs

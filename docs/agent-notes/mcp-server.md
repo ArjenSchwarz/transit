@@ -7,7 +7,7 @@ Embedded MCP server in the Transit macOS app using Hummingbird HTTP server. Expo
 ## Architecture
 
 ```
-Claude Code ←→ HTTP POST + session GET/SSE /mcp (localhost:3141) ←→ MCPServer ←→ MCPToolHandler ←→ TaskService/ProjectService/CommentService ←→ SwiftData
+Claude Code ←→ HTTP POST + session GET/SSE /mcp (localhost:3141) ←→ MCPServer ←→ MCPToolHandler ←→ read services / MCPWriteCoordinator ←→ SwiftData
 ```
 
 - **Transport**: Streamable HTTP at `/mcp`. `POST /mcp` carries JSON-RPC requests and client notifications; a successful standalone `initialize` returns an `Mcp-Session-Id`. A GET with that session ID and an exact acceptable `text/event-stream` media range opens the optional SSE channel for server-initiated notifications. Missing session IDs return 400, unknown IDs return 404, and GET without SSE negotiation remains HTTP 405 with `Allow: POST`.
@@ -40,6 +40,8 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 4. **AnyCodable**: Uses `@unchecked Sendable` because it wraps `Any`.
 
 ## Tools Exposed
+
+All eight write tools require `idempotencyKey`; updates and milestone deletion also require `expectedRevision`. Their saved records and structured retry/conflict outcomes follow [the write contract](../mcp-write-contract.md). Read tools and gated maintenance tools retain their separate dispatch paths.
 
 | Tool | Description |
 |------|-------------|
@@ -142,6 +144,8 @@ Added `com.apple.security.network.server` and `com.apple.security.network.client
 
 ## Testing with curl
 
+Protected calls follow the [MCP write contract](../mcp-write-contract.md): supply a fresh key for a new logical request and reuse it unchanged for retries. Updates and milestone deletion also need the current revision from a read. The create example assumes an existing project named `Agent Work`.
+
 ```bash
 # List tools
 curl -X POST http://localhost:3141/mcp -H 'Content-Type: application/json' \
@@ -149,7 +153,7 @@ curl -X POST http://localhost:3141/mcp -H 'Content-Type: application/json' \
 
 # Create task
 curl -X POST http://localhost:3141/mcp -H 'Content-Type: application/json' \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"create_task","arguments":{"name":"Test","type":"feature"}}}'
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"create_task","arguments":{"name":"Test","type":"feature","project":"Agent Work","idempotencyKey":"curl-create-task-001"}}}'
 ```
 
 ## Claude Code Integration
@@ -180,16 +184,16 @@ MCPToolHandler, App Intents, and IntentHelpers all delegate to these methods rat
 - **Always validate UUID filter parameters separately from presence checks.** Never use `flatMap(UUID.init)` or combined conditionals like `if let str = ..., let uuid = UUID(str)` for user-provided filter values — these silently drop invalid inputs. Instead, first check if the key is present, then validate the UUID format with a guard, returning an explicit error on failure. See `handleQueryTasks` for the correct pattern; `handleQueryMilestones` uses `resolveProjectFilter` helper (T-665). This applies to both query and create flows — T-743 fixed the same pattern in `handleCreateTask`, `handleCreateMilestone`, `CreateTaskIntent`, and `CreateMilestoneIntent`. The `resolveMilestone` helper also follows this pattern for both `displayId` (T-634) and `milestoneId` (T-769).
 - **Always validate enum filter values in query handlers.** When a handler accepts `status`, `not_status`, or `type` as filter parameters, validate each value against the enum's `allCases` before using them. Invalid values must return `isError: true` with a message listing valid options — never silently filter to empty results. Helper: `validateEnumFilter(_:key:type:)` in `MCPToolHandler` — generic over any `RawRepresentable & CaseIterable` enum with `String` raw values (T-732).
 - **Reuse IntentHelpers instead of implementing private handler-local helpers.** `IntentHelpers` provides shared utilities for metadata extraction, JSON parsing, task/milestone resolution, and error mapping. Don't duplicate this logic in MCPToolHandler — use the shared version to ensure consistent behavior across MCP and App Intent paths (T-723).
-- **`update_task` distinguishes "omit" from "clear".** Omitting a field leaves the stored value untouched; passing `description: ""` or whitespace-only clears the description, and passing `metadata: {}` clears all metadata. An identifier-only request (no mutating field) is a no-op echo — the task is returned without a save. Both `update_task` and `UpdateTaskIntent` route through `TaskUpdateValidator` + `IntentHelpers.taskUpdateResponseDict`, so success payloads are equivalent across surfaces (enforced by `UpdateTaskAllFieldsParityTests`).
+- **`update_task` distinguishes "omit" from "clear".** Omitting a field leaves the stored value untouched; passing `description: ""` or whitespace-only clears the description, and passing `metadata: {}` clears all metadata. A request with only identity and required safety inputs leaves domain state/revision unchanged but persists its replay receipt. MCP returns a full saved record inside a committed outcome; App Intents keep their existing response shape. `UpdateTaskAllFieldsParityTests` compares domain fields after explicitly checking MCP null/empty values and applying Intent omission rules.
 
 ## Project creation
 
-`create_project` accepts required `name` and `colorHex` strings. Names are trimmed and must be non-empty and unique under the same case-insensitive policy as UI creation. Colors must contain exactly six ASCII hexadecimal digits, optionally prefixed by `#`; case and prefix are preserved. Optional `description` defaults to `""`; `gitRepo` is omitted when absent. Both optional fields must be strings when present (JSON null is rejected). Their contents pass through unchanged, and gitRepo remains free-form like the UI field.
+`create_project` accepts required `name`, `colorHex`, and `idempotencyKey` strings. Names are trimmed and must be non-empty and unique under the same case-insensitive policy as UI creation. Colors must contain exactly six ASCII hexadecimal digits, optionally prefixed by `#`; case and prefix are preserved. Optional `description` defaults to `""`; both description and gitRepo must be strings when present (JSON null is rejected). Their contents pass through unchanged, and gitRepo remains free-form like the UI field.
 
 Example `tools/call` params:
 
 ```json
-{"name":"create_project","arguments":{"name":"Agent Work","colorHex":"007AFF","description":"Tasks created through MCP","gitRepo":"git@example.com:team/project.git"}}
+{"name":"create_project","arguments":{"name":"Agent Work","colorHex":"007AFF","description":"Tasks created through MCP","gitRepo":"git@example.com:team/project.git","idempotencyKey":"agent-project-001"}}
 ```
 
-Success returns a JSON object inside `content[0].text` with `projectId` (UUID), `name`, `description`, `colorHex`, `activeTaskCount: 0`, and `gitRepo` when supplied. Pass the returned `projectId` to `create_task` as its projectId argument. `get_projects` includes the new project immediately. Invalid fields, duplicate names, and storage failures return `isError: true`. Creation uses ProjectService's insert/save cleanup and is blocked while fallback storage is active.
+Success returns a committed JSON outcome inside `content[0].text`, with the full project in `record`, its UUID in `entityId`, and replay expiry. Pass `record.projectId` to `create_task` with a separate key. `get_projects` includes the new project immediately. Invalid fields, duplicate names, and storage failures return structured error outcomes with `isError: true`. The coordinator commits the project and terminal receipt together and blocks creation while fallback storage is active.

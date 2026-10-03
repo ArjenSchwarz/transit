@@ -79,16 +79,8 @@ struct MCPWriteCommand {
         let valid: Bool
         switch schema.type {
         case "string": valid = value is String
-        case "integer":
-            if let number = value as? NSNumber {
-                valid =
-                    CFGetTypeID(number) != CFBooleanGetTypeID() && number.doubleValue.isFinite
-                    && number.doubleValue.rounded() == number.doubleValue
-                    && number.doubleValue >= Double(Int.min) && number.doubleValue < Double(Int.max)
-            } else {
-                valid = false
-            }
-        case "boolean": valid = (value as? NSNumber).map { CFGetTypeID($0) == CFBooleanGetTypeID() } ?? false
+        case "integer": valid = IntentHelpers.parseIntValue(value) != nil
+        case "boolean": valid = IntentHelpers.parseBoolValue(value) != nil
         case "object": valid = value is [String: Any]
         default: valid = false
         }
