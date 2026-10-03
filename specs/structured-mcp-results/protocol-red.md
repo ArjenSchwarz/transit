@@ -22,3 +22,16 @@ Local retained evidence (ignored build/cache output):
 Before the app test run, standalone declaration-module/test typecheck under default MainActor, parse and targeted SwiftLint passed. Duplicate-key raw fixture generation explicitly disables slash escaping so it exercises the intended malformed JSON.
 
 After test exit, read-only escalated process inspection confirmed no xcodebuild, xcbeautify or isolated stream2 test host remained (test host PID 19856). Existing unrelated Transit applications were untouched. Main was notified immediately that the exclusive heavy slot was released; no repeat or broadened run occurred after behavioral RED.
+
+## Supplemental RED after parser delivery
+
+Four new boundary fixtures were committed in `cf900ad`; original declaration-stage fixtures were unchanged. The validator was restored byte-for-byte to `817a80a` before this run (SHA256 `7792780a642a9e39a8a1c8cf36f123e915f43ba083901c225b195b65cfd97eaa`). The drafted source refinement remained unapplied in its retained backup and patch (backup SHA256 `fa27d84dad75e2ed96fe042c7ce8fdaea9472adb3a393bb3d54d563388a9b4cc`).
+
+After the presentation RED runner drained, the separately authorised same focused two-suite command compiled and executed. It exited make 2 / xcodebuild 65 with **24 passing and 2 failing test functions; 38 passing and 2 failing runs, zero skips**. All 22 original test functions passed. Exact supplemental failures:
+
+- `validJSONDepthLimitIsDistinctFromParseFailure`: a syntactically valid 33-container request received `-32700` rather than the required distinct `-32600` resource-limit error. Its exact-32 counterpart passed.
+- `outOfRangeAndNonIntegralNumericIDsNeverBecomeDispatchable`: invalid numeric IDs were rejected without dispatch, but the diagnostic lacked the required string-ID advice. The message was `Request ID must be a string or integer`.
+
+The new exact Int.min/max, integral decimal/exponent spellings, giant zero-exponent and independent width/body-bound cases passed. These supplemental fixtures had not run in the original declaration-stage RED; this section records their separate actual evidence rather than retroactively claiming it.
+
+Evidence: `.codex-cache/protocol-supplement/red-run.log`, `.codex-cache/protocol-supplement/red-summary.json`, and `DerivedData/Logs/Test/Test-Transit-2026.10.03_23-15-16-+1000.xcresult`. Read-only process inspection confirmed xcodebuild, xcbeautify, xctest and the stream2 test host (PID 56978) drained. Main was notified immediately and the slot released before lightweight summary extraction/bookkeeping. CPU-heavy typecheck/lint/review jobs paused for the parent's next measurement window; no GREEN run or source fix application was performed under this grant. Task 13 remains in progress.
