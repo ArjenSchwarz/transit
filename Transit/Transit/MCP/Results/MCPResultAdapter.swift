@@ -22,9 +22,10 @@ nonisolated enum MCPResultAdapter {
         isError: Bool?,
         origin: MCPResultOrigin,
         evidence: MCPResultEvidence,
-        checkpoint: @Sendable () throws -> Void = {}
+        checkpoint: @escaping @Sendable () throws -> Void = {}
     ) throws -> MCPResultSource {
-        throw MCPResultBoundaryError.notImplemented
+        try MCPResultSource.make(text: text, isError: isError, origin: origin,
+                                 evidence: evidence, checkpoint: checkpoint)
     }
 
     /// Declaration-stage placeholder; deterministic selectors arrive after RED.

@@ -27,7 +27,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.4](requirements.md#1.4), [2.4](requirements.md#2.4), [3.3](requirements.md#3.3)
   - References: design.md, Transit/Transit/MCP/Results/MCPJSONDocument.swift, Transit/Transit/MCP/Results/MCPResultSource.swift
 
-- [ ] 3. GREEN: implement owned lossless JSON documents and source factories <!-- id:gpzncvn -->
+- [-] 3. GREEN: implement owned lossless JSON documents and source factories <!-- id:gpzncvn -->
   - Implement MCPJSONDocument.swift iterative parser and MCPResultSource.swift factories; preserve validated original fragment, member positions, unknown fields and number lexemes without Double/Any reconstruction.
   - Honor injected cancellation/deadline checks and retain private immutable backing; do not alter MCPCanonicalJSON or receipt validation. Make task2 examples/properties pass with no model/context access.
   - Blocked-by: gpzncvm (RED: specify lossless source parsing and generated-versus-retained failure properties)
