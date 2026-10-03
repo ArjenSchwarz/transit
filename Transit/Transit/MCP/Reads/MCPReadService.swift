@@ -94,7 +94,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
                              operation: MCPReadOperation, transform: @escaping MCPReadCaptureTransform)
         async throws -> MCPPreparedToolRead {
         guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
-        let applicable = applicability()
+        let applicable = await MainActor.run { self.applicability() }
         let observation = try? monitor.beginObservation(applicableImportIDs: applicable.inFlightImportIDs)
         defer { observation?.close() }
         let view = try await capture(request: request, policy: policy, operation: operation,
