@@ -370,3 +370,5 @@ Immutable source/presentation results, supported-link availability and modern-on
 - [Prerequisites](structured-mcp-results/prerequisites.md)
 - [Decision log](structured-mcp-results/decision_log.md)
 - [Implementation evidence](structured-mcp-results/implementation.md)
+- [Source RED evidence](structured-mcp-results/source-red.md)
+- [Protocol RED evidence](structured-mcp-results/protocol-red.md)

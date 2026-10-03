@@ -75,3 +75,10 @@ Shape authorities: MCPRecordSnapshot.swift97, MCPWriteCommand.swift261, MCPToolH
 
 
 Owner approved32 (not512/64) at Sentinel_9536d4df532c81919792e70801f128fb; requirements/design/decision log amended explicitly. Source baselineRED2 complete8f9c4ce integrated locally with root task13->3 dependency preserved. Added31/32/33/wide-array cap assertions are being drafted for a separately granted RED refinement; no capGREEN claim. Protocol initial invocation failed before compile at package-resolution DNS (xcode74); same focused command is retrying once via per-command escalation for normal dependencies. That environmental failure is not RED evidence.
+
+
+## Baseline RED integration
+
+Local sub-branch integration explicitly approved at Sentinel_eafda56391a48191a3c414fef34d1307. Source baseline2 integrated from8f9c4ce: build/launch succeeded,16 declarations15failed1passed (42 expandedruns), all implementation failures notImplemented or exactexpectederror mismatch; independent shrinker passed. Protocol12 integrated fromdb8173c:22 functions/36 runs all failed solelynotImplemented, no fixture/compiler failures. Its initial sandbox-DNS invocation ranzero tests; the single escalated same-command retry produced actual behavioral evidence. Both focused pipelines drained and the exclusive short slot was released. Parent has both classifications. Rune now has1/2/12 complete;3 is the only ready stream task,13 correctly waits3.
+
+Cap RED amendment128823d remains in isolated stream1 pending exactshortslot grant; no GREEN app run. Source/parser3 and commonAPI15 remain undelivered. No shared MCP/coordinator/Reads edits, client activation, push, main merge or deployment occurred.
