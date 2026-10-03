@@ -69,3 +69,13 @@ The user approved both task lists: “Tasks approved, but why so many explicit m
 ## Verified interface-only foundation
 
 Commits `1b34efb` and `52e4882` define actual shared interfaces; focused typechecking and lint passed. T2382 confirmed the DTO fields satisfy its handoff. Requested comment-body JSON is optional with includeComments=false; complete portfolio canonical revision/full no-comment record/comment identity evidence remain mandatory. Stable MCPPublicationStoreID and MCPReadPublicationParticipant.prepareAggregate provide same-store grouping before terminal selection; task 9 owns concrete single-domain registry/lookup/reservation/retirement behavior. This is an interface handoff, not runtime risk verification.
+
+## Foundation implementation review checkpoints
+
+The import/refresh stream passed ten focused app tests at local `8d69d65`. Independent internal design review subsequently found that a non-applicable same-store completion could replace an applicable completion before polling or capture. Requirement 3.6 requires retaining that outcome. The repair adds bounded active observation windows and A/B ordering regressions; production nil-proof unknown/null behavior remains unchanged. The earlier passing suite is not treated as final verification of the repaired stream.
+
+The capture/coordinator stream passed twelve focused app tests before the remaining large-input and initialization-race cases: seven actual SwiftData capture cases and five transport/permit/batch/terminal-race cases. Live signed-store import applicability is not established. Stable local persistent history is a capture boundary, not proof that a specific remote import is visible.
+
+Read-only review identified a batch initialization race: stop could select an individual timeout before the complete array fallback was installed. The approved whole-array contract requires atomic same-generation admission with terminal selection deferred until the prebuilt full fallback is ready. The worker is adding forced stop/cutoff interleavings. Bulk fallback preparation remains outside the common publication lock; the original admission timestamp does not reset.
+
+Parent's separately approved latest-protocol T2383 migration does not alter the currently approved T-63 foundation work. Keep the coordinator transport-neutral and the current batch adapter separable; do not add dual-era behavior or remove approved batch tests before coordinated integration.
