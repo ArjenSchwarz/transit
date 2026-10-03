@@ -1,0 +1,234 @@
+{
+  "cloudKit": "none",
+  "network": "denied by sandbox-exec",
+  "liveContainer": "denied by sandbox-exec",
+  "cases": [
+    {
+      "name": "sequential",
+      "seed": {
+        "mode": "seed-old",
+        "exit": 0,
+        "stdout": "{\"linkedProjectNames\":[\"Synthetic\"],\"phase\":\"seed-old\",\"projectCount\":1,\"projectionRevisions\":[\"r1:f6872c051509fa5d883f828e3944806a10808cabdf992bec848719120d1151fb\"],\"projectNames\":[\"Synthetic\"],\"taskCount\":1,\"taskIDs\":[\"84589B3C-C9EB-48BC-9894-1957326A7DC5\"],\"taskRecords\":[{\"displayID\":1,\"id\":\"84589B3C-C9EB-48BC-9894-1957326A7DC5\",\"projectID\":\"8249C061-AE29-42CF-A713-2EE7BF24BEAA\",\"status\":\"idea\"}]}\n",
+        "stderr": ""
+      },
+      "before": {
+        "entities": [
+          [
+            1,
+            "Comment"
+          ],
+          [
+            2,
+            "Milestone"
+          ],
+          [
+            3,
+            "Project"
+          ],
+          [
+            4,
+            "SyncHeartbeat"
+          ],
+          [
+            5,
+            "TransitTask"
+          ],
+          [
+            16001,
+            "CHANGE"
+          ],
+          [
+            16002,
+            "TRANSACTION"
+          ],
+          [
+            16003,
+            "TRANSACTIONSTRING"
+          ]
+        ],
+        "taskEntityCounts": [
+          [
+            5,
+            1
+          ]
+        ],
+        "taskUUIDDuplicates": 0,
+        "quickCheck": "ok"
+      },
+      "new": {
+        "mode": "open-new",
+        "exit": 0,
+        "stdout": "{\"linkedProjectNames\":[\"Synthetic\"],\"phase\":\"before-new-save\",\"projectCount\":1,\"projectionRevisions\":[\"r1:f6872c051509fa5d883f828e3944806a10808cabdf992bec848719120d1151fb\"],\"projectNames\":[\"Synthetic\"],\"taskCount\":1,\"taskIDs\":[\"84589B3C-C9EB-48BC-9894-1957326A7DC5\"],\"taskRecords\":[{\"displayID\":1,\"id\":\"84589B3C-C9EB-48BC-9894-1957326A7DC5\",\"projectID\":\"8249C061-AE29-42CF-A713-2EE7BF24BEAA\",\"status\":\"idea\"}]}\n{\"linkedProjectNames\":[\"Synthetic\"],\"phase\":\"open-new\",\"projectCount\":1,\"projectionRevisions\":[\"r1:f6872c051509fa5d883f828e3944806a10808cabdf992bec848719120d1151fb\"],\"projectNames\":[\"Synthetic\"],\"receipt\":{\"id\":\"FE6D20F5-E8CD-4C7E-84E4-BB68D7D81649\",\"key\":\"synthetic-key\",\"state\":\"accepted\"},\"taskCount\":1,\"taskIDs\":[\"84589B3C-C9EB-48BC-9894-1957326A7DC5\"],\"taskRecords\":[{\"displayID\":1,\"id\":\"84589B3C-C9EB-48BC-9894-1957326A7DC5\",\"projectID\":\"8249C061-AE29-42CF-A713-2EE7BF24BEAA\",\"status\":\"idea\"}]}\n",
+        "stderr": ""
+      },
+      "after": {
+        "entities": [
+          [
+            1,
+            "Comment"
+          ],
+          [
+            2,
+            "MCPWriteReceipt"
+          ],
+          [
+            3,
+            "Milestone"
+          ],
+          [
+            4,
+            "Project"
+          ],
+          [
+            5,
+            "SyncHeartbeat"
+          ],
+          [
+            6,
+            "TransitTask"
+          ],
+          [
+            16001,
+            "CHANGE"
+          ],
+          [
+            16002,
+            "TRANSACTION"
+          ],
+          [
+            16003,
+            "TRANSACTIONSTRING"
+          ]
+        ],
+        "taskEntityCounts": [
+          [
+            6,
+            1
+          ]
+        ],
+        "taskUUIDDuplicates": 0,
+        "quickCheck": "ok"
+      }
+    },
+    {
+      "name": "concurrent",
+      "seed": {
+        "mode": "seed-old",
+        "exit": 0,
+        "stdout": "{\"linkedProjectNames\":[\"Synthetic\"],\"phase\":\"seed-old\",\"projectCount\":1,\"projectionRevisions\":[\"r1:16a9261fe6f4841a5c7698cedbe343a97c81f937c970b4db86b1ab1a909792cb\"],\"projectNames\":[\"Synthetic\"],\"taskCount\":1,\"taskIDs\":[\"BF55C870-1169-4EAB-9F7E-67E70F9FC56B\"],\"taskRecords\":[{\"displayID\":1,\"id\":\"BF55C870-1169-4EAB-9F7E-67E70F9FC56B\",\"projectID\":\"F216AA77-B606-4613-859B-4EF6526FE6B0\",\"status\":\"idea\"}]}\n",
+        "stderr": ""
+      },
+      "before": {
+        "entities": [
+          [
+            1,
+            "Comment"
+          ],
+          [
+            2,
+            "Milestone"
+          ],
+          [
+            3,
+            "Project"
+          ],
+          [
+            4,
+            "SyncHeartbeat"
+          ],
+          [
+            5,
+            "TransitTask"
+          ],
+          [
+            16001,
+            "CHANGE"
+          ],
+          [
+            16002,
+            "TRANSACTION"
+          ],
+          [
+            16003,
+            "TRANSACTIONSTRING"
+          ]
+        ],
+        "taskEntityCounts": [
+          [
+            5,
+            1
+          ]
+        ],
+        "taskUUIDDuplicates": 0,
+        "quickCheck": "ok"
+      },
+      "oldReady": "{\"linkedProjectNames\":[\"Synthetic\"],\"phase\":\"READY\",\"projectCount\":1,\"projectionRevisions\":[\"r1:16a9261fe6f4841a5c7698cedbe343a97c81f937c970b4db86b1ab1a909792cb\"],\"projectNames\":[\"Synthetic\"],\"taskCount\":1,\"taskIDs\":[\"BF55C870-1169-4EAB-9F7E-67E70F9FC56B\"],\"taskRecords\":[{\"displayID\":1,\"id\":\"BF55C870-1169-4EAB-9F7E-67E70F9FC56B\",\"projectID\":\"F216AA77-B606-4613-859B-4EF6526FE6B0\",\"status\":\"idea\"}]}",
+      "new": {
+        "mode": "open-new",
+        "exit": 0,
+        "stdout": "{\"linkedProjectNames\":[\"Synthetic\"],\"phase\":\"before-new-save\",\"projectCount\":1,\"projectionRevisions\":[\"r1:16a9261fe6f4841a5c7698cedbe343a97c81f937c970b4db86b1ab1a909792cb\"],\"projectNames\":[\"Synthetic\"],\"taskCount\":1,\"taskIDs\":[\"BF55C870-1169-4EAB-9F7E-67E70F9FC56B\"],\"taskRecords\":[{\"displayID\":1,\"id\":\"BF55C870-1169-4EAB-9F7E-67E70F9FC56B\",\"projectID\":\"F216AA77-B606-4613-859B-4EF6526FE6B0\",\"status\":\"idea\"}]}\n{\"linkedProjectNames\":[\"Synthetic\"],\"phase\":\"open-new\",\"projectCount\":1,\"projectionRevisions\":[\"r1:16a9261fe6f4841a5c7698cedbe343a97c81f937c970b4db86b1ab1a909792cb\"],\"projectNames\":[\"Synthetic\"],\"receipt\":{\"id\":\"5DF046C9-8B3A-4960-B72E-EA17694B3FEC\",\"key\":\"synthetic-key\",\"state\":\"accepted\"},\"taskCount\":1,\"taskIDs\":[\"BF55C870-1169-4EAB-9F7E-67E70F9FC56B\"],\"taskRecords\":[{\"displayID\":1,\"id\":\"BF55C870-1169-4EAB-9F7E-67E70F9FC56B\",\"projectID\":\"F216AA77-B606-4613-859B-4EF6526FE6B0\",\"status\":\"idea\"}]}\n",
+        "stderr": ""
+      },
+      "oldRead": "{\"linkedProjectNames\":[\"Synthetic\"],\"phase\":\"READ\",\"projectCount\":1,\"projectionRevisions\":[\"r1:16a9261fe6f4841a5c7698cedbe343a97c81f937c970b4db86b1ab1a909792cb\"],\"projectNames\":[\"Synthetic\"],\"taskCount\":1,\"taskIDs\":[\"BF55C870-1169-4EAB-9F7E-67E70F9FC56B\"],\"taskRecords\":[{\"displayID\":1,\"id\":\"BF55C870-1169-4EAB-9F7E-67E70F9FC56B\",\"projectID\":\"F216AA77-B606-4613-859B-4EF6526FE6B0\",\"status\":\"idea\"}]}",
+      "oldExit": 0,
+      "oldStderr": "",
+      "after": {
+        "entities": [
+          [
+            1,
+            "Comment"
+          ],
+          [
+            2,
+            "MCPWriteReceipt"
+          ],
+          [
+            3,
+            "Milestone"
+          ],
+          [
+            4,
+            "Project"
+          ],
+          [
+            5,
+            "SyncHeartbeat"
+          ],
+          [
+            6,
+            "TransitTask"
+          ],
+          [
+            16001,
+            "CHANGE"
+          ],
+          [
+            16002,
+            "TRANSACTION"
+          ],
+          [
+            16003,
+            "TRANSACTIONSTRING"
+          ]
+        ],
+        "taskEntityCounts": [
+          [
+            6,
+            1
+          ]
+        ],
+        "taskUUIDDuplicates": 0,
+        "quickCheck": "ok"
+      }
+    }
+  ],
+  "policy": "Persistence policy checks passed",
+  "bootstrap": "Bootstrap passed: isolated factory calls=0; active production counter names preserved",
+  "configuration": {
+    "mode": "configuration",
+    "exit": 0,
+    "stdout": "Actual isolated configuration checks passed\n",
+    "stderr": ""
+  },
+  "sequentialInvariantPassed": true
+}

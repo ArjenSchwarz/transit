@@ -1,0 +1,25 @@
+{
+  "command": "make build-development-macos > DerivedData/isolation-build-after-bootstrap.log 2>&1",
+  "completedAtUTC": "2026-10-03T16:15:03.819947+00:00",
+  "exit": 0,
+  "target": "TransitDevelopment",
+  "configuration": "Debug",
+  "bundleID": "me.nore.ig.Transit.development",
+  "signingAllowed": false,
+  "install": false,
+  "appLaunch": false,
+  "appHostTests": false,
+  "compilerSandboxDisabled": false,
+  "runtimeNetwork": "denied by sandbox-exec",
+  "runtimeLiveContainers": "denied by sandbox-exec",
+  "bootstrapFactoryInvocationsInIsolatedModes": 0,
+  "activeProductionCounterNames": [
+    "global-counter",
+    "milestone-counter"
+  ],
+  "lint": {
+    "files": 443,
+    "violations": 0
+  },
+  "testIsolationReleased": false
+}

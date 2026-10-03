@@ -37,6 +37,7 @@
 | [Batch Task Queries](#batch-task-queries) | 2026-10-03 | Done | MCP task detail selection, batch lookup, and frozen cursor pagination |
 | [MCP Write Safety](#mcp-write-safety) | 2026-10-03 | Done | Add retry-safe MCP writes, local revision preconditions, and structured saved outcomes |
 | [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | In Progress | Immutable structured/text results and latest-only MCP transport preserving replay and bounded reads |
+| [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | In Progress | Bound MCP read completion and report immutable saved capture/import evidence |
 
 ---
 
@@ -377,3 +378,16 @@ Immutable source/presentation results, supported-link availability and modern-on
 - [Presentation supplemental RED evidence](structured-mcp-results/presentation-supplemental-red.md)
 - [Pending common interface coordination](structured-mcp-results/interface-coordination.md)
 - [Protocol RED evidence](structured-mcp-results/protocol-red.md)
+
+## Bounded Read Freshness
+
+**Created:** 2026-10-03 · **Status:** In Progress
+
+T-63 bounds MCP reads with saved-only coherent capture, explicit import evidence, independent deadlines and frozen pagination metadata. Shared capture/publication contracts support T2382 reusable portfolio views.
+
+- [Requirements](bounded-read-freshness/requirements.md)
+- [Design](bounded-read-freshness/design.md)
+- [Tasks](bounded-read-freshness/tasks.md)
+- [Decisions](bounded-read-freshness/decision_log.md)
+- [Task review](bounded-read-freshness/tasks-review.md)
+- [Foundation handoff](bounded-read-freshness/foundation-handoff.md)

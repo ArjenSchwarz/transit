@@ -20,7 +20,7 @@ extension MCPTestHelpers {
         return try #require(try JSONSerialization.jsonObject(with: bytes) as? [String: Any])
     }
 
-    static func respond(
+    nonisolated static func respond(
         handler: MCPToolHandler,
         method: HTTPRequest.Method = .post,
         path: String = "/mcp",
@@ -29,6 +29,7 @@ extension MCPTestHelpers {
         contentType: String? = nil,
         accept: String? = nil,
         sessionID: String? = nil,
+        protocolVersion: String? = nil,
         body: String = "",
         loggerLabel: String
     ) async throws -> MCPHTTPTestResponse {
@@ -45,6 +46,9 @@ extension MCPTestHelpers {
         }
         if let sessionID {
             headers[.mcpSessionID] = sessionID
+        }
+        if let protocolVersion {
+            headers[HTTPField.Name("MCP-Protocol-Version")!] = protocolVersion
         }
         let request = Request(
             head: HTTPRequest(
@@ -78,7 +82,7 @@ extension MCPTestHelpers {
     }
 }
 
-nonisolated struct MCPHTTPTestResponse {
+nonisolated struct MCPHTTPTestResponse: Sendable {
     let status: HTTPResponse.Status
     let headers: HTTPFields
     let body: Data
