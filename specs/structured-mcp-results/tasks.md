@@ -10,7 +10,7 @@ metadata:
 ---
 # Structured MCP results — implementation tasks
 
-- [ ] 1. Define immutable result and modern protocol boundary interfaces <!-- id:gpzncvl -->
+- [x] 1. Define immutable result and modern protocol boundary interfaces <!-- id:gpzncvl -->
   - Interface-only exemption: declare macOS-gated nonisolated Sendable MCPResultSource/context/presentation/recovery, lossless document and protocol request/availability input types under Transit/Transit/MCP/Results and MCP/Protocol; no runtime implementation or T63-owned common edits.
   - Fix callable source/presentation/complete-response/fallback descriptor signatures against approved design; nil/false/true error presence stays explicit. Support protected, synthetic application-batch and unprotected-maintenance recovery without new keys.
   - One stream owns result/shared integration; stream2 may implement isolated protocol modules after these interfaces. No task is claimed or executed until owner task approval; every build/test also waits for T63 slot release.
