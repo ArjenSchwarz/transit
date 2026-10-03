@@ -28,7 +28,7 @@ nonisolated indirect enum MCPJSONFixtureValue: Equatable, Sendable {
         switch (self, actual) {
         case (.object(let expected), .object(let members)):
             return expected.count == members.count && zip(expected, members).allSatisfy {
-                $0.name == $1.name && $0.value.matches($1.value)
+                Array($0.name.unicodeScalars) == Array($1.name.unicodeScalars) && $0.value.matches($1.value)
             }
         case (.array(let expected), .array(let values)):
             return expected.count == values.count && zip(expected, values).allSatisfy { $0.matches($1) }

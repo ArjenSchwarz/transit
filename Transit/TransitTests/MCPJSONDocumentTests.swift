@@ -32,6 +32,23 @@ import Testing
         #expect(expected.matches(document.value))
     }
 
+    @Test func canonicallyEquivalentButScalarDistinctObjectKeysRemainDistinct() throws {
+        let text = #"{"\u00e9":1,"e\u0301":2}"#
+        let document = try MCPJSONDocument.parse(text)
+        #expect(document.originalUTF8 == Data(text.utf8))
+        guard case .object(let members) = document.value else {
+            Issue.record("Expected two distinct JSON object keys")
+            return
+        }
+        #expect(members.count == 2)
+        #expect(members.map { $0.name.unicodeScalars.map(\.value) } == [[0xE9], [0x65, 0x301]])
+        let expected = MCPJSONFixtureValue.object([
+            .init(name: "\u{E9}", value: .number("1")),
+            .init(name: "e\u{301}", value: .number("2"))
+        ])
+        #expect(expected.matches(document.value))
+    }
+
     @Test func seededCompleteValuesRetainTypedTreeAndExactFragment() throws {
         for seed in UInt64(0)..<128 {
             var generator = MCPJSONFixtureGenerator(seed: seed)
@@ -57,6 +74,7 @@ import Testing
 
     @Test(arguments: [
         "", " ", "{}[]", "true false", "{\"a\":1,\"a\":2}", #"{"a":1,"\u0061":2}"#,
+        #"{"é":1,"\u00e9":2}"#,
         "[1,]", "{\"a\":}", "{\"a\":1,}", "01", "-", "+1", "1.", "1e", "1e+", "NaN",
         #""\x20""#, #""\uD800""#, #""\uDC00""#, #""\uD800\u0041""#, "\"line\nfeed\""
     ])
