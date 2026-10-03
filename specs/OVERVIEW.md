@@ -35,6 +35,7 @@
 | [Task Priority](#task-priority) | 2026-06-06 | Done | Add a low/medium/high priority field with board glyph, filter, and MCP/Intent support |
 | [MCP Project Creation](#mcp-project-creation) | 2026-10-02 | Ready for Review | Create projects through MCP with validation and reusable project metadata |
 | [Batch Task Queries](#batch-task-queries) | 2026-10-03 | Done | MCP task detail selection, batch lookup, and frozen cursor pagination |
+| [MCP Write Safety](#mcp-write-safety) | 2026-10-03 | Done | Add retry-safe MCP writes, local revision preconditions, and structured saved outcomes |
 
 ---
 
@@ -337,3 +338,16 @@ Extend MCP `query_tasks` with explicit detail/comment options, batch identity lo
 - [decision_log.md](batch-task-queries/decision_log.md)
 - [tasks.md](batch-task-queries/tasks.md)
 - [implementation.md](batch-task-queries/implementation.md)
+
+## MCP Write Safety
+
+Protect MCP writes with durable retry receipts, local content revisions, and structured saved outcomes (T-2380). The approved plan starts with persistence probes before handler integration.
+
+All 18 coding tasks are implemented and review findings are resolved. Verification passed 1,853 macOS unit tests and 1,308 iOS unit/UI tests; implementation and phase changelog commits are recorded in the implementation report.
+
+- [requirements.md](mcp-write-safety/requirements.md)
+- [design.md](mcp-write-safety/design.md)
+- [decision_log.md](mcp-write-safety/decision_log.md)
+- [tasks.md](mcp-write-safety/tasks.md)
+- [prerequisites.md](mcp-write-safety/prerequisites.md)
+- [implementation.md](mcp-write-safety/implementation.md)
