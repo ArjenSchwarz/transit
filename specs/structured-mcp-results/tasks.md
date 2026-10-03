@@ -44,7 +44,7 @@ metadata:
   - Requirements: [1.2](requirements.md#1.2), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.5](requirements.md#3.5), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4)
   - References: design.md, Transit/Transit/MCP/Results/MCPResultAdapter.swift
 
-- [-] 5. GREEN: implement source-only presentation and typed provider selectors <!-- id:gpzncvp -->
+- [x] 5. GREEN: implement source-only presentation and typed provider selectors <!-- id:gpzncvp -->
   - Implement MCPResultAdapter.swift selector tables and typed additional provider positions, validate each UUID against immutable source, preserve array ordering and deterministic pointer/type/UUID ordering.
   - Produce explicit unavailable links and supplement-only categories/recovery. Known receipt codes use validated provider evidence; no localized message matching, live reread, receipt rewrite, fresh-key escape from uncertainty or revision minting. Pass task4.
   - Blocked-by: gpzncvo (RED: specify deterministic link, category and recovery presentation)
@@ -109,7 +109,7 @@ metadata:
   - Requirements: [3.2](requirements.md#3.2), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.6](requirements.md#5.6)
   - References: design.md, Transit/Transit/MCP/Protocol/MCPModernValidator.swift, Transit/Transit/MCP/Protocol/MCPModernDiscovery.swift
 
-- [-] 13. GREEN: implement pure modern-only validator and discovery values <!-- id:gpzncvx -->
+- [x] 13. GREEN: implement pure modern-only validator and discovery values <!-- id:gpzncvx -->
   - Implement MCPModernRequest.swift/MCPModernValidator.swift/MCPModernDiscovery.swift from task12 fixtures; per-request metadata only, standard errors, request-only method classification, immutable availability.
   - Expose validated protocol classification to later router wiring; covered tool arguments remain unvalidated until admitted bounded worker. No session/initialize/GET stream/wire arrays, resource/prompt/sampling features or client settings. Pass task12.
   - Blocked-by: gpzncvw (RED: specify modern request validation and stateless discovery), gpzncvn (GREEN: implement owned lossless JSON documents and source factories)

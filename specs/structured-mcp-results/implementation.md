@@ -150,3 +150,22 @@ The phone helper from clean95b0d30 exited0 and sent17 Markdown documents includi
 Parent ended the first continuation quiet window early but retained the live-write and app-host execution holds. Parent gracefully quit development Transit PID7496, closed port3141 and left the installed app running. Earlier drain reports labelled7496 an unrelated installed process; that classification is corrected to the parent's development-target identification. Our separate test pipelines/hosts drained, and7496 was untouched by our commands. A parent snapshot found seven duplicate rows inserted in one CloudKit import; mixed model generations sharing a store is a leading hypothesis, not a proven cause. Development-target/test-isolation implementation approval remains pending; no app launch, server reconnect/restart or isolation source implementation follows here.
 
 Independent planning continues in interface-coordination.md without crossing blocked task6 or claiming an API. It records ordered/validated metadata, sealed frozen bytes, bounded preeffect fallback presentation, original checkpoints/backing charges and unchanged T63/T2384 ownership. Presentation5/protocol13 stay pending safe application verification.
+
+## Integrated isolated presentation/protocol GREEN
+
+Parent selected immutable T63 Stage A b500543 and authorised local integration plus one exclusive isolated verification slot. Crossed instructions briefly consumed the exact-base isolation component9f6808e; only that component was reverted asb7625fd before T63 mergea540514. No isolation was double-applied. Final sourcefbbe7cb includes reviewed presentationf4bd03a and protocolb6b616e; HEAD41740d1 during tests adds only isolation-integration documentation. Isolation files and App constructors match b500543 exactly. T63/containment/T2384 shared ownership remains unchanged.
+
+The dedicated fresh-path `make test-isolated-host-smoke SMOKE_DERIVED_DATA=DerivedData/t2383-isolation-smoke-fbbe7cb` passed one test, zero failures/skips. Its signed development host and generated launch configuration passed identity/entitlement/unit-test-mode preflight. Shared Transit Debug build-for-testing then passed with private DerivedData/t2383-shared-fbbe7cb, serial tests and ad-hoc development signing. Before launch, the separately signed shared host/xctestrun preflight verified me.nore.ig.Transit.development, no CloudKit/push/App Group entitlements, explicit unit-test mode and TRANSIT_ISOLATION_SMOKE=1 with the exact inspected host path. Derived launch configurations excluded UI targets and restricted the two granted selections.
+
+Serial test-without-building results on that same guarded build:
+
+| Selection | Declarations | Expanded runs | Failures/skips | Outcome |
+| --- | --- | --- | --- | --- |
+| MCPResultPresentationTests | 25 | 55 | 0/0 | PASS |
+| MCPModernProtocolTests + MCPModernDiscoveryTests | 30 | 44 | 0/0 | PASS |
+
+Presentation expansion is21 ordinary runs plus34 parameter runs; protocol expansion is24 ordinary runs plus20 parameter runs. Original RED fixtures are unchanged, including milestone links, known receipt retry direction, subscription string[] handling, padded-name rejection and the previously unreachable literal sentinel case. Read-only final integration critic found no substantive issue and verified actual incoming JSONRPCId/origin signatures. Tasks5/gpzncvp and13/gpzncvx are complete.
+
+Evidence lives in `.codex-cache/t2383-final-isolated-fbbe7cb/` (logs, preflight and xcresult summaries/test trees); full results are dedicated smoke Build/Products/IsolationSmoke.xcresult and shared Presentation.xcresult/Protocol.xcresult. Every command exited0. Read-only process inspection found no owned build/test pipeline or host; the parent received immediate slot release before extraction/bookkeeping. T2382 now owns the heavy slot; no further app job is authorised here.
+
+Task6/gpzncvq is the next ready stream. Source-only encoder RED fixture preparation and light checks are delegated; no encoder GREEN or API15 delivery is claimed. No live Transit mutation, production launch, MCP activation, client setting change, push or deployment occurred. The earlier live-write hold remains active.

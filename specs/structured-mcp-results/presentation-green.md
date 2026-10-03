@@ -30,3 +30,7 @@ make test-quick TEST_TARGETS='TransitTests/MCPResultPresentationTests'
 No shared MCPTypes/server/handler/definitions/Reads/store/coordinator files, configuration, CHANGELOG or test fixtures changed. Metadata ordered-member encoding and compact fallback giant-itemId regression remain later encoder tasks6–7. No heavy slot is held.
 
 Revised source validation passed targeted parse/strict no-cache lint and the same standalone pure-module/unchanged-fixture Swift6/default MainActor typecheck. Runtime repairs are limited to MCPResultClassification.swift and MCPResultLinks.swift. No app test or runtime GREEN is claimed at this revised draft; the next focused command still requires a new parent slot grant.
+
+## Final isolated runtime verification
+
+Reviewed source f4bd03a was integrated with T63 b500543 and protocol b6b616e at fbbe7cb. After a fresh dedicated isolated smoke and shared Debug signed-host/xctestrun preflight, test-without-building passed all25 declarations/55 expanded runs, zero failures/skips, exit0. Fixtures remain unchanged from391c159. Evidence: DerivedData/t2383-shared-fbbe7cb/Presentation.xcresult and .codex-cache/t2383-final-isolated-fbbe7cb/presentation-{summary,tests}.json. Final read-only critic found no integration blocker. Task5 is complete; no additional app run follows slot release.
