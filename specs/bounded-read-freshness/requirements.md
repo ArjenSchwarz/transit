@@ -2,7 +2,7 @@
 
 Transit agents need to know when a read describes only the endpoint's local view and when that view was captured. Headless CloudKit imports may lag, and read latency has exceeded client deadlines without an established cause. This feature makes those limits visible and gives callers a bounded success or failure response.
 
-Review status: approved in full by the user in the parent conversation on 2026-10-03, including the 30,000 ms threshold, eight unfinished-read admission limit, diagnostics, and all decisions in the requirements review. Design is also approved; tasks and production implementation remain gated separately.
+Review status: approved in full by the user in the parent conversation on 2026-10-03, including the 30,000 ms threshold, eight unfinished-read admission limit, diagnostics, and all decisions in the requirements review. Design, tasks and implementation are also approved by the user; approved scope and contracts remain binding.
 
 ## Proposed observable contract
 

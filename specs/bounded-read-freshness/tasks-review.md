@@ -1,5 +1,7 @@
 # T-63 task approval packet
 
+Approval received: both task lists approved by user (Sentinel_c2e9343628948191b921868234aaf409). The review/gate text below records the prepared packet; implementation is now authorized.
+
 The user approved requirements and design, including final T-63 `5639c40` / T2382 `3932e88` scope/publication contracts (Sentinel_541ceb19e7c8819193d04d23c5263041). This packet proposes implementation tasks; none have started. The dedicated branch remains spec-only and must align to merged main `201205bd4e786c7f152d8f99006b37da7da888c7` before code changes.
 
 ## Self-check and independent review

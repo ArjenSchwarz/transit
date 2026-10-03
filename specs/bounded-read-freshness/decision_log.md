@@ -65,3 +65,7 @@ The user approved both designs unchanged: “Both 63 and 2382 are approved witho
 ## Tasks approval and implementation start
 
 The user approved both task lists: “Tasks approved, but why so many explicit mentions of xcode27 in there?” (Sentinel_c2e9343628948191b921868234aaf409), conveyed by parent. Implementation is authorized with the approved DAG/red-green evidence. The toolchain constraint remains recorded once in repository guidance; routine reports should avoid repeating it. The dedicated branch was rebased cleanly to merged `201205bd4e786c7f152d8f99006b37da7da888c7`, preserving five spec commits and all other worktrees. T-63 has the initial exclusive heavy build/test slot for foundation tasks 3/7/9 and must tell parent when released. No merge/deployment is authorized.
+
+## Verified interface-only foundation
+
+Commits `1b34efb` and `52e4882` define actual shared interfaces; focused typechecking and lint passed. T2382 confirmed the DTO fields satisfy its handoff. Requested comment-body JSON is optional with includeComments=false; complete portfolio canonical revision/full no-comment record/comment identity evidence remain mandatory. Stable MCPPublicationStoreID and MCPReadPublicationParticipant.prepareAggregate provide same-store grouping before terminal selection; task 9 owns concrete single-domain registry/lookup/reservation/retirement behavior. This is an interface handoff, not runtime risk verification.
