@@ -54,6 +54,7 @@ nonisolated struct MCPJSONDocument: Sendable, Equatable {
 nonisolated enum MCPResultBoundaryError: Error, Sendable, Equatable {
     case notImplemented
     case invalidJSON
+    case resourceLimit
     case unsupportedEvidence
 }
 #endif

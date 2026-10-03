@@ -81,5 +81,34 @@ import Testing
                                         evidence: .established) { throw MCPJSONCheckpointFailure.cancelled }
         }
     }
+
+    @Test func generatedDepth33ThrowsDistinctResourceLimit() {
+        let text = String(repeating: "[", count: 33) + "null" + String(repeating: "]", count: 33)
+        #expect(throws: MCPResultBoundaryError.resourceLimit) {
+            try MCPResultAdapter.source(text: text, isError: false, origin: .generatedJSON,
+                                        evidence: .established)
+        }
+    }
+
+    @Test func retainedDepth33PreservesRawEvidenceAndAllErrorPresenceVariants() throws {
+        let text = " \n" + String(repeating: "[", count: 33) + "null" + String(repeating: "]", count: 33) + "\t"
+        for isError: Bool? in [nil, false, true] {
+            let source = try MCPResultAdapter.source(text: text, isError: isError, origin: .retainedJSON,
+                                                   evidence: .established)
+            #expect(source.originalText == text)
+            #expect(source.originalIsError == isError)
+            #expect(source.kind == .unreadable)
+            #expect(source.evidence == .unestablished)
+            #expect(source.document == nil)
+        }
+    }
+
+    @Test func retainedDepth33StillPropagatesOriginalWorkerCancellation() {
+        let text = String(repeating: "[", count: 33) + "null" + String(repeating: "]", count: 33)
+        #expect(throws: MCPJSONCheckpointFailure.cancelled) {
+            try MCPResultAdapter.source(text: text, isError: true, origin: .retainedJSON,
+                                        evidence: .established) { throw MCPJSONCheckpointFailure.cancelled }
+        }
+    }
 }
 #endif
