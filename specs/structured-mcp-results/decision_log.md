@@ -83,3 +83,10 @@ Parent confirmed task13/gpzncvx additionally depends on delivered parser3/gpzncv
 ### Owner-approved32-level parser interpretation bound
 
 Owner rejected excessive512 headroom after review of representative shapes (ordinary fullRPC7–10; prospective full-receipt batch12, constructed from actual source shapes). Parent proposed32 and owner explicitly agreed at Sentinel_9536d4df532c81919792e70801f128fb: “Yes, sounds much better”. Requirements/design now explicitly qualify whole-payload interpretation: parser-input object/array containers root1/scalars0; generateddepth>32 throws distinctresourceLimit; retaineddepth>32 keeps exacttext/originalisError but unreadable/unestablished evidence. This is an approved resource/preservation amendment, not silent implementation narrowing. Verify31/32/33 and width independently; emitted modern wrappers/schema documents are measured separately. Source baselineRED2 remains valid; added cap assertions need meaningful RED refinement beforeGREEN3.
+
+
+### Verified source delivery and next pure streams
+
+Source3/gpzncvn finalcomponent0a93930 integrateddf3c23b. App GREEN31bc425 passed23declarations/50expandedruns; final access-only private initializer proved by positive puremodule/fixture typecheck and negative external construction compile. No app test at the access-only finalcommit is claimed. Expected tasks.md merge conflict preserved verified completion3 and earlier12 plus13->3 edge. New isolated streams fromdf3c23b own presentation RED4 and modern protocol GREEN13; source drafting holds no heavy slot. Earlier worktrees retain ignored test artifacts.
+
+Parent confirmed presentation throwing original-checkpoint API and exact documented object/relationship pointer semantics, and approved ordered/validated metadata representation as lossless contract fulfillment without new user policy. Future stable signatures and regression evidence must be sent to T63 before encoder7/runtime delivery15.
