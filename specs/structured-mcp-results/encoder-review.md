@@ -13,3 +13,9 @@ Task6 is source-ready for a parent-granted guarded focused RED run. No runtime R
 Original guarded console evidence establishes14 failed methods/18 declaration-stage issues, all attributable to notImplemented boundaries. No fixture/oracle/environment blocker was found. Early throws left later sample combinations, fragment/depth assertions and post-effect fallback selection unexecuted; source inventory is not complete runtime coverage.
 
 Review accepts task6 RED completion under the parent's explicit no-repeat-for-teardown instruction while retaining scoped termination, automatic replay, actual exit143, unavailable final xcresult counts and unproved hang cause as separate limits. Task7 is still pending actual implementation/GREEN verification; no API15 delivery follows.
+
+## Task7 source draft review
+
+Exact draft3ba1cfb is source-ready with no blocking defect found. Review confirmed raw source/metadata/optional isError/current IDs/higher-depth envelopes, sealed frozen bytes and typed checkpoints without retained closures. Complete mutation fallback bytes preserve provider data and separate original protected-key recovery from no-key maintenance reconciliation; batch itemId is omitted only from fallback presentation.
+
+This review establishes neither application GREEN nor API15 delivery. Preparation accounting/capacity remains task11; production selection/effect integration remains task14. No source edits, app tests, heavy commands or live calls were performed by the reviewer.
