@@ -61,3 +61,7 @@ T-63 and T2382 agreed one common publication lock domain with pre-encoded succes
 ## Design approval
 
 The user approved both designs unchanged: “Both 63 and 2382 are approved without required changes” (Sentinel_541ceb19e7c8819193d04d23c5263041), conveyed by the parent. Approval covers T-63 `5639c40` and T2382 `3932e88`, including final typed scope and publication amendments. Task planning is authorized; the task list and production implementation still require the next explicit approval.
+
+## Tasks approval and implementation start
+
+The user approved both task lists: “Tasks approved, but why so many explicit mentions of xcode27 in there?” (Sentinel_c2e9343628948191b921868234aaf409), conveyed by parent. Implementation is authorized with the approved DAG/red-green evidence. The toolchain constraint remains recorded once in repository guidance; routine reports should avoid repeating it. The dedicated branch was rebased cleanly to merged `201205bd4e786c7f152d8f99006b37da7da888c7`, preserving five spec commits and all other worktrees. T-63 has the initial exclusive heavy build/test slot for foundation tasks 3/7/9 and must tell parent when released. No merge/deployment is authorized.
