@@ -70,7 +70,7 @@ enum MCPResultEncoderFixtures {
 
     /// Independent envelope-only parser. Never rebuilds or compares original payload numbers.
     static func rawFragment(_ data: Data, path: [String]) throws -> Data {
-        _ = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
+        try MCPJSONEnvelopeFixtureValidation.validate(data)
         let bytes = Array(data)
         func whitespace(_ offset: inout Int) {
             while offset < bytes.count, [9, 10, 13, 32].contains(bytes[offset]) { offset += 1 }
