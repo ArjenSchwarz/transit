@@ -274,4 +274,75 @@ extension MCPReadServiceTests {
     }
 
 }
+extension MCPReadServiceTests {
+    @Test(arguments: ["filtered", "batch", "selected"])
+    func taskCanonicalSerializationFollowsTypedSelection(mode: String) async throws {
+        let fixture = try TestModelContainer()
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "blue")
+        let good = TransitTask(name: "Good", type: .feature, project: project, displayID: .permanent(1))
+        good.statusRawValue = "done"
+        let bad = TransitTask(name: "Bad", type: .feature, project: project, displayID: .permanent(2))
+        fixture.context.insert(project)
+        fixture.context.insert(good)
+        fixture.context.insert(bad)
+        try fixture.context.save()
+        // Inject corrupt read evidence into the fresh capture context, never into persisted data.
+        let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
+            fetchTasks: { context in
+                let values = try context.fetch(FetchDescriptor<TransitTask>())
+                let corrupt = try #require(values.first { $0.permanentDisplayId == 2 })
+                corrupt.creationDate = Date(timeIntervalSinceReferenceDate: .nan)
+                #expect(throws: (any Error).self) { try MCPRecordSnapshot.task(corrupt) { _ in [] } }
+                return values
+            })
+        let service = MCPReadService(source: Source(fixture, builder: builder), monitor: MCPImportEvidenceMonitor(
+            syncActive: false, storeIdentifier: nil), snapshots: MCPTaskQuerySnapshotStore())
+        var args: [String: Any] = ["detailLevel": "full", "includeComments": false, "limit": 100]
+        if mode == "filtered" { args["status"] = "done" }
+        if mode == "batch" { args["displayIds"] = [1] }
+        if mode == "selected" { args["displayId"] = 2 }
+        let result = try await execute(service, arguments: args)
+        if mode == "selected" {
+            #expect(try errorCode(result) == "QUERY_FAILED")
+            #expect(try metadataObject(result)["category"] as? String == "serialization_failure")
+        } else {
+            #expect(result["isError"] == nil)
+            let text = try #require((result["content"] as? [[String: Any]])?.first?["text"] as? String)
+            #expect((try object(text)["results"] as? [[String: Any]])?.count == 1)
+        }
+    }
+
+    @Test(arguments: ["query_tasks", "query_milestones", "get_projects"])
+    func unrelatedMilestoneCanonicalDatesDoNotPoisonSelectedOutput(tool: String) async throws {
+        let fixture = try TestModelContainer()
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "blue")
+        let good = Milestone(name: "Good", project: project, displayID: .permanent(1))
+        let bad = Milestone(name: "Bad", project: project, displayID: .permanent(2))
+        bad.statusRawValue = "done"
+        let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .permanent(63))
+        task.milestone = bad
+        fixture.context.insert(project)
+        fixture.context.insert(good)
+        fixture.context.insert(bad)
+        fixture.context.insert(task)
+        try fixture.context.save()
+        let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
+            fetchMilestones: { context in
+                let values = try context.fetch(FetchDescriptor<Milestone>())
+                let corrupt = try #require(values.first { $0.permanentDisplayId == 2 })
+                corrupt.creationDate = Date(timeIntervalSinceReferenceDate: .nan)
+                #expect(throws: (any Error).self) { try MCPRecordSnapshot.milestone(corrupt) }
+                return values
+            })
+        let service = MCPReadService(source: Source(fixture, builder: builder), monitor: MCPImportEvidenceMonitor(
+            syncActive: false, storeIdentifier: nil), snapshots: MCPTaskQuerySnapshotStore())
+        var args: [String: Any] = [:]
+        if tool == "query_milestones" { args["status"] = "open" }
+        if tool == "query_tasks" {
+            args = ["detailLevel": "full", "includeComments": false, "limit": 100]
+        }
+        let result = try await execute(service, arguments: args, tool: tool)
+        #expect(result["isError"] == nil)
+    }
+}
 #endif
