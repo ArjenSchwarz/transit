@@ -19,7 +19,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.4](requirements.md#1.4), [3.4](requirements.md#3.4), [5.2](requirements.md#5.2), [6.1](requirements.md#6.1)
   - References: design.md, decision_log.md
 
-- [ ] 2. RED: specify lossless source parsing and generated-versus-retained failure properties <!-- id:gpzncvm -->
+- [-] 2. RED: specify lossless source parsing and generated-versus-retained failure properties <!-- id:gpzncvm -->
   - Add MCPJSONDocumentTests and MCPResultSourceTests under Transit/TransitTests with Swift Testing; seeded nested UTF8/escape/decimal/exponent/large-integer/Boolean/missing-null generation plus shrinking; reject duplicate keys, invalid UTF8/escapes, trailing tokens and malformed numbers.
   - Assert original text and validated payload tokens remain exact. Malformed generated JSON must throw; malformed retained JSON preserves raw text/isError as unreadable/unestablished; plain errors remain declared text. Tests initially fail against declaration-only implementation, then run unchanged in task3.
   - Blocked-by: gpzncvl (Define immutable result and modern protocol boundary interfaces)
