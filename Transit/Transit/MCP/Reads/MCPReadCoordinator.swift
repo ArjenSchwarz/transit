@@ -193,4 +193,105 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         withExtendedLifetime(retired) {}
     }
 }
+
+extension MCPReadCoordinator {
+    /// Read-only protocol batch seam. Fixed invalid responses and notifications
+    /// retain their positions. Callers coalesce same-store publications while assembling.
+    @concurrent func executeBatch(
+        _ elements: [MCPReadBatchElement], admittedAt: ContinuousClock.Instant = .now,
+        assemble: @escaping @Sendable ([PreparedReadResult?]) async throws -> PreparedReadResult
+    ) async -> Data? {
+        let admission = admitBatch(elements, admittedAt: admittedAt)
+        let admitted = admission.admitted
+        let fallback = MCPReadBatchEncoding.array(admission.fallbackElements)
+        guard let first = admitted.first else { return fallback }
+        // The complete fallback is ready before any physical dispatch or final assembly.
+        domain.withLock { first.entry.timeout = fallback ?? Data() }
+        let collector = MCPReadBatchCollector(values: admission.initial, remaining: admitted.count)
+        for admission in admitted.dropFirst() {
+            let position = admission.position
+            let entry = admission.entry
+            let work = admission.work
+            Task.detached(priority: .userInitiated) {
+                _ = await self.executeReserved(entry, skipped: {
+                    let discarded = await collector.complete(position, value: work.responds
+                        ? self.fixedResult(work.timeout) : nil)
+                    self.discard(discarded)
+                }, worker: { operation in
+                    let result = operation.shouldContinue()
+                        ? await work.worker(operation) : self.fixedResult(work.timeout)
+                    if !work.responds { self.discard(result.publications) }
+                    let discarded = await collector.complete(position, value: work.responds ? result : nil)
+                    self.discard(discarded)
+                    return self.fixedResult(result.encodedResponse)
+                })
+            }
+        }
+        let selected = await executeReserved(first.entry, skipped: {
+            self.discard(await collector.cancel())
+        }, worker: { operation in
+            let result = operation.shouldContinue()
+                ? await first.work.worker(operation) : self.fixedResult(first.work.timeout)
+            if !first.work.responds { self.discard(result.publications) }
+            let discarded = await collector.complete(first.position, value: first.work.responds ? result : nil)
+            self.discard(discarded)
+            let completed = await collector.all()
+            guard operation.shouldContinue(), fallback != nil else {
+                self.discard(completed.compactMap { $0 }.flatMap(\.publications))
+                return self.fixedResult(fallback ?? Data())
+            }
+            do { return try await assemble(completed) } catch {
+                self.discard(completed.compactMap { $0 }.flatMap(\.publications))
+                return self.fixedResult(fallback ?? Data())
+            }
+        })
+        return fallback == nil ? nil : selected
+    }
+
+    private nonisolated struct BatchAdmissions: Sendable {
+        let fallbackElements: [Data?]
+        let initial: [PreparedReadResult?]
+        let admitted: [BatchAdmission]
+    }
+
+    private nonisolated struct BatchAdmission: Sendable {
+        let position: Int
+        let entry: Entry
+        let work: MCPReadBatchWork
+    }
+
+    private nonisolated func admitBatch(
+        _ elements: [MCPReadBatchElement], admittedAt: ContinuousClock.Instant
+    ) -> BatchAdmissions {
+        var fallbackElements: [Data?] = []
+        var initial: [PreparedReadResult?] = []
+        var admitted: [BatchAdmission] = []
+        for (position, element) in elements.enumerated() {
+            switch element {
+            case .fixed(let bytes):
+                fallbackElements.append(bytes)
+                initial.append(bytes.map { fixedResult($0) })
+            case .read(let work):
+                if let entry = reserve(timeout: work.timeout, admittedAt: admittedAt) {
+                    admitted.append(BatchAdmission(position: position, entry: entry, work: work))
+                    fallbackElements.append(work.responds ? work.timeout : nil)
+                    initial.append(nil)
+                } else {
+                    fallbackElements.append(work.responds ? work.busy : nil)
+                    initial.append(work.responds ? fixedResult(work.busy) : nil)
+                }
+            }
+        }
+        return BatchAdmissions(fallbackElements: fallbackElements, initial: initial, admitted: admitted)
+    }
+
+    private nonisolated func fixedResult(_ bytes: Data) -> PreparedReadResult {
+        PreparedReadResult(encodedResponse: bytes, publications: [],
+                           publicationErrors: PreencodedPublicationErrors(busy: bytes, expired: bytes, capacity: bytes))
+    }
+
+    private nonisolated func discard(_ publications: [any MCPPreparedPublication]) {
+        domain.withLock { for publication in publications { publication.discardLocked(in: domain) } }
+    }
+}
 #endif
