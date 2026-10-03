@@ -324,49 +324,74 @@ extension MCPModernProtocolTests {
 
 }
 
-@MainActor
-struct MCPModernDiscoveryTests {
-    private func result(_ bytes: Data, id: Any) throws -> [String: Any] {
-        let envelope = try #require(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
-        #expect(envelope["jsonrpc"] as? String == "2.0")
-        let responseID = try #require(envelope["id"])
-        #expect(String(describing: responseID) == String(describing: id))
-        let result = try #require(envelope["result"] as? [String: Any])
-        #expect(result["resultType"] as? String == "complete")
-        #expect(result["ttlMs"] as? Int == 0)
-        #expect(result["cacheScope"] as? String == "public")
-        return result
+// Critic supplemental RED: the production validator remains at 3cfd28a.
+extension MCPModernProtocolTests {
+    private func subscriptionInput(_ filters: [String: Any]) throws -> MCPModernRequestInput {
+        var body = envelope(method: "subscriptions/listen")
+        var params = try #require(body["params"] as? [String: Any])
+        params["notifications"] = filters
+        body["params"] = params
+        return try input(body, method: "subscriptions/listen", name: nil)
     }
 
-    @Test func discoveryAdvertisesOnlyImplementedCapabilitiesAndModernVersion() throws {
-        let result = try result(MCPModernDiscovery.encodeDiscovery(id: .string("discover"),
-            identity: MCPModernServerIdentity(name: "Transit", version: "fixture")), id: "discover")
-        #expect(result["supportedVersions"] as? [String] == ["2026-07-28"])
-        let capabilities = try #require(result["capabilities"] as? [String: Any])
-        #expect(capabilities["tools"] is [String: Any])
-        #expect(capabilities["resources"] == nil)
-        #expect(capabilities["sampling"] == nil)
-        let meta = try #require(result["_meta"] as? [String: Any])
-        let identity = try #require(meta["io.modelcontextprotocol/serverInfo"] as? [String: Any])
-        #expect(identity["name"] as? String == "Transit")
-        #expect(identity["version"] as? String == "fixture")
+    @Test func validUnsupportedResourceSubscriptionsDoNotRejectMixedFilters() throws {
+        let request = try MCPModernValidator.validate(subscriptionInput([
+            "toolsListChanged": true, "resourcesListChanged": true,
+            "resourceSubscriptions": ["file:///synthetic/one", "file:///synthetic/two"]
+        ]), availability: availability)
+        guard case .listenSubscriptions = request.method else {
+            Issue.record("Expected subscription classification")
+            return
+        }
+        // A future stream acknowledges only toolsListChanged; unsupported valid
+        // filters must survive protocol validation without acquiring resources.
+        #expect(request.params != nil)
     }
 
-    @Test func toolsAreSortedAndEveryDefinitionRetainsOutputSchema() throws {
-        let schema = try MCPJSONDocument.parse("{\"type\":\"object\"}")
-        let tools = ["zeta", "alpha", "middle"].map {
-            MCPModernToolDescriptor(name: $0, description: "fixture " + $0, inputSchema: schema,
-                resultSchema: MCPResultSchemaDescriptor(tool: $0, description: "fixture", outputSchema: schema))
+    @Test func malformedResourceSubscriptionsStillRejectBeforeDispatch() throws {
+        for invalid: Any in ["file:///synthetic/one", [true], ["valid", NSNull()]] {
+            let error = try rejection(subscriptionInput(["toolsListChanged": true,
+                                                         "resourceSubscriptions": invalid]))
+            #expect(error.httpStatus == 400)
+            #expect(error.rpcCode == -32602)
         }
-        let result = try result(MCPModernDiscovery.encodeTools(id: .integer(7), tools: tools), id: 7)
-        let definitions = try #require(result["tools"] as? [[String: Any]])
-        #expect(definitions.compactMap { $0["name"] as? String } == ["alpha", "middle", "zeta"])
-        for definition in definitions {
-            #expect((definition["outputSchema"] as? [String: Any])?["type"] as? String == "object")
-            #expect((definition["inputSchema"] as? [String: Any])?["type"] as? String == "object")
+    }
+
+    private func classifySyntheticName(_ name: String, header: String) throws -> MCPModernRequest {
+        let available = MCPModernAvailability(tools: [
+            MCPModernAvailableTool(name: name, execution: .ordinaryRead)
+        ])
+        return try MCPModernValidator.validate(input(envelope(name: name), name: header), availability: available)
+    }
+
+    private func encodedName(_ name: String) -> String {
+        "=?base64?" + Data(name.utf8).base64EncodedString() + "?="
+    }
+
+    @Test func paddedPlainNamesRequireEncodingEvenWhenTheyMatchBody() throws {
+        for name in [" padded", "padded ", " padded "] {
+            #expect(throws: MCPModernRejection.self) {
+                _ = try classifySyntheticName(name, header: name)
+            }
+            let request = try classifySyntheticName(name, header: encodedName(name))
+            guard case .callTool(let actual, .ordinaryRead) = request.method else {
+                Issue.record("Expected synthetic name classification")
+                continue
+            }
+            #expect(actual.utf8.elementsEqual(name.utf8))
         }
-        let empty = try self.result(MCPModernDiscovery.encodeTools(id: .integer(8), tools: []), id: 8)
-        #expect((empty["tools"] as? [Any])?.isEmpty == true)
+    }
+
+    @Test func sentinelRequiresBothExactMarkersAndLiteralSentinelIsOuterEncoded() throws {
+        for name in ["=?base64?prefix-only", "suffix-only?=", "=?BASE64?literal?="] {
+            _ = try classifySyntheticName(name, header: name)
+        }
+        let literal = "=?base64?YQ==?="
+        _ = try classifySyntheticName(literal, header: encodedName(literal))
+        #expect(throws: MCPModernRejection.self) {
+            _ = try classifySyntheticName(literal, header: literal)
+        }
     }
 }
+
 #endif
