@@ -50,7 +50,7 @@ struct MCPReadServiceTests {
             #expect(try store.retainedPage(for: cursor).metadataBytes == originalBytes)
         }
         let conflict = try await execute(service, arguments: ["cursor": cursor, "readPolicy": "refresh_if_needed"])
-        #expect(try errorCode(conflict) == "SNAPSHOT_CONFLICT")
+        #expect(try errorCode(conflict) == "INVALID_INPUT")
         let invalid = try await execute(service, arguments: ["cursor": UUID().uuidString, "readPolicy": true])
         #expect(try errorCode(invalid) == "INVALID_INPUT")
         #expect(source.calls == 1)
@@ -71,6 +71,7 @@ struct MCPReadServiceTests {
         let result = try await execute(service, arguments: ["detailLevel": "summary", "includeComments": false,
                                                             "limit": 100])
         #expect(result["isError"] as? Bool == true)
+        #expect(try errorCode(result) == "QUERY_FAILED")
         let meta = try metadataObject(result)
         #expect(meta["snapshotId"] == nil && meta["asOf"] == nil)
         let expected = failure == .storageFailure ? "storage_failure"
@@ -175,6 +176,32 @@ struct MCPReadServiceTests {
         #expect(fetched)
     }
 
+    @Test(arguments: [true, false])
+    func emptyFullTaskReadDoesNotRequireUnrelatedComments(missingMilestone: Bool) async throws {
+        let fixture = try TestModelContainer()
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "blue")
+        fixture.context.insert(project)
+        if missingMilestone {
+            fixture.context.insert(TransitTask(name: "Unrelated", type: .feature,
+                                              project: project, displayID: .permanent(63)))
+        }
+        try fixture.context.save()
+        var commentsFetched = false
+        let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
+            fetchComments: { _ in commentsFetched = true; throw CocoaError(.fileReadUnknown) })
+        let service = MCPReadService(source: Source(fixture, builder: builder), monitor: MCPImportEvidenceMonitor(
+            syncActive: false, storeIdentifier: nil), snapshots: MCPTaskQuerySnapshotStore())
+        var arguments: [String: Any] = ["project": "P", "detailLevel": "full", "includeComments": true, "limit": 100]
+        if missingMilestone { arguments["milestoneDisplayId"] = 77 }
+        let result = try await execute(service, arguments: arguments)
+        #expect(result["isError"] == nil)
+        #expect(!commentsFetched)
+        let text = try #require((result["content"] as? [[String: Any]])?.first?["text"] as? String)
+        let payload = try object(text)
+        #expect((payload["results"] as? [[String: Any]])?.isEmpty == true)
+        #expect(try metadataObject(result)["snapshotId"] != nil)
+    }
+
     @Test func validEmptyInactiveReadHasCaptureMetadata() async throws {
         let fixture = try TestModelContainer()
         let service = MCPReadService(source: Source(fixture), monitor: MCPImportEvidenceMonitor(
@@ -229,5 +256,22 @@ struct MCPReadServiceTests {
         let text = try #require((result["content"] as? [[String: Any]])?.first?["text"] as? String)
         return try #require((try object(text)["error"] as? [String: Any])?["code"] as? String)
     }
+}
+extension MCPReadServiceTests {
+    @Test(arguments: [false, true])
+    func emptyPortfolioStillRequiresOrphanCommentEvidence(scoped: Bool) throws {
+        let fixture = try TestModelContainer()
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "blue")
+        fixture.context.insert(project)
+        try fixture.context.save()
+        var commentsFetched = false
+        let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
+            fetchComments: { _ in commentsFetched = true; throw CocoaError(.fileReadUnknown) })
+        let request = ReadCaptureRequest(projectSelectors: scoped ? [.id(project.id)] : nil,
+            selection: .portfolio, completeness: .completePortfolio, includeComments: false)
+        #expect(throws: MCPReadCaptureError.storageFailure) { try builder.capture(request) }
+        #expect(commentsFetched)
+    }
+
 }
 #endif
