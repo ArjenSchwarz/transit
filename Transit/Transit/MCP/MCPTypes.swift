@@ -189,6 +189,18 @@ nonisolated struct MCPToolsListResult: Encodable, Sendable {
 nonisolated struct MCPToolResult: Encodable, Sendable {
     let content: [MCPContent]
     let isError: Bool?
+    let metadata: MCPToolResultMetadata?
+
+    init(content: [MCPContent], isError: Bool?, metadata: MCPToolResultMetadata? = nil) {
+        self.content = content
+        self.isError = isError
+        self.metadata = metadata
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case content, isError
+        case metadata = "_meta"
+    }
 }
 
 nonisolated struct MCPContent: Encodable, Sendable {

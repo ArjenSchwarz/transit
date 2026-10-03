@@ -6,11 +6,12 @@ references:
 ---
 # T-63 bounded read freshness implementation
 
-- [ ] 1. Define shared read contracts and injection seams on the merged foundation <!-- id:vh146y0 -->
+- [x] 1. Define shared read contracts and injection seams on the merged foundation <!-- id:vh146y0 -->
   - Types/interfaces-only exemption. Before these edits, align only this clean dedicated branch to merged foundation 201205bd4e786c7f152d8f99006b37da7da888c7; preserve all other worktrees and the approved spec commits. Do not modify T2380.
   - Create macOS-gated explicitly nonisolated Sendable DTO/protocol definitions in Transit/Transit/MCP/Reads and optional MCPToolResult metadata. Define typed ReadCaptureScope, CaptureCompleteness, LocalRecordKey, CapturedReadView, MCPRetainedViewSource, MCPPreparedPublication validation/commit/discard, PreparedReadResult and PreencodedPublicationErrors.
   - T-63 alone owns MCPServer, shared handler init/dispatch/readOnlyToolNames, existing/common schema wiring and MCPTypes. Confirm these interfaces with T2382; it supplies separate summary/query/schema/store modules. No portfolio aggregation or reusable lifecycle implementation here.
   - Stream: 1
+  - Owner: t63-foundation-types
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.6](requirements.md#2.6), [5.3](requirements.md#5.3)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
