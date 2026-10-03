@@ -8,10 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- T-2380: Eight standard MCP writes require retry keys, and task/milestone updates require revision preconditions. Local receipts retain saved outcomes for seven days, durable guards protect uncertain requests across restart, and full-record reads return content revisions for conflict detection.
 - T-2377: MCP `create_project` accepts a required name and six-digit colour, validates optional description/repository fields and case-insensitive name uniqueness, persists through `ProjectService`, and returns project ID and metadata for subsequent task creation. Regression tests cover discovery, validation, storage failures, fallback write rejection, and project-to-task creation.
 
 ### Changed
 
+- T-2380: Full bounded task queries now capture complete comment-covered revisions even when comments are omitted from the response. Duplicate batch references share one capture and continuation pages retain frozen revisions; summary reads without comments still skip comment retrieval.
 - T-2379: MCP `query_tasks` requires explicit detail, comments, and page-size options and returns bounded pages over five-minute frozen results. Batch UUID/display-ID lookup reports ordered per-input outcomes, comments are optional, and opaque cursors expire or invalidate on server restart. Existing filters are preserved; the query response changes from an array to an object containing results, next cursor, and expiry. Task serialization shares one date formatter per query, and regression coverage verifies frozen comment values after edits, removal, and creation.
 
 - Support Xcode 27 / Swift 6.4 with AsyncAlgorithms 1.1.3, explicit sendable counter-store isolation, and compiler-compatible test fixture conformances.
@@ -53,6 +55,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - T-1803: `UpdateStatusIntent` now includes a missing requested `displayId` in its `TASK_NOT_FOUND` hint (`No task with displayId N`), while missing UUIDs retain the existing generic lookup hint and malformed identifiers, duplicate IDs, status validation, and atomic mutation behavior remain unchanged.
 ### Fixed
+
+- T-2380: Reuse validated guard bindings only within synchronous write phases, revalidate after suspension, and discard snapshots on mutation failure. Document safe recovery without deleting uncertain bindings or resetting local scope.
+- T-2380: Reconcile retry guards in one validated pass, reject incomplete saved outcomes before replay, and preserve exact integer validation. Added malformed-result regressions and corrected MCP safety examples.
 - T-2103: Task and milestone creation now revalidate the selected project after asynchronous display-ID allocation using live pending state plus a fresh committed-state probe. A peer deletion now returns the established project-not-found error before insertion instead of persisting an orphan task or reporting false milestone success; App Intent and MCP callers retain their deterministic project-not-found contracts, with two-context service and MCP regressions covering the race.
 - T-1628: `make test-quick` and every relevant source-building Makefile target now keep Clang module caches and SwiftPM manifest modules/diagnostics workspace-local. `CLANG_MODULE_CACHE_PATH` is passed as an Xcode build setting, `SWIFTPM_MODULECACHE_OVERRIDE` is exported for manifest compilation, and the cache guard now asserts these supported controls while explicitly preserving the intentional omission of `-clonedSourcePackagesDirPath` and `-packageCachePath` so package resolution continues to work. Xcode recipes also explicitly enable `pipefail`, preventing `xcbeautify` from masking build failures on macOS's bundled GNU Make 3.81.
 - T-1613: MCP `query_tasks` now returns the exact tool error `Failed to fetch comments: <error>` when comment serialization cannot read storage, rather than reporting a successful task with `comments: []`. The detailed display-ID and task-list paths share this throwing serialization boundary; genuine empty comment collections retain their successful `comments: []` response. `update_task_status` continues serializing the `Comment` returned by its atomic mutation directly (T-1823), so it performs no post-commit comment fetch that could prompt a retry or duplicate a persisted comment. Deterministic MCP regressions cover both query errors, legitimate empty comments, and zero status-response fetches.

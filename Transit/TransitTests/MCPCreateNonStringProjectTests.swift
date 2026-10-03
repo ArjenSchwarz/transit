@@ -20,8 +20,8 @@ struct MCPCreateNonStringProjectTests {
         let env = try MCPTestHelpers.makeEnv()
         _ = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "X", "type": "bug", "project": 123]
         ))
 
@@ -34,8 +34,8 @@ struct MCPCreateNonStringProjectTests {
         let env = try MCPTestHelpers.makeEnv()
         _ = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "X", "type": "bug", "project": true]
         ))
 
@@ -48,8 +48,8 @@ struct MCPCreateNonStringProjectTests {
         let env = try MCPTestHelpers.makeEnv()
         _ = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "X", "type": "bug", "project": ["Alpha"]]
         ))
 
@@ -62,8 +62,8 @@ struct MCPCreateNonStringProjectTests {
         let env = try MCPTestHelpers.makeEnv()
         _ = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "X", "type": "bug", "project": [String: Any]()]
         ))
 
@@ -78,15 +78,15 @@ struct MCPCreateNonStringProjectTests {
         let env = try MCPTestHelpers.makeEnv()
         let target = MCPTestHelpers.makeProject(in: env.context, name: "Target")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "X", "type": "bug",
                 "projectId": target.id.uuidString, "project": 123
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         let taskIdStr = try #require(result["taskId"] as? String)
         let taskId = try #require(UUID(uuidString: taskIdStr))
         let task = try env.taskService.findByID(taskId)
@@ -99,8 +99,8 @@ struct MCPCreateNonStringProjectTests {
         let env = try MCPTestHelpers.makeEnv()
         _ = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["name": "v1.0", "project": 123]
         ))
 
@@ -113,8 +113,8 @@ struct MCPCreateNonStringProjectTests {
         let env = try MCPTestHelpers.makeEnv()
         _ = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["name": "v1.0", "project": false]
         ))
 
@@ -127,8 +127,8 @@ struct MCPCreateNonStringProjectTests {
         let env = try MCPTestHelpers.makeEnv()
         _ = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["name": "v1.0", "project": ["Alpha"]]
         ))
 
@@ -141,8 +141,8 @@ struct MCPCreateNonStringProjectTests {
         let env = try MCPTestHelpers.makeEnv()
         _ = MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["name": "v1.0", "project": [String: Any]()]
         ))
 
@@ -155,15 +155,15 @@ struct MCPCreateNonStringProjectTests {
         let env = try MCPTestHelpers.makeEnv()
         let target = MCPTestHelpers.makeProject(in: env.context, name: "Target")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: [
                 "name": "v1.0",
                 "projectId": target.id.uuidString, "project": 123
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         let projectId = try #require(result["projectId"] as? String)
         #expect(projectId == target.id.uuidString)
     }

@@ -64,8 +64,8 @@ struct CreateRequiredStringValidationTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
 
         for entry in nonStringValues {
-            let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-                tool: "create_task",
+            let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
                 arguments: try jsonRoundTripped([
                     "name": entry.value,
                     "type": "feature",
@@ -77,8 +77,8 @@ struct CreateRequiredStringValidationTests {
         }
 
         for entry in nonStringValues {
-            let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-                tool: "create_task",
+            let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
                 arguments: try jsonRoundTripped([
                     "name": "Task",
                     "type": entry.value,
@@ -89,17 +89,18 @@ struct CreateRequiredStringValidationTests {
             #expect(try MCPTestHelpers.errorText(response) == "type must be a string")
         }
 
-        let missingName = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let missingName = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["type": "feature", "projectId": project.id.uuidString]
         ))
         #expect(try MCPTestHelpers.errorText(missingName) == "Missing required argument: name")
 
-        let invalidType = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let invalidType = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["name": "Task", "type": "epic", "projectId": project.id.uuidString]
         ))
-        #expect(try MCPTestHelpers.errorText(invalidType).hasPrefix("Invalid type: epic."))
+        #expect(try MCPTestHelpers.errorCode(invalidType) == "INVALID_TYPE")
+        #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
 
         let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
         #expect(tasks.isEmpty, "Malformed create_task requests must not create tasks")
@@ -168,16 +169,16 @@ struct CreateRequiredStringValidationTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
 
         for entry in nonStringValues {
-            let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-                tool: "create_milestone",
+            let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
                 arguments: try jsonRoundTripped(["name": entry.value, "projectId": project.id.uuidString])
             ))
             #expect(try MCPTestHelpers.isError(response))
             #expect(try MCPTestHelpers.errorText(response) == "name must be a string")
         }
 
-        let missingName = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let missingName = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["projectId": project.id.uuidString]
         ))
         #expect(try MCPTestHelpers.errorText(missingName) == "Missing required argument: name")

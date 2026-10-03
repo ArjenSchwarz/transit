@@ -29,6 +29,7 @@ struct TransitApp: App {
     #if os(macOS)
     private let mcpSettings: MCPSettings
     private let mcpServer: MCPServer
+    private let mcpWriteCoordinator: MCPWriteCoordinator
     #endif
 
     #if os(iOS)
@@ -49,7 +50,9 @@ struct TransitApp: App {
         let syncManager = SyncManager()
         self.syncManager = syncManager
 
-        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
+        let schema = Schema([
+            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
+        ])
         let config: ModelConfiguration
         if isInert || Self.uiTestScenario != nil {
             config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
@@ -147,11 +150,22 @@ struct TransitApp: App {
         #if os(macOS)
         let mcpSettings = MCPSettings()
         self.mcpSettings = mcpSettings
+        let writeServices = MCPWriteCommandServices(
+            tasks: taskService, projects: projectService,
+            comments: commentService, milestones: milestoneService, context: context)
+        // Own the retry scope and lock for the app lifetime, across listener restarts.
+        let sidecar = isInert || Self.uiTestScenario != nil
+            ? FileManager.default.temporaryDirectory.appendingPathComponent("mcp-tests-" + UUID().uuidString)
+            : config.url.appendingPathExtension("mcp-writes")
+        let writeCoordinator = MCPWriteCoordinator(services: writeServices,
+            sidecarDirectory: sidecar, persistence: persistence)
+        self.mcpWriteCoordinator = writeCoordinator
+        try? writeCoordinator.cleanupExpiredOutcomes()
         let mcpToolHandler = MCPToolHandler(
             taskService: taskService, projectService: projectService,
             commentService: commentService, milestoneService: milestoneService,
             maintenanceService: maintenanceService, settings: mcpSettings,
-            persistence: persistence
+            persistence: persistence, writeCoordinator: writeCoordinator
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
         #endif

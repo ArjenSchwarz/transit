@@ -20,12 +20,12 @@ struct MCPMilestoneSameStatusTests {
         let originalLastStatusChangeDate = milestone.lastStatusChangeDate
         let displayId = try #require(milestone.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["displayId": displayId, "status": "done"]
         ))
 
-        _ = try MCPTestHelpers.decodeResult(response)
+        _ = try MCPTestHelpers.decodeSavedRecord(response)
         let refetched = try env.milestoneService.findByDisplayID(displayId)
         #expect(refetched.completionDate == originalCompletionDate)
         #expect(refetched.lastStatusChangeDate == originalLastStatusChangeDate)
@@ -40,12 +40,12 @@ struct MCPMilestoneSameStatusTests {
         let originalLastStatusChangeDate = milestone.lastStatusChangeDate
         let displayId = try #require(milestone.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["displayId": displayId, "status": "done", "description": "Now with notes"]
         ))
 
-        _ = try MCPTestHelpers.decodeResult(response)
+        _ = try MCPTestHelpers.decodeSavedRecord(response)
         let refetched = try env.milestoneService.findByDisplayID(displayId)
         #expect(refetched.milestoneDescription == "Now with notes")
         #expect(refetched.completionDate == originalCompletionDate)
@@ -60,12 +60,12 @@ struct MCPMilestoneSameStatusTests {
         let originalLastStatusChangeDate = milestone.lastStatusChangeDate
         let displayId = try #require(milestone.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["displayId": displayId, "status": "open"]
         ))
 
-        _ = try MCPTestHelpers.decodeResult(response)
+        _ = try MCPTestHelpers.decodeSavedRecord(response)
         let refetched = try env.milestoneService.findByDisplayID(displayId)
         #expect(refetched.lastStatusChangeDate == originalLastStatusChangeDate)
         #expect(refetched.completionDate == nil)

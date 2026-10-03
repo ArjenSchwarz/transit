@@ -17,8 +17,8 @@ struct MCPNonStringMilestoneIdTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["milestoneId": 42, "name": "v2.0"]
         ))
 
@@ -34,8 +34,8 @@ struct MCPNonStringMilestoneIdTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "delete_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "delete_milestone",
             arguments: ["milestoneId": 42]
         ))
 
@@ -51,8 +51,8 @@ struct MCPNonStringMilestoneIdTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["milestoneId": true, "name": "v2.0"]
         ))
 
@@ -68,8 +68,8 @@ struct MCPNonStringMilestoneIdTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "delete_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "delete_milestone",
             arguments: ["milestoneId": false]
         ))
 

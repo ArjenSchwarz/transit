@@ -33,7 +33,9 @@ enum FallbackOutcomeFixture {
     }
 
     private static func makeOutcome(failPrimaryStore: Bool) -> ContainerFactory.ContainerOutcome {
-        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
+        let schema = Schema([
+            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
+        ])
         let config = ModelConfiguration(
             "FallbackOutcomeFixture-\(UUID().uuidString)",
             schema: schema,

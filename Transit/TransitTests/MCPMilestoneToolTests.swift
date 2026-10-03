@@ -35,8 +35,8 @@ struct MCPMilestoneToolTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: [
                 "name": "v1.0",
                 "projectId": project.id.uuidString,
@@ -44,7 +44,7 @@ struct MCPMilestoneToolTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["name"] as? String == "v1.0")
         #expect(result["status"] as? String == "open")
         #expect(result["displayId"] as? Int == 1)
@@ -56,12 +56,12 @@ struct MCPMilestoneToolTests {
         let env = try MCPTestHelpers.makeEnv()
         MCPTestHelpers.makeProject(in: env.context, name: "Alpha")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["name": "v1.0", "project": "Alpha"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["name"] as? String == "v1.0")
         #expect(result["projectName"] as? String == "Alpha")
     }
@@ -69,8 +69,8 @@ struct MCPMilestoneToolTests {
     @Test func createMilestoneMissingNameReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["project": "Test"]
         ))
 
@@ -80,8 +80,8 @@ struct MCPMilestoneToolTests {
     @Test func createMilestoneMissingProjectReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["name": "v1.0"]
         ))
 
@@ -93,8 +93,8 @@ struct MCPMilestoneToolTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
         _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["name": "v1.0", "projectId": project.id.uuidString]
         ))
 
@@ -107,8 +107,8 @@ struct MCPMilestoneToolTests {
         let env = try MCPTestHelpers.makeEnv()
         MCPTestHelpers.makeProject(in: env.context, name: "Decoy")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["name": "v1.0", "projectId": "not-a-uuid", "project": "Decoy"]
         ))
 
@@ -122,8 +122,8 @@ struct MCPMilestoneToolTests {
         let env = try MCPTestHelpers.makeEnv()
         MCPTestHelpers.makeProject(in: env.context, name: "Decoy")
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["name": "v1.0", "projectId": 456, "project": "Decoy"]
         ))
 
@@ -135,8 +135,8 @@ struct MCPMilestoneToolTests {
     @Test func createMilestoneNumericProjectIdWithoutFallbackReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["name": "v1.0", "projectId": 456]
         ))
 
@@ -503,14 +503,15 @@ struct MCPMilestoneToolTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
         _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        #expect(try env.context.fetch(FetchDescriptor<Milestone>()).first?.statusRawValue == "open")
+
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["displayId": 1, "status": "done"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["status"] as? String == "done")
-        #expect(result["previousStatus"] as? String == "open")
     }
 
     @Test func updateMilestoneName() async throws {
@@ -518,20 +519,20 @@ struct MCPMilestoneToolTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
         _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["displayId": 1, "name": "v1.1"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["name"] as? String == "v1.1")
     }
 
     @Test func updateMilestoneNotFoundReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["displayId": 999, "name": "v2.0"]
         ))
 
@@ -543,8 +544,8 @@ struct MCPMilestoneToolTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
         _ = try await env.milestoneService.createMilestone(name: "v1.0", description: nil, project: project)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["displayId": 1, "status": "invalid"]
         ))
 
@@ -563,8 +564,8 @@ struct MCPMilestoneToolTests {
         let targetDisplayId = try #require(target.permanentDisplayId)
 
         // Attempt to change status to "done" AND rename to "Existing" (duplicate) in one call
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["displayId": targetDisplayId, "status": "done", "name": "Existing"]
         ))
 

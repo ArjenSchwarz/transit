@@ -3,6 +3,7 @@ import Darwin
 import Foundation
 import Logging
 import ServiceLifecycle
+import SwiftData
 import Testing
 @testable import Transit
 
@@ -227,7 +228,7 @@ struct MCPServerLifecycleTests {
         )
     }
 
-    private func waitUntilListening(
+    func waitUntilListening(
         port: Int,
         timeout: Duration = .seconds(3)
     ) async -> Bool {
@@ -328,7 +329,7 @@ struct MCPServerLifecycleTests {
         )
     }
 
-    private func availableLoopbackPort() throws -> Int {
+    func availableLoopbackPort() throws -> Int {
         let descriptor = socket(AF_INET, SOCK_STREAM, 0)
         guard descriptor >= 0 else {
             throw LifecycleTestError.socketCreationFailed(errno)

@@ -76,7 +76,7 @@ struct MCPTaskQueryFailureTests {
         #expect(comments.calls == 1)
     }
 
-    @Test func commentsOmittedDoNotFetchAndFailuresPublishNothing() async throws {
+    @Test func summaryCommentsOmittedDoNotFetchAndFullFailuresPublishNothing() async throws {
         let tasks = Tasks()
         let comments = Comments()
         let env = try MCPTestHelpers.makeEnv(taskFetcher: tasks, commentFetcher: comments)
@@ -86,19 +86,23 @@ struct MCPTaskQueryFailureTests {
         }
         comments.shouldFail = true
         let noComments = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "query_tasks", arguments: ["detailLevel": "full", "includeComments": false, "limit": 1]
+            tool: "query_tasks", arguments: ["detailLevel": "summary", "includeComments": false, "limit": 1]
         ))
         #expect(try !MCPTestHelpers.isError(noComments))
         #expect(comments.calls == 0)
         env.handler.clearTaskQuerySnapshots()
-        let failed = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "query_tasks", arguments: ["detailLevel": "full", "includeComments": true, "limit": 1]
-        ))
-        let errorPage = try MCPTestHelpers.decodeResult(failed)
-        #expect((errorPage["error"] as? [String: String])?["code"] == "QUERY_FAILED")
-        #expect(errorPage["results"] == nil)
-        #expect(errorPage["nextCursor"] == nil)
-        #expect(env.handler.taskQuerySnapshots.retainedBytes == 0)
+        for includeComments in [false, true] {
+            let failed = await env.handler.handle(MCPTestHelpers.toolCallRequest(
+                tool: "query_tasks",
+                arguments: ["detailLevel": "full", "includeComments": includeComments, "limit": 1]
+            ))
+            let errorPage = try MCPTestHelpers.decodeResult(failed)
+            #expect((errorPage["error"] as? [String: String])?["code"] == "QUERY_FAILED")
+            #expect(errorPage["results"] == nil)
+            #expect(errorPage["nextCursor"] == nil)
+            #expect(env.handler.taskQuerySnapshots.retainedBytes == 0)
+        }
+        #expect(comments.calls == 2)
     }
 
     @Test func ambiguousBatchIdentityDoesNotLoseOtherOutcomes() async throws {

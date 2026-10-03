@@ -126,12 +126,12 @@ struct MilestoneNameLookupFailureTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
         let expectedHint = "Failed to look up milestone: simulated milestone name lookup fetch failure"
 
-        let createResponse = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let createResponse = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["projectId": project.id.uuidString, "name": "New", "type": "feature", "milestone": "Sprint"]
         ))
-        let updateResponse = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let updateResponse = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "milestone": "Sprint"]
         ))
         let queryResponse = await env.handler.handle(MCPTestHelpers.toolCallRequest(
@@ -142,7 +142,8 @@ struct MilestoneNameLookupFailureTests {
 
         for response in [createResponse, updateResponse] {
             #expect(try MCPTestHelpers.isError(response))
-            #expect(try MCPTestHelpers.errorText(response) == expectedHint)
+            #expect(try MCPTestHelpers.errorCode(response) == "INTERNAL_ERROR")
+            #expect(try MCPTestHelpers.errorText(response).contains("simulated milestone name lookup fetch failure"))
         }
         #expect(try MCPTestHelpers.isError(queryResponse))
         #expect(try MCPTestHelpers.queryErrorMessage(queryResponse) == expectedHint)

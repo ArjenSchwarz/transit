@@ -7,10 +7,18 @@ import NIOConcurrencyHelpers
 import NIOCore
 import NIOEmbedded
 import NIOFoundationCompat
+import Testing
 @testable import Transit
 
 @MainActor
 extension MCPTestHelpers {
+    static func decodeHTTPToolResult(_ object: [String: Any]) throws -> [String: Any] {
+        let result = try #require(object["result"] as? [String: Any])
+        let content = try #require(result["content"] as? [[String: Any]])
+        let text = try #require(content.first?["text"] as? String)
+        let bytes = try #require(text.data(using: .utf8))
+        return try #require(try JSONSerialization.jsonObject(with: bytes) as? [String: Any])
+    }
 
     static func respond(
         handler: MCPToolHandler,

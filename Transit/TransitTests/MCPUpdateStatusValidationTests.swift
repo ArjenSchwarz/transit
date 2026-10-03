@@ -25,8 +25,8 @@ struct MCPUpdateStatusValidationTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
         let task = makeTask(in: env.context, project: project, displayId: 1)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": 1, "status": 123]
         ))
 
@@ -43,8 +43,8 @@ struct MCPUpdateStatusValidationTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
         makeTask(in: env.context, project: project, displayId: 1)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": 1, "status": true]
         ))
 
@@ -58,8 +58,8 @@ struct MCPUpdateStatusValidationTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
         makeTask(in: env.context, project: project, displayId: 1)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": 1, "status": ["done"]]
         ))
 
@@ -73,8 +73,8 @@ struct MCPUpdateStatusValidationTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
         makeTask(in: env.context, project: project, displayId: 1)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": 1, "status": NSNull()]
         ))
 
@@ -89,8 +89,8 @@ struct MCPUpdateStatusValidationTests {
         let project = MCPTestHelpers.makeProject(in: env.context)
         makeTask(in: env.context, project: project, displayId: 1)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": 1]
         ))
 

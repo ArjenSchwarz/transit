@@ -22,8 +22,8 @@ struct MCPAddCommentTypeValidationTests {
         )
         let displayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": displayId,
                 "content": 123,
@@ -49,8 +49,8 @@ struct MCPAddCommentTypeValidationTests {
         )
         let displayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": displayId,
                 "content": true,
@@ -74,8 +74,8 @@ struct MCPAddCommentTypeValidationTests {
         )
         let displayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": displayId,
                 "content": ["nested"],
@@ -100,8 +100,8 @@ struct MCPAddCommentTypeValidationTests {
         )
         let displayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": displayId,
                 "content": NSNull(),
@@ -127,8 +127,8 @@ struct MCPAddCommentTypeValidationTests {
         )
         let displayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": displayId,
                 "content": "Note",
@@ -154,8 +154,8 @@ struct MCPAddCommentTypeValidationTests {
         )
         let displayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": displayId,
                 "content": "Note",
@@ -179,8 +179,8 @@ struct MCPAddCommentTypeValidationTests {
         )
         let displayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": displayId,
                 "content": "Note",
@@ -204,8 +204,8 @@ struct MCPAddCommentTypeValidationTests {
         )
         let displayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": displayId,
                 "content": "Note",

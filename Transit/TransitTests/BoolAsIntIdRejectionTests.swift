@@ -285,8 +285,8 @@ struct BoolAsIntIdRejectionMCPTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": Self.trueNum, "status": "planning"]
         ))
 
@@ -300,8 +300,8 @@ struct BoolAsIntIdRejectionMCPTests {
     @Test func mcpUpdateTaskRejectsBooleanDisplayId() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": Self.falseNum]
         ))
 
@@ -317,8 +317,8 @@ struct BoolAsIntIdRejectionMCPTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: [
                 "displayId": task.permanentDisplayId!,
                 "milestoneDisplayId": Self.trueNum
@@ -336,8 +336,8 @@ struct BoolAsIntIdRejectionMCPTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "New Task",
                 "type": "feature",
@@ -356,8 +356,8 @@ struct BoolAsIntIdRejectionMCPTests {
     @Test func mcpAddCommentRejectsBooleanDisplayId() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": Self.trueNum,
                 "content": "A comment",
@@ -375,8 +375,8 @@ struct BoolAsIntIdRejectionMCPTests {
     @Test func mcpUpdateMilestoneRejectsBooleanDisplayId() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: ["displayId": Self.falseNum, "name": "Updated"]
         ))
 
@@ -390,8 +390,8 @@ struct BoolAsIntIdRejectionMCPTests {
     @Test func mcpDeleteMilestoneRejectsBooleanDisplayId() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "delete_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "delete_milestone",
             arguments: ["displayId": Self.trueNum]
         ))
 

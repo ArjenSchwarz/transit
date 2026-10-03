@@ -21,8 +21,8 @@ struct MCPNonStringMilestoneArgTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task",
                 "type": "bug",
@@ -44,8 +44,8 @@ struct MCPNonStringMilestoneArgTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task",
                 "type": "bug",
@@ -66,8 +66,8 @@ struct MCPNonStringMilestoneArgTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task",
                 "type": "bug",
@@ -88,8 +88,8 @@ struct MCPNonStringMilestoneArgTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task",
                 "type": "bug",
@@ -120,8 +120,8 @@ struct MCPNonStringMilestoneArgTests {
         try env.milestoneService.setMilestone(milestone, on: task)
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "milestone": 42]
         ))
 
@@ -143,8 +143,8 @@ struct MCPNonStringMilestoneArgTests {
         try env.milestoneService.setMilestone(milestone, on: task)
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "milestone": true]
         ))
 
@@ -166,8 +166,8 @@ struct MCPNonStringMilestoneArgTests {
         try env.milestoneService.setMilestone(milestone, on: task)
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "milestone": ["v1.0"]]
         ))
 
@@ -189,8 +189,8 @@ struct MCPNonStringMilestoneArgTests {
         try env.milestoneService.setMilestone(milestone, on: task)
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "milestone": NSNull()]
         ))
 

@@ -13,8 +13,8 @@ struct MCPCreateTaskMetadataTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Meta Task",
                 "type": "feature",
@@ -23,7 +23,7 @@ struct MCPCreateTaskMetadataTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         let taskIdStr = try #require(result["taskId"] as? String)
         let taskId = try #require(UUID(uuidString: taskIdStr))
         let task = try env.taskService.findByID(taskId)
@@ -35,8 +35,8 @@ struct MCPCreateTaskMetadataTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Meta Task",
                 "type": "feature",
@@ -45,7 +45,7 @@ struct MCPCreateTaskMetadataTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         let taskIdStr = try #require(result["taskId"] as? String)
         let taskId = try #require(UUID(uuidString: taskIdStr))
         let task = try env.taskService.findByID(taskId)
@@ -56,8 +56,8 @@ struct MCPCreateTaskMetadataTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Meta Task",
                 "type": "feature",
@@ -66,7 +66,7 @@ struct MCPCreateTaskMetadataTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         let taskIdStr = try #require(result["taskId"] as? String)
         let taskId = try #require(UUID(uuidString: taskIdStr))
         let task = try env.taskService.findByID(taskId)

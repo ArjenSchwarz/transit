@@ -20,22 +20,23 @@ struct MCPMilestoneDeleteTests {
         )
         try env.milestoneService.setMilestone(milestone, on: task)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "delete_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "delete_milestone",
             arguments: ["displayId": 1]
         ))
 
         let result = try MCPTestHelpers.decodeResult(response)
         #expect(result["deleted"] as? Bool == true)
-        #expect(result["name"] as? String == "v1.0")
-        #expect(result["affectedTasks"] as? Int == 1)
+        #expect((result["recordBeforeDeletion"] as? [String: Any])?["name"] as? String == "v1.0")
+        #expect(task.milestone == nil)
+        #expect(try env.context.fetch(FetchDescriptor<Milestone>()).isEmpty)
     }
 
     @Test func deleteMilestoneNotFoundReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "delete_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "delete_milestone",
             arguments: ["displayId": 999]
         ))
 

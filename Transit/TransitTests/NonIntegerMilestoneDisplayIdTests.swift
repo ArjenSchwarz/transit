@@ -49,8 +49,8 @@ struct NonIntegerMilestoneDisplayIdTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task",
                 "type": "bug",
@@ -68,8 +68,8 @@ struct NonIntegerMilestoneDisplayIdTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task",
                 "type": "bug",
@@ -92,8 +92,8 @@ struct NonIntegerMilestoneDisplayIdTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: [
                 "displayId": task.permanentDisplayId!,
                 "milestoneDisplayId": "abc"
@@ -112,8 +112,8 @@ struct NonIntegerMilestoneDisplayIdTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: [
                 "displayId": task.permanentDisplayId!,
                 "milestoneDisplayId": 1.5

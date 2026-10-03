@@ -232,9 +232,10 @@ nonisolated struct JSONSchemaProperty: Encodable, Sendable {
     let description: String?
     let enumValues: [String]?
     let items: JSONSchemaItems?
+    var pattern: String?
 
     nonisolated enum CodingKeys: String, CodingKey {
-        case type, description, items
+        case type, description, items, pattern
         case enumValues = "enum"
     }
 

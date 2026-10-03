@@ -46,12 +46,13 @@ struct MCPDuplicateTaskDisplayIDTests {
         let env = try MCPTestHelpers.makeEnv()
         let (first, second) = makeDuplicatePair(in: env.context, displayId: 42)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": 42, "status": "in-progress"]
         ))
 
-        try expectDuplicateError(response, displayId: 42)
+        #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorCode(response) == "DUPLICATE_TASK_IDENTIFIER")
         #expect(first.statusRawValue == "idea")
         #expect(second.statusRawValue == "idea")
     }
@@ -59,8 +60,8 @@ struct MCPDuplicateTaskDisplayIDTests {
     @Test func updateStatusStillReportsMissingTaskGenerically() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": 999, "status": "in-progress"]
         ))
 
@@ -75,12 +76,13 @@ struct MCPDuplicateTaskDisplayIDTests {
         let env = try MCPTestHelpers.makeEnv()
         let (first, second) = makeDuplicatePair(in: env.context, displayId: 42)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": 42, "name": "Renamed"]
         ))
 
-        try expectDuplicateError(response, displayId: 42)
+        #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorCode(response) == "DUPLICATE_TASK_IDENTIFIER")
         #expect(first.name == "First")
         #expect(second.name == "Second")
     }
@@ -91,12 +93,13 @@ struct MCPDuplicateTaskDisplayIDTests {
         let env = try MCPTestHelpers.makeEnv()
         let (first, second) = makeDuplicatePair(in: env.context, displayId: 42)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: ["displayId": 42, "content": "Hello", "authorName": "TestBot"]
         ))
 
-        try expectDuplicateError(response, displayId: 42)
+        #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorCode(response) == "DUPLICATE_TASK_IDENTIFIER")
         #expect(try env.commentService.fetchComments(for: first.id).isEmpty)
         #expect(try env.commentService.fetchComments(for: second.id).isEmpty)
     }

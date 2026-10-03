@@ -83,70 +83,11 @@ final class TaskService {
         milestone: Milestone? = nil,
         save: ((ModelContext) throws -> Void)? = nil
     ) async throws -> TransitTask {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else {
-            throw Error.invalidName
-        }
-
-        // Keep this validation at the aggregate boundary even though automation
-        // surfaces pre-validate resolved milestones: direct UI and future callers
-        // must not allocate an ID or insert a cross-project relationship.
-        if let milestone, milestone.project?.id != project.id {
-            throw Error.milestoneProjectMismatch
-        }
-
-        let displayID: DisplayID
-        do {
-            // Pass a closure so the set of display IDs already committed locally
-            // is snapshotted inside the allocation gate — fresh relative to any
-            // concurrent create that committed just before us — so the allocator
-            // never hands back an in-use ID even against a stale counter read
-            // (T-1395).
-            let id = try await displayIDAllocator.allocateNextID(excluding: { try self.usedDisplayIDs.tasks() })
-            displayID = .permanent(id)
-        } catch let error as CancellationError {
-            // The allocation gate propagates CancellationError when this caller is
-            // cancelled while waiting for an ID (T-1395). Cancellation must abort the
-            // create before any insert/save so a cancelled request never mutates
-            // persistent state — only genuine CloudKit/offline failures fall back to
-            // a provisional ID (T-1426).
-            throw error
-        } catch DisplayIDAllocator.Error.usedIDLookupFailed(let description) {
-            // The local store could not be read, so the collision guard never ran.
-            // That is not the offline condition provisional IDs exist for, and a
-            // provisional ID would hide a broken store behind a normal-looking
-            // create — surface it instead (T-1621).
-            throw DisplayIDAllocator.Error.usedIDLookupFailed(description: description)
-        } catch {
-            displayID = .provisional
-        }
-
-        // Counter stores are not required to cooperate with Swift cancellation.
-        // Re-check after allocation handling and immediately before constructing
-        // and inserting the model so a successfully allocated ID cannot turn a
-        // cancelled operation into a persisted task (T-1765).
-        try Task.checkCancellation()
-        try CreationProjectValidator.validate(project, in: modelContext, error: Error.projectNotFound)
-        try TaskCreationMilestoneValidator.validate(
-            milestone,
-            projectID: project.id,
-            in: modelContext
+        let prepared = try await prepareTaskCreation(
+            name: name, description: description, type: type, project: project,
+            metadata: metadata, priority: priority, milestone: milestone
         )
-
-        let task = TransitTask(
-            name: trimmedName,
-            description: description,
-            type: type,
-            project: project,
-            displayID: displayID,
-            metadata: metadata,
-            priority: priority
-        )
-        StatusEngine.initializeNewTask(task)
-        task.milestone = milestone
-
-        try modelContext.insertOrDelete(task, save: save ?? createSave)
-        return task
+        return try applyTaskCreation(prepared, save: save ?? createSave)
     }
 
     // MARK: - Status Changes
@@ -368,5 +309,91 @@ final class TaskService {
     /// the transaction before save. [T-650]
     func rollback() {
         modelContext.safeRollback()
+    }
+}
+
+extension TaskService {
+    /// Immutable input and allocated ID only; preparation never inserts domain models.
+    struct PreparedCreation {
+        let name: String
+        let description: String?
+        let type: TaskType
+        let projectID: UUID
+        let milestoneID: UUID?
+        let metadata: [String: String]?
+        let priority: TaskPriority
+        let displayID: DisplayID
+    }
+
+    func prepareTaskCreation(
+        name: String,
+        description: String?,
+        type: TaskType,
+        project: Project,
+        metadata: [String: String]? = nil,
+        priority: TaskPriority = .medium,
+        milestone: Milestone? = nil
+    ) async throws -> PreparedCreation {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { throw Error.invalidName }
+        let projectID = project.id
+        let milestoneID = milestone?.id
+        if let milestone, milestone.project?.id != projectID {
+            throw Error.milestoneProjectMismatch
+        }
+
+        let displayID: DisplayID
+        do {
+            // Pass a closure so the set of display IDs already committed locally
+            // is snapshotted inside the allocation gate — fresh relative to any
+            // concurrent create that committed just before us — so the allocator
+            // never hands back an in-use ID even against a stale counter read
+            // (T-1395).
+            let id = try await displayIDAllocator.allocateNextID(excluding: { try self.usedDisplayIDs.tasks() })
+            displayID = .permanent(id)
+        } catch let error as CancellationError {
+            // Cancellation is not an offline fallback; abort without inserting.
+            throw error
+        } catch DisplayIDAllocator.Error.usedIDLookupFailed(let description) {
+            // Unreadable collision guards fail closed instead of using provisional IDs.
+            throw DisplayIDAllocator.Error.usedIDLookupFailed(description: description)
+        } catch {
+            displayID = .provisional
+        }
+
+        try Task.checkCancellation()
+        return PreparedCreation(
+            name: trimmedName, description: description, type: type, projectID: projectID,
+            milestoneID: milestoneID, metadata: metadata, priority: priority, displayID: displayID
+        )
+    }
+
+    /// Re-resolves pinned UUIDs and validates immediately before inserting. No suspension or save by default.
+    @discardableResult
+    func applyTaskCreation(
+        _ prepared: PreparedCreation,
+        save: ((ModelContext) throws -> Void)? = nil
+    ) throws -> TransitTask {
+        try Task.checkCancellation()
+        let projectID = prepared.projectID
+        let projectDescriptor = FetchDescriptor<Project>(predicate: #Predicate { $0.id == projectID })
+        guard let project = try modelContext.fetch(projectDescriptor).first else { throw Error.projectNotFound }
+        try CreationProjectValidator.validate(project, in: modelContext, error: Error.projectNotFound)
+        var milestone: Milestone?
+        if let milestoneID = prepared.milestoneID {
+            let descriptor = FetchDescriptor<Milestone>(predicate: #Predicate { $0.id == milestoneID })
+            guard !modelContext.deletedModelsArray.contains(where: { ($0 as? Milestone)?.id == milestoneID }),
+                  let resolved = try modelContext.fetch(descriptor).first else { throw Error.milestoneNotOpen }
+            milestone = resolved
+        }
+        try TaskCreationMilestoneValidator.validate(milestone, projectID: projectID, in: modelContext)
+        let task = TransitTask(
+            name: prepared.name, description: prepared.description, type: prepared.type,
+            project: project, displayID: prepared.displayID, metadata: prepared.metadata, priority: prepared.priority
+        )
+        StatusEngine.initializeNewTask(task)
+        task.milestone = milestone
+        try modelContext.insertOrDelete(task, save: save ?? { _ in })
+        return task
     }
 }

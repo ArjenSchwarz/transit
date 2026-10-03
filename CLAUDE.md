@@ -57,12 +57,13 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
 
 ### Data Model
 
-Five SwiftData entities:
+Six SwiftData entities:
 - **Project** → has many **Tasks** and many **Milestones**
 - **TransitTask** → belongs to one Project, optionally belongs to one Milestone, has many Comments
 - **Milestone** → belongs to one Project, has many Tasks. Statuses: open / done / abandoned
 - **Comment** → belongs to one Task. Has `authorName`, `isAgent` flag, and `content`
 - **SyncHeartbeat** → singleton record whose `lastBeat` timestamp triggers CloudKit sync cycles
+- **MCPWriteReceipt** → same-store accepted/terminal write state and saved replay result, scoped to the originating local store even when synced
 
 Both tasks and milestones have a UUID and a separate `permanentDisplayId` integer for human-facing use (T-1, M-3), allocated via CloudKit counter records with optimistic locking and provisional fallback when offline.
 
@@ -147,8 +148,11 @@ Key implementation files:
 - `MCP/MCPToolDefinitions.swift` — tool schemas with input validation
 - `MCP/MCPTypes.swift` — JSON-RPC request/response types
 - `MCP/MCPHelperTypes.swift` — query filter logic (`MCPQueryFilters`)
+- `MCP/Writes/MCPWriteCoordinator.swift` — key acceptance, revision checks, atomic domain/result saves, and replay/recovery
+- `MCP/Writes/MCPWriteReceiptStore.swift` and `MCPLocalReservationStore.swift` — synced receipts and local durable payload guards
+- `MCP/Writes/MCPRecordSnapshot.swift` — normalized records and content revision coverage
 
-The MCP server reuses the same service instances as the UI (shared `mainContext`), so changes from MCP calls appear immediately in the app.
+The MCP server reuses the same service instances as the UI (shared `mainContext`), so changes from MCP calls appear immediately in the app. `TransitApp` retains one write coordinator and store-scoped sidecar for its lifetime; listener restarts do not release accepted operations or their lock. Protected writes require keys, and updates/deletion require revision preconditions; MCP results wrap full saved records rather than matching App Intent response envelopes. See [docs/mcp-write-contract.md](docs/mcp-write-contract.md) before changing schemas or examples. Domain changes and their terminal receipt share one synchronous save; guards remain durable when outcome recovery is uncertain.
 
 ### Reports
 

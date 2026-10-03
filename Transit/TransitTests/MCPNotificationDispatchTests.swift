@@ -24,6 +24,7 @@ struct MCPNotificationDispatchTests {
                   "params":{
                     "name":"create_task",
                     "arguments":{
+                      "idempotencyKey":"direct-notification",
                       "name":"Direct notification task",
                       "type":"bug",
                       "projectId":"\(project.id.uuidString)"
@@ -57,6 +58,7 @@ struct MCPNotificationDispatchTests {
             "name":"add_comment",
             "arguments":{
               "displayId":\(displayId),
+              "idempotencyKey":"http-comment",
               "content":"Created over HTTP",
               "authorName":"TestBot"
             }
@@ -100,7 +102,9 @@ struct MCPNotificationDispatchTests {
             "method":"tools/call",
             "params":{
               "name":"update_task_status",
-              "arguments":{"displayId":\(displayId),"status":"planning"}
+              "arguments":{"displayId":\(displayId),"status":"planning",
+              "idempotencyKey":"notification-status",
+              "expectedRevision":"\(try MCPTestHelpers.readRevision(task, in: env.context))"}
             }
           },
           {

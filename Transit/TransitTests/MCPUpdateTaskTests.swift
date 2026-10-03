@@ -24,12 +24,12 @@ struct MCPUpdateTaskTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
         let milestoneDisplayId = try #require(milestone.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "milestoneDisplayId": milestoneDisplayId]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["name"] as? String == "Task")
         #expect(task.milestone?.id == milestone.id)
     }
@@ -47,12 +47,12 @@ struct MCPUpdateTaskTests {
         #expect(task.milestone != nil)
 
         let taskDisplayId = try #require(task.permanentDisplayId)
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "clearMilestone": true]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["name"] as? String == "Task")
         #expect(task.milestone == nil)
     }
@@ -70,8 +70,8 @@ struct MCPUpdateTaskTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
         let milestoneDisplayId = try #require(milestone.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "milestoneDisplayId": milestoneDisplayId]
         ))
 
@@ -88,8 +88,8 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "milestoneDisplayId": 999]
         ))
 
@@ -113,8 +113,8 @@ struct MCPUpdateTaskTests {
         try env.milestoneService.setMilestone(milestone, on: task)
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "clearMilestone": "true"]
         ))
 
@@ -135,8 +135,8 @@ struct MCPUpdateTaskTests {
         try env.milestoneService.setMilestone(milestone, on: task)
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "clearMilestone": 1]
         ))
 
@@ -157,8 +157,8 @@ struct MCPUpdateTaskTests {
         try env.milestoneService.setMilestone(milestone, on: task)
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "clearMilestone": false]
         ))
 
@@ -184,8 +184,8 @@ struct MCPUpdateTaskTests {
         let milestoneDisplayId = try #require(milestone.permanentDisplayId)
 
         // Attempt assignment with project mismatch — should fail
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "milestoneDisplayId": milestoneDisplayId]
         ))
 
@@ -216,12 +216,12 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "name": "  hello  "]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["name"] as? String == "hello")
         #expect(task.name == "hello")
     }
@@ -234,8 +234,8 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "name": ""]
         ))
 
@@ -251,8 +251,8 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "name": "   "]
         ))
 
@@ -269,8 +269,8 @@ struct MCPUpdateTaskTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
 
         let args = try Self.jsonRoundTrip("{\"displayId\": \(taskDisplayId), \"name\": 42}")
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task", arguments: args
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task", arguments: args
         ))
 
         #expect(try MCPTestHelpers.isError(response))
@@ -289,12 +289,12 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "description": "  text  "]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["description"] as? String == "text")
         #expect(task.taskDescription == "text")
     }
@@ -307,13 +307,13 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "description": ""]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["description"] == nil, "Response should omit description when cleared")
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
+        #expect(result["description"] is NSNull, "Full saved record must expose a cleared description as null")
         #expect(task.taskDescription == nil)
     }
 
@@ -325,13 +325,13 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "description": "   "]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["description"] == nil, "Response should omit description when cleared")
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
+        #expect(result["description"] is NSNull, "Full saved record must expose a cleared description as null")
         #expect(task.taskDescription == nil)
     }
 
@@ -344,8 +344,8 @@ struct MCPUpdateTaskTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
 
         let args = try Self.jsonRoundTrip("{\"displayId\": \(taskDisplayId), \"description\": 42}")
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task", arguments: args
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task", arguments: args
         ))
 
         #expect(try MCPTestHelpers.isError(response))
@@ -362,12 +362,12 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "type": "feature"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["type"] as? String == "feature")
         #expect(task.type == .feature)
     }
@@ -380,8 +380,8 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "type": "epic"]
         ))
 
@@ -398,8 +398,8 @@ struct MCPUpdateTaskTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
 
         let args = try Self.jsonRoundTrip("{\"displayId\": \(taskDisplayId), \"type\": 1}")
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task", arguments: args
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task", arguments: args
         ))
 
         #expect(try MCPTestHelpers.isError(response))
@@ -417,12 +417,12 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "metadata": ["c": "3"]]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         let metadata = try #require(result["metadata"] as? [String: String])
         #expect(metadata == ["c": "3"])
         #expect(task.metadata == ["c": "3"])
@@ -437,13 +437,14 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "metadata": [String: String]()]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["metadata"] == nil, "Response should omit metadata when cleared")
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
+        #expect((result["metadata"] as? [String: String])?.isEmpty == true,
+                "Full saved record must expose cleared metadata")
         #expect(task.metadata.isEmpty)
     }
 
@@ -456,8 +457,8 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "metadata": "string"]
         ))
 
@@ -478,8 +479,8 @@ struct MCPUpdateTaskTests {
         let args = try Self.jsonRoundTrip(
             "{\"displayId\": \(taskDisplayId), \"metadata\": {\"a\": 1}}"
         )
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task", arguments: args
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task", arguments: args
         ))
 
         #expect(try MCPTestHelpers.isError(response))
@@ -498,12 +499,12 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "description": "ignored"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["name"] as? String == "X")
         #expect(task.name == "X")
     }
@@ -517,12 +518,12 @@ struct MCPUpdateTaskTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
 
         // Update something other than description
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "name": "Renamed"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["description"] as? String == "current")
         #expect(task.taskDescription == "current")
     }
@@ -535,12 +536,12 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "name": "Renamed"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["type"] as? String == "bug")
         #expect(task.type == .bug)
     }
@@ -554,12 +555,12 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "name": "Renamed"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         let metadata = try #require(result["metadata"] as? [String: String])
         #expect(metadata == ["a": "1"])
         #expect(task.metadata == ["a": "1"])
@@ -580,8 +581,8 @@ struct MCPUpdateTaskTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
         let milestoneDisplayId = try #require(milestone.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: [
                 "displayId": taskDisplayId,
                 "name": "Renamed",
@@ -592,7 +593,7 @@ struct MCPUpdateTaskTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["name"] as? String == "Renamed")
         #expect(result["description"] as? String == "new desc")
         #expect(result["type"] as? String == "chore")
@@ -614,8 +615,8 @@ struct MCPUpdateTaskTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
 
         // Valid name + invalid type → whole call rejected
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: [
                 "displayId": taskDisplayId,
                 "name": "NewName",
@@ -654,8 +655,8 @@ struct MCPUpdateTaskTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
         let milestoneDisplayId = try #require(milestone.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: [
                 "displayId": taskDisplayId,
                 "name": "NewName",
@@ -688,12 +689,12 @@ struct MCPUpdateTaskTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
         let originalLastStatusChange = task.lastStatusChangeDate
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["name"] as? String == "Task")
         #expect(result["description"] as? String == "desc")
         // No mutation → no timestamp tick from any side-effect
@@ -711,8 +712,8 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "metadata": [String: String]()]
         ))
 
@@ -720,7 +721,7 @@ struct MCPUpdateTaskTests {
         #expect(task.metadata.isEmpty)
     }
 
-    @Test func unknownFieldsIgnored_doNotBlockNoOp() async throws {
+    @Test func unknownFieldsRejectWithoutMutation() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
         let task = try await env.taskService.createTask(
@@ -728,15 +729,17 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "frob": "bar"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["name"] as? String == "Task")
-        #expect(result["description"] as? String == "desc")
+        #expect(try MCPTestHelpers.isError(response))
+        #expect(try MCPTestHelpers.errorCode(response) == "INVALID_INPUT")
+        #expect(try MCPTestHelpers.errorText(response).contains("frob"))
         #expect(task.name == "Task")
+        #expect(task.taskDescription == "desc")
+        #expect(try env.context.fetch(FetchDescriptor<MCPWriteReceipt>()).isEmpty)
     }
 
     // MARK: - Milestone Parity (AC 7.x)
@@ -753,8 +756,8 @@ struct MCPUpdateTaskTests {
         let taskDisplayId = try #require(task.permanentDisplayId)
         let milestoneDisplayId = try #require(milestone.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: [
                 "displayId": taskDisplayId,
                 "name": "Renamed",
@@ -778,19 +781,19 @@ struct MCPUpdateTaskTests {
         #expect(task.milestone == nil)
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "clearMilestone": true]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["milestone"] == nil, "Response should omit milestone when nil")
         #expect(task.milestone == nil)
     }
 
     // MARK: - Response Shape (AC 9.1)
 
-    @Test func responseOmitsClearedDescriptionAndMetadata() async throws {
+    @Test func responseExposesClearedDescriptionAndMetadata() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
         let task = try await env.taskService.createTask(
@@ -799,8 +802,8 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: [
                 "displayId": taskDisplayId,
                 "description": "",
@@ -808,12 +811,14 @@ struct MCPUpdateTaskTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["description"] == nil)
-        #expect(result["metadata"] == nil)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
+        #expect(result["description"] is NSNull)
+        #expect((result["metadata"] as? [String: String])?.isEmpty == true)
+        #expect(task.taskDescription == nil)
+        #expect(task.metadata.isEmpty)
     }
 
-    @Test func responseExcludesCommentsAndDateFields() async throws {
+    @Test func responseIncludesSavedCommentsAndDateFields() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
         let task = try await env.taskService.createTask(
@@ -824,15 +829,17 @@ struct MCPUpdateTaskTests {
         )
         let taskDisplayId = try #require(task.permanentDisplayId)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: ["displayId": taskDisplayId, "name": "Renamed"]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["comments"] == nil)
-        #expect(result["creationDate"] == nil)
-        #expect(result["lastStatusChangeDate"] == nil)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
+        let comments = try #require(result["comments"] as? [[String: Any]])
+        #expect(comments.count == 1)
+        #expect(comments.first?["content"] as? String == "First")
+        #expect(result["creationDate"] is String)
+        #expect(result["lastStatusChangeDate"] is String)
         #expect(result["completionDate"] == nil)
     }
 

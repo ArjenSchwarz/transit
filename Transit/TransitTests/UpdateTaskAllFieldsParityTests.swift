@@ -4,28 +4,8 @@ import SwiftData
 import Testing
 @testable import Transit
 
-/// Cross-surface parity tests for the `update_task` MCP tool and
-/// `UpdateTaskIntent` App Intent (T-650 AC 8.1).
-///
-/// Both surfaces share `TaskUpdateValidator` and
-/// `IntentHelpers.taskUpdateResponseDict`, so structural equality of the
-/// success response is guaranteed by construction. These tests make that
-/// contract explicit, so a future divergence (an extra key in one surface, a
-/// JSON serialization quirk, etc.) is caught at test time rather than
-/// silently changing the wire format for one caller.
-///
-/// Strategy: each test prepares a single task and a single set of update args,
-/// then invokes both surfaces against that same task in the same context. The
-/// first call mutates the task; the second call sees the post-mutation state
-/// and either:
-///   - re-applies the same change (idempotent, response unchanged), or
-///   - is a true no-op for identifier-only cases.
-/// Either way, both responses are computed from the task's final model state
-/// via the shared response builder, so the dictionaries must match exactly.
-///
-/// Error-response parity is explicitly NOT asserted here — AC 5.2 permits the
-/// two surfaces to surface different error messages for the same invalid
-/// input. Success-only coverage is what this test exists for.
+/// MCP's protected envelope contains a full saved record. App Intents retain their
+/// existing response shape; compare every intended update field across the surfaces.
 @MainActor @Suite(.serialized)
 struct UpdateTaskAllFieldsParityTests {
 
@@ -37,6 +17,7 @@ struct UpdateTaskAllFieldsParityTests {
     private func assertParity(
         mcp mcpJSON: String,
         intent intentJSON: String,
+        task: TransitTask,
         sourceLocation: SourceLocation = #_sourceLocation
     ) throws {
         let mcpData = try #require(mcpJSON.data(using: .utf8))
@@ -63,7 +44,12 @@ struct UpdateTaskAllFieldsParityTests {
             sourceLocation: sourceLocation
         )
 
-        let mcpNS = mcpDict as NSDictionary
+        #expect(mcpDict["outcome"] as? String == "committed", sourceLocation: sourceLocation)
+        #expect(mcpDict["accepted"] as? Bool == true, sourceLocation: sourceLocation)
+        let record = try #require(mcpDict["record"] as? [String: Any])
+        #expect((record["revision"] as? String)?.hasPrefix("r1:") == true, sourceLocation: sourceLocation)
+        let domain = try intentDomainRecord(record, task: task, sourceLocation: sourceLocation)
+        let mcpNS = domain as NSDictionary
         let intentNS = intentDict as NSDictionary
         #expect(
             mcpNS == intentNS,
@@ -88,8 +74,8 @@ struct UpdateTaskAllFieldsParityTests {
         env: MCPTestEnv,
         arguments: [String: Any]
     ) async throws -> String {
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task", arguments: arguments
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task", arguments: arguments
         ))
         return try mcpResponseText(response)
     }
@@ -122,13 +108,24 @@ struct UpdateTaskAllFieldsParityTests {
         arguments: [String: Any],
         sourceLocation: SourceLocation = #_sourceLocation
     ) async throws {
+        let task = try env.taskService.resolveTask(from: arguments)
         let intentInput = try encodeArgsAsJSON(arguments)
         let mcpJSON = try await callMCP(env: env, arguments: arguments)
         let intentJSON = callIntent(env: env, inputJSON: intentInput)
-        try assertParity(mcp: mcpJSON, intent: intentJSON, sourceLocation: sourceLocation)
+        try assertParity(mcp: mcpJSON, intent: intentJSON, task: task, sourceLocation: sourceLocation)
     }
 
     // MARK: - Per-Field Parity
+
+    @Test func provisionalTaskWithoutProject_parity() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let project = MCPTestHelpers.makeProject(in: env.context)
+        let task = TransitTask(name: "Orphan", type: .feature, project: project, displayID: .provisional)
+        task.project = nil
+        env.context.insert(task)
+        try env.context.save()
+        try await runParityCase(env: env, arguments: ["taskId": task.id.uuidString, "name": "Renamed"])
+    }
 
     @Test func updateName_parity() async throws {
         let env = try MCPTestHelpers.makeEnv()
@@ -321,6 +318,33 @@ struct UpdateTaskAllFieldsParityTests {
             env: env,
             arguments: ["displayId": taskDisplayId, "clearMilestone": true]
         )
+    }
+}
+
+extension UpdateTaskAllFieldsParityTests {
+    /// Verify the full MCP values first, then apply the Intent serializer's omission policy.
+    private func intentDomainRecord(
+        _ record: [String: Any], task: TransitTask, sourceLocation: SourceLocation
+    ) throws -> [String: Any] {
+        let domainFields: Set<String> = ["taskId", "name", "type", "priority", "status", "displayId",
+                                         "projectId", "projectName", "description", "metadata", "milestone"]
+        var domain = record.filter { domainFields.contains($0.key) }
+        if let milestone = domain["milestone"] as? [String: Any] {
+            domain["milestone"] = milestone.filter { ["milestoneId", "name", "displayId"].contains($0.key) }
+        }
+        if let description = task.taskDescription {
+            #expect(record["description"] as? String == description, sourceLocation: sourceLocation)
+            if description.isEmpty { domain.removeValue(forKey: "description") }
+        } else {
+            #expect(record["description"] is NSNull, sourceLocation: sourceLocation)
+            domain.removeValue(forKey: "description")
+        }
+        let metadata = try #require(record["metadata"] as? [String: String])
+        #expect(metadata == task.metadata, sourceLocation: sourceLocation)
+        if metadata.isEmpty { domain.removeValue(forKey: "metadata") }
+        // Both serializers omit nil display/project IDs, names and milestone assignment.
+        // Those fields stay in the comparison, including their presence or absence.
+        return domain
     }
 }
 

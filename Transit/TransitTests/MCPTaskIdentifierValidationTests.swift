@@ -18,8 +18,8 @@ struct MCPTaskIdentifierValidationTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": "abc",
                 "taskId": task.id.uuidString,
@@ -44,8 +44,8 @@ struct MCPTaskIdentifierValidationTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "taskId": 123,
                 "status": "in-progress"
@@ -67,8 +67,8 @@ struct MCPTaskIdentifierValidationTests {
             name: "M1", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task",
             arguments: [
                 "displayId": "abc",
                 "taskId": task.id.uuidString,
@@ -92,8 +92,8 @@ struct MCPTaskIdentifierValidationTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": "abc",
                 "taskId": task.id.uuidString,
@@ -118,8 +118,8 @@ struct MCPTaskIdentifierValidationTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "taskId": 123,
                 "content": "Hello",

@@ -41,14 +41,25 @@ final class MilestoneService {
         project: Project,
         save: ((ModelContext) throws -> Void)? = nil
     ) async throws -> Milestone {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else {
-            throw Error.invalidName
-        }
+        let prepared = try await prepareMilestoneCreation(name: name, description: description, project: project)
+        return try applyMilestoneCreation(prepared, save: save ?? mutationSave)
+    }
 
-        guard try !milestoneNameExists(trimmedName, in: project) else {
-            throw Error.duplicateName
-        }
+    struct PreparedCreation {
+        let name: String
+        let description: String?
+        let projectID: UUID
+        let displayID: DisplayID
+    }
+
+    /// Allocates an ID without inserting or saving a milestone.
+    func prepareMilestoneCreation(
+        name: String, description: String?, project: Project
+    ) async throws -> PreparedCreation {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { throw Error.invalidName }
+        guard try !milestoneNameExists(trimmedName, in: project) else { throw Error.duplicateName }
+        let projectID = project.id
 
         let displayID: DisplayID
         do {
@@ -75,31 +86,26 @@ final class MilestoneService {
             displayID = .provisional
         }
 
-        // Counter stores are not required to cooperate with Swift cancellation.
-        // Re-check after allocation handling and before any post-await model work
-        // so a successfully allocated ID cannot turn a cancelled operation into a
-        // persisted milestone (T-1765).
         try Task.checkCancellation()
+        return PreparedCreation(name: trimmedName, description: description, projectID: projectID, displayID: displayID)
+    }
+
+    /// Validates live references and name uniqueness, then inserts synchronously without saving by default.
+    @discardableResult
+    func applyMilestoneCreation(
+        _ prepared: PreparedCreation,
+        save: ((ModelContext) throws -> Void)? = nil
+    ) throws -> Milestone {
+        try Task.checkCancellation()
+        let projectID = prepared.projectID
+        let descriptor = FetchDescriptor<Project>(predicate: #Predicate { $0.id == projectID })
+        guard let project = try modelContext.fetch(descriptor).first else { throw Error.projectNotFound }
         try CreationProjectValidator.validate(project, in: modelContext, error: Error.projectNotFound)
-
-        // Re-check uniqueness after the allocation await. The check above ran
-        // before this method suspended, so a concurrent create could have
-        // committed the same name in the meantime (T-1764). CloudKit-backed
-        // SwiftData cannot express `@Attribute(.unique)`, so this service check
-        // *is* the invariant — and it only holds if the last check and the insert
-        // are not separated by a suspension point, which is the case from here on.
-        guard try !milestoneNameExists(trimmedName, in: project) else {
-            throw Error.duplicateName
-        }
-
+        guard try !milestoneNameExists(prepared.name, in: project) else { throw Error.duplicateName }
         let milestone = Milestone(
-            name: trimmedName,
-            description: description,
-            project: project,
-            displayID: displayID
+            name: prepared.name, description: prepared.description, project: project, displayID: prepared.displayID
         )
-
-        try modelContext.insertOrDelete(milestone, save: save ?? mutationSave)
+        try modelContext.insertOrDelete(milestone, save: save ?? { _ in })
         return milestone
     }
 
@@ -151,9 +157,9 @@ final class MilestoneService {
         try modelContext.saveOrRollback(save: mutationSave)
     }
 
-    func deleteMilestone(_ milestone: Milestone) throws {
+    func deleteMilestone(_ milestone: Milestone, save: Bool = true) throws {
         modelContext.delete(milestone)
-        try modelContext.saveOrRollback(save: mutationSave)
+        if save { try modelContext.saveOrRollback(save: mutationSave) }
     }
 
     // MARK: - Assignment

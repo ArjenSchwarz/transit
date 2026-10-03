@@ -95,15 +95,12 @@ struct CreationProjectDeletionTests {
         let project = try makeProject(in: env.context)
         let projectID = project.id
 
+        let request = try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
+            arguments: ["name": "Must Not Persist", "type": "bug", "projectId": projectID.uuidString]
+        )
         let creation = Task { @MainActor in
-            await env.handler.handle(MCPTestHelpers.toolCallRequest(
-                tool: "create_task",
-                arguments: [
-                    "name": "Must Not Persist",
-                    "type": "bug",
-                    "projectId": projectID.uuidString
-                ]
-            ))
+            await env.handler.handle(request)
         }
 
         let allocationStarted = await store.waitUntilAllocationStarts()
@@ -120,7 +117,7 @@ struct CreationProjectDeletionTests {
 
         let response = await creation.value
         #expect(try MCPTestHelpers.isError(response))
-        #expect(try MCPTestHelpers.errorText(response) == "No matching project found")
+        #expect(try MCPTestHelpers.errorCode(response) == "PROJECT_NOT_FOUND")
         try expectNoProjectsOrTasks(in: env.context.container)
     }
 #endif

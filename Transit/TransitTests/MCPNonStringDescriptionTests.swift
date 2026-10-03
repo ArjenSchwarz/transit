@@ -19,8 +19,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task", "type": "bug",
                 "projectId": project.id.uuidString, "description": 123
@@ -38,8 +38,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task", "type": "bug",
                 "projectId": project.id.uuidString, "description": false
@@ -57,8 +57,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task", "type": "bug",
                 "projectId": project.id.uuidString, "description": ["x"]
@@ -76,8 +76,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task", "type": "bug",
                 "projectId": project.id.uuidString, "description": NSNull()
@@ -95,8 +95,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task", "type": "bug",
                 "projectId": project.id.uuidString, "description": "A description"
@@ -112,8 +112,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Task", "type": "bug",
                 "projectId": project.id.uuidString
@@ -131,8 +131,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: [
                 "name": "v1.0", "projectId": project.id.uuidString, "description": 123
             ]
@@ -149,8 +149,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: [
                 "name": "v1.0", "projectId": project.id.uuidString, "description": true
             ]
@@ -167,8 +167,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: [
                 "name": "v1.0", "projectId": project.id.uuidString, "description": ["x"]
             ]
@@ -185,8 +185,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: [
                 "name": "v1.0", "projectId": project.id.uuidString, "description": NSNull()
             ]
@@ -203,8 +203,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: [
                 "name": "v1.0", "projectId": project.id.uuidString, "description": "Beta release"
             ]
@@ -219,8 +219,8 @@ struct MCPNonStringDescriptionTests {
         let env = try MCPTestHelpers.makeEnv()
         let project = MCPTestHelpers.makeProject(in: env.context)
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: [
                 "name": "v1.0", "projectId": project.id.uuidString
             ]

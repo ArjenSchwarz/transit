@@ -82,8 +82,8 @@ struct ProjectLookupStorageFailureSurfaceTests {
         let env = try MCPTestHelpers.makeEnv(projectFetcher: FailingProjectFetcher())
         let projectID = UUID().uuidString
 
-        let createTask = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let createTask = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: ["projectId": projectID, "name": "Task", "type": "feature"]
         ))
         let queryTasks = await env.handler.handle(MCPTestHelpers.toolCallRequest(
@@ -91,8 +91,8 @@ struct ProjectLookupStorageFailureSurfaceTests {
             arguments: ["detailLevel": "summary", "includeComments": true, "limit": 100,
                 "projectId": projectID]
         ))
-        let createMilestone = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_milestone",
+        let createMilestone = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_milestone",
             arguments: ["projectId": projectID, "name": "Milestone"]
         ))
         let queryMilestones = await env.handler.handle(MCPTestHelpers.toolCallRequest(

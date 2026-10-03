@@ -18,8 +18,8 @@ struct MCPCommentTypeValidationTests {
         let displayId = try #require(task.permanentDisplayId)
         let originalStatus = task.statusRawValue
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": displayId,
                 "status": "planning",
@@ -50,8 +50,8 @@ struct MCPCommentTypeValidationTests {
         let displayId = try #require(task.permanentDisplayId)
         let originalStatus = task.statusRawValue
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": displayId,
                 "status": "planning",
@@ -77,8 +77,8 @@ struct MCPCommentTypeValidationTests {
         let displayId = try #require(task.permanentDisplayId)
         let originalStatus = task.statusRawValue
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": displayId,
                 "status": "planning",
@@ -104,8 +104,8 @@ struct MCPCommentTypeValidationTests {
         let displayId = try #require(task.permanentDisplayId)
         let originalStatus = task.statusRawValue
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": displayId,
                 "status": "planning",
@@ -136,8 +136,8 @@ struct MCPCommentTypeValidationTests {
         let displayId = try #require(task.permanentDisplayId)
         let originalStatus = task.statusRawValue
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": displayId,
                 "status": "planning",

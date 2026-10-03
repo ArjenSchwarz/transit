@@ -21,8 +21,8 @@ struct MCPCreateTaskAtomicityTests {
         )
         expectedMilestoneID = milestone.id
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "create_task",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "create_task",
             arguments: [
                 "name": "Atomic Task",
                 "type": "bug",

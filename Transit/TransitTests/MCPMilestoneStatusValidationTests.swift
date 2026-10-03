@@ -35,8 +35,8 @@ struct MCPMilestoneStatusValidationTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: [
                 "milestoneId": milestone.id.uuidString,
                 "status": 123,
@@ -61,8 +61,8 @@ struct MCPMilestoneStatusValidationTests {
             name: "v1.0", description: nil, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_milestone",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_milestone",
             arguments: [
                 "milestoneId": milestone.id.uuidString,
                 "status": false

@@ -67,7 +67,9 @@ struct SyncDisabledGatingTests {
 
     @Test("Fallback container outcome disables counters while preserving interactive writes")
     func fallbackOutcomeDisablesCounterUseWhileInteractiveWritesRemainAvailable() async throws {
-        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
+        let schema = Schema([
+            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
+        ])
         let config = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: true,
@@ -116,7 +118,9 @@ struct SyncDisabledGatingTests {
 
     @Test("Bootstrap derivation preserves active and preference-disabled modes after a healthy outcome")
     func bootstrapDerivationPreservesHealthyModes() {
-        let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
+        let schema = Schema([
+            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
+        ])
         let config = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: true,
@@ -251,7 +255,9 @@ struct SyncDisabledGatingTests {
         withSavedDefaults {
             UserDefaults.standard.set(false, forKey: "syncEnabled")
             let manager = SyncManager()
-            let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
+            let schema = Schema([
+                Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
+            ])
 
             _ = manager.makeModelConfiguration(schema: schema)
 
@@ -265,7 +271,9 @@ struct SyncDisabledGatingTests {
         withSavedDefaults {
             UserDefaults.standard.set(true, forKey: "syncEnabled")
             let manager = SyncManager()
-            let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self])
+            let schema = Schema([
+                Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
+            ])
             _ = manager.makeModelConfiguration(schema: schema)
             #expect(manager.isCloudSyncActive == true)
 

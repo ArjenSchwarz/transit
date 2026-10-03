@@ -16,8 +16,8 @@ struct MCPCommentTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": 1,
                 "content": "Test comment",
@@ -25,7 +25,7 @@ struct MCPCommentTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["id"] is String)
         #expect(result["authorName"] as? String == "TestBot")
         #expect(result["content"] as? String == "Test comment")
@@ -39,8 +39,8 @@ struct MCPCommentTests {
     @Test func addCommentMissingContentReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: ["displayId": 1, "authorName": "Bot"]
         ))
 
@@ -50,8 +50,8 @@ struct MCPCommentTests {
     @Test func addCommentMissingAuthorNameReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: ["displayId": 1, "content": "Hello"]
         ))
 
@@ -61,8 +61,8 @@ struct MCPCommentTests {
     @Test func addCommentTaskNotFoundReturnsError() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: ["displayId": 999, "content": "Hello", "authorName": "Bot"]
         ))
 
@@ -78,8 +78,8 @@ struct MCPCommentTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": 1,
                 "status": "planning",
@@ -89,7 +89,7 @@ struct MCPCommentTests {
         ))
 
         let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["status"] as? String == "planning")
+        #expect((result["record"] as? [String: Any])?["status"] as? String == "planning")
 
         let comments = try env.commentService.fetchComments(for: task.id)
         #expect(comments.count == 1)
@@ -109,8 +109,8 @@ struct MCPCommentTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": 1,
                 "status": "planning",
@@ -128,14 +128,14 @@ struct MCPCommentTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: ["displayId": 1, "status": "planning"]
         ))
 
         let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["status"] as? String == "planning")
-        #expect(result["comment"] == nil)
+        #expect((result["record"] as? [String: Any])?["status"] as? String == "planning")
+        #expect(result["comment"] is NSNull)
 
         let comments = try env.commentService.fetchComments(for: task.id)
         #expect(comments.isEmpty)
@@ -148,8 +148,8 @@ struct MCPCommentTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": 1,
                 "status": "planning",
@@ -159,8 +159,8 @@ struct MCPCommentTests {
         ))
 
         let result = try MCPTestHelpers.decodeResult(response)
-        #expect(result["status"] as? String == "planning")
-        #expect(result["comment"] == nil)
+        #expect((result["record"] as? [String: Any])?["status"] as? String == "planning")
+        #expect(result["comment"] is NSNull)
 
         let comments = try env.commentService.fetchComments(for: task.id)
         #expect(comments.isEmpty)
@@ -178,8 +178,8 @@ struct MCPCommentTests {
         // Swift string "C:\\new\\notes" is runtime C:\new\notes (literal backslash-n).
         // This simulates a JSON-decoded string from: "C:\\new\\notes" in JSON,
         // where the user intended to keep the literal backslash-n (e.g., Windows path).
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": 1,
                 "content": "Path: C:\\new\\notes",
@@ -187,7 +187,7 @@ struct MCPCommentTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["content"] as? String == "Path: C:\\new\\notes")
 
         let comments = try env.commentService.fetchComments(for: task.id)
@@ -203,8 +203,8 @@ struct MCPCommentTests {
         )
 
         // The comment contains a literal backslash-n that should NOT be turned into a newline.
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "update_task_status",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "update_task_status",
             arguments: [
                 "displayId": 1,
                 "status": "planning",
@@ -228,8 +228,8 @@ struct MCPCommentTests {
             name: "Task", description: nil, type: .feature, project: project
         )
 
-        let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
-            tool: "add_comment",
+        let response = await env.handler.handle(try MCPTestHelpers.protectedToolCallRequest(
+            in: env.context, tool: "add_comment",
             arguments: [
                 "displayId": 1,
                 "content": "Line one\nLine two",
@@ -237,7 +237,7 @@ struct MCPCommentTests {
             ]
         ))
 
-        let result = try MCPTestHelpers.decodeResult(response)
+        let result = try MCPTestHelpers.decodeSavedRecord(response)
         #expect(result["content"] as? String == "Line one\nLine two")
     }
 

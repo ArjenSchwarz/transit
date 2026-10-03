@@ -57,6 +57,7 @@ struct MCPServerBatchRequestTests {
           "params":{
             "name":"create_task",
             "arguments":{
+              "idempotencyKey":"batch-notification",
               "name":"Notification task",
               "type":"bug",
               "projectId":"\(project.id.uuidString)"

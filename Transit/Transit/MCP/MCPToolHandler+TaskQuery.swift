@@ -100,15 +100,24 @@ extension MCPToolHandler {
     private func queryTaskDictionary(
         _ task: TransitTask, request: MCPTaskQueryRequest, formatter: ISO8601DateFormatter
     ) throws -> [String: Any] {
-        var dict = IntentHelpers.taskToDict(task, formatter: formatter, detailed: request.detailLevel == "full")
-        if request.detailLevel == "full" {
-            dict["description"] = task.taskDescription.map { $0 as Any } ?? NSNull()
-        }
-        if request.includeComments {
-            let comments: [Comment]
+        let full = request.detailLevel == "full"
+        var comments: [Comment] = []
+        if full || request.includeComments {
             do { comments = try commentFetcher.fetchComments(for: task.id) } catch {
                 throw MCPTaskQueryError(code: "QUERY_FAILED", message: "Failed to fetch comments: \(error)")
             }
+        }
+        if full {
+            let snapshot = try MCPRecordSnapshot.task(task) { _ in comments }
+            var record = snapshot.record
+            if !request.includeComments { record.removeValue(forKey: "comments") }
+            if let metadata = record["metadata"] as? [String: String], metadata.isEmpty {
+                record.removeValue(forKey: "metadata")
+            }
+            return record
+        }
+        var dict = IntentHelpers.taskToDict(task, formatter: formatter)
+        if request.includeComments {
             dict["comments"] = comments.sorted {
                 if $0.creationDate == $1.creationDate { return $0.id.uuidString < $1.id.uuidString }
                 return $0.creationDate < $1.creationDate
