@@ -4,7 +4,7 @@ import NIOConcurrencyHelpers
 import Testing
 @testable import Transit
 
-/// Interface-capability RED for the new admission value; production binding belongs to task 13.
+/// Calls the actual admission API; receipts follow cleanup and permit removal.
 @Suite(.serialized)
 nonisolated struct MCPReadAdmissionContractTests {
     @Test @concurrent func duplicateLiveIdentityCannotStartOrReplaceAnotherWorker() async {
@@ -12,7 +12,8 @@ nonisolated struct MCPReadAdmissionContractTests {
         let gate = AdmissionGate()
         let admission = MCPReadAdmission()
         let first = Task {
-            await Self.baseline(coordinator, admission: admission) { _ in
+            await coordinator.execute(timeout: Data("timeout".utf8), busy: Data("busy".utf8),
+                                      admission: admission) { _ in
                 await gate.started()
                 await gate.wait()
                 return Self.result("first")
@@ -20,7 +21,8 @@ nonisolated struct MCPReadAdmissionContractTests {
         }
         await gate.waitUntilStarted()
         let duplicateStarted = NIOLockedValueBox(false)
-        let duplicate = await Self.baseline(coordinator, admission: admission) { _ in
+        let duplicate = await coordinator.execute(timeout: Data("timeout".utf8), busy: Data("busy".utf8),
+                                                  admission: admission) { _ in
             duplicateStarted.withLockedValue { $0 = true }
             return Self.result("duplicate")
         }
@@ -41,7 +43,8 @@ nonisolated struct MCPReadAdmissionContractTests {
             receiptState.withLockedValue { $0 = [cleaned.withLockedValue { $0 }, coordinator.unfinishedCount == 0] }
         })
         let call = Task {
-            await Self.baseline(coordinator, admission: admission) { _ in
+            await coordinator.execute(timeout: Data("timeout".utf8), busy: Data("busy".utf8),
+                                      admission: admission) { _ in
                 await gate.started()
                 await gate.wait()
                 defer { cleaned.withLockedValue { $0 = true } }
@@ -60,15 +63,6 @@ nonisolated struct MCPReadAdmissionContractTests {
         let receiptDeadline = ContinuousClock.now + .seconds(1)
         while receiptState.withLockedValue({ $0.isEmpty }) && .now < receiptDeadline { await Task.yield() }
         #expect(receiptState.withLockedValue { $0 } == [true, true])
-    }
-
-    // Interface-capability baseline only: production has no caller identity/receipt API yet.
-    // Task 13 must remove this adapter and invoke real execute(admission:...) directly.
-    private static func baseline(_ coordinator: MCPReadCoordinator, admission: MCPReadAdmission,
-                                 worker: @escaping @Sendable (MCPReadOperation) async -> PreparedReadResult)
-        async -> Data {
-        _ = admission
-        return await coordinator.execute(timeout: Data("timeout".utf8), busy: Data("busy".utf8), worker: worker)
     }
 
     private static func result(_ value: String) -> PreparedReadResult {

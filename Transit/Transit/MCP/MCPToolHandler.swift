@@ -51,6 +51,8 @@ final class MCPToolHandler {
         MCPToolDefinitions.tools(includingMaintenance: true).map(\.name)
     ).subtracting(readOnlyToolNames)
 
+    nonisolated let readCoordinator: MCPReadCoordinator
+
     init(
         taskService: TaskService,
         projectService: ProjectService,
@@ -65,7 +67,8 @@ final class MCPToolHandler {
         milestoneDisplayIDFinder: (any MilestoneDisplayIDFinding)? = nil,
         taskQuerySnapshots: MCPTaskQuerySnapshotStore? = nil,
         writeCoordinator: MCPWriteCoordinator? = nil,
-        readService: MCPReadService? = nil
+        readService: MCPReadService? = nil,
+        readCoordinator: MCPReadCoordinator? = nil
     ) {
         self.taskService = taskService
         self.taskFetcher = taskFetcher ?? taskService
@@ -77,7 +80,8 @@ final class MCPToolHandler {
         self.maintenanceService = maintenanceService
         self.settings = settings
         self.persistence = persistence ?? .shared
-        self.taskQuerySnapshots = taskQuerySnapshots ?? MCPTaskQuerySnapshotStore()
+        self.taskQuerySnapshots = taskQuerySnapshots ?? readService?.snapshots ?? MCPTaskQuerySnapshotStore()
+        self.readCoordinator = readCoordinator ?? MCPReadCoordinator(domain: self.taskQuerySnapshots.domain)
         self.writeCoordinator = writeCoordinator
         self.readService = readService
     }

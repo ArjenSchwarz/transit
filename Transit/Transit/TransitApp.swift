@@ -161,13 +161,16 @@ struct TransitApp: App {
             sidecarDirectory: sidecar, persistence: persistence)
         self.mcpWriteCoordinator = writeCoordinator
         try? writeCoordinator.cleanupExpiredOutcomes()
+        let reads = MCPReadAppDependencies.make(container: container, syncActive: cloudSyncActive)
+        let readCoordinator = MCPReadCoordinator(domain: reads.snapshots.domain)
         let mcpToolHandler = MCPToolHandler(
             taskService: taskService, projectService: projectService,
             commentService: commentService, milestoneService: milestoneService,
             maintenanceService: maintenanceService, settings: mcpSettings,
-            persistence: persistence, writeCoordinator: writeCoordinator
+            persistence: persistence, taskQuerySnapshots: reads.snapshots, writeCoordinator: writeCoordinator,
+            readService: reads, readCoordinator: readCoordinator
         )
-        self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
+        self.mcpServer = MCPServer(toolHandler: mcpToolHandler, readCoordinator: readCoordinator)
         #endif
 
     }
@@ -297,6 +300,15 @@ struct TransitApp: App {
             .environment(maintenanceService)
     }
 
+    // MARK: - UI Test Support
+
+    private func seedUITestDataIfNeeded() {
+        guard let scenario = Self.uiTestScenario else { return }
+        scenario.seed(into: container.mainContext)
+    }
+}
+
+extension TransitApp {
     // MARK: - MCP Server
 
     #if os(macOS)
@@ -308,12 +320,6 @@ struct TransitApp: App {
     }
     #endif
 
-    // MARK: - UI Test Support
-
-    private func seedUITestDataIfNeeded() {
-        guard let scenario = Self.uiTestScenario else { return }
-        scenario.seed(into: container.mainContext)
-    }
 }
 
 // MARK: - macOS Commands

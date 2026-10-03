@@ -24,6 +24,7 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         let id: UUID
         let generation: UInt64
         let deadline: ContinuousClock.Instant
+        let physicalCompletion: @Sendable () -> Void
         var timeout: Data
         var responseReady = true
         var invalidated = false
@@ -31,11 +32,13 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         var continuation: CheckedContinuation<Data, Never>?
         var timer: DispatchSourceTimer?
 
-        init(id: UUID, generation: UInt64, deadline: ContinuousClock.Instant, timeout: Data) {
+        init(id: UUID, generation: UInt64, deadline: ContinuousClock.Instant, timeout: Data,
+             physicalCompletion: @escaping @Sendable () -> Void = {}) {
             self.id = id
             self.generation = generation
             self.deadline = deadline
             self.timeout = timeout
+            self.physicalCompletion = physicalCompletion
         }
     }
 
@@ -58,17 +61,21 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
 
     @concurrent func execute(
         timeout: Data, busy: Data, admittedAt: ContinuousClock.Instant = .now,
+        admission: MCPReadAdmission = MCPReadAdmission(),
         worker: @escaping @Sendable (MCPReadOperation) async -> PreparedReadResult
     ) async -> Data {
-        let entry = reserve(timeout: timeout, admittedAt: admittedAt)
+        let entry = reserve(timeout: timeout, admittedAt: admittedAt, admission: admission)
         guard let entry else { return busy }
         return await executeReserved(entry, worker: worker)
     }
 
-    private func reserve(timeout: Data, admittedAt: ContinuousClock.Instant) -> Entry? {
+    private func reserve(timeout: Data, admittedAt: ContinuousClock.Instant, admission: MCPReadAdmission) -> Entry? {
         domain.withLock {
-            guard admissionOpen, entries.count < maxOperations else { return nil }
-            let entry = Entry(id: UUID(), generation: generation, deadline: admittedAt + cutoff, timeout: timeout)
+            guard admissionOpen, entries.count < maxOperations, entries[admission.operationID] == nil else {
+                return nil
+            }
+            let entry = Entry(id: admission.operationID, generation: generation, deadline: admittedAt + cutoff,
+                              timeout: timeout, physicalCompletion: admission.physicalCompletion)
             entries[entry.id] = entry
             return entry
         }
@@ -78,7 +85,7 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         _ entry: Entry, skipped: (@Sendable () async -> Void)? = nil,
         worker: @escaping @Sendable (MCPReadOperation) async -> PreparedReadResult
     ) async -> Data {
-        if Task.isCancelled { expire(entry.id) }
+        if Task.isCancelled { expire(entry) }
         let operation = MCPReadOperation(id: entry.id, generation: entry.generation, coordinator: self)
         installTimer(entry)
         Task.detached(priority: .userInitiated) {
@@ -100,7 +107,7 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
                 if let selected { continuation.resume(returning: selected) }
             }
         } onCancel: {
-            self.expire(entry.id)
+            self.expire(entry)
         }
     }
 
@@ -143,7 +150,7 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         let timer = DispatchSource.makeTimerSource(flags: .strict, queue: timerQueue)
         let remaining = max(0, seconds(ContinuousClock.now.duration(to: entry.deadline)))
         timer.schedule(deadline: .now() + remaining, leeway: .nanoseconds(0))
-        timer.setEventHandler { [weak self] in self?.expire(entry.id) }
+        timer.setEventHandler { [weak self] in self?.expire(entry) }
         domain.withLock {
             if entry.selected == nil { entry.timer = timer } else { timer.cancel() }
         }
@@ -155,9 +162,9 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         return Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 
-    private func expire(_ id: UUID) {
+    private func expire(_ entry: Entry) {
         let completion = domain.withLock { () -> (CheckedContinuation<Data, Never>, Data)? in
-            guard let entry = entries[id] else { return nil }
+            guard entries[entry.id] === entry else { return nil }
             entry.invalidated = true
             return entry.responseReady ? selectLocked(entry.timeout, entry: entry) : nil
         }
@@ -205,13 +212,16 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
 
     private func physicalFinished(_ id: UUID) {
         // Removing the entry drops potentially retained data after leaving the domain lock.
-        let (retired, completion) = domain.withLock {
-            let entry = entries.removeValue(forKey: id)
-            let completion = entry.flatMap { selectLocked($0.timeout, entry: $0) }
-            return (entry, completion)
-        }
-        if let (continuation, data) = completion { continuation.resume(returning: data) }
-        withExtendedLifetime(retired) {}
+        let receipt: (@Sendable () -> Void)? = {
+            let (retired, completion) = domain.withLock {
+                let entry = entries.removeValue(forKey: id)
+                let completion = entry.flatMap { selectLocked($0.timeout, entry: $0) }
+                return (entry, completion)
+            }
+            if let (continuation, data) = completion { continuation.resume(returning: data) }
+            return retired?.physicalCompletion
+        }()
+        receipt?()
     }
 }
 

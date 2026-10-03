@@ -9,7 +9,7 @@ nonisolated struct MCPReadImportApplicability: Sendable {
 
 /// Captures and prepares tool values. The outer coordinator alone publishes and chooses RPC bytes.
 @MainActor
-final class MCPReadService {
+final class MCPReadService: MCPReadCapturedPreparing {
     let source: any MCPReadCaptureSource
     let monitor: MCPImportEvidenceMonitor
     let snapshots: MCPTaskQuerySnapshotStore
@@ -29,7 +29,6 @@ final class MCPReadService {
         self.proof = proof
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
     func prepare(tool: String, arguments: [String: Any],
                  operation: MCPReadOperation) async throws -> MCPPreparedToolRead {
         var policy = MCPReadPolicy.refreshIfNeeded
@@ -60,27 +59,49 @@ final class MCPReadService {
             }
             let request = captureRequest(tool: tool, arguments: arguments, selection: selection,
                                          includeComments: query?.includeComments ?? false, query: query)
-            let applicable = applicability()
-            let observation = try? monitor.beginObservation(applicableImportIDs: applicable.inFlightImportIDs)
-            defer { observation?.close() }
-            let captured = try await capture(request: request,
-                                             policy: policy, operation: operation,
-                                             context: (observation, applicable.visibleSavedImportProof))
-            guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
-            let results: [[String: Any]]
-            if let query {
-                results = try MCPReadProjection.tasks(captured, request: query, arguments: arguments)
-            } else {
-                results = tool == "get_projects" ? try MCPReadProjection.projects(captured)
-                    : try MCPReadProjection.milestones(captured, arguments: arguments)
+            let fields = arguments.mapValues(AnyCodable.init)
+            let transform: MCPReadCaptureTransform = { @MainActor [self] capsule, operation in
+                try prepareProjection(capsule, tool: tool, arguments: fields.mapValues(\.value),
+                                      query: query, operation: operation)
             }
-            if let query {
-                return try preparePages(results, query: query, view: captured, operation: operation)
-            }
-            return try MCPPreparedToolRead(text: jsonText(results), metadata: .capture(captured.metadata))
+            return try await prepareCapturedRead(request: request, policy: policy, operation: operation,
+                                                transform: transform)
         } catch {
             return try failure(error, tool: tool, operation: operation, policy: policy)
         }
+    }
+
+    private func prepareProjection(
+        _ capsule: MCPPreparedReadCapture, tool: String, arguments: [String: Any],
+        query: MCPTaskQueryRequest?, operation: MCPReadOperation
+    ) throws -> MCPPreparedToolRead {
+        let captured = capsule.view
+        let results: [[String: Any]]
+        if let query {
+            results = try MCPReadProjection.tasks(captured, request: query, arguments: arguments)
+        } else {
+            results = tool == "get_projects" ? try MCPReadProjection.projects(captured)
+                : try MCPReadProjection.milestones(captured, arguments: arguments)
+        }
+        if let query {
+            return try preparePages(results, query: query, view: captured, operation: operation,
+                                    frozenMetadataBytes: capsule.frozenMetadataBytes)
+        }
+        return try MCPPreparedToolRead(text: jsonText(results), frozenMetadataBytes: capsule.frozenMetadataBytes)
+    }
+
+    func prepareCapturedRead(request: ReadCaptureRequest, policy: MCPReadPolicy,
+                             operation: MCPReadOperation, transform: @escaping MCPReadCaptureTransform)
+        async throws -> MCPPreparedToolRead {
+        guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
+        let applicable = applicability()
+        let observation = try? monitor.beginObservation(applicableImportIDs: applicable.inFlightImportIDs)
+        defer { observation?.close() }
+        let view = try await capture(request: request, policy: policy, operation: operation,
+                                     context: (observation, applicable.visibleSavedImportProof))
+        guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
+        let metadataBytes = try JSONEncoder().encode(view.metadata)
+        return try await transform(MCPPreparedReadCapture(view: view, frozenMetadataBytes: metadataBytes), operation)
     }
 
     private func captureRequest(tool: String, arguments: [String: Any], selection: ReadCaptureSelection,
@@ -177,7 +198,8 @@ final class MCPReadService {
     }
 
     private func preparePages(_ results: [[String: Any]], query: MCPTaskQueryRequest,
-                              view: CapturedReadView, operation: MCPReadOperation) throws -> MCPPreparedToolRead {
+                              view: CapturedReadView, operation: MCPReadOperation,
+                              frozenMetadataBytes: Data) throws -> MCPPreparedToolRead {
         let count = max(1, (results.count + query.limit - 1) / query.limit)
         let cursors = (0..<(count - 1)).map { _ in snapshots.makeCursor() }
         let formatter = ISO8601DateFormatter()
@@ -192,7 +214,7 @@ final class MCPReadService {
             let next: Any = position < cursors.count ? cursors[position] : NSNull()
             return try jsonText(["results": Array(results[start..<end]), "nextCursor": next, "expiresAt": expiry])
         }
-        let first = try MCPPreparedToolRead(text: pages[0], metadata: .capture(view.metadata))
+        let first = try MCPPreparedToolRead(text: pages[0], frozenMetadataBytes: frozenMetadataBytes)
         let reservation = try snapshots.prepare(pages: pages, cursors: cursors, deadline: view.retentionDeadline,
             operationID: operation.id, metadataBytes: first.frozenMetadataBytes, policy: view.metadata.read.policy)
         return first.attaching(reservation.map { [$0] } ?? [])
