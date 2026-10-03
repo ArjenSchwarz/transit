@@ -41,3 +41,19 @@ Root `make lint` passed both host ownership/schema preflights and SwiftLint: zer
 
 
 Parent confirmed mechanical dependency correction: task13 also blocked by task3. Protocol RED drafting remains parallel; its GREEN waits parser delivery/integration. Final review must reflect this corrected DAG rather than claim independently executable protocol implementation.
+
+
+## RED draft readiness
+
+Isolated stream1 draft `498d515` (afterd255562) contains JSON document/source properties plus seeded fixture/shrinker; stream2 draft `a928cb7` (after26f4dda) contains protocol/discovery fixtures. Both pass parse, targeted no-cache lint and standalone Swift Testing typecheck against pure declarations. Neither focused app test has run; task2/task12 remain in progress on their own branches. Commands queued through parent:
+
+```sh
+# results-stream-1
+make test-quick TEST_TARGETS='TransitTests/MCPJSONDocumentTests TransitTests/MCPResultSourceTests'
+# results-stream-2
+make test-quick TEST_TARGETS='TransitTests/MCPModernProtocolTests TransitTests/MCPModernDiscoveryTests'
+```
+
+Source fixture review distinguishes decoded Unicode scalar key sequences from Swift canonical-equivalence; same-scalar escaped/literal duplicate keys still reject. Protocol duplicate metadata fixture uses withoutEscapingSlashes so its mutation actually creates duplicate keys. Depth resource-cap decision is pending owner; no assertion/production limit assumed.
+
+T2384 identified a compact-fallback constraint: recovery context must not reintroduce giant itemId/raw records/link data into the provider's prepared serialization_failed fallback. Encoder RED6 must include synthetic giant itemId and enforce only original indexes/tool/key/UUID plus bounded diagnostics in prepared fallback presentation. Normal aggregate evidence remains complete. API delivery15 remains pending.
