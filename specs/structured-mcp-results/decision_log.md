@@ -37,14 +37,13 @@
 | Q12 | 2026-10-03 | ttlMs zero/public for discovery and tool lists; deterministic name order. | Definitions depend on local availability; no personalised responses, no stale settings cache required. |
 | Q13 | 2026-10-03 | Unavailable UUID-and-source-pointer link sidecar; explicit tool selector tables. | Avoid guessing IDs in unknown historical fields and preserve replay determinism. |
 | Q14 | 2026-10-03 | Generated plain error text and malformed retained JSON have separate declared origins. | JSON parse failure alone cannot establish that saved evidence is an ordinary message. |
-
 | Q15 | 2026-10-03 | Effectful maintenance prepares no-key uncertainty fallback and reconciles with scan/inspection. | Internal design critic identified post-save serialization gap in reassign_duplicate_display_ids; AC3.4 applies beyond protected writes. |
 | Q16 | 2026-10-03 | Generated JSON parse failure throws; malformed retained evidence preserves text/unestablished. | Correctness peer separated capture serialization failure from historical evidence presentation. |
 | Q17 | 2026-10-03 | Maintenance provider encoding failures propagate may-have-effects evidence to prepared fallback selection. | Existing inner errorResult catch could otherwise bypass the complete uncertainty fallback. |
 
 ## ADR 2: Immutable source and separate presentation envelope
 
-**Status:** proposed design decision; technical choice routed through parent for owner input.
+**Status:** approved in T2383 design 7970a9c by Sentinel_717be95229c48191a7c41b6e5e467e4c.
 
 **Context:** historic JSON may contain arbitrary unknown field names. Flattening category/links into that object would either overwrite saved evidence or silently change the supplemental contract. Reads also use arrays and scalar JSON values. T2384 needs nested original JSON/text/optional isError independent of aggregate diagnostics.
 
@@ -56,10 +55,17 @@
 
 ## ADR 3: Complete response preparation before publication or write effects
 
-**Status:** proposed design decision.
+**Status:** approved in T2383 design 7970a9c by Sentinel_717be95229c48191a7c41b6e5e467e4c.
 
 **Context:** T63 can publish retained views only with a winning complete response; T2380/T2384 can commit before a response encoder fails. Calling a generic encoder again while handling its failure can hide the outcome or lose request correlation.
 
 **Decision:** covered reads finish all text/structured/meta/modern envelope bytes before the existing atomic publication gate. Protected single/batch writes prepare a complete compact modern uncertainty/reconcile response before effects, correlated to the RPC ID and original keys, then select those ready bytes on post-effect encoding failure without invoking the failed encoder again. Fallback preparation failure blocks dispatch. Cancellation suppresses delivery but never rewrites commitment evidence.
 
 **Consequences:** expanded retained fragments count toward existing store budgets; unsafe generic response fallbacks are excluded from may-commit paths. The common encoder offers complete-byte preparation; T2384 supplies its compact aggregate and preserves per-item effects/keys. Read physical finalizers and write durable transactions remain owned by their approved components.
+
+## Quick decisions: task planning
+
+| ID | Date | Decision | Evidence / reason |
+| --- | --- | --- | --- |
+| Q18 | 2026-10-03 | Design approved; proceed Rune task planning only. | Owner “2383 and 2384 are approved”, parent-verified Sentinel_717be95229c48191a7c41b6e5e467e4c; T2383 7970a9c, T2384 a5950e99. |
+| Q19 | 2026-10-03 | Deliver synthetic-provider-tested common API before real T2384 integration. | T2384 accepts noncircular T63 handoff → common seam → batch consumer sequence; T2383 has no production batch dependency. |

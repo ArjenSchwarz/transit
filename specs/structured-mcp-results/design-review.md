@@ -41,3 +41,7 @@ Parent relayed T63 confirmation: PreparedReadResult carries full modern/text/str
 Final protocol audit: primary modern base schema makes error ID optional when unreadable rather than nullable; design explicitly omits such IDs and retains valid correlation. HTTP format/Origin rejection is before dispatch. Primary sources were used because no callable Context7/library-doc lookup was available; no external peer service received project data.
 
 T2384 final semantic alignment: batch owns summary `serialization_failed` with effect evidence unestablished and original item key/index recovery. The common adapter preserves that payload; outcome uncertainty describes its meaning and is not an added public batch receipt-outcome field. Preview saved-context/dirty-write safeguards remain batch-owner decisions, outside this serializer design.
+
+## Design approval
+
+Parent verified owner “2383 and 2384 are approved” at Sentinel_717be95229c48191a7c41b6e5e467e4c, covering T2383 7970a9c and T2384 a5950e99. Proceed task planning only; no implementation/settings/activation/push/merge/deployment authorised. T63 retains common-file ownership/heavy-test slot while fixing the provider regression identified by T2382.

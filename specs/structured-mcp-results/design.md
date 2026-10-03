@@ -1,6 +1,6 @@
 # Structured MCP results: design
 
-Status: proposed design; approved requirements at Sentinel_39b0ca45b1b8819180ac6d9600578f0b. No implementation.
+Status: approved by owner “2383 and 2384 are approved” (parent-verified Sentinel_717be95229c48191a7c41b6e5e467e4c), covering T2383 design commit 7970a9c. Requirements approved at Sentinel_39b0ca45b1b8819180ac6d9600578f0b. Task planning only; implementation requires its separate gate.
 
 ## Architecture
 
