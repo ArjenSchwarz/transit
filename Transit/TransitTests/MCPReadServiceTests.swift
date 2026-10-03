@@ -312,7 +312,7 @@ extension MCPReadServiceTests {
         }
     }
 
-    @Test(arguments: ["query_tasks", "query_milestones", "get_projects"])
+    @Test(arguments: ["query_tasks", "query_milestones", "get_projects", "selected_milestone"])
     func unrelatedMilestoneCanonicalDatesDoNotPoisonSelectedOutput(tool: String) async throws {
         let fixture = try TestModelContainer()
         let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "blue")
@@ -341,8 +341,15 @@ extension MCPReadServiceTests {
         if tool == "query_tasks" {
             args = ["detailLevel": "full", "includeComments": false, "limit": 100]
         }
-        let result = try await execute(service, arguments: args, tool: tool)
-        #expect(result["isError"] == nil)
+        if tool == "selected_milestone" { args["status"] = "done" }
+        let actualTool = tool == "selected_milestone" ? "query_milestones" : tool
+        let result = try await execute(service, arguments: args, tool: actualTool)
+        if tool == "selected_milestone" {
+            #expect(result["isError"] as? Bool == true)
+            #expect(try metadataObject(result)["category"] as? String == "serialization_failure")
+        } else {
+            #expect(result["isError"] == nil)
+        }
     }
 }
 #endif
