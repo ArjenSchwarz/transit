@@ -263,6 +263,67 @@ struct MCPModernProtocolTests {
     }
 }
 
+extension MCPModernProtocolTests {
+    // Supplemental boundary coverage added after the original declaration-stage RED.
+    private func rawInput(id: String = "1", padding: String = "0") throws -> MCPModernRequestInput {
+        let template = try input(envelope())
+        let body = """
+        {"jsonrpc":"2.0","id":\(id),"method":"tools/call","params":{
+          "name":"query_tasks","arguments":{},"padding":\(padding),"_meta":{
+            "io.modelcontextprotocol/protocolVersion":"2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities":{}}}}
+        """
+        return MCPModernRequestInput(httpMethod: "POST", headers: template.headers, body: Data(body.utf8))
+    }
+
+    @Test func numericIDsUseExactIntegralSemanticsWithinSignedIntResourceBound() throws {
+        let cases: [(String, Int)] = [
+            (String(Int.min), Int.min), (String(Int.max), Int.max),
+            ("1.0", 1), ("1e0", 1), ("1000e-3", 1), ("0.01e2", 1),
+            ("-1000.00e-2", -10), ("0e999999", 0), ("-0.000e-999999", 0)
+        ]
+        for (token, value) in cases {
+            let request = try MCPModernValidator.validate(rawInput(id: token), availability: availability)
+            #expect(request.id == .integer(value))
+        }
+    }
+
+    @Test func outOfRangeAndNonIntegralNumericIDsNeverBecomeDispatchable() throws {
+        for token in ["9223372036854775808", "-9223372036854775809", "1e999999", "1.5", "1e-1"] {
+            let error = try rejection(rawInput(id: token))
+            #expect(error.httpStatus == 400)
+            #expect(error.rpcCode == -32600)
+            #expect(error.id == nil)
+            #expect(error.message.contains("use a string ID"))
+        }
+        #expect(try rejection(rawInput(id: "true")).rpcCode == -32600)
+    }
+
+    @Test func validJSONDepthLimitIsDistinctFromParseFailure() throws {
+        // Root and params consume two containers; thirty arrays reaches exactly 32.
+        let atLimit = String(repeating: "[", count: 30) + "0" + String(repeating: "]", count: 30)
+        _ = try MCPModernValidator.validate(rawInput(padding: atLimit), availability: availability)
+        let beyondLimit = "[" + atLimit + "]"
+        let error = try rejection(rawInput(padding: beyondLimit))
+        #expect(error.httpStatus == 400)
+        #expect(error.rpcCode == -32600)
+        #expect(error.message.contains("32-container nesting resource limit"))
+        #expect(error.id == nil)
+    }
+
+    @Test func bodyAndWidthBoundsAreIndependentOfNestingLimit() throws {
+        let wide = "{" + (0..<128).map { "\"field\($0)\":0" }.joined(separator: ",") + "}"
+        _ = try MCPModernValidator.validate(rawInput(padding: wide), availability: availability)
+        let original = try rawInput()
+        var oversized = Data(repeating: 0x20, count: 1_048_576)
+        oversized.append(original.body)
+        let error = try rejection(MCPModernRequestInput(httpMethod: "POST", headers: original.headers,
+                                                       body: oversized))
+        #expect(error.httpStatus == 413)
+    }
+
+}
+
 @MainActor
 struct MCPModernDiscoveryTests {
     private func result(_ bytes: Data, id: Any) throws -> [String: Any] {
