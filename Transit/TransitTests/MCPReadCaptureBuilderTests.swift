@@ -69,6 +69,38 @@ struct MCPReadCaptureBuilderTests {
         #expect(view.metadata.asOf == view.metadata.freshness.assessedAt)
     }
 
+    @Test func duplicateTaskUUIDsKeepPhysicalCommentOwnership() throws {
+        let fixture = try TestModelContainer()
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "blue")
+        let first = TransitTask(name: "First", type: .feature, project: project, displayID: .permanent(1))
+        let second = TransitTask(name: "Second", type: .feature, project: project, displayID: .permanent(2))
+        second.id = first.id
+        let firstComment = Comment(content: "First", authorName: "A", isAgent: true, task: first)
+        let secondComment = Comment(content: "Second", authorName: "A", isAgent: true, task: second)
+        fixture.context.insert(project)
+        fixture.context.insert(first)
+        fixture.context.insert(second)
+        fixture.context.insert(firstComment)
+        fixture.context.insert(secondComment)
+        try fixture.context.save()
+        let view = try MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture)
+            .capture(portfolioRequest())
+        for task in view.tasks {
+            #expect(task.commentKeys == view.comments.filter { $0.taskKey == task.physicalKey }.map(\.physicalKey))
+            #expect(task.commentKeys.count == 1)
+            let model = task.name == "First" ? first : second
+            #expect(task.revision == (try MCPRecordSnapshot.task(model, in: fixture.context).revision))
+        }
+    }
+
+    @Test func importGenerationChangeRejectsCapture() throws {
+        let fixture = try TestModelContainer()
+        var generation: UInt64 = 0
+        let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
+                                            generation: { generation }, afterProjects: { generation += 1 })
+        #expect(throws: MCPReadCaptureError.incoherentCapture) { try builder.capture(portfolioRequest()) }
+    }
+
     private func portfolioRequest() -> ReadCaptureRequest {
         ReadCaptureRequest(projectSelectors: nil, selection: .portfolio,
                            completeness: .completePortfolio, includeComments: false)
