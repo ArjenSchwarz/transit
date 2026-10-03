@@ -56,6 +56,9 @@ nonisolated struct MCPReadAdmissionContractTests {
         coordinator.start()
         await gate.release()
         await Self.drain(coordinator)
+        // Permit removal precedes the outside-lock receipt callback; await each independently.
+        let receiptDeadline = ContinuousClock.now + .seconds(1)
+        while receiptState.withLockedValue({ $0.isEmpty }) && .now < receiptDeadline { await Task.yield() }
         #expect(receiptState.withLockedValue { $0 } == [true, true])
     }
 
