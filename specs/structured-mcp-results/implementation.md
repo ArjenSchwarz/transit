@@ -33,3 +33,11 @@ Interface1/gpzncvl completed at `8ea94ce0b3b9a3b73fcee330aed0c9883a08e92f`: eigh
 Rune phase/streams retrieval after task1 reports stream1 task2 and stream2 task12 ready. Created isolated worktrees from8ea94ce under `.claude/worktrees/results-stream-{1,2}`, branches `stream/structured-results-{1,2}`. Stream1 owns lossless/source RED fixtures; stream2 owns pure modern-protocol RED fixtures. Both may draft/parse/lint only while the parent schedules exact heavy test slots. No GREEN/completion claim before meaningful RED evidence. Their task statuses are isolated until integration; the root task list remains authoritative for merged completion.
 
 Concrete declaration-only interface sent to T63/parent and T2384: `MCPResultAdapter.source` preserves text/optional isError/origin/evidence; `present` derives separate presentation; `MCPResultEncoder.freeze` returns immutable encoded tool-result Data without RPCID, and `encode(fragment:id:)` wraps a fresh ID. `prepareMutationFallback(id:source:context:metadata:)` returns complete immutable response Data prepared before effects. T63 retains retention/publication hooks and charging; T2384 retains coordinator policy. Runtime delivery gate15 remains pending.
+
+
+## Declaration review and lint
+
+Root `make lint` passed both host ownership/schema preflights and SwiftLint: zero violations across405 discovered Swift files. This command runs no application build/tests. Internal design critic found no task1 declaration blocker, with required downstream checks: encoder accepts only valid immutable source/frozen fragments; expensive presentation/freeze/encoding honor original-operation checkpoints; recursive value equality/destruction must be stack-safe or nesting explicitly bounded. These are implementation verification obligations, not delivered runtime capabilities.
+
+
+Parent confirmed mechanical dependency correction: task13 also blocked by task3. Protocol RED drafting remains parallel; its GREEN waits parser delivery/integration. Final review must reflect this corrected DAG rather than claim independently executable protocol implementation.

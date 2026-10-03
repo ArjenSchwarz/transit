@@ -112,7 +112,7 @@ metadata:
 - [ ] 13. GREEN: implement pure modern-only validator and discovery values <!-- id:gpzncvx -->
   - Implement MCPModernRequest.swift/MCPModernValidator.swift/MCPModernDiscovery.swift from task12 fixtures; per-request metadata only, standard errors, request-only method classification, immutable availability.
   - Expose validated protocol classification to later router wiring; covered tool arguments remain unvalidated until admitted bounded worker. No session/initialize/GET stream/wire arrays, resource/prompt/sampling features or client settings. Pass task12.
-  - Blocked-by: gpzncvw (RED: specify modern request validation and stateless discovery)
+  - Blocked-by: gpzncvw (RED: specify modern request validation and stateless discovery), gpzncvn (GREEN: implement owned lossless JSON documents and source factories)
   - Stream: 2
   - Requirements: [3.2](requirements.md#3.2), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.6](requirements.md#5.6)
   - References: design.md, Transit/Transit/MCP/Protocol/MCPModernValidator.swift

@@ -73,3 +73,8 @@
 | Q21 | 2026-10-03 | Interface1 must compile so RED fixtures fail behavior. | API task peer clarification; no task/DAG/scope change. |
 | Q22 | 2026-10-03 | Task plan b58298a and implementation approved. | Parent-verified owner “Approved”, Sentinel_ba4c6123288881918042d6aeb8ba6dc5; start independent make-it-so DAG, shared ownership/test-slot gates remain. |
 | Q23 | 2026-10-03 | T2384 owns write coordinator/coordinator-specific tests; defer those edits to coordinated owner. | Direct coordination confirms parent ownership grant. T2383 common result consumers remain independent; no second acceptance/recovery engine. |
+
+
+### Implementation sequencing correction: protocol parser dependency
+
+Parent confirmed task13/gpzncvx additionally depends on delivered parser3/gpzncvn. Compiler-valid declaration task1 makes protocol RED drafting parallel, but successful protocol validation must return owned lossless MCPJSONDocument and discovery must consume validated schema fragments. GREEN13 cannot pass honestly against parser placeholders; the added Rune edge prevents a duplicate parser or fabricated success. Scope/task count remain unchanged. Source3 passes and integrates before protocol GREEN13; exact shared test slots remain separately gated.
