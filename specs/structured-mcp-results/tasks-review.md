@@ -1,6 +1,6 @@
 # Structured MCP results: task review
 
-Status: Rune plan proposed; design approval recorded at Sentinel_717be95229c48191a7c41b6e5e467e4c. No implementation or task execution. Internal critic and two independent internal peers complete; no remaining task-plan blockers.
+Status: Rune plan b58298a approved at Sentinel_ba4c6123288881918042d6aeb8ba6dc5; design approval recorded at Sentinel_717be95229c48191a7c41b6e5e467e4c. No implementation or task execution. Internal critic and two independent internal peers complete; no remaining task-plan blockers.
 
 ## Rune validation
 
@@ -64,3 +64,7 @@ Route through parent after required reviews and phone delivery: **Do the tasks l
 Mode: internal critic followed by two independent internal subagent perspectives under the documented fallback; no external model service received repository/spec content. Correctness peer accepted source/replay/property/fault coverage, forward15 delivery and separate16–17 atomic reads. API/maintainability peer accepted independent protocol stream, no reverse batch edge, tooling/client gates and separate documentation completion tracking. Both validated the critic's adopted documentation finding.
 
 Minor API clarification adopted in interface1: provide compiler-valid protocols/value constructors/minimal throwing placeholders so RED fixtures execute behavioral failures, not merely missing Swift declarations. Task count, streams, stable IDs and dependencies remain unchanged. No review divergence or unresolved task-plan blocker remains. Future implementation measurements and actual client readiness remain explicit gates rather than assumed successes.
+
+## Implementation authorisation and ownership
+
+Parent verified owner “Approved” at Sentinel_ba4c6123288881918042d6aeb8ba6dc5 in direct response to task-plan/implementation question. Proceed independent modules/interfaces; T63 common-file handoff and T2382 current heavy-test slot remain external gates. T2384 now owns MCPWriteCoordinator.swift/coordinator-specific tests until coordinated integration. No client configuration/activation or merge/deploy permission is added. Test-only schema tooling needs task/tool-policy authorisation in isolated environment; request routed through parent.

@@ -1,6 +1,6 @@
 # Structured MCP results: design
 
-Status: approved by owner “2383 and 2384 are approved” (parent-verified Sentinel_717be95229c48191a7c41b6e5e467e4c), covering T2383 design commit 7970a9c. Requirements approved at Sentinel_39b0ca45b1b8819180ac6d9600578f0b. Task planning only; implementation requires its separate gate.
+Status: approved by owner “2383 and 2384 are approved” (parent-verified Sentinel_717be95229c48191a7c41b6e5e467e4c), covering T2383 design commit 7970a9c. Requirements approved at Sentinel_39b0ca45b1b8819180ac6d9600578f0b. Task plan b58298a and implementation approved by parent-verified Sentinel_ba4c6123288881918042d6aeb8ba6dc5; common-file edits wait for handoff and heavy builds/tests for the shared slot.
 
 ## Architecture
 

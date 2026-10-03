@@ -4,7 +4,8 @@ references:
     - specs/structured-mcp-results/design.md
     - specs/structured-mcp-results/decision_log.md
 metadata:
-    approval: pending
+    approval: approved
+    approval_evidence: Sentinel_ba4c6123288881918042d6aeb8ba6dc5
     ticket: T-2383
 ---
 # Structured MCP results — implementation tasks

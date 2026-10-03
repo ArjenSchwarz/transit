@@ -36,6 +36,7 @@
 | [MCP Project Creation](#mcp-project-creation) | 2026-10-02 | Ready for Review | Create projects through MCP with validation and reusable project metadata |
 | [Batch Task Queries](#batch-task-queries) | 2026-10-03 | Done | MCP task detail selection, batch lookup, and frozen cursor pagination |
 | [MCP Write Safety](#mcp-write-safety) | 2026-10-03 | Done | Add retry-safe MCP writes, local revision preconditions, and structured saved outcomes |
+| [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | In Progress | Immutable structured/text results and latest-only MCP transport preserving replay and bounded reads |
 
 ---
 
@@ -351,3 +352,20 @@ All 18 coding tasks are implemented and review findings are resolved. Verificati
 - [tasks.md](mcp-write-safety/tasks.md)
 - [prerequisites.md](mcp-write-safety/prerequisites.md)
 - [implementation.md](mcp-write-safety/implementation.md)
+
+
+## Structured MCP Results
+
+Immutable source/presentation results, supported-link availability and modern-only MCP2026-07-28 lifecycle, with unchanged protected replay and frozen read evidence.
+
+**Status:** In Progress
+
+- [Scope](structured-mcp-results/scope.md)
+- [Requirements](structured-mcp-results/requirements.md)
+- [Requirements review](structured-mcp-results/requirements-review.md)
+- [Design](structured-mcp-results/design.md)
+- [Design review](structured-mcp-results/design-review.md)
+- [Tasks](structured-mcp-results/tasks.md)
+- [Task review](structured-mcp-results/tasks-review.md)
+- [Prerequisites](structured-mcp-results/prerequisites.md)
+- [Decision log](structured-mcp-results/decision_log.md)
