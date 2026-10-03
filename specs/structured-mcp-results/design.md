@@ -47,6 +47,12 @@ For parseable but unsupported retained outcomes, preserve their whole JSON paylo
 
 Unknown source field names are unconstrained and cannot collide with presentation. Do not insert link/category fields into records or receipt JSON. Do not create a new durable result store, acceptance state, namespace, or replay expiry.
 
+### Approved nesting resource limit
+
+Owner amendment Sentinel_9536d4df532c81919792e70801f128fb sets maximum parser-input container nesting32. Count root object/array1 and each contained object/array another level; scalar roots/children add0. Use a distinct resourceLimit failure, not invalidJSON for syntactically valid deeper data. Generated source depth>32 throws before successful publication and follows the existing generated-serialization/effect-aware failure path. Retained depth>32 preserves exact raw text and optional isError but returns unreadable/unestablished evidence; it does not rewrite receipts, reread entities or fabricate acceptance/outcome. Checkpoints still propagate and are never swallowed as unreadable evidence.
+
+Test31/32 accepted,33 resourceLimit, wide2000-record arrays accepted subject to existing byte/admission budgets. Iterative parsing plus this cap bounds recursive value equality/destruction. The cap applies separately to each parser input, including logical sources, protocol request documents and schema documents; modern result nesting gains wrapper levels, so verify full wire response and schema depths separately rather than claiming an output-depth32 guarantee. Unknown historical JSON deeper than32 is an explicit interpretation exception to whole-payload structured access, with exact original text preservation.
+
 ### Immutable source and encoding interfaces
 
 New macOS modules live in `Transit/Transit/MCP/Results/`. These are design-level names and contracts; shared-file signatures are installed only after the T-63 handoff.

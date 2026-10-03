@@ -12,6 +12,10 @@ Transit agents need saved records and recovery information they can consume dire
 - T-2384 batch execution/dry-run semantics, new receipt/key namespace, receipt migration or revision coverage changes.
 - Remote access/OAuth, client settings changes, deployment or implementation in this spec phase.
 
+## Approved parser resource boundary
+
+Owner amendment Sentinel_9536d4df532c81919792e70801f128fb limits each parser input to32 nested JSON object/array containers: a root object/array counts1, scalars count0, and width does not increase nesting. This explicitly qualifies structured interpretation/preservation in1.1–1.3 and2.1: a syntactically valid generated source deeper than32 fails with distinct resourceLimit; a deeper retained source keeps its exact original text and optional isError but has unreadable/unestablished structured evidence, without receipt rewrite or guessed outcome. Raw text remains recoverable even when structured interpretation is unavailable. This is a parser-input limit, not a promise that an emitted modern wrapper has at most32 levels; complete wire envelopes and generated schemas are verified separately. Boundary tests cover31/32/33 and wide arrays.
+
 ### 1. Structured record and outcome access
 
 **User Story:** As an agent, I want structured tool results, so that I can consume records and errors without parsing text JSON.

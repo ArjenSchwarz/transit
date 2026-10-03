@@ -57,3 +57,21 @@ make test-quick TEST_TARGETS='TransitTests/MCPModernProtocolTests TransitTests/M
 Source fixture review distinguishes decoded Unicode scalar key sequences from Swift canonical-equivalence; same-scalar escaped/literal duplicate keys still reject. Protocol duplicate metadata fixture uses withoutEscapingSlashes so its mutation actually creates duplicate keys. Depth resource-cap decision is pending owner; no assertion/production limit assumed.
 
 T2384 identified a compact-fallback constraint: recovery context must not reintroduce giant itemId/raw records/link data into the provider's prepared serialization_failed fallback. Encoder RED6 must include synthetic giant itemId and enforce only original indexes/tool/key/UUID plus bounded diagnostics in prepared fallback presentation. Normal aggregate evidence remains complete. API delivery15 remains pending.
+
+
+## Nesting measurement for owner decision
+
+Read-only review counts JSON objects/arrays with rootcontainer1; scalars and JSON inside strings count0. Source-defined constructed shapes (not captured live responses):
+
+| Shape | Logical source | Structured wrapper | Full RPC |
+| --- | --- | --- | --- |
+| Full task/comments | 3 | 5 | 7 |
+| Protected full-task receipt | 4 | 6 | 8 |
+| Ordinary query page | 5 | 7 | 9 |
+| Selector page results/task | 6 | 8 | 10 |
+| Prospective batch original receipt | 8 | 10 | 12 |
+
+Shape authorities: MCPRecordSnapshot.swift97, MCPWriteCommand.swift261, MCPToolHandler+TaskQuery.swift86/144, TransitTask.swift49, T2384 approved design89. An independent scan parsed54 noninterpolated literals in existing MCP test sources, maximum4 (mostly requests, not a response maximum). Generated schema module remains declaration-only, so actual output schema depth is not yet measurable. Task metadata is a String:String map; arbitrary historical fields/extensions can nest without a semantic maximum. Proposed parser-input cap64 gives headroom, but remains an owner decision with explicit retained-source preservation amendment. No limit adopted at this checkpoint.
+
+
+Owner approved32 (not512/64) at Sentinel_9536d4df532c81919792e70801f128fb; requirements/design/decision log amended explicitly. Source baselineRED2 complete8f9c4ce integrated locally with root task13->3 dependency preserved. Added31/32/33/wide-array cap assertions are being drafted for a separately granted RED refinement; no capGREEN claim. Protocol initial invocation failed before compile at package-resolution DNS (xcode74); same focused command is retrying once via per-command escalation for normal dependencies. That environmental failure is not RED evidence.

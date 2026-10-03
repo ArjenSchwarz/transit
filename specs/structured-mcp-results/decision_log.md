@@ -78,3 +78,8 @@
 ### Implementation sequencing correction: protocol parser dependency
 
 Parent confirmed task13/gpzncvx additionally depends on delivered parser3/gpzncvn. Compiler-valid declaration task1 makes protocol RED drafting parallel, but successful protocol validation must return owned lossless MCPJSONDocument and discovery must consume validated schema fragments. GREEN13 cannot pass honestly against parser placeholders; the added Rune edge prevents a duplicate parser or fabricated success. Scope/task count remain unchanged. Source3 passes and integrates before protocol GREEN13; exact shared test slots remain separately gated.
+
+
+### Owner-approved32-level parser interpretation bound
+
+Owner rejected excessive512 headroom after review of representative shapes (ordinary fullRPC7–10; prospective full-receipt batch12, constructed from actual source shapes). Parent proposed32 and owner explicitly agreed at Sentinel_9536d4df532c81919792e70801f128fb: “Yes, sounds much better”. Requirements/design now explicitly qualify whole-payload interpretation: parser-input object/array containers root1/scalars0; generateddepth>32 throws distinctresourceLimit; retaineddepth>32 keeps exacttext/originalisError but unreadable/unestablished evidence. This is an approved resource/preservation amendment, not silent implementation narrowing. Verify31/32/33 and width independently; emitted modern wrappers/schema documents are measured separately. Source baselineRED2 remains valid; added cap assertions need meaningful RED refinement beforeGREEN3.
