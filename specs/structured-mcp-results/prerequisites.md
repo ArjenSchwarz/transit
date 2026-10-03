@@ -1,12 +1,12 @@
 # Prerequisites for structured MCP results
 
-These gates require coordination or exact owner authorisation outside the coding task list. They do not authorise implementation or activation now.
+These prerequisites track coordination and installed-client readiness separately from the approved implementation tasks. Testing is owner-approved; each application run still requires the parent's exclusive slot coordination. Live data/client activation remain held.
 
 ## Before shared integration or application tests
 
 - [ ] Parent confirms T63's provider-regression fix and explicit common-file ownership handoff at a recorded commit before tasks14–19 edit shared handler/types/router/schema/lifecycle or owner test helpers. Isolated Results/Protocol modules can be prepared after task approval; no task waits on production T2384 completion.
-- [ ] Parent coordinates release of T63's heavy build/test slot before any application build/test, including RED runs. All task statuses remain pending in the spec phase.
-- [ ] Before executing task8/9 schema validation, provide a test-only JSON Schema2020-12 validator. Host `python3` currently raises ModuleNotFoundError for jsonschema; use an approved disposable test environment with jsonschema's Draft202012Validator, without global package/config changes. Report missing validation tooling rather than pass schema checks. No package installation occurred during planning.
+- [ ] Parent coordinates the heavy build/test slot before each application build/test, including RED runs. Task7's corrected GREEN is complete and its slot released; T2382 currently owns the slot while task8 fixtures are prepared. This is resource coordination, not another implementation approval gate.
+- [x] Provide a test-only JSON Schema2020-12 validator before executing task8/9 validation. The previously approved isolated environment `.codex-cache/schema-tests/venv` is available; read-only package inspection on2026-10-03 confirms jsonschema4.25.1, referencing0.36.2 and rpds-py0.27.1. No global package/config change. This satisfies tooling availability only; actual generated-schema validation and repeatable test-only bootstrap remain task8/9 work, not claimed PASS here. Host default Python's earlier missing-jsonschema observation is historical.
 
 ## Before installed-client readiness checks (tasks20–22)
 

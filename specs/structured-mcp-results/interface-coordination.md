@@ -1,5 +1,15 @@
 # Pending common result seam coordination
 
+## Current checkpoint after task7
+
+Tasks3/5/7/12/13 have completed their focused verification. The owned source/presentation/encoder implementation is available at 3ba1cfb, with corrected encoder verification recorded at 3e9f8fe:14/14 methods passed, build/preflight/test exit0 and finalised xcresult. The test-only numeric oracle correction ffe2c33 preserves all original production source and the14 method fixtures; no source semantics changed to accommodate Foundation's numeric conversion limit.
+
+The implemented metadata boundary is MCPResultMetadata.make(document:checkpoint:), with private construction and a validated object-root MCPJSONDocument. MCPResultToolFragment has fileprivate construction through MCPResultEncoder.freeze(source:presentation:metadata:checkpoint:); encode(fragment:id:checkpoint:) adds the current RPC ID. MCPResultEncoder.prepareMutationFallback(id:source:context:metadata:checkpoint:) produces complete bytes from a provider-owned compact logical source before effects. Its batch fallback presentation omits itemId while preserving indexes/operation/tool/original key/target UUID; normal result source remains complete. Focused tests establish these new-module semantics, not production dispatch, receipt atomicity or transport delivery.
+
+Task8 schema RED preparation is now in progress. MCPResultSchemas remains notImplemented. Task11 preparation accounting, task14 production selection proof and task15 common provider/schema/wiring delivery remain pending. **DELIVERED15/gpzncvz is not available to T2384 yet.** T63 retains shared wiring ownership; T2384 retains MCPWriteCoordinator and coordinator-specific tests. T2382 owns the current heavy verification slot, so task8 preparation performs no app build/test. Live data/client activation remain held.
+
+## Historical planning note before focused verification
+
 This note records implementation questions for approved tasks6–15 while tasks5/13 wait for safe application verification. It is planning only: no new production signature, task completion, shared-file handoff or API15 delivery is claimed. Existing declarations remain placeholders. No app launch, server reconnect, live write or test-isolation implementation is authorised by this note.
 
 ## Metadata and sealed bytes
