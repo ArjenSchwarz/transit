@@ -1,6 +1,6 @@
 # Encoder RED fixture preparation
 
-Status: source-ready task6/gpzncvq; no application/runtime RED run yet. Encoder GREEN7 and API15 delivery remain pending.
+Status: task6/gpzncvq completed after meaningful guarded runtime RED and read-only review, with abnormal report finalization documented below. Encoder GREEN7 and API15 delivery remain pending.
 
 Draft source a480d06 contains14 declared test methods (9 in MCPResultEncoderTests,5 in MCPResultEncoderFallbackTests), including64 seeded immutable source cases and18 optional-isError/source samples. Tests specify complete current-ID RPC envelopes, original text, source payload numbers/member identities/fragment bytes, plain/unreadable source differences, owned independent metadata, exact frozen tool/_meta bytes and new IDs, depth32 inputs with independently inspected complete wire envelopes, and original typed cancellation checkpoints without retained closures.
 
@@ -11,3 +11,17 @@ The minimal declaration refinement gives metadata a private constructor and vali
 Light checks passed: parse, targeted no-cache lint, pure Results plus fixture typecheck using actual read-only MCPTypes/MCPReadMetadata, and external constructor negative probes. Evidence .codex-cache/encoder-red-typecheck/manifest.json (SHA256 ac60a2dcd26ce0b7b3f9b88ddfbd5b6f167f44e14bd0becf36faf29e9ca16fea) and adjacent logs. These are source/light checks, not application behavioral RED. Final read-only critic cleared a480d06 with no blocking fixture/interface gap; earlier raw-fragment and depth32 findings are addressed. Runtime RED still awaits the parent's slot grant.
 
 Exact next suite selection: TransitTests/MCPResultEncoderTests TransitTests/MCPResultEncoderFallbackTests. Parent receives a request for an exclusive slot after critic clearance and T2382 drain. Use build-for-testing, signed development-host/xctestrun preflight with explicit unit-test/startup guard, and restricted serial test-without-building. A direct make test invocation is not granted by this note. No app launch follows during T2382's slot; live MCP/client settings/production activity remain held.
+
+## Actual guarded runtime RED
+
+The parent granted exactly these two suites on7a3a740/a480d06. A fresh private shared Transit Debug build-for-testing succeeded exit0. Signed host and generated launch preflight passed: development identity, no CloudKit/push/App Group entitlement, explicit unit-test mode, TRANSIT_ISOLATION_SMOKE=1, exact host path and restricted unit-test selection. Application compilation, launch and isolation were successful.
+
+The original console reports14 methods/2 suites failed,0 passed, with18 issues. Every issue is attributable to declaration-stage notImplemented boundaries: metadata construction6 methods (including all4 negative-input expectations), direct encoding4 methods, fallback preparation3 methods (including missing typed checkpoint invocation), and frozen preparation1 method. Runtime critic found no fixture/oracle/environment blocker. Early throws prevented later loop variants, exact-byte/depth-envelope and post-effect-selection assertions. The64 generated samples and all18 optional-error combinations were not fully executed; these remain GREEN acceptance obligations.
+
+## Report-finalization limitation and drain
+
+After test bodies completed, the exact owned guarded host54550 and Xcode54536 remained asleep for a bounded4m15s. The worker terminated only54550 before a crossed parent sample instruction arrived; no pre-termination host sample exists. Xcode automatically replayed13 tests with17 stub issues inside the same single command; this was not a requested second run and is preserved separately.
+
+A bounded sample of still-owned Xcode54536 was captured before its termination. It showed main CFRunLoop waitForBuild and idle SwiftPM/work queues; no collectSimulatorDiagnostics frames were observed. Neither this nor Linkd messages establish the hang cause. No diagnostics suppression was introduced. At bounded7m, only the identity-verified runner54536 and its guarded replay host55974 were terminated. The actual command exited143; this is not an ordinary clean RED exit65. The xcresult summary extraction exited64 because the unfinalized bundle lacked Info.plist; no final bundle counts are fabricated and the raw bundle remains untouched.
+
+Read-only process inspection confirmed all owned pipelines/hosts drained; parent received immediate RELEASE before extraction/bookkeeping. Parent explicitly authorised no repeat solely for teardown if meaningful failures and limitations are recorded. Internal runtime critic confirmed meaningful RED with no fixture blocker. Rune6 is complete; task7 source work is authorised, but no task7 application GREEN run follows this grant. Evidence: .codex-cache/t2383-encoder-red-a480d06/ (build/red logs, signed preflight, per-method failure-classification.json, sample, attempted summary extraction and manifests). No live/production/client-setting activity occurred.
