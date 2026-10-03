@@ -100,13 +100,14 @@ references:
   - Requirements: [1.4](requirements.md#1.4), [1.6](requirements.md#1.6), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
-- [ ] 10. Red: add read projection, wire parity and frozen metadata tests <!-- id:vh146y9 -->
+- [-] 10. Red: add read projection, wire parity and frozen metadata tests <!-- id:vh146y9 -->
   - Add focused handler tests for task single/batch/list/cursor and project/milestone scoped/empty/detail reads. Assert existing text payload/filter/order/identifier-error precedence, metadata namespace/UTCms/asOf=assessedAt, full record canonical r1 with comments hidden, and summary no-comment-fetch parity.
   - Inject required fetch/history/comment/serialization failure, incomplete captures, unknown/stale/failing imports and valid empty success; assert machine categories and no fabricated identity/time.
   - Test frozen metadata byte-for-byte across imports/local edits/cursor retries, no new wait/refetch, malformed policy before lookup and typed conflict after valid lookup. Add shared-view source fixture proving identical snapshot identity/evidence and SNAPSHOT_INCOMPATIBLE outside declared scope.
   - Cursor policy fixtures explicitly cover omitted policy, an explicit matching retained policy, malformed policy before lookup, and a well-typed conflict after valid lookup.
   - Blocked-by: vh146y2 (Green: implement and verify the fenced saved capture builder), vh146y4 (Green: implement import monitoring and the bounded refresh decision), vh146y8 (Green: implement shared publication domain and migrate ordinary retention)
   - Stream: 1
+  - Owner: t63-foundation-runtime
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [2.6](requirements.md#2.6), [3.1](requirements.md#3.1), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
