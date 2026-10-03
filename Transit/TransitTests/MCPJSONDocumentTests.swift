@@ -94,6 +94,59 @@ import Testing
         }
     }
 
+    @Test(arguments: [31, 32])
+    func admittedContainerDepthPreservesCompleteValue(depth: Int) throws {
+        let text = Self.nestedContainers(depth: depth)
+        let document = try MCPJSONDocument.parse(text)
+        #expect(document.originalUTF8 == Data(text.utf8))
+        var current = document.value
+        for level in 0..<depth {
+            if level.isMultiple(of: 2), case .array(let values) = current, values.count == 1 {
+                current = values[0]
+            } else if !level.isMultiple(of: 2), case .object(let members) = current,
+                      members.count == 1, members[0].name == "value" {
+                current = members[0].value
+            } else {
+                Issue.record("Container depth or shape changed at level \(level)")
+                return
+            }
+        }
+        #expect(current == .null)
+    }
+
+    @Test func depth33IsAResourceLimitRatherThanMalformedJSON() {
+        #expect(throws: MCPResultBoundaryError.resourceLimit) {
+            try MCPJSONDocument.parse(Self.nestedContainers(depth: 33))
+        }
+    }
+
+    @Test func wide2000RecordArrayIsNotAContainerDepthFailure() throws {
+        let records = (0..<2_000).map { "{\"index\":\($0),\"nullable\":null}" }
+        let text = "[" + records.joined(separator: ",") + "]"
+        let document = try MCPJSONDocument.parse(text)
+        #expect(document.originalUTF8 == Data(text.utf8))
+        guard case .array(let values) = document.value else {
+            Issue.record("Expected wide record array")
+            return
+        }
+        #expect(values.count == 2_000)
+        for (index, value) in values.enumerated() {
+            let expected = MCPJSONFixtureValue.object([
+                .init(name: "index", value: .number(String(index))),
+                .init(name: "nullable", value: .null)
+            ])
+            #expect(expected.matches(value))
+        }
+    }
+
+    @Test func depthLimitDoesNotReplaceOriginalWorkerCheckpointFailure() {
+        #expect(throws: MCPJSONCheckpointFailure.cancelled) {
+            try MCPJSONDocument.parse(Self.nestedContainers(depth: 33)) {
+                throw MCPJSONCheckpointFailure.cancelled
+            }
+        }
+    }
+
     @Test func largeStringParsingChecksOriginalWorkerRepeatedly() {
         let checks = Mutex(0)
         let text = "\"" + String(repeating: "東京🛰️", count: 8_000) + "\""
@@ -112,6 +165,14 @@ import Testing
         #expect(minimal == .array([]))
         #expect(try minimal.json() == "[]")
         #expect(original.shrinks().allSatisfy { (try? $0.json()) != nil })
+    }
+
+    private static func nestedContainers(depth: Int) -> String {
+        var text = "null"
+        for level in (0..<depth).reversed() {
+            text = level.isMultiple(of: 2) ? "[" + text + "]" : "{\"value\":" + text + "}"
+        }
+        return " \n" + text + "\t"
     }
 }
 
