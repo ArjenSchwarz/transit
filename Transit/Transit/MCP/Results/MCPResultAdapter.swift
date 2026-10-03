@@ -31,9 +31,10 @@ nonisolated enum MCPResultAdapter {
     /// Declaration-stage placeholder; deterministic selectors arrive after RED.
     static func present(
         _ source: MCPResultSource,
-        context: MCPResultContext
-    ) -> MCPResultPresentation {
-        MCPResultPresentation(evidence: .unestablished, links: [], errorCategory: nil, recovery: nil)
+        context: MCPResultContext,
+        checkpoint: @escaping @Sendable () throws -> Void = {}
+    ) throws -> MCPResultPresentation {
+        throw MCPResultBoundaryError.notImplemented
     }
 }
 #endif
