@@ -97,7 +97,7 @@ nonisolated struct MCPBoundedReadRouteTests {
         #expect(frame["id"] as? String == "bounded")
         let result = try #require(frame["result"] as? [String: Any])
         let meta = try #require((result["_meta"] as? [String: Any])?["me.nore.ig.transit/read"] as? [String: Any])
-        #expect(meta["category"] as? String == "timeout")
+        #expect(meta["category"] as? String == ReadFailureCategory.timeout.rawValue)
         #expect(meta["snapshotId"] == nil && meta["asOf"] == nil)
     }
 
