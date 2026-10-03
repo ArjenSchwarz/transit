@@ -1,0 +1,196 @@
+#if os(macOS)
+import Foundation
+
+nonisolated struct MCPReadOperation: Sendable {
+    let id: UUID
+    let generation: UInt64
+    private let coordinator: MCPReadCoordinator
+
+    fileprivate init(id: UUID, generation: UInt64, coordinator: MCPReadCoordinator) {
+        self.id = id
+        self.generation = generation
+        self.coordinator = coordinator
+    }
+
+    func shouldContinue() -> Bool { coordinator.canContinue(id: id, generation: generation) }
+}
+
+/// Mutable state is accessed only while holding the injected common publication domain.
+nonisolated final class MCPReadCoordinator: @unchecked Sendable {
+    private final class Entry: @unchecked Sendable {
+        let id: UUID
+        let generation: UInt64
+        let deadline: ContinuousClock.Instant
+        var timeout: Data
+        var selected: Data?
+        var continuation: CheckedContinuation<Data, Never>?
+        var timer: DispatchSourceTimer?
+
+        init(id: UUID, generation: UInt64, deadline: ContinuousClock.Instant, timeout: Data) {
+            self.id = id
+            self.generation = generation
+            self.deadline = deadline
+            self.timeout = timeout
+        }
+    }
+
+    let domain: MCPReadPublicationDomain
+    private let cutoff: Duration
+    private let maxOperations: Int
+    private var entries: [UUID: Entry] = [:]
+    private var generation: UInt64 = 1
+    private var admissionOpen = true
+    private let timerQueue = DispatchQueue(label: "transit.read.deadline", qos: .userInitiated, attributes: .concurrent)
+
+    init(domain: MCPReadPublicationDomain = MCPReadPublicationDomain(), cutoff: Duration = .milliseconds(4_850),
+         maxOperations: Int = 8) {
+        self.domain = domain
+        self.cutoff = cutoff
+        self.maxOperations = maxOperations
+    }
+
+    var unfinishedCount: Int { domain.withLock { entries.count } }
+
+    @concurrent func execute(
+        timeout: Data, busy: Data, admittedAt: ContinuousClock.Instant = .now,
+        worker: @escaping @Sendable (MCPReadOperation) async -> PreparedReadResult
+    ) async -> Data {
+        let entry = reserve(timeout: timeout, admittedAt: admittedAt)
+        guard let entry else { return busy }
+        return await executeReserved(entry, worker: worker)
+    }
+
+    private func reserve(timeout: Data, admittedAt: ContinuousClock.Instant) -> Entry? {
+        domain.withLock {
+            guard admissionOpen, entries.count < maxOperations else { return nil }
+            let entry = Entry(id: UUID(), generation: generation, deadline: admittedAt + cutoff, timeout: timeout)
+            entries[entry.id] = entry
+            return entry
+        }
+    }
+
+    @concurrent private func executeReserved(
+        _ entry: Entry, skipped: (@Sendable () async -> Void)? = nil,
+        worker: @escaping @Sendable (MCPReadOperation) async -> PreparedReadResult
+    ) async -> Data {
+        let operation = MCPReadOperation(id: entry.id, generation: entry.generation, coordinator: self)
+        installTimer(entry)
+        Task.detached(priority: .userInitiated) {
+            defer { self.physicalFinished(entry.id) }
+            guard operation.shouldContinue() else {
+                await skipped?()
+                return
+            }
+            let prepared = await worker(operation)
+            self.offer(prepared, for: entry.id)
+        }
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                let selected = domain.withLock { () -> Data? in
+                    if let selected = entry.selected { return selected }
+                    entry.continuation = continuation
+                    return nil
+                }
+                if let selected { continuation.resume(returning: selected) }
+            }
+        } onCancel: {
+            self.expire(entry.id)
+        }
+    }
+
+    func stop() {
+        let completions = domain.withLock { () -> [(CheckedContinuation<Data, Never>, Data)] in
+            admissionOpen = false
+            generation &+= 1
+            return entries.values.compactMap { selectLocked($0.timeout, entry: $0) }
+        }
+        for (continuation, data) in completions { continuation.resume(returning: data) }
+    }
+
+    func start() {
+        domain.withLock {
+            generation &+= 1
+            admissionOpen = true
+        }
+    }
+
+    fileprivate func canContinue(id: UUID, generation: UInt64) -> Bool {
+        domain.withLock {
+            guard let entry = entries[id] else { return false }
+            return admissionOpen && self.generation == generation && entry.selected == nil && .now < entry.deadline
+        }
+    }
+
+    private func installTimer(_ entry: Entry) {
+        let timer = DispatchSource.makeTimerSource(flags: .strict, queue: timerQueue)
+        let remaining = max(0, seconds(ContinuousClock.now.duration(to: entry.deadline)))
+        timer.schedule(deadline: .now() + remaining, leeway: .nanoseconds(0))
+        timer.setEventHandler { [weak self] in self?.expire(entry.id) }
+        domain.withLock {
+            if entry.selected == nil { entry.timer = timer } else { timer.cancel() }
+        }
+        timer.resume()
+    }
+
+    private func seconds(_ duration: Duration) -> Double {
+        let components = duration.components
+        return Double(components.seconds) + Double(components.attoseconds) / 1e18
+    }
+
+    private func expire(_ id: UUID) {
+        let completion = domain.withLock { () -> (CheckedContinuation<Data, Never>, Data)? in
+            guard let entry = entries[id] else { return nil }
+            return selectLocked(entry.timeout, entry: entry)
+        }
+        if let (continuation, data) = completion { continuation.resume(returning: data) }
+    }
+
+    private func selectLocked(_ data: Data, entry: Entry) -> (CheckedContinuation<Data, Never>, Data)? {
+        guard entry.selected == nil else { return nil }
+        entry.selected = data
+        entry.timer?.cancel()
+        entry.timer = nil
+        guard let continuation = entry.continuation else { return nil }
+        entry.continuation = nil
+        return (continuation, data)
+    }
+
+    private func offer(_ prepared: PreparedReadResult, for id: UUID) {
+        let distinctStores = Set(prepared.publications.map(\.publicationStoreID))
+        let completion = domain.withLock { () -> (CheckedContinuation<Data, Never>, Data)? in
+            guard let entry = entries[id], admissionOpen, entry.generation == generation,
+                  entry.selected == nil, .now < entry.deadline else {
+                for publication in prepared.publications { publication.discardLocked(in: domain) }
+                if let entry = entries[id] { return selectLocked(entry.timeout, entry: entry) }
+                return nil
+            }
+            let rejection = distinctStores.count != prepared.publications.count ? .busy
+                : prepared.publications.compactMap { $0.validateLocked(in: domain) }.first
+            if let rejection {
+                for publication in prepared.publications { publication.discardLocked(in: domain) }
+                let bytes: Data
+                switch rejection {
+                case .busy: bytes = prepared.publicationErrors.busy
+                case .expired: bytes = prepared.publicationErrors.expired
+                case .capacity: bytes = prepared.publicationErrors.capacity
+                }
+                return selectLocked(bytes, entry: entry)
+            }
+            for publication in prepared.publications { publication.commitLocked(in: domain) }
+            return selectLocked(prepared.encodedResponse, entry: entry)
+        }
+        if let (continuation, data) = completion { continuation.resume(returning: data) }
+    }
+
+    private func physicalFinished(_ id: UUID) {
+        // Removing the entry drops potentially retained data after leaving the domain lock.
+        let (retired, completion) = domain.withLock {
+            let entry = entries.removeValue(forKey: id)
+            let completion = entry.flatMap { selectLocked($0.timeout, entry: $0) }
+            return (entry, completion)
+        }
+        if let (continuation, data) = completion { continuation.resume(returning: data) }
+        withExtendedLifetime(retired) {}
+    }
+}
+#endif
