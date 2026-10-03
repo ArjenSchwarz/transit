@@ -122,13 +122,14 @@ references:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [2.6](requirements.md#2.6), [3.1](requirements.md#3.1), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
-- [ ] 12. Red: add full routing, lifecycle and T2382 integration tests <!-- id:vh146yb -->
+- [-] 12. Red: add full routing, lifecycle and T2382 integration tests <!-- id:vh146yb -->
   - Extend MCPServer tests for single/read-only/mixed JSONRPC, invalid arguments, notifications/all-notification HTTP 202, stopped service and restart with unfinished work; assert final encoded bytes and publication match terminal selection.
   - Add shared helper contract tests for T2382 descriptor registration, portfolio read classification, snapshotId dispatch, same view identity/evidence, scoped rejection and per-store batch aggregation. Use fixtures until parent supplies approved T2382 modules; integrated acceptance cannot pass on fixtures alone.
   - Write preservation regressions for merged write safety inputs/outputs/receipts/revisions, fallback-storage mutating allow-list and maintenance tools outside freshness scope.
   - Foundation tasks 1–9 never depend on these integration tests or on T2382 modules. Keep fixture-based red tests separate from actual-module final acceptance to avoid a circular cross-ticket gate.
   - Blocked-by: vh146y6 (Green: implement independent deadline and physical admission coordination), vh146y8 (Green: implement shared publication domain and migrate ordinary retention), vh146ya (Green: migrate covered handler reads onto captured DTO projection)
   - Stream: 1
+  - Owner: t63-foundation-runtime
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [1.6](requirements.md#1.6), [4.4](requirements.md#4.4), [5.3](requirements.md#5.3), [6.2](requirements.md#6.2)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
