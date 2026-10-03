@@ -100,7 +100,7 @@ references:
   - Requirements: [1.4](requirements.md#1.4), [1.6](requirements.md#1.6), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
-- [-] 10. Red: add read projection, wire parity and frozen metadata tests <!-- id:vh146y9 -->
+- [x] 10. Red: add read projection, wire parity and frozen metadata tests <!-- id:vh146y9 -->
   - Add focused handler tests for task single/batch/list/cursor and project/milestone scoped/empty/detail reads. Assert existing text payload/filter/order/identifier-error precedence, metadata namespace/UTCms/asOf=assessedAt, full record canonical r1 with comments hidden, and summary no-comment-fetch parity.
   - Inject required fetch/history/comment/serialization failure, incomplete captures, unknown/stale/failing imports and valid empty success; assert machine categories and no fabricated identity/time.
   - Test frozen metadata byte-for-byte across imports/local edits/cursor retries, no new wait/refetch, malformed policy before lookup and typed conflict after valid lookup. Add shared-view source fixture proving identical snapshot identity/evidence and SNAPSHOT_INCOMPATIBLE outside declared scope.
@@ -111,12 +111,14 @@ references:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [2.6](requirements.md#2.6), [3.1](requirements.md#3.1), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
-- [ ] 11. Green: migrate covered handler reads onto captured DTO projection <!-- id:vh146ya -->
+- [x] 11. Green: migrate covered handler reads onto captured DTO projection <!-- id:vh146ya -->
   - Update MCPToolHandler+TaskQuery and query_milestones/get_projects paths to capture/project immutable DTOs, typed policy parsing, prepared encoded results and additive outer metadata. Preserve ordinary UUID selector semantics and T2380 writes/canonical r1; physical attribution is for shared capture, not a query semantic rewrite.
   - Freeze complete original metadata in ordinary retained pages; replay without capture/wait. Map read execution errors to approved existing/extended codes and metadata categories; input/cursor/capacity precedence stays unchanged.
   - Use injected MCPRetainedViewSource for reusable views and keep T2382 snapshot-query implementation separate. Integrate minimum code and task 10 tests together; no fallback empty arrays.
+  - Evidence: Prepared saved-read component and frozen ordinary cursor integration passed focused actual app suites (xcresult top-level 28 tests; device 32 executions; zero failures/skips) and strict lint. Production admission/dispatch and T2382 reusable-query binding remain tasks 12–13; see foundation-handoff.md for exact API and limits.
   - Blocked-by: vh146y9 (Red: add read projection, wire parity and frozen metadata tests)
   - Stream: 1
+  - Owner: t63-foundation-runtime
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [2.6](requirements.md#2.6), [3.1](requirements.md#3.1), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 

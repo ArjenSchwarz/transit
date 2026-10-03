@@ -70,8 +70,9 @@ struct MCPReadCaptureValidationTests {
                                                              selection: .tasks(detail: .summary),
                                                              completeness: .selectedRead,
                                                              includeComments: false))
+        let inadequate = replacing(complete, tasks: summary.tasks, comments: [])
         #expect(throws: MCPReadCaptureError.incoherentCapture) {
-            try MCPReadCaptureValidation.validateReusableCapture(replacing(complete, tasks: summary.tasks, comments: []))
+            try MCPReadCaptureValidation.validateReusableCapture(inadequate)
         }
     }
 

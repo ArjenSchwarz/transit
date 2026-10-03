@@ -13,6 +13,9 @@ nonisolated struct MCPReadOperation: Sendable {
     }
 
     func shouldContinue() -> Bool { coordinator.canContinue(id: id, generation: generation) }
+
+    /// Remaining original admission budget, never a clock restarted by a handler.
+    func remainingBudget() -> Duration { coordinator.remainingBudget(id: id, generation: generation) }
 }
 
 /// Mutable state is accessed only while holding the injected common publication domain.
@@ -125,6 +128,14 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
             guard let entry = entries[id] else { return false }
             return admissionOpen && self.generation == generation && entry.responseReady && !entry.invalidated
                 && entry.selected == nil && .now < entry.deadline
+        }
+    }
+
+    fileprivate func remainingBudget(id: UUID, generation: UInt64) -> Duration {
+        domain.withLock {
+            guard let entry = entries[id], admissionOpen, self.generation == generation,
+                  !entry.invalidated, entry.selected == nil else { return .zero }
+            return max(.zero, ContinuousClock.now.duration(to: entry.deadline))
         }
     }
 

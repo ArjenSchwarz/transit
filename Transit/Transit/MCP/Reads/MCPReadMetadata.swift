@@ -29,7 +29,7 @@ nonisolated enum ReadRefreshOutcome: String, Codable, Sendable {
 }
 
 /// Timestamp strings are frozen UTC ISO 8601 milliseconds from the capture producer.
-nonisolated struct ReadFreshness: Encodable, Sendable {
+nonisolated struct ReadFreshness: Codable, Sendable {
     let syncState: ReadSyncState
     let assessment: ReadFreshnessAssessment
     let assessedAt: String
@@ -53,13 +53,13 @@ nonisolated struct ReadFreshness: Encodable, Sendable {
     }
 }
 
-nonisolated struct ReadExecutionMetadata: Encodable, Sendable {
+nonisolated struct ReadExecutionMetadata: Codable, Sendable {
     let policy: MCPReadPolicy
     let refreshOutcome: ReadRefreshOutcome
     let budgetMs: Int
 }
 
-nonisolated struct ReadCaptureMetadata: Encodable, Sendable {
+nonisolated struct ReadCaptureMetadata: Codable, Sendable {
     let asOf: String
     let snapshotId: String
     let freshness: ReadFreshness

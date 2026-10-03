@@ -28,6 +28,7 @@ final class MCPToolHandler {
     private let persistence: PersistenceAvailability
     private let writeCoordinator: MCPWriteCoordinator?
 
+    let readService: MCPReadService?
     let taskQuerySnapshots: MCPTaskQuerySnapshotStore
     private(set) var taskQueryAdmissionOpen = true
 
@@ -63,7 +64,8 @@ final class MCPToolHandler {
         milestoneFetcher: (any MilestoneFetching)? = nil,
         milestoneDisplayIDFinder: (any MilestoneDisplayIDFinding)? = nil,
         taskQuerySnapshots: MCPTaskQuerySnapshotStore? = nil,
-        writeCoordinator: MCPWriteCoordinator? = nil
+        writeCoordinator: MCPWriteCoordinator? = nil,
+        readService: MCPReadService? = nil
     ) {
         self.taskService = taskService
         self.taskFetcher = taskFetcher ?? taskService
@@ -77,6 +79,7 @@ final class MCPToolHandler {
         self.persistence = persistence ?? .shared
         self.taskQuerySnapshots = taskQuerySnapshots ?? MCPTaskQuerySnapshotStore()
         self.writeCoordinator = writeCoordinator
+        self.readService = readService
     }
 
     // MARK: - JSON-RPC Dispatch

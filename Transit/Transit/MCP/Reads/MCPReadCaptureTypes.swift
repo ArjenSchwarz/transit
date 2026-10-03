@@ -123,10 +123,26 @@ nonisolated enum ReadTaskCaptureDetail: Sendable {
 
 nonisolated enum ReadCaptureSelection: Sendable {
     case projects
+    /// Saved catalog counts and milestone summaries, without comment evidence.
+    case projectCatalog
     case milestones
     case tasks(detail: ReadTaskCaptureDetail)
     /// Requires completePortfolio and full revision/comment identity evidence.
     case portfolio
+}
+
+nonisolated struct ReadProjectIdentity: Sendable {
+    let id: UUID
+    let name: String
+}
+
+nonisolated struct ReadMilestoneIdentity: Sendable {
+    let id: UUID
+    let permanentDisplayId: Int?
+    let name: String
+    let storedProjectID: UUID?
+    let rawStatus: String
+    let milestoneDescription: String?
 }
 
 nonisolated struct ReadCaptureRequest: Sendable {
@@ -135,6 +151,23 @@ nonisolated struct ReadCaptureRequest: Sendable {
     let completeness: CaptureCompleteness
     /// Output preference only; fullRecord/portfolio still capture canonical comment coverage.
     let includeComments: Bool
+    /// Runs inside the fence before dependent entity fetches; no relationship values escape.
+    let validateProjects: (@MainActor @Sendable ([ReadProjectIdentity]) throws -> Void)?
+
+    /// Runs after milestone fetch and before task fetch. False means no task values are needed.
+    let validateMilestones: (@MainActor @Sendable ([ReadMilestoneIdentity]) throws -> Bool)?
+
+    init(projectSelectors: [ReadProjectSelector]?, selection: ReadCaptureSelection,
+         completeness: CaptureCompleteness, includeComments: Bool,
+         validateProjects: (@MainActor @Sendable ([ReadProjectIdentity]) throws -> Void)? = nil,
+         validateMilestones: (@MainActor @Sendable ([ReadMilestoneIdentity]) throws -> Bool)? = nil) {
+        self.projectSelectors = projectSelectors
+        self.selection = selection
+        self.completeness = completeness
+        self.includeComments = includeComments
+        self.validateProjects = validateProjects
+        self.validateMilestones = validateMilestones
+    }
 }
 
 /// Local fence evidence only. This is not proof that a particular CloudKit import became visible.
