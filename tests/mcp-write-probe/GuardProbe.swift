@@ -46,7 +46,53 @@ struct MCPWriteGuardProbe {
             try store.removeExpired(now: expiry)
             let after = try store.lookup(tool: "create_project", key: "terminal")
             precondition(after == nil)
+            try phaseBindings()
             print("RECOVERED")
         }
     }
+    @MainActor static func phaseBindings() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = try MCPLocalReservationStore(directory: directory)
+        let expiry = Date(timeIntervalSinceReferenceDate: 604800)
+        try store.withValidatedBindings {
+            let binding = try store.reserve(tool: "create_task", key: "phase", requestJSON: "{}")
+            try store.validateBinding(binding)
+            try store.recordExpiry(binding, expiresAt: expiry)
+            do {
+                try store.validateBinding(binding)
+                fatalError("Changed guard binding was accepted")
+            } catch MCPLocalReservationStore.Error.inconsistent {}
+            let saved = try store.lookup(tool: binding.tool, key: binding.key)
+            precondition(saved?.expiresAt == expiry)
+            try store.removeExpired(now: expiry)
+            let removed = try store.lookup(tool: binding.tool, key: binding.key)
+            precondition(removed == nil)
+            _ = try store.reserve(tool: "create_task", key: "retained", requestJSON: "{}")
+        }
+        let corrupt = directory.appendingPathComponent("guards/corrupt.json")
+        try Data("corrupted".utf8).write(to: corrupt)
+        do {
+            _ = try store.lookup(tool: "create_task", key: "retained")
+            fatalError("A phase snapshot survived its closure")
+        } catch {}
+        do {
+            try store.withValidatedBindings { _ = try store.lookup(tool: "create_task", key: "new") }
+            fatalError("A new phase ignored scope corruption")
+        } catch {}
+        try FileManager.default.removeItem(at: corrupt)
+        try store.withValidatedBindings {
+            try FileManager.default.moveItem(at: directory.appendingPathComponent("guards"),
+                                             to: directory.appendingPathComponent("saved-guards"))
+            do {
+                _ = try store.reserve(tool: "create_task", key: "cannot-persist", requestJSON: "{}")
+                fatalError("Missing guard directory permitted persistence")
+            } catch {}
+            do {
+                _ = try store.lookup(tool: "create_task", key: "retained")
+                fatalError("A failed mutation left a stale phase snapshot")
+            } catch {}
+        }
+    }
+
 }

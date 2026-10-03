@@ -20,6 +20,7 @@ nonisolated struct MCPLocalReservation: Codable, Equatable, Sendable {
     private let directory: URL
     private let guardsDirectory: URL
     private let lockDescriptor: Int32
+    private var phaseBindings: [BindingKey: MCPLocalReservation]?
 
     init(directory: URL) throws {
         self.directory = directory
@@ -65,9 +66,27 @@ nonisolated struct MCPLocalReservation: Codable, Equatable, Sendable {
         close(lockDescriptor)
     }
 
+    /// Reuse one verified scope only while this synchronous body is running.
+    /// The closure cannot await; every new phase validates the complete scope.
+    func withValidatedBindings<T>(_ body: () throws -> T) throws -> T {
+        if phaseBindings != nil { return try body() }
+        var bindings: [BindingKey: MCPLocalReservation] = [:]
+        for binding in try all() {
+            guard bindings.updateValue(binding, forKey: BindingKey(binding)) == nil else { throw Error.inconsistent }
+        }
+        phaseBindings = bindings
+        defer { phaseBindings = nil }
+        return try body()
+    }
+
     func lookup(tool: String, key: String) throws -> MCPLocalReservation? {
-        // Validate the entire scope so corruption cannot silently permit a new key.
-        try all().first { $0.tool == tool && $0.key == key }
+        if let phaseBindings { return phaseBindings[BindingKey(tool: tool, key: key)] }
+        // Standalone calls still validate the complete scope, never just a target file.
+        return try all().first { $0.tool == tool && $0.key == key }
+    }
+
+    func validateBinding(_ binding: MCPLocalReservation) throws {
+        guard try lookup(tool: binding.tool, key: binding.key) == binding else { throw Error.inconsistent }
     }
 
     func reserve(tool: String, key: String, requestJSON: String, formatVersion: Int = 1,
@@ -102,8 +121,7 @@ nonisolated struct MCPLocalReservation: Codable, Equatable, Sendable {
     func removeExpired(now: Date) throws {
         for reservation in try all() {
             guard let expiry = reservation.expiresAt, expiry <= now else { continue }
-            try FileManager.default.removeItem(at: file(tool: reservation.tool, key: reservation.key))
-            try Self.syncDirectory(guardsDirectory)
+            try remove(reservation)
         }
     }
 
@@ -131,8 +149,7 @@ nonisolated struct MCPLocalReservation: Codable, Equatable, Sendable {
             snapshot[key] = binding
         }
         for binding in snapshot.values where binding.expiresAt.map({ $0 <= now }) == true {
-            try FileManager.default.removeItem(at: file(tool: binding.tool, key: binding.key))
-            try Self.syncDirectory(guardsDirectory)
+            try remove(binding)
         }
     }
 
@@ -152,6 +169,7 @@ nonisolated struct MCPLocalReservation: Codable, Equatable, Sendable {
     }
 
     func all() throws -> [MCPLocalReservation] {
+        if let phaseBindings { return Array(phaseBindings.values) }
         let files = try FileManager.default.contentsOfDirectory(at: guardsDirectory,
                                                                includingPropertiesForKeys: nil)
         return try files.map { url in
@@ -173,8 +191,27 @@ nonisolated struct MCPLocalReservation: Codable, Equatable, Sendable {
     }
 
     private func persist(_ reservation: MCPLocalReservation) throws {
-        try Self.durableReplace(JSONEncoder().encode(reservation),
-                                at: file(tool: reservation.tool, key: reservation.key))
+        do {
+            try Self.durableReplace(JSONEncoder().encode(reservation),
+                                    at: file(tool: reservation.tool, key: reservation.key))
+            phaseBindings?[BindingKey(reservation)] = reservation
+        } catch {
+            // A failed durability check can follow rename. Never reuse an old
+            // snapshot after a mutation whose durable result is ambiguous.
+            phaseBindings = nil
+            throw error
+        }
+    }
+
+    private func remove(_ reservation: MCPLocalReservation) throws {
+        do {
+            try FileManager.default.removeItem(at: file(tool: reservation.tool, key: reservation.key))
+            try Self.syncDirectory(guardsDirectory)
+            phaseBindings?.removeValue(forKey: BindingKey(reservation))
+        } catch {
+            phaseBindings = nil
+            throw error
+        }
     }
 
     private func file(tool: String, key: String) -> URL {

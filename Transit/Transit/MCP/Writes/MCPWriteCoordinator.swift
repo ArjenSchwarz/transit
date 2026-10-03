@@ -4,6 +4,10 @@ import SwiftData
 
 @MainActor final class MCPWriteCoordinator {
     enum SaveStage { case baseline, acceptance, commit, rejection, cleanup }
+    private enum Acceptance {
+        case result(MCPToolResult)
+        case ready(MCPLocalReservation, MCPWriteReceipt)
+    }
     private let services: MCPWriteCommandServices
     private let clock: @MainActor () -> Date
     private let save: @MainActor (ModelContext, SaveStage) throws -> Void
@@ -58,9 +62,11 @@ import SwiftData
     /// Startup maintenance retains the same app-owned lock used by listener restarts.
     func cleanupExpiredOutcomes() throws {
         guard let reservations, let receipts else { return }
-        if services.context.hasChanges { try save(services.context, .baseline) }
-        try receipts.cleanup(now: clock(), reservations: reservations)
-        if services.context.hasChanges { try save(services.context, .cleanup) }
+        try reservations.withValidatedBindings {
+            if services.context.hasChanges { try save(services.context, .baseline) }
+            try receipts.cleanup(now: clock(), reservations: reservations)
+            if services.context.hasChanges { try save(services.context, .cleanup) }
+        }
     }
 
     func execute(tool: String, arguments: [String: Any]) async -> MCPToolResult {
@@ -138,42 +144,59 @@ extension MCPWriteCoordinator {
         _ command: MCPWriteCommand, payload: String, namespace: String,
         reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore
     ) async -> MCPToolResult {
+        let acceptance: Acceptance
+        do {
+            acceptance = try reservations.withValidatedBindings {
+                acceptSynchronously(command, payload: payload, reservations: reservations, receipts: receipts)
+            }
+        } catch {
+            return transient(
+                command, .init("OUTCOME_UNCERTAIN", "Unable to inspect durable retry state"),
+                accepted: nil, outcome: "uncertain", retry: "reconcile")
+        }
+        switch acceptance {
+        case .result(let result): return result
+        case .ready(let guardRecord, let receipt):
+            active[namespace] = payload
+            defer { active.removeValue(forKey: namespace) }
+            // The acceptance snapshot is gone before entering any async method.
+            return await runAccepted(
+                command, guardRecord: guardRecord, receipt: receipt,
+                reservations: reservations, receipts: receipts)
+        }
+    }
+
+    private func acceptSynchronously(
+        _ command: MCPWriteCommand, payload: String,
+        reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore
+    ) -> Acceptance {
         let tool = command.tool
         if let existing = existingOutcome(command, payload: payload, reservations: reservations, receipts: receipts) {
-            return existing
+            return .result(existing)
         }
         do {
             if services.context.hasChanges { try save(services.context, .baseline) }
         } catch {
-            return transient(
-                command, .init("PERSISTENCE_UNAVAILABLE", "Unable to save existing pending edits"),
-                accepted: false, retry: "retry_same_request")
+            return .result(transient(
+                    command, .init("PERSISTENCE_UNAVAILABLE", "Unable to save existing pending edits"),
+                    accepted: false, retry: "retry_same_request"))
         }
         do {
             try receipts.cleanup(now: clock(), reservations: reservations)
             if services.context.hasChanges { try save(services.context, .cleanup) }
         } catch {
-            return transient(
-                command, .init("OUTCOME_UNCERTAIN", "Unable to complete retry-state cleanup"),
-                accepted: nil, outcome: "uncertain", retry: "reconcile")
+            return .result(transient(
+                    command, .init("OUTCOME_UNCERTAIN", "Unable to complete retry-state cleanup"),
+                    accepted: nil, outcome: "uncertain", retry: "reconcile"))
         }
         let guardRecord: MCPLocalReservation
         do {
             guardRecord = try reservations.reserve(tool: tool, key: command.key, requestJSON: payload)
         } catch {
-            return transient(
-                command, .init("OUTCOME_UNCERTAIN", "Unable to confirm durable key acceptance"),
-                accepted: nil, outcome: "uncertain", retry: "reconcile")
+            return .result(transient(
+                    command, .init("OUTCOME_UNCERTAIN", "Unable to confirm durable key acceptance"),
+                    accepted: nil, outcome: "uncertain", retry: "reconcile"))
         }
-        active[namespace] = payload
-        defer { active.removeValue(forKey: namespace) }
-        return await runAccepted(command, guardRecord: guardRecord, receipts: receipts)
-    }
-
-    fileprivate func runAccepted(
-        _ command: MCPWriteCommand, guardRecord: MCPLocalReservation,
-        receipts: MCPWriteReceiptStore
-    ) async -> MCPToolResult {
         let receipt: MCPWriteReceipt
         do {
             receipt = try receipts.insert(guardRecord, acceptedAt: clock())
@@ -183,27 +206,41 @@ extension MCPWriteCoordinator {
             // only as a terminal no-effect rejection, never as a fresh request.
             for model in services.context.insertedModelsArray { services.context.delete(model) }
             services.context.safeRollback()
-            return rejectBeforeDomain(
-                command, guardRecord: guardRecord,
-                failure: .init("INTERNAL_ERROR", "Unable to save request acceptance"))
+            return .result(rejectBeforeDomain(
+                    command, guardRecord: guardRecord,
+                    failure: .init("INTERNAL_ERROR", "Unable to save request acceptance")))
         }
+        return .ready(guardRecord, receipt)
+    }
+
+    fileprivate func runAccepted(
+        _ command: MCPWriteCommand, guardRecord: MCPLocalReservation, receipt: MCPWriteReceipt,
+        reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore
+    ) async -> MCPToolResult {
         let prepared: PreparedMCPWrite
         do {
             try await preparationHook(command)
             prepared = try await command.prepare(using: services)
             try Task.checkCancellation()
         } catch {
-            // Preparation never mutates domain models. Save the baseline of
-            // edits made during allocation before retaining its rejection.
-            do { if services.context.hasChanges { try save(services.context, .baseline) } } catch {
-                return uncertain(command)
+            // Validate a fresh scope after suspension, before retaining rejection.
+            do {
+                return try reservations.withValidatedBindings {
+                    try reservations.validateBinding(guardRecord)
+                    if services.context.hasChanges { try save(services.context, .baseline) }
+                    return completeRejection(command, receipt: receipt, failure: MCPWriteFailure.from(error))
+                }
+            } catch { return uncertain(command) }
+        }
+        do {
+            // No snapshot survives preparation. This fresh phase covers baseline,
+            // mutation, terminal save, expiry repair, and synchronous recovery.
+            return try reservations.withValidatedBindings {
+                try reservations.validateBinding(guardRecord)
+                if services.context.hasChanges { try save(services.context, .baseline) }
+                return commit(command, prepared: prepared, receipt: receipt, guardRecord: guardRecord)
             }
-            return completeRejection(command, receipt: receipt, failure: MCPWriteFailure.from(error))
-        }
-        do { if services.context.hasChanges { try save(services.context, .baseline) } } catch {
-            return uncertain(command)
-        }
-        return commit(command, prepared: prepared, receipt: receipt, guardRecord: guardRecord)
+        } catch { return uncertain(command) }
     }
 
     fileprivate func commit(

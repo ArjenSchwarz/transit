@@ -63,3 +63,26 @@ CloudKit cannot be detected, and later sync merges can still conflict.
 
 These outcome and revision semantics are shared vocabulary for T-2384. They introduce no batch
 mutation application or dry-run behavior; existing ordered JSON-RPC batches remain non-atomic.
+
+
+## Recovery when local retry storage is unreadable
+
+If protected writes return `OUTCOME_UNCERTAIN` because guards or the scope identity cannot be read,
+stop automatic writes and new-key retries. Read tools remain available for reconciliation when the
+domain store is readable.
+
+1. Quit Transit to release its store lock. Preserve and back up the SwiftData store, its companion
+   files, and the complete MCP sidecar beside it, including the original `scope` and `guards` files.
+2. Reconcile the original operation against domain records and retained receipt evidence. A missing
+   target or receipt does not prove that the operation never committed; a later edit or deletion may
+   explain the current state.
+3. Restore binding metadata only from verified original evidence for this same local store. The scope,
+   tool, key, canonical request and receipt UUID must retain their original association; a terminal
+   guard must retain its original expiry. If the original identity or binding cannot be established,
+   keep writes blocked and seek manual recovery. Restoring a file alone does not prove a no-effect outcome.
+4. Restart Transit and retry the exact original request with its original key. A valid retained receipt
+   can replay its result. If the outcome remains uncertain, retain the binding and continue reconciliation.
+
+Do not delete guards, clear the sidecar, generate a new scope, or reset/reassign keys as a shortcut to
+unblock writes. These actions discard acceptance evidence and can duplicate an operation that committed.
+Transit exposes no force-retry or key-reset tool. Unresolved bindings remain protected without an expiry.

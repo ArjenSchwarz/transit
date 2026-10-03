@@ -51,6 +51,48 @@ struct MCPLocalReservationStoreTests {
         #expect(try store.lookup(tool: "create_task", key: "key") == nil)
     }
 
+    @Test func phaseTracksMutationsAndDiscardsSnapshotOnExit() throws {
+        enum Failure: Error { case injected }
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = try MCPLocalReservationStore(directory: directory)
+        #expect(throws: Failure.self) {
+            try store.withValidatedBindings {
+                let binding = try store.reserve(tool: "create_task", key: "phase", requestJSON: "{}")
+                try store.validateBinding(binding)
+                let expiry = Date(timeIntervalSinceReferenceDate: 604800)
+                try store.recordExpiry(binding, expiresAt: expiry)
+                #expect(throws: MCPLocalReservationStore.Error.inconsistent) { try store.validateBinding(binding) }
+                #expect(try store.lookup(tool: binding.tool, key: binding.key)?.expiresAt == expiry)
+                try store.removeExpired(now: expiry)
+                #expect(try store.lookup(tool: binding.tool, key: binding.key) == nil)
+                _ = try store.reserve(tool: "create_task", key: "retained", requestJSON: "{}")
+                throw Failure.injected
+            }
+        }
+        let bad = directory.appendingPathComponent("guards/corrupt.json")
+        try Data("corrupted".utf8).write(to: bad)
+        #expect(throws: (any Error).self) { try store.lookup(tool: "create_task", key: "retained") }
+        #expect(throws: (any Error).self) {
+            try store.withValidatedBindings { try store.lookup(tool: "create_task", key: "new") }
+        }
+    }
+
+    @Test func failedMutationInvalidatesPhaseBeforeFurtherLookup() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = try MCPLocalReservationStore(directory: directory)
+        _ = try store.reserve(tool: "create_task", key: "retained", requestJSON: "{}")
+        try store.withValidatedBindings {
+            try FileManager.default.moveItem(at: directory.appendingPathComponent("guards"),
+                                             to: directory.appendingPathComponent("saved-guards"))
+            #expect(throws: (any Error).self) {
+                try store.reserve(tool: "create_task", key: "cannot-persist", requestJSON: "{}")
+            }
+            #expect(throws: (any Error).self) { try store.lookup(tool: "create_task", key: "retained") }
+        }
+    }
+
     @Test func receiptScopeDuplicateAndUnresolvedCleanup() throws {
         let owner = try TestModelContainer()
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

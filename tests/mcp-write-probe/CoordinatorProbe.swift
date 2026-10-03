@@ -89,6 +89,7 @@ struct MCPWriteCoordinatorProbe {
         try await activeKeys(services: services, directory: directory)
         try await expiryAndAvailability(services: services, directory: directory)
         try await malformedTerminals(services: services, directory: directory)
+        try await phaseSuspension(services: services, directory: directory)
         integerBoundaries()
         schemas()
     }

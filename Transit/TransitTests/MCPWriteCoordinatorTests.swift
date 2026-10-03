@@ -116,6 +116,37 @@ struct MCPWriteCoordinatorTests {
         }
     }
 
+    @Test func scopeCorruptionDuringPreparationStopsCommitAfterIndependentPeer() async throws {
+        let fixture = try MCPWriteCoordinatorTestFixture()
+        fixture.coordinator = nil
+        let gate = MCPWritePreparationGate()
+        fixture.coordinator = MCPWriteCoordinator(
+            services: fixture.services, sidecarDirectory: fixture.directory,
+            preparationHook: { command in if command.key == "suspended" { await gate.park() } })
+        let args: [String: Any] = ["name": "suspended", "colorHex": "#112233", "idempotencyKey": "suspended"]
+        let coordinator = fixture.coordinator!
+        let running = Task { await coordinator.execute(tool: "create_project", arguments: args) }
+        await gate.waitForStart()
+        let peer = try fixture.decode(
+            await coordinator.execute(
+                tool: "create_project",
+                arguments: ["name": "phase peer", "colorHex": "#112233", "idempotencyKey": "peer"]))
+        #expect(peer["outcome"] as? String == "committed")
+        try Data("corrupted".utf8).write(to: fixture.directory.appendingPathComponent("guards/corrupt.json"))
+        await gate.release()
+        let result = try fixture.decode(await running.value)
+        #expect(result["outcome"] as? String == "uncertain")
+        #expect((result["error"] as? [String: Any])?["code"] as? String == "OUTCOME_UNCERTAIN")
+        let projects = try fixture.owner.context.fetch(FetchDescriptor<Project>())
+        #expect(projects.map(\.name) == ["phase peer"])
+        let receipt = try #require(
+            try fixture.owner.context.fetch(FetchDescriptor<MCPWriteReceipt>())
+                .first { $0.key == "suspended" })
+        #expect(receipt.stateRawValue == "accepted" && receipt.resultJSON == nil)
+        let retry = try fixture.decode(await coordinator.execute(tool: "create_project", arguments: args))
+        #expect(retry["outcome"] as? String == "uncertain")
+    }
+
     @Test func committedReplayPreservesSavedProjectionAfterEdit() async throws {
         let fixture = try MCPWriteCoordinatorTestFixture()
         let args: [String: Any] = ["name": " original ", "colorHex": "#112233", "idempotencyKey": "key"]
@@ -195,4 +226,26 @@ struct MCPWriteCoordinatorTests {
         try #require(try JSONSerialization.jsonObject(with: Data(result.content[0].text.utf8)) as? [String: Any])
     }
 }
+private actor MCPWritePreparationGate {
+    private var parked: CheckedContinuation<Void, Never>?
+    private var waiter: CheckedContinuation<Void, Never>?
+    private var started = false
+
+    func park() async {
+        started = true
+        waiter?.resume()
+        waiter = nil
+        await withCheckedContinuation { parked = $0 }
+    }
+
+    func waitForStart() async {
+        if !started { await withCheckedContinuation { waiter = $0 } }
+    }
+
+    func release() {
+        parked?.resume()
+        parked = nil
+    }
+}
+
 #endif

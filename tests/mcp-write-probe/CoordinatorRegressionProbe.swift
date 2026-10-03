@@ -2,6 +2,36 @@ import Foundation
 import SwiftData
 
 extension MCPWriteCoordinatorProbe {
+    @MainActor static func phaseSuspension(services: MCPWriteCommandServices, directory: URL) async throws {
+        let sidecar = directory.appendingPathComponent("phase-suspension")
+        let gate = CoordinatorGate()
+        let coordinator = MCPWriteCoordinator(
+            services: services, sidecarDirectory: sidecar,
+            preparationHook: { command in if command.key == "suspended" { await gate.park() } })
+        let args: [String: Any] = ["name": "suspended", "colorHex": "#112233", "idempotencyKey": "suspended"]
+        let running = Task { await coordinator.execute(tool: "create_project", arguments: args) }
+        await gate.waitForStart()
+        let peer = try decode(
+            await coordinator.execute(
+                tool: "create_project",
+                arguments: ["name": "phase peer", "colorHex": "#112233", "idempotencyKey": "peer"]))
+        precondition(peer["outcome"] as? String == "committed")
+        try Data("corrupted".utf8).write(to: sidecar.appendingPathComponent("guards/corrupt.json"))
+        await gate.release()
+        let result = try decode(await running.value)
+        precondition(result["outcome"] as? String == "uncertain")
+        precondition((result["error"] as? [String: Any])?["code"] as? String == "OUTCOME_UNCERTAIN")
+        let projects = try services.context.fetch(FetchDescriptor<Project>())
+        precondition(!projects.contains { $0.name == "suspended" })
+        let receipt = try services.context.fetch(FetchDescriptor<MCPWriteReceipt>()).first {
+            $0.key == "suspended"
+        }!
+        precondition(receipt.stateRawValue == "accepted" && receipt.resultJSON == nil)
+        let retry = try decode(await coordinator.execute(tool: "create_project", arguments: args))
+        precondition(retry["outcome"] as? String == "uncertain")
+        print("PASS independent concurrent phases and scope-corruption revalidation after suspension")
+    }
+
     @MainActor static func integerBoundaries() {
         let args: [String: Any] = ["displayId": Int.max, "content": "C", "authorName": "A", "idempotencyKey": "max"]
         precondition((try? MCPWriteCommand.validate(tool: "add_comment", arguments: args)) != nil)
