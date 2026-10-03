@@ -22,6 +22,8 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         let generation: UInt64
         let deadline: ContinuousClock.Instant
         var timeout: Data
+        var responseReady = true
+        var invalidated = false
         var selected: Data?
         var continuation: CheckedContinuation<Data, Never>?
         var timer: DispatchSourceTimer?
@@ -73,6 +75,7 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         _ entry: Entry, skipped: (@Sendable () async -> Void)? = nil,
         worker: @escaping @Sendable (MCPReadOperation) async -> PreparedReadResult
     ) async -> Data {
+        if Task.isCancelled { expire(entry.id) }
         let operation = MCPReadOperation(id: entry.id, generation: entry.generation, coordinator: self)
         installTimer(entry)
         Task.detached(priority: .userInitiated) {
@@ -102,7 +105,10 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         let completions = domain.withLock { () -> [(CheckedContinuation<Data, Never>, Data)] in
             admissionOpen = false
             generation &+= 1
-            return entries.values.compactMap { selectLocked($0.timeout, entry: $0) }
+            return entries.values.compactMap { entry in
+                entry.invalidated = true
+                return entry.responseReady ? selectLocked(entry.timeout, entry: entry) : nil
+            }
         }
         for (continuation, data) in completions { continuation.resume(returning: data) }
     }
@@ -117,7 +123,8 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
     fileprivate func canContinue(id: UUID, generation: UInt64) -> Bool {
         domain.withLock {
             guard let entry = entries[id] else { return false }
-            return admissionOpen && self.generation == generation && entry.selected == nil && .now < entry.deadline
+            return admissionOpen && self.generation == generation && entry.responseReady && !entry.invalidated
+                && entry.selected == nil && .now < entry.deadline
         }
     }
 
@@ -140,7 +147,8 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
     private func expire(_ id: UUID) {
         let completion = domain.withLock { () -> (CheckedContinuation<Data, Never>, Data)? in
             guard let entry = entries[id] else { return nil }
-            return selectLocked(entry.timeout, entry: entry)
+            entry.invalidated = true
+            return entry.responseReady ? selectLocked(entry.timeout, entry: entry) : nil
         }
         if let (continuation, data) = completion { continuation.resume(returning: data) }
     }
@@ -199,14 +207,16 @@ extension MCPReadCoordinator {
     /// retain their positions. Callers coalesce same-store publications while assembling.
     @concurrent func executeBatch(
         _ elements: [MCPReadBatchElement], admittedAt: ContinuousClock.Instant = .now,
+        beforeFallbackReady: @escaping @Sendable () async -> Void = {},
         assemble: @escaping @Sendable ([PreparedReadResult?]) async throws -> PreparedReadResult
     ) async -> Data? {
         let admission = admitBatch(elements, admittedAt: admittedAt)
         let admitted = admission.admitted
+        await beforeFallbackReady()
         let fallback = MCPReadBatchEncoding.array(admission.fallbackElements)
         guard let first = admitted.first else { return fallback }
         // The complete fallback is ready before any physical dispatch or final assembly.
-        domain.withLock { first.entry.timeout = fallback ?? Data() }
+        readyBatch(first.entry, fallback: fallback ?? Data())
         let collector = MCPReadBatchCollector(values: admission.initial, remaining: admitted.count)
         for admission in admitted.dropFirst() {
             let position = admission.position
@@ -260,20 +270,46 @@ extension MCPReadCoordinator {
         let work: MCPReadBatchWork
     }
 
+    private nonisolated func readyBatch(_ entry: Entry, fallback: Data) {
+        domain.withLock {
+            entry.timeout = fallback
+            entry.responseReady = true
+            if entry.invalidated || !admissionOpen || entry.generation != generation
+                || .now >= entry.deadline {
+                _ = selectLocked(entry.timeout, entry: entry)
+            }
+        }
+    }
+
     private nonisolated func admitBatch(
         _ elements: [MCPReadBatchElement], admittedAt: ContinuousClock.Instant
     ) -> BatchAdmissions {
+        let reads = elements.enumerated().compactMap { position, element -> (Int, MCPReadBatchWork)? in
+            guard case .read(let work) = element else { return nil }
+            return (position, work)
+        }
+        // Only up to eight compact entries are allocated under the domain; bulk
+        // fallback arrays and index construction stay outside this critical section.
+        let admitted = domain.withLock { () -> [BatchAdmission] in
+            guard admissionOpen else { return [] }
+            return reads.prefix(max(0, maxOperations - entries.count)).enumerated().map { index, read in
+                let entry = Entry(id: UUID(), generation: generation, deadline: admittedAt + cutoff,
+                                  timeout: read.1.timeout)
+                entry.responseReady = index != 0
+                entries[entry.id] = entry
+                return BatchAdmission(position: read.0, entry: entry, work: read.1)
+            }
+        }
+        let admittedPositions = Set(admitted.map(\.position))
         var fallbackElements: [Data?] = []
         var initial: [PreparedReadResult?] = []
-        var admitted: [BatchAdmission] = []
         for (position, element) in elements.enumerated() {
             switch element {
             case .fixed(let bytes):
                 fallbackElements.append(bytes)
                 initial.append(bytes.map { fixedResult($0) })
             case .read(let work):
-                if let entry = reserve(timeout: work.timeout, admittedAt: admittedAt) {
-                    admitted.append(BatchAdmission(position: position, entry: entry, work: work))
+                if admittedPositions.contains(position) {
                     fallbackElements.append(work.responds ? work.timeout : nil)
                     initial.append(nil)
                 } else {

@@ -22,6 +22,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
     private let fence: MCPReadCaptureFence
     private let generation: () -> UInt64
     private let metadata: (Date, MCPReadCaptureBoundary) -> ReadCaptureMetadata
+    private let fetchComments: (ModelContext) throws -> [Comment]
     private let afterProjects: () throws -> Void
 
     init(
@@ -37,12 +38,16 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                                          recentImportThresholdMs: 30_000),
                 read: ReadExecutionMetadata(policy: .cached, refreshOutcome: .notRequested, budgetMs: 5_000))
         },
+        fetchComments: @escaping (ModelContext) throws -> [Comment] = {
+            try $0.fetch(FetchDescriptor<Comment>())
+        },
         afterProjects: @escaping () throws -> Void = {}
     ) {
         self.container = container
         self.fence = fence
         self.generation = generation
         self.metadata = metadata
+        self.fetchComments = fetchComments
         self.afterProjects = afterProjects
     }
 
@@ -128,7 +133,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             guard request.completeness != .completePortfolio || full else {
                 throw MCPReadCaptureError.incoherentCapture
             }
-            let comments = full || request.includeComments ? try context.fetch(FetchDescriptor<Comment>()) : []
+            let comments = needsTasks && (full || request.includeComments) ? try fetchComments(context) : []
             let includedComments = request.completeness == .completePortfolio ? comments
                 : comments.filter { comment in tasks.contains { $0.id == comment.task?.id } }
             // Freeze identity closure separately; it never changes the declared selected scope.
@@ -163,7 +168,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             let matches = projects.filter { project in
                 switch selector {
                 case .id(let id): project.id == id
-                case .name(let name): project.name.caseInsensitiveCompare(name) == .orderedSame
+                case .name(let name): ProjectNamePolicy.normalized(project.name) == ProjectNamePolicy.normalized(name)
                 }
             }
             guard let match = matches.first else { throw MCPReadCaptureError.projectNotFound }
