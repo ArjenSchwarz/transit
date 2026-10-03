@@ -53,3 +53,7 @@ PR249 is merged at `201205bd4e786c7f152d8f99006b37da7da888c7`, also current remo
 ## Design ADR 3 — shared publication transaction
 
 T-63 and T2382 agreed one common publication lock domain with pre-encoded success/rejection bytes, pending-plus-published capacity, same-store batch coalescing into one immutable index candidate, atomic child-reservation transfer, validate-all-before-any-commit, and one index swap per store. Read-only batch selection publishes all selected children together or discards all. Stale append CAS returns READ_BUSY rather than overwriting another index. Internal peer review identified the same-store lost-update gap and the design adopted this correction. These mechanisms remain proposed until final design approval.
+
+## Shared scope clarification before design gate
+
+`CapturedReadView.captureScope` is typed as whole portfolio, selected resolved physical project keys, or ordinary selected query. `completePortfolio` means complete declared reusable scope plus identity/comment closure, not necessarily every global record. Closure records do not enlarge selected counts; reusable queries outside declared scope fail. T2382 requested this explicit DTO contract and T-63 confirmed it before design approval.
