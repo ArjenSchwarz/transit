@@ -1,6 +1,6 @@
 # Encoder implementation draft
 
-Status: source-ready task7/gpzncvr at3ba1cfb, internal critic clear; no application/runtime GREEN yet. API15 remains undelivered.
+Status: task7/gpzncvr remains in progress. The guarded attempt on3ba1cfb reached12 passes and2 fixture-oracle failures; full GREEN is unverified. API15 remains undelivered.
 
 MCPResultEncoder now freezes complete tool-level bytes and wraps them with fresh current string/integer RPC IDs, preserving resultType, original text, structured source kind/payload/evidence, optional isError and independent metadata. Original source and metadata documents are inserted as their validated raw UTF8 fragments; member ordering, numeric lexemes, escapes, scalar-distinct nested keys and null/presence survive. The sealed fragment initializer remains local to the encoder; fragments retain Data only and never originating IDs or callbacks.
 
@@ -11,3 +11,15 @@ Provider-owned mutation fallback preparation returns full current-ID modern byte
 All14 task6 fixtures remain byte-identical to a480d06. Parse, targeted no-cache lint and pure full Results/test typechecks pass. Evidence .codex-cache/encoder-green-typecheck/manifest.json, SHA256 f68dcafc8381bcaf40a4b3dfa73606c09b378aabf209c6168cfd2edaa58e886a. Internal read-only critic found no blocking source defect. These light checks and review are not runtime GREEN.
 
 Next requested selection is unchanged: TransitTests/MCPResultEncoderTests TransitTests/MCPResultEncoderFallbackTests. A new exclusive parent grant is required for guarded build-for-testing, inspected signed development host/xctestrun and restricted serial test-without-building. No app job follows the prior RED grant. Task11 retains preparation accounting/capacity proof; task14 retains actual production response selection/effect guarantees. Shared MCPTypes/server/handler/Reads/snapshots/WriteCoordinator/App/project source remains unchanged by task7. No live/client-setting/production activity occurred.
+
+## First guarded GREEN attempt
+
+Parent granted the same14 unchanged fixtures on3ba1cfb (observed HEADdd4a89b differed only in documentation). Shared Debug rebuild and actual signed-host/xctestrun preflight passed exit0, with explicit unit-test/smoke/exact-host guards. Prior RED artifact hashes were preserved when reusing only the private DerivedData dependency products; fresh GreenBuild/EncoderGreen result paths were used.
+
+The original console reports14 methods:12 passed,2 failed,2 issues. rawPayloadAndFrozenMetadataPreserveExactOwnedFragments and depth32InputsRemainValidWhenEnvelopeAddsNesting fail inside the independent helper's Foundation JSONSerialization whole-wire validation with NSCocoaError3840 Number wound up as NaN on valid1E-9999. Internal read-only critic confirmed a fixture-oracle defect: the production encoder inserts validated raw numeric fragments without conversion. The two methods' exact-byte/depth assertions remain unverified. No production semantic change is justified by Foundation's numeric limitation.
+
+A post-body hang recurred. Both exact owned processes were sampled before any termination. The guarded host61003 main chain included XCTestDriver→XCTTestRunSession→XCTAsyncEnumerateWithWaiter→XCTWaiter._performWait; runner60967 showed CFRunLoop waitForBuild. No collectSimulatorDiagnostics frames were observed and the underlying cause remains unproved. After bounded5m11s, only the identity-verified runner first and then guarded host were terminated. Actual command exit143; summary extraction exit64 because the unfinalized bundle lacked Info.plist. No clean exit or final xcresult counts are claimed. No automatic replay or second command occurred. Owned pipelines/hosts drained and parent received immediate slot RELEASE.
+
+Evidence .codex-cache/t2383-encoder-green-3ba1cfb/results.md includes manifests, commands, console-method classifications, source/fixture hashes, both samples and scoped cleanup. Prior RED logs/raw bundle remain unchanged.
+
+Parent authorised a narrow helper correction after drain: lexically validate number tokens outside strings, reject malformed spelling/junk, substitute0 only in a disposable Foundation structural-validation copy, discard the decoded tree, and keep raw locating/equality on original bytes. Preserve all14 method files/inputs/assertions and the production parser cap/semantics. Source-only correction and helper controls are delegated; critic review and a fresh focused guarded grant are required before rerun. No app/GREEN retry, production/live/client-setting change follows this attempt.
