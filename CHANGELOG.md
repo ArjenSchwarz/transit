@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- T-2379: MCP `query_tasks` requires explicit detail, comments, and page-size options and returns bounded pages over five-minute frozen results. Batch UUID/display-ID lookup reports ordered per-input outcomes, comments are optional, and opaque cursors expire or invalidate on server restart. Existing filters are preserved; the query response changes from an array to an object containing results, next cursor, and expiry.
+
 - Support Xcode 27 / Swift 6.4 with AsyncAlgorithms 1.1.3, explicit sendable counter-store isolation, and compiler-compatible test fixture conformances.
 - Validate the create-task project-description source literal through a CLI guard before lint/tests, avoiding host-checkout reads that stall GUI-launched test runners.
 
