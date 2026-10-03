@@ -149,6 +149,8 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                               comments: includedComments.map(commentValue))
         } catch let error as MCPReadCaptureError {
             throw error
+        } catch is MCPCanonicalJSON.Error {
+            throw MCPReadCaptureError.serializationFailure
         } catch {
             throw MCPReadCaptureError.storageFailure
         }

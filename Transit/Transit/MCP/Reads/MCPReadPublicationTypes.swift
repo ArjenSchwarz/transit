@@ -6,7 +6,7 @@ nonisolated struct MCPPublicationStoreID: Hashable, Sendable {
     let rawValue: UUID
 }
 
-nonisolated enum PublicationRejection: Hashable, Sendable {
+nonisolated enum PublicationRejection: Error, Hashable, Sendable {
     case busy
     case expired
     case capacity

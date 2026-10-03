@@ -89,13 +89,14 @@ references:
   - Requirements: [1.4](requirements.md#1.4), [1.6](requirements.md#1.6), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
-- [ ] 9. Green: implement shared publication domain and migrate ordinary retention <!-- id:vh146y8 -->
+- [x] 9. Green: implement shared publication domain and migrate ordinary retention <!-- id:vh146y8 -->
   - Implement common T63-owned MCPReadPublicationDomain and immutable prepared reservation/candidate machinery. Coalesce selected same-store changes outside gate, atomically transfer reservation ownership, validate complete selected set and terminal/generation/cutoff, then nonthrowing swaps plus encoded-response selection.
   - On validation rejection choose prepared matching error or whole-batch fallback; discard all unselected reservations exactly once. No fetch/encoding/callback/nestedstorelock/bulkindexcopy or final large destruction under gate.
   - Migrate ordinary task-query retention to the domain while preservingeight snapshots/16 MiB/300 seconds and original metadata bytes. T2382 owns its separate8views/16 MiB store and hooks; do not implement or edit that store independently. Run task 8.
   - Two-way handoff: after task 3 saved/canonical risk proof, task 7 transport risk proof and task 9 shared publication tests pass, give parent the verified local foundation commit and interface/test evidence for T2382 to consume. This handoff has NO T2382 module dependency. T2382 then implements separate modules while T63 continues tasks 10–15; actual cross-ticket acceptance waits until tasks 13/16. No remote push/publication is implied by this local handoff.
   - Blocked-by: vh146y7 (Red: add atomic publication and ordinary-cursor race tests)
   - Stream: 1
+  - Owner: t63-publication-runtime
   - Requirements: [1.4](requirements.md#1.4), [1.6](requirements.md#1.6), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 

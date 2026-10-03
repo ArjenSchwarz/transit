@@ -165,7 +165,8 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
 
     private func offer(_ prepared: PreparedReadResult, for id: UUID) {
         let distinctStores = Set(prepared.publications.map(\.publicationStoreID))
-        let completion = domain.withLock { () -> (CheckedContinuation<Data, Never>, Data)? in
+        let (completion, retired) = domain.withLockRetainingRetirement {
+            () -> (CheckedContinuation<Data, Never>, Data)? in
             guard let entry = entries[id], admissionOpen, entry.generation == generation,
                   entry.selected == nil, .now < entry.deadline else {
                 for publication in prepared.publications { publication.discardLocked(in: domain) }
@@ -188,6 +189,7 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
             return selectLocked(prepared.encodedResponse, entry: entry)
         }
         if let (continuation, data) = completion { continuation.resume(returning: data) }
+        withExtendedLifetime(retired) {}
     }
 
     private func physicalFinished(_ id: UUID) {
