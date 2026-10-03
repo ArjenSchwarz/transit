@@ -20,7 +20,6 @@ final class TransitUITestsLaunchTests: XCTestCase {
     @MainActor
     func testLaunch() throws {
         let app = XCUIApplication()
-        app.launchEnvironment["TRANSIT_PERSISTENCE_MODE"] = "ui-test"
         app.launch()
 
         // Insert steps here to perform after app launch but before taking a screenshot,

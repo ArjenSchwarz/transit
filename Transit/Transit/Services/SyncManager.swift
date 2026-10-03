@@ -45,8 +45,6 @@ final class SyncManager {
 
     private let heartbeatFetcher: HeartbeatFetcher
     private let heartbeatSaver: HeartbeatSaver
-    /// Development and test bootstrap can prohibit sync regardless of saved preferences.
-    let cloudSyncAllowed: Bool
 
     /// True when the preference no longer matches the mode the live container runs in,
     /// i.e. the user changed the toggle and has not relaunched yet.
@@ -55,7 +53,6 @@ final class SyncManager {
     }
 
     init(
-        cloudSyncAllowed: Bool = true,
         heartbeatFetcher: @escaping HeartbeatFetcher = { context, descriptor in
             try context.fetch(descriptor)
         },
@@ -65,11 +62,10 @@ final class SyncManager {
     ) {
         // Default to enabled if never set
         let defaults = UserDefaults.standard
-        if cloudSyncAllowed && defaults.object(forKey: Self.syncEnabledKey) == nil {
+        if defaults.object(forKey: Self.syncEnabledKey) == nil {
             defaults.set(true, forKey: Self.syncEnabledKey)
         }
-        let enabled = cloudSyncAllowed && defaults.bool(forKey: Self.syncEnabledKey)
-        self.cloudSyncAllowed = cloudSyncAllowed
+        let enabled = defaults.bool(forKey: Self.syncEnabledKey)
         self.isSyncEnabled = enabled
         self.isCloudSyncActive = enabled
         self.heartbeatFetcher = heartbeatFetcher
@@ -84,7 +80,6 @@ final class SyncManager {
     /// container and its heartbeat keep the CloudKit mode they launched with until the
     /// app is relaunched. Explicit MCP lifecycle operations own heartbeat start/stop.
     func setSyncEnabled(_ enabled: Bool) {
-        guard cloudSyncAllowed else { return }
         isSyncEnabled = enabled
         UserDefaults.standard.set(enabled, forKey: Self.syncEnabledKey)
     }
@@ -96,7 +91,7 @@ final class SyncManager {
     /// in-memory, CloudKit-free container — must call it with `false` so display-ID
     /// allocation is gated correctly (T-1797).
     func recordActiveCloudSync(_ active: Bool) {
-        isCloudSyncActive = active && cloudSyncAllowed
+        isCloudSyncActive = active
     }
 
     /// Creates a ModelConfiguration based on the current sync preference, and records

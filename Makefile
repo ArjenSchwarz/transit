@@ -5,8 +5,8 @@ SHELL = /bin/bash
 
 SCHEME = Transit
 PROJECT = Transit/Transit.xcodeproj
+BUNDLE_ID = me.nore.ig.Transit
 CONFIG ?= Debug
-BUNDLE_ID = $(if $(filter Debug,$(CONFIG)),me.nore.ig.Transit.development,me.nore.ig.Transit)
 
 # Pipe through xcbeautify if available, otherwise raw output
 XCBEAUTIFY := $(shell command -v xcbeautify 2>/dev/null)
@@ -72,7 +72,7 @@ test-create-task-project-schema-guard:
 	python3 tests/validation/create_task_project_schema_guard.py
 
 .PHONY: lint
-lint: test-model-container-ownership-guard test-create-task-project-schema-guard test-development-configuration
+lint: test-model-container-ownership-guard test-create-task-project-schema-guard
 	swiftlint lint --strict --cache-path $(SWIFTLINT_CACHE)
 
 .PHONY: lint-fix
@@ -146,50 +146,6 @@ build: build-ios build-macos
 # Set MCP_PROBE_SWIFT_FLAGS=-disable-sandbox there; the outer runner policy stays active.
 MCP_PROBE_SWIFT_FLAGS ?=
 MCP_PROBE_MODELS = Transit/Transit/Models/{Project,TransitTask,Comment,Milestone,SyncHeartbeat,DisplayID,TaskPriority,TaskStatus,TaskType,MilestoneStatus,MCPWriteReceipt}.swift
-
-# These standalone executables never launch Transit. Runtime children use a
-# network-denying sandbox and synthetic stores confined to DerivedData/tmp.
-.PHONY: test-development-isolation
-test-development-isolation: prepare-cache-dirs test-development-configuration
-	xcrun swiftc -parse-as-library -module-cache-path $(CLANG_MODULE_CACHE) \
-		Transit/Transit/Services/AppPersistencePolicy.swift tests/development-isolation/PolicyProbe.swift \
-		-o $(DERIVED_DATA)/persistence-policy-probe
-	xcrun swiftc -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
-		$(MCP_PROBE_MODELS) Transit/Transit/MCP/Writes/{MCPCanonicalJSON,MCPRecordRevision}.swift \
-		Transit/Transit/Services/{AppPersistencePolicy,IsolatedPersistenceConfiguration}.swift \
-		tests/development-isolation/MigrationProbe.swift \
-		-o $(DERIVED_DATA)/isolated-migration-probe
-	xcrun swiftc -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
-		$(MCP_PROBE_MODELS) \
-		Transit/Transit/Services/{AppPersistencePolicy,AppDisplayIDAllocators,DisplayIDAllocator,CloudKitCounterStore,UsedDisplayIDs,DisplayIDRecordLookup,ModelFetching}.swift \
-		tests/development-isolation/BootstrapProbe.swift -o $(DERIVED_DATA)/isolated-bootstrap-probe
-	python3 tests/development-isolation/run.py $(DERIVED_DATA)/persistence-policy-probe \
-		$(DERIVED_DATA)/isolated-migration-probe $(DERIVED_DATA)/isolated-bootstrap-probe \
-		$(DERIVED_DATA)/isolation-verification.json
-
-.PHONY: test-development-configuration
-test-development-configuration:
-	python3 tests/development-isolation/configuration_guard.py
-
-.PHONY: build-development-macos
-build-development-macos: prepare-cache-dirs
-	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild build \
-		-project $(PROJECT) -scheme TransitDevelopment -configuration Debug \
-		-destination 'platform=macOS' -jobs 2 \
-		-disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
-		$(XCODEBUILD_CACHE_FLAGS) CODE_SIGNING_ALLOWED=NO $(PIPE_PRETTY)
-
-# Single opt-in host fixture; inspect the signed artifact before launching it.
-SMOKE_DERIVED_DATA ?= $(DERIVED_DATA)/isolation-host
-.PHONY: test-isolated-host-smoke
-test-isolated-host-smoke: prepare-cache-dirs test-development-configuration
-	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild build-for-testing \
-		-project $(PROJECT) -scheme TransitIsolationSmoke -configuration Debug \
-		-destination 'platform=macOS,arch=arm64' -jobs 2 -parallel-testing-enabled NO \
-		-disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
-		-derivedDataPath $(SMOKE_DERIVED_DATA) CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= $(PIPE_PRETTY)
-	python3 tests/development-isolation/host_smoke.py $(SMOKE_DERIVED_DATA)/Build/Products
-
 .PHONY: test-mcp-write-guards
 test-mcp-write-guards: prepare-cache-dirs
 	xcrun swiftc $(MCP_PROBE_SWIFT_FLAGS) -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \

@@ -6,6 +6,19 @@ final class TransitUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    // MARK: - Helpers
+
+    private func launchApp(scenario: String? = nil) -> XCUIApplication {
+        let app = XCUIApplication()
+        if let scenario {
+            app.launchEnvironment["TRANSIT_UI_TEST_SCENARIO"] = scenario
+        } else {
+            app.launchEnvironment["TRANSIT_UI_TEST_SCENARIO"] = "empty"
+        }
+        app.launch()
+        return app
+    }
+
     // MARK: - Empty States
 
     @MainActor
@@ -339,21 +352,5 @@ final class TransitUITests: XCTestCase {
         // XCUITest cannot directly verify opacity, but we verify the task card exists
         let abandonedTask = app.staticTexts["Old Abandoned"]
         XCTAssertTrue(abandonedTask.waitForExistence(timeout: 5))
-    }
-}
-
-private extension TransitUITests {
-    // MARK: - Helpers
-
-    private func launchApp(scenario: String? = nil) -> XCUIApplication {
-        let app = XCUIApplication()
-        app.launchEnvironment["TRANSIT_PERSISTENCE_MODE"] = "ui-test"
-        if let scenario {
-            app.launchEnvironment["TRANSIT_UI_TEST_SCENARIO"] = scenario
-        } else {
-            app.launchEnvironment["TRANSIT_UI_TEST_SCENARIO"] = "empty"
-        }
-        app.launch()
-        return app
     }
 }
