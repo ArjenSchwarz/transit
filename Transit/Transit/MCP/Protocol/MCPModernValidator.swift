@@ -108,13 +108,29 @@ nonisolated enum MCPModernValidator {
             guard let notifications = params.field("notifications"), case .object(let fields) = notifications else {
                 throw reject(400, -32602, "Subscription notifications must be an object", id: id)
             }
-            for field in fields {
-                guard case .boolean = field.value else {
-                    throw reject(400, -32602, "Notification filters must be Boolean", id: id)
-                }
-            }
+            try validateSubscriptionFilters(fields, id: id)
             return .listenSubscriptions
         default: throw reject(404, -32601, "Method is unavailable", id: id)
+        }
+    }
+
+    private static func validateSubscriptionFilters(_ fields: [MCPJSONMember], id: JSONRPCId) throws {
+        for field in fields {
+            switch field.name {
+            case "toolsListChanged", "promptsListChanged", "resourcesListChanged":
+                guard case .boolean = field.value else {
+                    throw reject(400, -32602, "List-change notification filters must be Boolean", id: id)
+                }
+            case "resourceSubscriptions":
+                guard case .array(let uris) = field.value, uris.allSatisfy({ $0.text != nil }) else {
+                    throw reject(400, -32602, "Resource subscriptions must be an array of strings", id: id)
+                }
+            default:
+                // The normative SubscriptionFilter JSON Schema leaves additional
+                // properties unconstrained. Preserve valid unknown JSON; the stream
+                // acknowledges only supported requested filters, never these extras.
+                continue
+            }
         }
     }
 
@@ -199,8 +215,10 @@ nonisolated enum MCPModernValidator {
         guard name.utf8.allSatisfy({ (0x20...0x7E).contains($0) }) else {
             throw reject(400, -32020, "Mcp-Name must be printable ASCII or encoded UTF-8", id: id)
         }
-        if name.hasPrefix("=?base64?") {
-            guard name.hasSuffix("?=") else { throw reject(400, -32020, "Invalid encoded Mcp-Name", id: id) }
+        guard name.first != " ", name.last != " " else {
+            throw reject(400, -32020, "Padded Mcp-Name values require Base64 encoding", id: id)
+        }
+        if name.hasPrefix("=?base64?"), name.hasSuffix("?=") {
             let token = String(name.dropFirst(9).dropLast(2))
             guard let data = Data(base64Encoded: token), data.base64EncodedString() == token,
                   let decoded = String(data: data, encoding: .utf8) else {
