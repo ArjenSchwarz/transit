@@ -69,3 +69,7 @@ The user approved both task lists: “Tasks approved, but why so many explicit m
 ## Verified interface-only foundation
 
 Commits `1b34efb` and `52e4882` define actual shared interfaces; focused typechecking and lint passed. T2382 confirmed the DTO fields satisfy its handoff. Requested comment-body JSON is optional with includeComments=false; complete portfolio canonical revision/full no-comment record/comment identity evidence remain mandatory. Stable MCPPublicationStoreID and MCPReadPublicationParticipant.prepareAggregate provide same-store grouping before terminal selection; task 9 owns concrete single-domain registry/lookup/reservation/retirement behavior. This is an interface handoff, not runtime risk verification.
+
+## Fixture foundation verified
+
+Tasks 2/3/6/7 passed 17 focused actual app tests, including saved-only SwiftData/canonical revision and real Hummingbird encoded availability. Large fallback admission/stop/cutoff races were corrected before handoff. Exact measured values, preserved result paths, observation-hook limitations and the coordinated task 9 registry contract are recorded in foundation-handoff.md. No signed-store import-visible proof is claimed; approved unknown/null/unavailable and incoherent_capture fallbacks remain binding. Tasks 8/9 are handed to a fresh parent-coordinated implementation delegate; no competing heavy job remains.
