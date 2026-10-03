@@ -1,6 +1,6 @@
 # Shared read contract proposal — T-63 and T2382
 
-Status: draft for parent and user review. This is a coordination proposal, not an approved design or wire schema.
+Status: draft for parent and user review. The user approved preserving existing payloads with additive metadata, refresh_if_needed default, five-second total/two-second refresh limits, the mixed-batch delivery exception, same-snapshot summary/task-query reuse, and deferring a separate refresh tool and maintenance reads. The parent assigned T2382 external snapshot API/lifecycle and T-63 compatible shared capture/freshness. Remaining fields, 30-second import threshold, admission bounds, and exact schema/integration are not approved requirements or design.
 
 ## Meaning of a captured view
 
@@ -48,11 +48,11 @@ Use UTC ISO 8601 with a documented precision for wire dates, and a monotonic clo
 
 ## Policy, deadlines, and errors
 
-`cached` captures the local view without import waiting. It does not mean bypassing the local store, and still has a fetch/encoding deadline. `refresh_if_needed` skips waiting if evidence meets the configured recency threshold; otherwise it attempts or observes refresh activity within the remaining total budget. If the platform cannot trigger an import, disclose `unavailable` and return a local view within the deadline.
+`cached` captures the local view without import waiting. It does not mean bypassing the local store, and still has a fetch/encoding deadline. `refresh_if_needed` skips waiting if evidence meets the configured recency threshold; otherwise it attempts or observes refresh activity within the remaining total budget. Absence of a supported trigger yields `unavailable` only when there is also no relevant import already in flight. An existing relevant import can instead complete, fail, or time out during the bounded observation interval.
 
 Proposed refresh outcomes: `not_requested`, `recent_import`, `import_observed`, `timeout`, `unavailable`, `failed`. These describe refresh handling separately from freshness assessment and local fetch success. An observed failed import can coexist with valid cached data and a prior successful import timestamp. No outcome claims guaranteed CloudKit force-pull.
 
-Proposed defaults are a five-second total server read budget, at most two seconds of import waiting, and a 30-second recent-import threshold. These require user approval and feasibility validation. Admission queueing, capture, transformation, and serialization share one deadline; the refresh wait is not extra time on top of it.
+Approved limits are a five-second total server read budget and at most two seconds of import waiting. A 30-second recent-import threshold remains proposed. Admission queueing, capture, transformation, and serialization share one deadline; the refresh wait is not extra time on top of it. Individual/read-only batch responses have that deadline; mixed batches produce read results within it but may await write completion for combined delivery, as the user approved.
 
 If the deadline leaves no usable captured result, return a machine-readable `READ_TIMEOUT`, indicating the exhausted phase when known. A fetch or encode failure returns `READ_FAILED` with a stable failure category, or the existing tool error code if compatibility requires it. Keep validation/cursor/capacity errors distinct. Never return empty results to disguise failure. Both names remain proposals until the error compatibility decision is made.
 
@@ -60,9 +60,11 @@ Retries start a new bounded read and a new capture, except cursor retries replay
 
 ## T2382 integration boundary
 
-Portfolio totals and milestone breakdowns must be derived from one immutable capture and carry this same metadata. T-63 owns the shared deadline, policy, and import-evidence service proposal; T2382 owns summary aggregation and identity/status semantics. Parent coordinates MCPToolHandler, MCPToolDefinitions, server deadline wiring, and any cross-ticket snapshot storage changes.
+Portfolio totals and milestone breakdowns must be derived from one coherent immutable capture and carry this same metadata. Import evidence applies only after the completed import is visible to that selected view. T-63 owns the shared deadline, policy, and import-evidence service proposal; T2382 owns summary aggregation and identity/status semantics. Parent coordinates MCPToolHandler, MCPToolDefinitions, server deadline wiring, and any cross-ticket snapshot storage changes.
 
-Two independent captures cannot be promised to reconcile merely because both say `asOf`. To satisfy T2382's same-snapshot acceptance, either a shared snapshot must support both summaries and filtered queries, or the contract must provide another verified way to compare counts within the identical captured dataset. Whether externally reusable snapshots belong in T-63 or T2382 requires an explicit ownership decision. Existing task cursors remain opaque page tokens, not automatically general-purpose snapshot selectors.
+Two independent captures cannot be promised to reconcile merely because both say `asOf`. T2382's approved same-snapshot behavior needs a shared retained view supporting both summaries and filtered queries. Existing task cursors remain opaque page tokens, not automatically general-purpose snapshot selectors; the reusable snapshot selector is T2382's API/lifecycle scope.
+
+The user approved summary and detailed task queries using the same saved snapshot. The parent assigned T2382 the externally reusable summary/task-query snapshot API and lifecycle; T-63 shared capture/freshness must preserve retained capture identity. When that mechanism reuses a view, summary and query preserve its identity, capture time, and import evidence. Exact API/storage integration remains a design gate.
 
 ## Verification needed in the design phase
 

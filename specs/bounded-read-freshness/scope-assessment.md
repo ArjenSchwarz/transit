@@ -1,12 +1,12 @@
 # T-63 — Bounded reads and explicit freshness
 
-Review state: proposal; no requirements, design, tasks, or implementation approval recorded.
+Review state: scope, full spec type, and name approved by the user in the parent conversation on 2026-10-03. Requirements, design, tasks, and implementation are not approved.
 
 ## Scope and workflow
 
 Transit MCP reads can return an old local view without disclosing its limitations. The live ticket also records 30–50 second client timeouts whose cause remains unknown. This feature must bound completion across the whole server read path and expose honest local capture and import evidence.
 
-The requested full spec workflow is appropriate: this changes a public MCP response contract used by other agents, and both the default refresh policy and compatibility envelope need user decisions. The approach to bounding synchronous SwiftData reads also needs design work. Proposed feature name: `bounded-read-freshness`; the review directory is provisional until the user accepts or overrides it.
+The requested full spec workflow is appropriate: this changes a public MCP response contract used by other agents, and both the default refresh policy and compatibility envelope need user decisions. The approach to bounding synchronous SwiftData reads also needs design work. The user approved the full spec route and feature name `bounded-read-freshness`.
 
 ## Evidence from this checkout
 
@@ -31,14 +31,15 @@ The requested full spec workflow is appropriate: this changes a public MCP respo
 7. Preserve write behavior and existing explicit store failure results. Do not turn a failing fetch into an empty success.
 8. Document retry behavior and exercise unknown/delayed/failed imports, inactive sync, slow/failing fetches, concurrent requests, and snapshot pagination.
 
-## Decisions for the parent to surface
+## Behavioral decision record
 
-- Accept the full spec route and proposed name `bounded-read-freshness` (or provide another name).
-- Compatibility: preserve current data payloads and attach additive metadata through MCP result metadata, or adopt versioned JSON envelopes? `query_tasks` already has an envelope; milestone/project responses are arrays.
-- Default policy: recommend `refresh_if_needed`, with a recent-import threshold of 30 seconds and at most two seconds of freshness waiting; offer `cached` for callers that want immediate local evidence.
-- Proposed total server budget: five seconds from decoded read admission to encoded result, including MainActor queueing. The network/client transport time is outside this server guarantee. This number is proposed, not approved or proven.
-- Scope: defer a separate refresh MCP tool unless the user requires it. A per-read policy can provide a bounded refresh attempt without promising force-pull support.
-- T2382 reconciliation: identical field names alone do not prove counts match across separately captured responses. Decide whether a summary and filtered query must share an addressable snapshot, or whether reconciliation is only defined within a shared capture.
+- Full spec route and name: approved.
+- Compatibility: approved preserving current text data payloads with additive outer MCP result metadata, including array/empty results.
+- Default policy: approved `refresh_if_needed` with optional `cached`, and at most two seconds of freshness waiting. A 30-second recent-import threshold remains proposed.
+- Total server budget: approved five seconds including queueing/capture/encoding; individual and read-only batch responses meet it, while mixed write batches may delay combined delivery after bounded read result production.
+- Scope: approved deferring a separate refresh tool and maintenance reads.
+- T2382 reconciliation: approved using the same saved snapshot for summaries and detailed task queries. Parent assigned T2382 external API/lifecycle and T-63 compatible shared capture/freshness.
+- Pending requirements approval: 30-second threshold, eight unfinished read admission bound, latency diagnostics, and final EARS document.
 
 ## Technical risk for design
 
@@ -50,6 +51,6 @@ The session uses workspace-write with automatic approval review. Supported per-c
 
 ## Approval sequence
 
-The local creating-spec skill says each phase requires explicit approval. The requirements skill additionally requires the feature name answer before creating formal requirements. First surface the scope/name and behavioral choices above in the parent; then develop and review requirements. Stop again for requirements approval before design, design approval before tasks, and tasks approval before implementation. Keep the ticket at its observed `idea` state until the scope approval is recorded.
+Scope/name approval is now recorded and the ticket is in `spec`. The user also approved additive metadata, refresh_if_needed default, the five-second total and two-second refresh limits, and deferring the separate refresh tool and maintenance reads. The local creating-spec skill still requires requirements approval before design, design approval before tasks, and tasks approval before implementation. Remaining requirements choices stay pending and are surfaced through the parent.
 
 Implementation and pre-push-review, including its Pulsar step, are later phases. Coordinate shared MCP wiring and any heavy tests through the parent. No merge or deployment is authorized.
