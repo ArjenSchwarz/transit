@@ -22,6 +22,34 @@
 
 | 2026-10-03 | Individual reads/read-only batches have a five-second response limit; mixed read/write batches produce the read result within five seconds but delivery may wait on writes | Parent conveyed direct user “That's acceptable” (Sentinel_a44f8dbe8f1c8191a055e45169b5e685) replying to that exact distinction. Preserves write behavior without claiming an overall mixed-batch delivery deadline. |
 
-## Pending requirements choices
+## Requirements choices (now approved)
 
-The requirements draft additionally recommends a 30,000 ms recency threshold, eight unfinished reads as an operation-count admission bound, and server phase/late-completion diagnostics to investigate the ticket's unexplained latency. Final requirements and exact metadata/error semantics remain pending. Requirements, design, and tasks approvals remain separate gates.
+The requirements draft recommended a 30,000 ms recency threshold, eight unfinished reads as an operation-count admission bound, and server phase/late-completion diagnostics. Those requirements decisions are now approved as recorded below. Exact design mechanisms and tasks retain their separate approval gates.
+
+## Requirements approval
+
+| Date | Decision | Rationale / authority |
+| --- | --- | --- |
+| 2026-10-03 | Both final requirements packets and all decisions within them approved, including 30-second threshold, eight physical unfinished reads, and latency diagnostics | Parent conveyed direct user “Both are approved for all decisions, including the ones in the requirements review” (Sentinel_fa39017e21a08191abdcd0b7ae6c9e8e). Design, tasks, and production implementation are not approved. |
+| 2026-10-03 | T-63 is single writer for shared MCPServer, MCPToolHandler init/dispatch/read-only registration, MCPToolDefinitions wiring, and shared metadata DTOs | Parent coordination; T2382 supplies separate summary/snapshot query/schema modules and owns reusable snapshot lifecycle/API. Coordination is not user design approval. |
+| 2026-10-03 | Return saved data only for MCP reads/summaries | Parent conveyed direct user “If something isn't saved, it shouldn't be returned” (Sentinel_bb00a4d9d8688191a33a0e6a34ea38db). Requirement 2.6 and fresh-context design follow this explicit clarification; no need to ask again about pending UI edits. |
+
+## Design ADR 1 — independent physical work and response completion
+
+Use transport-side one-shot completion with an independent strict deadline timer. Keep each underlying worker admitted until it physically finishes, including after timeout and server generation changes. A structured task-group race waits for non-cooperative children at scope exit; a MainActor timer cannot run during a blocked fetch. Neither satisfies the approved response deadline.
+
+The standalone Swift6.4 prototype measured the default asyncAfter timer returning at 5,164 ms despite a 4,850 ms schedule. A strict DispatchSourceTimer with zero leeway, userInitiated queue, and explicit @concurrent entry produced eight encoded timeouts by 4,850.49 ms and their batch by 4,851.15 ms while MainActor was blocked for six seconds. Eight unfinished slots persisted until work actually completed; restart did not reset them; no late publication occurred. This validates the isolated mechanism, not complete production transport performance.
+
+## Design ADR 2 — fresh capture plus persistent history fence
+
+Capture saved state from a fresh autosave-disabled ModelContext in one nonawaiting MainActor turn. Read the latest public persistent-history token/storeIdentifier before capture and again through a fresh validation context afterwards; reject unequal/unavailable/invalid fencing. Copy only immutable DTOs and bytes across executors. Do not transact, save, or roll back the UI's shared context.
+
+The isolated SwiftData probe injected a saved project/task change between selected fetches. It observed old/new values but detected a changed history token and rejected that view; a stable fresh context returned saved new/new values. MainActor serialization alone excludes local actor reentrancy but not CloudKit/background store commits. History fencing supplies a measurable consistency check without private Core Data context access. CloudKit import/history identifier and visible-history completeness still need live signed-app verification; freshness remains unknown if association cannot be proved.
+
+## Merged foundation verification
+
+PR249 is merged at `201205bd4e786c7f152d8f99006b37da7da888c7`, also current remote main. Its tree is identical to previously inspected T2380 head `b618acf9e3d66a4a1ce493eea94091c058721731`; canonical r1/comment behavior needs no design change. Align the dedicated branch before production implementation, preserving this spec work and all other worktrees.
+
+## Design ADR 3 — shared publication transaction
+
+T-63 and T2382 agreed one common publication lock domain with pre-encoded success/rejection bytes, pending-plus-published capacity, same-store batch coalescing into one immutable index candidate, atomic child-reservation transfer, validate-all-before-any-commit, and one index swap per store. Read-only batch selection publishes all selected children together or discards all. Stale append CAS returns READ_BUSY rather than overwriting another index. Internal peer review identified the same-store lost-update gap and the design adopted this correction. These mechanisms remain proposed until final design approval.

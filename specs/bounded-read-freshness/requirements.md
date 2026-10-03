@@ -2,7 +2,7 @@
 
 Transit agents need to know when a read describes only the endpoint's local view and when that view was captured. Headless CloudKit imports may lag, and read latency has exceeded client deadlines without an established cause. This feature makes those limits visible and gives callers a bounded success or failure response.
 
-Review status: draft for user approval. Scope, full spec type, name, additive metadata, refresh_if_needed default, the 5,000 ms total/2,000 ms refresh limits, the mixed-batch delivery exception, and deferring a separate refresh tool and maintenance reads are approved. The 30,000 ms import threshold, admission limit, remaining details, and final requirements are not yet approved.
+Review status: approved in full by the user in the parent conversation on 2026-10-03, including the 30,000 ms threshold, eight unfinished-read admission limit, diagnostics, and all decisions in the requirements review. Design, tasks, and production implementation remain gated separately.
 
 ## Proposed observable contract
 
@@ -47,7 +47,7 @@ The import recency threshold, admission bound, and latency diagnostics are recom
 3. <a name="2.3"></a>WHEN cloud sync is active, the server SHALL classify a known relevant successful import of age 0–30,000 ms as `recent_import`, an older known import as `stale`, and absent, unreliable, or temporally inconsistent evidence as `unknown`; import recency SHALL NOT imply all remote edits are visible in the local view.  
 4. <a name="2.4"></a>IF successful import evidence cannot be tied to the running store and captured local view, the server SHALL report `unknown` rather than confirmed recency; heartbeat writes, failed/incomplete imports, and response timestamps SHALL NOT substitute for successful import evidence.  
 5. <a name="2.5"></a>WHEN a later import fails, the server SHALL preserve any valid last successful import timestamp and disclose the failed refresh outcome separately from local fetch success.  
-6. <a name="2.6"></a>WHEN a result includes task, project, milestone, or comment evidence, all selected records and relationships SHALL correspond to one immutable local observation boundary, with each completed saved change wholly represented or wholly absent from that selected view; IF that boundary cannot be established, the server SHALL return an `incoherent_capture` failure category. Import evidence SHALL NOT label data captured before that import became visible to the selected view as recent.  
+6. <a name="2.6"></a>WHEN a result includes task, project, milestone, or comment evidence, all selected records and relationships SHALL correspond to one immutable local observation boundary containing saved data only, with each completed saved change wholly represented or wholly absent from that selected view; unsaved UI/context changes SHALL NOT be returned. IF that boundary cannot be established, the server SHALL return an `incoherent_capture` failure category. Import evidence SHALL NOT label data captured before that import became visible to the selected view as recent.
 
 ### 3. Cached and bounded refresh policy
 
