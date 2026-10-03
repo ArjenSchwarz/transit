@@ -79,3 +79,7 @@ The capture/coordinator stream passed twelve focused app tests before the remain
 Read-only review identified a batch initialization race: stop could select an individual timeout before the complete array fallback was installed. The approved whole-array contract requires atomic same-generation admission with terminal selection deferred until the prebuilt full fallback is ready. The worker is adding forced stop/cutoff interleavings. Bulk fallback preparation remains outside the common publication lock; the original admission timestamp does not reset.
 
 Parent's separately approved latest-protocol T2383 migration does not alter the currently approved T-63 foundation work. Keep the coordinator transport-neutral and the current batch adapter separable; do not add dual-era behavior or remove approved batch tests before coordinated integration.
+
+## Fixture foundation verified
+
+Tasks 2/3/6/7 passed 17 focused actual app tests, including saved-only SwiftData/canonical revision and real Hummingbird encoded availability. Large fallback admission/stop/cutoff races were corrected before handoff. Exact measured values, preserved result paths, observation-hook limitations and the coordinated task 9 registry contract are recorded in foundation-handoff.md. No signed-store import-visible proof is claimed; approved unknown/null/unavailable and incoherent_capture fallbacks remain binding. Tasks 8/9 are handed to a fresh parent-coordinated implementation delegate; no competing heavy job remains.

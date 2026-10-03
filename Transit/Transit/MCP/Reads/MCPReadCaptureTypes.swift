@@ -137,6 +137,13 @@ nonisolated struct ReadCaptureRequest: Sendable {
     let includeComments: Bool
 }
 
+/// Local fence evidence only. This is not proof that a particular CloudKit import became visible.
+nonisolated struct MCPReadCaptureBoundary: Sendable {
+    let historyStoreIdentifier: String?
+    let generation: UInt64
+    let stablePersistentHistory: Bool
+}
+
 /// Synchronous actor entry: implementations must not suspend within the capture fence.
 nonisolated protocol MCPReadCaptureSource: Sendable {
     @MainActor func capture(_ request: ReadCaptureRequest) throws -> CapturedReadView

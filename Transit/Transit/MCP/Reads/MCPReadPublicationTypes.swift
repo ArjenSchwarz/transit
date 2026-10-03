@@ -1,10 +1,6 @@
 #if os(macOS)
 import Foundation
 
-/// Identity/injection seam only. Task 9 supplies the common lock and transactional behavior.
-/// No instance of this scaffold can publish or claim deadline/capacity guarantees.
-nonisolated final class MCPReadPublicationDomain: Sendable {}
-
 /// Stable identity of one retention store sharing the common publication domain.
 nonisolated struct MCPPublicationStoreID: Hashable, Sendable {
     let rawValue: UUID
