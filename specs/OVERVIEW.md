@@ -375,4 +375,5 @@ Immutable source/presentation results, supported-link availability and modern-on
 - [Source GREEN evidence](structured-mcp-results/source-green.md)
 - [Presentation RED evidence](structured-mcp-results/presentation-red.md)
 - [Presentation supplemental RED evidence](structured-mcp-results/presentation-supplemental-red.md)
+- [Pending common interface coordination](structured-mcp-results/interface-coordination.md)
 - [Protocol RED evidence](structured-mcp-results/protocol-red.md)
