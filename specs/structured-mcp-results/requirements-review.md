@@ -21,7 +21,7 @@ The critic also prompted self-check tightening: 4.1 excludes current related dis
 
 ## Client readiness risk
 
-Read-only checks: standalone Codex0.160.0 and bundled Codex0.159.2 feature lists show `mcp_2026_07_28` disabled/under development. Primary exact-release source and binary inspection establish code availability, not active negotiation. Claude Code2.1.288 has documented modern SDK/runtime support and cached HTTP negotiation enabled; no live modern connection has been established. Claude Desktop is not yet verified, and the intended Claude surface was asked through parent. Client configs and the running Transit server remain unchanged. Requirement6.3 blocks activation until actual intended clients are validated.
+Read-only checks: standalone Codex0.160.0 and bundled Codex0.159.2 feature lists show `mcp_2026_07_28` disabled/under development. Primary exact-release source and binary inspection establish code availability, not active negotiation. Claude Code2.1.288 has documented modern SDK/runtime support and cached HTTP negotiation enabled; no live modern connection has been established. User clarified both Claude Code and Claude Desktop. Installed Desktop2.19675.0's ASAR includes modern version selection/discovery/subscription/per-request metadata code in its direct MCP host and main bundle. The official Desktop MCP guide does not specify a revision, and local conventional config/log checks did not reveal Transit negotiation. Embedded support is evidence of available code, not enabled active modern negotiation. Client configs and the running Transit server remain unchanged. Requirement6.3 blocks activation until actual intended clients are validated.
 
 ## Peer validation
 
@@ -35,7 +35,7 @@ Mode: internal subagents, following the local peer-review-validator fallback. Th
 
 Consensus: preserve source result evidence and distinct supplemental namespace, keep frozen metadata/revisions, keep T-63 worker/publication constraints, and prove intended client modern access. Both peers accepted the critic fixes. The subscription gate was narrowed to the standard's opt-in behavior; no deferred transport or navigation framework was added. There are no unresolved reviewer disagreements.
 
-Remaining clarification through parent: confirm whether the intended Claude surface is Claude Code, Claude Desktop, or both. This selects the migration readiness fixture; it does not authorise settings changes. No active modern-only negotiation has been claimed from embedded symbols, old-server success or version numbers.
+Resolved clarification through parent: user requires **both Claude Code and Claude Desktop** (Sentinel_e3dcebb74f288191a3d42559f563ab5c). AC6.3 now explicitly names both beside actual intended installed Codex surfaces. This selects the migration readiness checks; it does not authorise settings changes or approve other requirements. No active modern-only negotiation has been claimed from embedded symbols, old-server success or version numbers.
 
 Formatting validation: all 27 acceptance criteria have unique anchors and required Markdown double-space line endings, and all six requirements have user stories. Git's default whitespace check flags those intentional skill-required line endings; a per-command check excluding end-of-line spaces verifies other whitespace errors without changing configuration. No application lint/build/test ran.
 
