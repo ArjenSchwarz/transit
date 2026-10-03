@@ -28,13 +28,18 @@ nonisolated enum MCPResultAdapter {
                                  evidence: evidence, checkpoint: checkpoint)
     }
 
-    /// Declaration-stage placeholder; deterministic selectors arrive after RED.
+    /// Source-only presentation; worker checkpoints preserve the original budget.
     static func present(
         _ source: MCPResultSource,
         context: MCPResultContext,
         checkpoint: @escaping @Sendable () throws -> Void = {}
     ) throws -> MCPResultPresentation {
-        throw MCPResultBoundaryError.notImplemented
+        try checkpoint()
+        let classification = try MCPResultClassification.inspect(source, context: context, checkpoint: checkpoint)
+        let links = try MCPResultLinks.build(source, context: context, checkpoint: checkpoint)
+        try checkpoint()
+        return MCPResultPresentation(evidence: classification.evidence, links: links,
+                                     errorCategory: classification.category, recovery: classification.recovery)
     }
 }
 #endif

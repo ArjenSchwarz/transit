@@ -44,7 +44,7 @@ metadata:
   - Requirements: [1.2](requirements.md#1.2), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.5](requirements.md#3.5), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4)
   - References: design.md, Transit/Transit/MCP/Results/MCPResultAdapter.swift
 
-- [ ] 5. GREEN: implement source-only presentation and typed provider selectors <!-- id:gpzncvp -->
+- [-] 5. GREEN: implement source-only presentation and typed provider selectors <!-- id:gpzncvp -->
   - Implement MCPResultAdapter.swift selector tables and typed additional provider positions, validate each UUID against immutable source, preserve array ordering and deterministic pointer/type/UUID ordering.
   - Produce explicit unavailable links and supplement-only categories/recovery. Known receipt codes use validated provider evidence; no localized message matching, live reread, receipt rewrite, fresh-key escape from uncertainty or revision minting. Pass task4.
   - Blocked-by: gpzncvo (RED: specify deterministic link, category and recovery presentation)
