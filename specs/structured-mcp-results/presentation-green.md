@@ -1,6 +1,6 @@
 # Task 5: presentation GREEN draft
 
-Status: READY for internal review and a separately granted focused app test. Rune task 5/gpzncvp remains in progress. This draft follows meaningful RED task4 at 99f8cbc (20 declarations/48 expanded failures); its fixtures remain unchanged. Common API delivery task15 is not complete.
+Status: readiness WITHDRAWN after internal critic found missing milestone project references and overly conservative known terminal-rejection recovery. Supplemental RED fixtures are drafted against unchanged runtime1652913; no runtime repair or focused app test is claimed. Rune task 5/gpzncvp remains in progress. This draft follows meaningful RED task4 at 99f8cbc (20 declarations/48 expanded failures); its fixtures remain unchanged. Common API delivery task15 is not complete.
 
 Owned runtime files are MCPResultAdapter.swift and the new MCPResultInspection.swift, MCPResultClassification.swift and MCPResultLinks.swift under MCP/Results. They inspect the immutable source only, without live models, receipt writes, key acceptance, current-revision synthesis or navigation URLs.
 
