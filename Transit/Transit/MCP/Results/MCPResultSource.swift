@@ -22,6 +22,61 @@ nonisolated struct MCPResultSource: Sendable {
     let document: MCPJSONDocument?
     let kind: MCPResultSourceKind
     let evidence: MCPResultEvidence
+
+    private init(
+        originalText: String,
+        originalIsError: Bool?,
+        document: MCPJSONDocument?,
+        kind: MCPResultSourceKind,
+        evidence: MCPResultEvidence
+    ) {
+        self.originalText = originalText
+        self.originalIsError = originalIsError
+        self.document = document
+        self.kind = kind
+        self.evidence = evidence
+    }
+
+    static func make(
+        text: String,
+        isError: Bool?,
+        origin: MCPResultOrigin,
+        evidence: MCPResultEvidence,
+        checkpoint: @escaping @Sendable () throws -> Void = {}
+    ) throws -> MCPResultSource {
+        if case .plainText = origin {
+            return MCPResultSource(originalText: text, originalIsError: isError, document: nil,
+                                   kind: .text, evidence: evidence)
+        }
+        do {
+            let document = try MCPJSONDocument.parse(text) {
+                do { try checkpoint() } catch { throw MCPSourceCheckpointError(underlying: error) }
+            }
+            return MCPResultSource(originalText: text, originalIsError: isError, document: document,
+                                   kind: .json, evidence: evidence)
+        } catch let failure as MCPSourceCheckpointError {
+            throw failure.underlying
+        } catch MCPResultBoundaryError.invalidJSON where Self.isRetained(origin) {
+            return unreadable(text: text, isError: isError)
+        } catch MCPResultBoundaryError.resourceLimit where Self.isRetained(origin) {
+            return unreadable(text: text, isError: isError)
+        }
+    }
+
+    private static func isRetained(_ origin: MCPResultOrigin) -> Bool {
+        if case .retainedJSON = origin { return true }
+        return false
+    }
+
+    private static func unreadable(text: String, isError: Bool?) -> MCPResultSource {
+        MCPResultSource(originalText: text, originalIsError: isError, document: nil,
+                        kind: .unreadable, evidence: .unestablished)
+    }
+}
+
+/// Keeps checkpoint-originated failures distinct even if they share parser codes.
+nonisolated private struct MCPSourceCheckpointError: Error {
+    let underlying: any Error
 }
 
 nonisolated enum MCPResultErrorCategory: String, Sendable {
