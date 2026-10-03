@@ -12,7 +12,13 @@ MCP session. Request identity includes every argument except the key, including 
 Object order is ignored; array order, Boolean versus number, absence versus null and explicit versus
 omitted defaults remain significant. JSON numbers are compared by value.
 
-For example, read `query_tasks` with `{"displayId":42}`, then call `update_task` with:
+For example, read `query_tasks` with
+`{"displayId":42,"detailLevel":"full","includeComments":false,"limit":1}`. The bounded response
+contains the task and revision in `results[0]`. Full reads always fetch complete comment state for
+that revision; `includeComments:false` omits only the comment payload. Summary reads without comments
+skip that fetch. A failed comment read aborts a full query without results or a cursor.
+
+Then call `update_task` with:
 
 ```json
 {"taskId":"<taskId from read>","name":"Reviewed","expectedRevision":"<revision from read>","idempotencyKey":"<fresh UUID>"}

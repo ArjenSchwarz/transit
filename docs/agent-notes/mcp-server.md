@@ -57,7 +57,7 @@ All eight write tools require `idempotencyKey`; updates and milestone deletion a
 
 `MCPTaskQueryRequest` validates initial options and cursor-only continuation.
 `MCPToolHandler+TaskQuery` copies all selected task/comment values into JSON pages
-synchronously on MainActor before publication. `MCPTaskQuerySnapshotStore` retains
+synchronously on MainActor before publication. Full queries fetch child-side comments once per unique task for a complete revision, even when `includeComments: false` omits their payload; summary queries with that option skip the fetch. Repeated batch IDs reuse one snapshot, and continuations retain frozen revisions without fetching. `MCPTaskQuerySnapshotStore` retains
 encoded pages for five minutes with monotonic expiry, at most eight multi-page
 snapshots and 16 MiB. Capacity rejection preserves existing cursors; reads do not
 extend lifetime. One-page results are byte-limited but need no retained snapshot.

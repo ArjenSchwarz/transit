@@ -15,6 +15,7 @@
 | Q9 | 2026-10-03 | Use branch `T-2379/batch-task-queries`. | User requested this exact name and switched the worktree; the current branch was verified before handoff. |
 | Q10 | 2026-10-03 | Implementation phase complete; all nine tasks and phase review passed. | macOS tests and lint passed; the malformed-cursor review finding was fixed and nine focused regression tests passed. Implementation is committed and ready for review. |
 | Q11 | 2026-10-03 | Share a formatter per query and repair the frozen-comment regression assertion. | Pre-push review found repeated formatter setup and a continued page that contained no resolved task; the test now checks original comment values after changes, and the comments note reflects explicit inclusion. |
+| Q12 | 2026-10-03 | Full queries read complete comment state for write revisions even when comment payload is omitted. | User explicitly approved MCP Write Safety Decision 6 during rebase integration; summary reads without comments retain their no-fetch behavior. |
 
 ## Decision 1: Require Explicit Query Options Without Legacy Compatibility
 

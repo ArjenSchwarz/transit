@@ -69,7 +69,7 @@ Expose narrowly scoped service APIs to prepare and apply task/milestone creation
 | `ModelContext+SafeRollback.refaultAllEntities` | Yes | Refault `MCPWriteReceipt` after rollback. |
 | Handler create task/project/milestone and add-comment methods | Yes | Translate to prepared commands; use deferred domain persistence. |
 | Handler status/update task/update milestone/delete milestone methods | Yes | Check snapshot precondition and complete receipt in the same save. |
-| `taskToDict`, `milestoneToDict`, `projectMetadataDict`, `commentResponse`, `statusResponse` | Yes | MCP snapshot encoder emits full saved records and revisions, including nested full comments. Summary-only project/milestone entries remain summaries. |
+| `queryTaskDictionary`, `milestoneToDict`, `projectMetadataDict`, `commentResponse`, `statusResponse` | Yes | MCP snapshot encoder emits full saved records and revisions, including nested full comments. Summary-only project/milestone entries remain summaries. |
 | `TaskService.createTask` (UUID-project overload, AddTaskSheet, CreateTaskIntent, Visual/AddTaskIntent, MCP) | Yes for service internals; no new caller inputs outside MCP | Separate allocation from synchronous insert; existing callers retain create-and-save facade. |
 | `MilestoneService.createMilestone` (CreateMilestoneIntent, MilestoneEditView, MCP) | Yes for service internals; no new caller inputs outside MCP | Same prepare/apply split; existing callers retain facade. |
 | `ProjectService.createProject` (ProjectEditView, MCP); `deleteMilestone` (MilestoneListSection, DeleteMilestoneIntent, MCP) | Yes | Add deferred-save variants; current callers use saving defaults. |
@@ -115,7 +115,7 @@ Task revision capture fetches comments from the child side using `CommentService
 
 Keys match `[A-Za-z0-9._:-]{1,128}` and are case-sensitive; UUID strings are suitable keys. Expected revisions match `r1:[0-9a-f]{64}`. A request's canonical arguments preserve absent versus null fields, string contents, and array order; recursively sort object keys and compare JSON numbers by value (`1` equals `1.0`), with Booleans distinct from numbers. Omitted defaults and explicit defaults remain different payloads. The receipt version selects the canonicalizer for retained replay across app upgrades.
 
-Protected tool results use JSON in `content[0].text`, with `isError: true` for rejected or unresolved outcomes. Keep JSON-RPC errors for invalid protocol envelopes or unknown/disabled tools. The full record body uses existing normalized MCP field names and includes `revision`. All full records from read tools use the same encoder.
+Protected tool results use JSON in `content[0].text`, with `isError: true` for rejected or unresolved outcomes. Keep JSON-RPC errors for invalid protocol envelopes or unknown/disabled tools. The full record body uses existing normalized MCP field names and includes `revision`. All full records from read tools use the same encoder. Bounded task queries fetch complete child-side comment state for their revision even when `includeComments: false` omits the payload; summary queries with comments omitted retain their no-fetch behavior (Decision 6). Repeated batch identities reuse one capture, and continuation pages retain the original captured revision.
 
 ```json
 {

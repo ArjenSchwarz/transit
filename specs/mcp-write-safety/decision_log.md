@@ -190,3 +190,42 @@ The critic and both validation peers identified this gap. A durable payload bind
 **Negative:**
 - A local guard store adds durable metadata and cleanup coordination.
 - Receipt loss can require manual reconciliation even when no domain effect actually occurred.
+
+
+---
+
+## Decision 6: Capture Complete Revisions For Full Task Queries
+
+**Date**: 2026-10-03
+**Status**: accepted
+
+### Context
+
+T-2379 introduced bounded task queries whose `includeComments: false` option skipped comment retrieval, including full reads. T-2380 requires full task revisions to cover all comment fields and membership. Omitting that state from a token would allow a stale write after an unseen discussion change.
+
+### Decision
+
+Full task queries fetch complete child-side comment state once per unique resolved task and capture one `MCPRecordSnapshot`. `includeComments: false` omits only the comments payload. Summary queries with that option still skip comment retrieval. The user explicitly approved this integration during the PR rebase.
+
+### Rationale
+
+Callers can obtain a usable write precondition without transferring comments. Reusing the existing fetch seam and batch serialization cache preserves failure visibility, one capture per task, and frozen continuation pages.
+
+### Alternatives Considered
+
+- **Omit revisions from full reads without comments**: Preserves the original no-fetch behavior but leaves those reads unusable as write preconditions; the user chose complete revisions.
+- **Reject full reads without comments**: Avoids the conflicting guarantees but removes an approved query combination.
+- **Hash only the visible payload**: Misses comment changes and violates the approved revision boundary.
+
+### Consequences
+
+**Positive:**
+
+- Full list, single-ID, and batch results provide the same complete revision as protected writes.
+- Frozen pages retain their captured token; subsequent writes detect intervening comment changes.
+- Repeated batch identities reuse one fetched comment array and captured record.
+
+**Negative:**
+
+- Full reads now perform comment reads even when callers omit the payload.
+- A failed comment fetch aborts a full query without publishing results or a cursor.

@@ -109,3 +109,9 @@ Preconditions cannot detect CloudKit edits not yet imported, and later sync can 
 - Fully implemented: all eight protected writes, scoped keys, replay/recovery, revision checks, structured outcomes, retention, and documented service/API integration. All review findings are resolved.
 - Partially available review evidence: focused production probes and validators pass; fresh structured whole-suite and coverage data are unavailable under the configured runner map.
 - Missing implementation requirements: none identified. Release still requires the documented CloudKit schema publication; batch mutations and UI conflict rebasing remain separate scope.
+
+## Bounded-Query Integration
+
+After rebasing onto T-2379's bounded task queries, the user approved complete comment-covered revisions for every full read. `includeComments:false` hides comments from the response while still capturing their state; summary reads without comments retain zero-fetch behavior. UUID-keyed serialization memoization captures duplicate batch references once, and continuation pages preserve the original record/revision. The changed guarantee and alternatives are recorded in Decision 6 and the batch-query spec.
+
+Post-rebase verification passed 1,874 macOS tests and 1,308 combined iOS unit/UI tests, plus lint and syntax validation. New integration cases cover list/single/UUID/display batches, omitted comment payloads, fresh comment edits, frozen continuations, and stale-write rejection.

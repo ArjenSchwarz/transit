@@ -24,7 +24,7 @@ Pattern / consumer audit:
 | Existing call site | Needs equivalent? | Treatment |
 |---|---|---|
 | MCP list and display-ID paths call the handler's `taskToDict` | Yes | One query serializer uses explicit options and conditional comments. |
-| Handler's serializer calls `IntentHelpers.taskToDict` | Yes | Reuse for summary/full fields; append comments only when requested. |
+| Handler's serializer calls `IntentHelpers.taskToDict` | Yes | Reuse for summary fields; full fields/revisions use MCPRecordSnapshot and omit comment payload only when requested. |
 | `QueryTasksIntent` calls `IntentHelpers.taskToDict` twice | No | Preserve signatures and intent behavior; MCP envelope stays outside the shared helper. |
 | `MCPServer` retains one handler through lifecycle changes | Yes | Clear cache and close admission on teardown or unexpected current-listener exit; reset and reopen on launch. |
 | `MCPTestHelpers.decodeArrayResult` and MCP query tests | Yes | Add query-page decoding and explicit initial options; retain array decoding for unrelated tools. |
@@ -52,7 +52,7 @@ Successful list or single-ID response, inside the existing MCP text content:
 {"results":[{"taskId":"<uuid>","name":"Example","status":"idea","type":"chore","priority":"medium","lastStatusChangeDate":"<ISO8601>","description":null}],"nextCursor":"<opaque token>","expiresAt":"<ISO8601>"}
 ```
 
-`results` contains task dictionaries for list/single lookup and outcome dictionaries for batches. The final or empty page has `nextCursor: null`. Dates retain existing ISO 8601 formatting. Summary and full task fields follow requirements 1.2–1.3, including the existing nested milestone shape.
+`results` contains task dictionaries for list/single lookup and outcome dictionaries for batches. The final or empty page has `nextCursor: null`. Summary dates retain existing ISO 8601 formatting; full records use the shared snapshot encoder with fractional seconds. Summary and full task fields follow requirements 1.2–1.3, including the existing nested milestone shape. Full task and included full comment records also expose their revisions.
 
 Batch request and outcome examples:
 
@@ -78,7 +78,9 @@ For a list, use the injected `TaskFetching.fetchAllTasks`, apply existing resolv
 
 For batches, fetch all tasks once through `TaskFetching`, build a UUID or permanent-display-ID index, and resolve inputs in order. Retain all matches per key so duplicate identities produce ambiguity outcomes instead of taking the first task. This uses the existing failure-injection seam and avoids adding fetch protocols or per-item database operations. No mutation or save occurs.
 
-Serialize each unique resolved task once per query; repeated batch inputs reuse its dictionary. When comments are requested, fetch once per unique task, sort by `(creationDate, uppercase comment UUID)`, and copy comment fields into values. Comment omission never calls `CommentFetching`. Validate each page with `JSONSerialization.isValidJSONObject` and use throwing `data(withJSONObject:options:)` with no pretty printing. Do not use `IntentHelpers.encodeJSON`'s fallback for query pages. See [Foundation encoding API](https://developer.apple.com/documentation/foundation/jsonserialization/data%28withjsonobject%3Aoptions%3A%29).
+Serialize each unique resolved task once per query; repeated batch inputs reuse its dictionary. Full reads fetch child-side comments once through `CommentFetching`, pass that array to `MCPRecordSnapshot.task`, and project its record with the complete revision. Omit the comments payload when `includeComments` is false and omit empty metadata. The capture remains synchronous on MainActor; response and revision describe the same task/comment state. Full reads fail with `QUERY_FAILED` if comments cannot be captured, even when their payload is omitted, as approved in [MCP Write Safety Decision 6](../mcp-write-safety/decision_log.md#decision-6-capture-complete-revisions-for-full-task-queries).
+
+Summary reads retain `IntentHelpers.taskToDict`; they fetch comments only when requested, sort by `(creationDate, uppercase comment UUID)`, and copy their existing fields into values. Summary reads with `includeComments: false` never call `CommentFetching`. Validate each page with `JSONSerialization.isValidJSONObject` and use throwing `data(withJSONObject:options:)` with no pretty printing. Do not use `IntentHelpers.encodeJSON`'s fallback for query pages. See [Foundation encoding API](https://developer.apple.com/documentation/foundation/jsonserialization/data%28withjsonobject%3Aoptions%3A%29).
 
 ### Snapshot cache
 
@@ -125,7 +127,7 @@ Use Swift Testing, serialized MainActor suites, and `TestModelContainer` for int
 | Requirements | Checks |
 |---|---|
 | 1.1, 3.4–3.5, 4.3, 5.1 | Schema branches and parser agreement; missing/null/wrong-type options, boundaries, malformed arrays, mixed selectors, filters in batches, unknown keys, strict cursor-only requests. |
-| 1.2–1.5 | Summary/full fields, nil description, empty/nonempty metadata, unallocated display ID, comments omission with throwing fetcher, comment order/ties/empty arrays, failures before publication. |
+| 1.2–1.5 | Summary/full fields and complete full revisions, nil description, empty/nonempty metadata, unallocated display ID, summary comment omission with throwing fetcher, full comment-state failures with either payload option, comment order/ties/empty arrays, failures before publication. |
 | 2.1–2.4 | Existing filters and validation with new options; single match, missing/nonmatching/duplicate ID; deterministic UUID ordering and empty page; typed project/milestone storage failures versus not-found and ambiguity. |
 | 3.1–3.3 | UUID and display-ID batches, duplicates, original indexes across pages, missing/ambiguous matches, repeated task comment-fetch count. |
 | 4.1–4.2, 5.2 | 182 full-detail chores in two pages; mutate/delete/create tasks and comments between pages, verifying frozen results. |

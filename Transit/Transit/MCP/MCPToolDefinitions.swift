@@ -2,8 +2,7 @@
 
 // MARK: - Tool Definitions
 
-nonisolated // swiftlint:disable:next type_body_length
-enum MCPToolDefinitions {
+nonisolated enum MCPToolDefinitions {
     static let coreTools: [MCPToolDefinition] = [
         createTask, updateTaskStatus, queryTasks, addComment, getProjects, createProject,
         createMilestone, queryMilestones, updateMilestone, deleteMilestone, updateTask
@@ -119,7 +118,9 @@ extension MCPToolDefinitions {
     Filters are optional; displayId accepts the same filters. Choose at most one selector: displayId,
     taskIds or displayIds (batches of 1–100 identifiers, no filters). Returns {results,nextCursor,expiresAt}.
     Lists sort by task UUID; batch outcomes retain input order/index, requested identity, and task or error
-    (TASK_NOT_FOUND/AMBIGUOUS_TASK_ID). Full detail includes nullable description and nonempty metadata.
+    (TASK_NOT_FOUND/AMBIGUOUS_TASK_ID). Full detail includes nullable description, nonempty metadata and
+    a revision covering complete comment state. Full reads fetch comments even when includeComments=false;
+    that option omits only their payload. Summary reads with includeComments=false do not fetch comments.
     Continue with only cursor. Results are frozen for five minutes; replay does not extend expiry.
     Whole-query errors are {error:{code,message}}: INVALID_INPUT, AMBIGUOUS_TASK_ID, AMBIGUOUS_FILTER,
     QUERY_FAILED, INVALID_CURSOR (start a new query), QUERY_EXPIRED, QUERY_UNAVAILABLE, or
@@ -129,7 +130,7 @@ extension MCPToolDefinitions {
 
     nonisolated private static let queryTaskProperties: [String: JSONSchemaProperty] = [
                 "detailLevel": .stringEnum("Required task detail", values: ["summary", "full"]),
-                "includeComments": .boolean("Required: include comments ordered by creation date and UUID"),
+                "includeComments": .boolean("Required: include comment payload; full revisions always read comments"),
                 "limit": .integer("Required page size, 1 through 100"),
                 "taskIds": .array("Batch of 1 through 100 UUIDs; no filters or other selectors"),
                 "displayIds": .array(

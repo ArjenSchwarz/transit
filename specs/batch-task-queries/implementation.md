@@ -18,7 +18,7 @@ A snapshot is a temporary copy of the query results. A cursor is a random token 
 
 ### Architecture
 
-`MCPTaskQueryRequest` separates strict initial options from cursor-only continuation. The handler reuses existing filters and `IntentHelpers.taskToDict`, indexes one fetch for batches, and serializes each unique task and its requested comments once. Batch outcomes retain input indexes, including repeats and explicit missing/ambiguous-ID failures.
+`MCPTaskQueryRequest` separates strict initial options from cursor-only continuation. The handler reuses existing filters and the summary serializer, indexes one fetch for batches, and serializes each unique task once. Full records use one `MCPRecordSnapshot` from complete child-side comments even when the payload omits comments; summary reads omit the fetch when comments are not requested. Batch outcomes retain input indexes, including repeats and explicit missing/ambiguous-ID failures.
 
 ### Implementation Approach
 
@@ -32,7 +32,7 @@ Compatibility with the old request defaults and array payload was explicitly wai
 
 ### Contracts and Failure Boundaries
 
-Initial preparation is synchronous on MainActor, preventing app mutations from interleaving with selection and serialization. Requested-comment or storage failures abort publication; identifier failures stay local to batch outcomes. Lists sort by UUID, batches by input position, and comments by creation date then UUID. Continuation rejects extra options and never replaces an expired snapshot with current data.
+Initial preparation is synchronous on MainActor, preventing app mutations from interleaving with selection and serialization. Requested-comment, full-revision comment-state, or storage failures abort publication; identifier failures stay local to batch outcomes. Lists sort by UUID, batches by input position, and comments by creation date then UUID. Continuation rejects extra options and never replaces an expired snapshot with current data.
 
 ### Lifecycle and Memory
 

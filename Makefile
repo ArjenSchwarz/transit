@@ -180,13 +180,13 @@ check-mcp-write-lifecycle-syntax:
 .PHONY: check-mcp-write-handler-syntax
 check-mcp-write-handler-syntax:
 	xcrun swiftc -frontend -parse -swift-version 6 \
-		Transit/Transit/MCP/{MCPToolHandler,MCPToolDefinitions,MCPTypes}.swift
+		Transit/Transit/MCP/{MCPToolHandler,MCPToolHandler+TaskQuery,MCPTaskQueryRequest,MCPTaskQuerySnapshotStore,MCPToolDefinitions,MCPTypes}.swift
 
 check-mcp-write-handler: prepare-cache-dirs
 	xcrun swiftc $(MCP_PROBE_SWIFT_FLAGS) -swift-version 6 -typecheck -default-isolation MainActor \
 		-module-cache-path $(CLANG_MODULE_CACHE) -I $(MCP_PROBE_DEPENDENCIES) \
 		$(MCP_PROBE_MODELS) $(MCP_PROBE_SERVICES) Transit/Transit/MCP/Writes/*.swift \
-		Transit/Transit/MCP/{MCPTypes,MCPToolDefinitions,MCPToolHandler,MCPSettings,MCPToolListChangeBroadcaster,MCPHelperTypes}.swift \
+		Transit/Transit/MCP/{MCPTypes,MCPToolDefinitions,MCPToolHandler,MCPToolHandler+TaskQuery,MCPTaskQueryRequest,MCPTaskQuerySnapshotStore,MCPSettings,MCPToolListChangeBroadcaster,MCPHelperTypes}.swift \
 		Transit/Transit/Services/{DisplayIDMaintenanceService,DisplayIDMaintenanceTypes}.swift \
 		Transit/Transit/Intents/{IntentHelpers,IntentError,TaskUpdateValidator,QueryMilestonesIntent}.swift \
 		Transit/Transit/Intents/Shared/TaskFetching.swift \
