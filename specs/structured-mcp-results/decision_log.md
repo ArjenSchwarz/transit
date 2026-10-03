@@ -38,6 +38,10 @@
 | Q13 | 2026-10-03 | Unavailable UUID-and-source-pointer link sidecar; explicit tool selector tables. | Avoid guessing IDs in unknown historical fields and preserve replay determinism. |
 | Q14 | 2026-10-03 | Generated plain error text and malformed retained JSON have separate declared origins. | JSON parse failure alone cannot establish that saved evidence is an ordinary message. |
 
+| Q15 | 2026-10-03 | Effectful maintenance prepares no-key uncertainty fallback and reconciles with scan/inspection. | Internal design critic identified post-save serialization gap in reassign_duplicate_display_ids; AC3.4 applies beyond protected writes. |
+| Q16 | 2026-10-03 | Generated JSON parse failure throws; malformed retained evidence preserves text/unestablished. | Correctness peer separated capture serialization failure from historical evidence presentation. |
+| Q17 | 2026-10-03 | Maintenance provider encoding failures propagate may-have-effects evidence to prepared fallback selection. | Existing inner errorResult catch could otherwise bypass the complete uncertainty fallback. |
+
 ## ADR 2: Immutable source and separate presentation envelope
 
 **Status:** proposed design decision; technical choice routed through parent for owner input.
