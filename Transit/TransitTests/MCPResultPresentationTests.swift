@@ -80,6 +80,20 @@ import Testing
         #expect(try MCPResultAdapter.present(wrongTaskField, context: Self.context("update_task")).links.isEmpty)
     }
 
+    @Test func milestoneQueryLinksOnlySavedProjectReferencesInRootArrayOrder() throws {
+        let text = "[{\"milestoneId\":\"\(Self.taskID)\",\"projectId\":\"\(Self.projectID)\"}," +
+            "{\"milestoneId\":\"\(Self.projectID)\",\"projectId\":\"\(Self.otherID)\"}," +
+            "{\"milestoneId\":\"\(Self.otherID)\",\"projectId\":null}," +
+            "{\"milestoneId\":\"\(Self.taskID)\",\"projectId\":\"not-a-uuid\"}]"
+        let source = try Self.source(text, origin: .retainedJSON)
+        let presentation = try MCPResultAdapter.present(source, context: Self.context("query_milestones"))
+        #expect(Self.links(presentation) == ["/0/projectId|project|\(Self.projectID)",
+                                           "/1/projectId|project|\(Self.otherID)"])
+        #expect(presentation.links.allSatisfy { $0.entityType == .project })
+        #expect(presentation.errorCategory == nil)
+        #expect(source.originalText == text)
+    }
+
     @Test func providerPositionsAreValidatedAgainstSameSourceAndSortedDeterministically() throws {
         let source = try Self.source("{\"z\":\"\(Self.projectID)\",\"a\":{\"taskId\":\"\(Self.taskID)\"}}")
         let positions: [MCPResultEntityPosition] = [
@@ -205,6 +219,56 @@ import Testing
         #expect(source.originalText == text)
     }
 
+    @Test(arguments: MCPPresentationRejectionFixture.all)
+    func establishedV1InternalRejectionsFollowOriginalRetryEvidence(
+        fixture: MCPPresentationRejectionFixture
+    ) throws {
+        let text = Self.v1WriteEvidence(code: fixture.code, accepted: fixture.accepted)
+        let source = try Self.source(text, isError: true, origin: .retainedJSON)
+        let presentation = try MCPResultAdapter.present(source, context: Self.protectedContext())
+        #expect(presentation.evidence == .established)
+        #expect(presentation.errorCategory == .internalFailure)
+        #expect(presentation.recovery?.direction == .followSource)
+        guard case .protectedWrite(let key) = presentation.recovery?.mutation else {
+            Issue.record("Lost original key from known rejected outcome")
+            return
+        }
+        #expect(key == Self.key)
+        #expect(source.originalText == text)
+        #expect(source.originalIsError == true)
+        #expect(source.document?.originalUTF8 == Data(text.utf8))
+    }
+
+    @Test func unknownV1RejectedCodeDoesNotAcquireSafeRetryFromKnownOutcome() throws {
+        let text = Self.v1WriteEvidence(code: "FUTURE_UNKNOWN", accepted: true)
+        let source = try Self.source(text, isError: true, origin: .retainedJSON)
+        let presentation = try MCPResultAdapter.present(source, context: Self.protectedContext())
+        #expect(presentation.errorCategory == .unclassifiedHistorical)
+        #expect(presentation.recovery?.direction == .reconcileOriginalWrite)
+        #expect(source.originalText == text)
+    }
+
+    @Test func uncertainV1InternalFailureOverridesNewKeyLookingCategory() throws {
+        let text = Self.v1WriteEvidence(code: "INTERNAL_ERROR", accepted: true,
+                                        outcome: "uncertain", retry: "reconcile")
+        let source = try Self.source(text, isError: true, origin: .retainedJSON)
+        let presentation = try MCPResultAdapter.present(source, context: Self.protectedContext())
+        #expect(presentation.errorCategory == .outcomeUncertain)
+        #expect(presentation.recovery?.direction == .reconcileOriginalWrite)
+        #expect(source.originalText == text)
+    }
+
+    @Test func unestablishedV1KnownRejectionCannotGainFollowSourceRetry() throws {
+        let text = Self.v1WriteEvidence(code: "INTERRUPTED_BEFORE_COMMIT", accepted: true)
+        let source = try MCPResultAdapter.source(text: text, isError: true, origin: .retainedJSON,
+                                               evidence: .unestablished)
+        let presentation = try MCPResultAdapter.present(source, context: Self.protectedContext())
+        #expect(presentation.evidence == .unestablished)
+        #expect(presentation.errorCategory == .outcomeUncertain)
+        #expect(presentation.recovery?.direction == .reconcileOriginalWrite)
+        #expect(source.originalText == text)
+    }
+
     @Test func readAndMaintenanceRecoveryDirectionsStaySeparate() throws {
         let source = try Self.source(#"{"error":{"code":"READ_TIMEOUT"}}"#, isError: true)
         #expect(try MCPResultAdapter.present(source, context: Self.context("query_tasks"))
@@ -274,6 +338,16 @@ import Testing
 
     static func protectedContext() -> MCPResultContext {
         context("update_task", mutation: .protectedWrite(key))
+    }
+
+    static func v1WriteEvidence(code: String, accepted: Bool, outcome: String = "rejected",
+                                retry: String = "new_request_new_key") -> String {
+        // accepted=true records key binding; a validated terminal rejection still establishes no commit.
+        let terminal = accepted && outcome == "rejected" ?
+            #","completedAt":"2026-10-03T00:00:00Z","replayExpiresAt":"2026-10-10T00:00:00Z""# : ""
+        return #"{"contractVersion":1,"tool":"update_task","idempotencyKey":"original-key","# +
+            "\"outcome\":\"\(outcome)\",\"accepted\":\(accepted),\"retryAction\":\"\(retry)\"," +
+            "\"error\":{\"code\":\"\(code)\",\"message\":\"Saved failure\"},\"unknown\":null" + terminal + "}"
     }
 
     static func links(_ presentation: MCPResultPresentation) -> [String] {
