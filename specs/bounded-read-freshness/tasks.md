@@ -44,11 +44,11 @@ references:
   - Requirements: [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [3.6](requirements.md#3.6)
   - References: specs/bounded-read-freshness/design.md, specs/bounded-read-freshness/decision_log.md
 
-- [-] 5. Green: implement import monitoring and the bounded refresh decision <!-- id:vh146y4 -->
+- [x] 5. Green: implement import monitoring and the bounded refresh decision <!-- id:vh146y4 -->
   - Implement serialized non-MainActor MCPImportEvidenceMonitor callback-value copying and monotonic freshness classifier, plus refresh adapter explicitly unavailable for current SwiftData API. Use launch-fixed SyncManager mode; observe only positively relevant already-in-flight imports.
   - Wire capture-applicability seam to task 1 contracts and validate with task 4. Unknown/null evidence is the supported fallback when matching or visibility cannot be proved; inactive skips waiting. Stop observer cleanly without letting delayed callbacks relabel frozen capture metadata.
   - This module can run in parallel with tasks2–3 because it owns separate files/test doubles; live signed-store verification is coordinated through parent and final integration requires task 3.
-  - Evidence: focused actual macOS app suites passed 10/10 (five import-monitor and five refresh-policy tests); ten standalone behavioral cases and focused default-isolation typecheck also passed. Production event-visible applicability remains unavailable and uses unknown/null plus unavailable refresh; shared capture/router integration is validated in later tasks.
+  - Evidence: focused actual macOS app suites passed 14/14 (seven import-monitor and seven refresh-policy tests), including applicable A/unrelated B outcome preservation, success/failure priority, bounded observation windows, closed-window fail-closed behavior and observer restart epochs; fourteen standalone behavioral cases and focused default-isolation typecheck also passed. Production event-visible applicability remains unavailable and uses unknown/null plus unavailable refresh; shared capture/router integration is validated in later tasks.
   - Blocked-by: vh146y3 (Red: add import-evidence and bounded-refresh policy tests)
   - Stream: 2
   - Owner: t63-import-runtime
