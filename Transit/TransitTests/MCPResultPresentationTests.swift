@@ -54,7 +54,9 @@ import Testing
     }
 
     @Test func projectsArrayUsesProjectIdentityAndDoesNotSearchUnknownNestedIDs() throws {
-        let source = try Self.source("[{\"projectId\":\"\(Self.projectID)\",\"extra\":{\"taskId\":\"\(Self.taskID)\"}}]")
+        let text = "[{\"projectId\":\"\(Self.projectID)\"," +
+            "\"extra\":{\"taskId\":\"\(Self.taskID)\"}}]"
+        let source = try Self.source(text)
         let presentation = try MCPResultAdapter.present(source, context: Self.context("get_projects"))
         #expect(Self.links(presentation) == ["/0|project|\(Self.projectID)"])
     }
