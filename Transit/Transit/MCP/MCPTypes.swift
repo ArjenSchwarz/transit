@@ -190,11 +190,15 @@ nonisolated struct MCPToolResult: Encodable, Sendable {
     let content: [MCPContent]
     let isError: Bool?
     let metadata: MCPToolResultMetadata?
+    /// Provider declarations are internal evidence, never persisted or added to logical JSON.
+    let providerEvidence: MCPResultProviderEvidence?
 
-    init(content: [MCPContent], isError: Bool?, metadata: MCPToolResultMetadata? = nil) {
+    init(content: [MCPContent], isError: Bool?, metadata: MCPToolResultMetadata? = nil,
+         providerEvidence: MCPResultProviderEvidence? = nil) {
         self.content = content
         self.isError = isError
         self.metadata = metadata
+        self.providerEvidence = providerEvidence
     }
 
     private enum CodingKeys: String, CodingKey {
