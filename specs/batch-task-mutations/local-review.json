@@ -1,41 +1,125 @@
 {
   "ticket": "T-2384",
-  "reviewMode": "Four internal reviewers plus independent root critical review; no external peer-review service",
-  "archive": {
-    "helper": "/Users/arjen/golang/bin/pulsar",
-    "action": "publish (local archive only)",
-    "exit": 0,
-    "path": "/Users/arjen/CodeReviews/2026-10/2026-10-04-github-transit-branch-t-2384-batch-task-mutations.html",
-    "sha256": "083506b181c1a9154372cfec850bb54a32c0668e908d0b4ea19fe7517c199eec",
-    "bytes": 5850534,
-    "networkRequestPerformed": false,
-    "globalSettingsChanged": false
-  },
-  "reviewBase": "201205bd4e786c7f152d8f99006b37da7da888c7",
-  "testedCode": "5c42c7e059e8c810e89d366f0889aef132adf5c5",
-  "generatedSnapshot": "e8ae1b3 plus documentation-only working tree",
-  "cumulativeFiles": 417,
-  "commitsReviewed": 396,
-  "nativeAcceptance": {
-    "macOS": {
+  "reviewMode": "Four internal specialists plus root source/evidence checks; configured Claude external PR review follows under explicit owner approval",
+  "reviewBase": "adc98b55e69af6be22e095126c81986d0d8e48a8",
+  "reviewedSource": "fde318d5f8eedbef62f825bd9ad69889187c5f09",
+  "nativeAcceptance": [
+    {
+      "suite": "macOS full units",
+      "pin": "b90e6f84255f01c3de39104ea59a9aa0c77c7acb",
       "declarations": 2409,
-      "cases": 3049
+      "cases": 3049,
+      "result": "Passed",
+      "finalized": true,
+      "failed": 0,
+      "skipped": 0,
+      "expectedFailures": 0,
+      "nativeRuntimeWarnings": [],
+      "runnerExit": 0,
+      "ownedRemaining": [],
+      "hostSignals": [],
+      "nativeResult": "DerivedData/t2384-publication-macos/PublicationMacOSUnits.xcresult",
+      "inventoryProof": ".codex-cache/publication-macos/actual-inventory-check.json",
+      "nativeSummary": ".codex-cache/publication-macos/native-summary.json",
+      "drainEvidence": ".codex-cache/publication-macos/drain.json",
+      "logSHA256": "038b65c48eb807026b15f098834b02ce6ff08a96ab9dc8d71b697aa84ee06ead"
     },
-    "iOSUnits": {
+    {
+      "suite": "iOS full units",
+      "pin": "b90e6f84255f01c3de39104ea59a9aa0c77c7acb",
       "declarations": 1289,
-      "cases": 1334
+      "cases": 1334,
+      "result": "Passed",
+      "finalized": true,
+      "failed": 0,
+      "skipped": 0,
+      "expectedFailures": 0,
+      "nativeRuntimeWarnings": [],
+      "runnerExit": 0,
+      "ownedRemaining": [],
+      "hostSignals": [],
+      "nativeResult": "DerivedData/t2384-publication-ios/PublicationIOSUnits.xcresult",
+      "inventoryProof": ".codex-cache/publication-ios/unit-native-inventory-check.json",
+      "nativeSummary": ".codex-cache/publication-ios/unit-native-summary.json",
+      "drainEvidence": ".codex-cache/publication-ios/unit-drain.json",
+      "logSHA256": "17a832f4d5a5ba5b13b94b3b98d141b5bd735104bbc2c940f37a1205e6be3c0c"
     },
-    "iOSUI": {
+    {
+      "suite": "iOS full UI",
+      "pin": "b8f9fc7e2277c5f4a6ba1d37f1133c8796ffa940",
       "declarations": 21,
-      "cases": 24
+      "cases": 24,
+      "result": "Passed",
+      "finalized": true,
+      "failed": 0,
+      "skipped": 0,
+      "expectedFailures": 0,
+      "nativeRuntimeWarnings": [],
+      "runnerExit": 0,
+      "ownedRemaining": [],
+      "hostSignals": [],
+      "nativeResult": "DerivedData/t2384-publication-ios/PublicationIOSUIAttempt2.xcresult",
+      "inventoryProof": ".codex-cache/publication-ios-ui-attempt2/ui-native-inventory-check.json",
+      "nativeSummary": ".codex-cache/publication-ios-ui-attempt2/ui-native-summary.json",
+      "drainEvidence": ".codex-cache/publication-ios-ui-attempt2/ui-drain.json",
+      "logSHA256": "cf12cd6d088facab5307011fc9a7d31bda9a2a1ec07faa7f0d274bc776f4d440"
     }
+  ],
+  "firstUIAttempt": {
+    "pin": "b90e6f84255f01c3de39104ea59a9aa0c77c7acb",
+    "executedCases": 24,
+    "passed": 20,
+    "failed": 4,
+    "finalized": false,
+    "failureEvidence": ".codex-cache/publication-ios/ui-failed-body-evidence.json",
+    "teardown": "Sampled owned runner then runner-only TERM after bounded stalled finalization; subprocess exit -15, wrapper exit 241, no host signals, all owned processes drained. No successful native result claimed.",
+    "correction": "Three Settings tests now use existing overflow-aware toolbar helper. Portrait test captures one remote frame and asserts height>width and existing width>=400/Kanban checks, avoiding a remote-query predicate timeout. Same21 declarations/24 cases; behavior assertions retained.",
+    "correctedFreshResult": "iOS full UI acceptance above"
   },
-  "allFinalized": true,
-  "failures": 0,
-  "skips": 0,
-  "nativeRuntimeWarnings": 0,
-  "structuredReporting": "No detected JUnit/coverage runner; native xcresult evidence retained and counts explicit in HTML. Renderer JUnit summary zero is not a native test total.",
-  "releaseHold": "Parent-reported prior approval-review rejection for private Claude diff/context disclosure and GitHub push destination authority; no alternate publication route attempted",
-  "clientReadiness": "Deferred owner MacBook validation; no activation",
-  "inputDirectory": "/Users/arjen/Documents/Codex/2026-10-03/task-4/review-inputs"
+  "artifactHashesIndependentlyVerified": 15,
+  "publicationAuthority": "Explicit owner approval for all pushes, configured Claude review and eligible overnight merges; prior denial resolved",
+  "clientReadiness": "MacBook activation deferred by owner; not merge blocker",
+  "archive": null,
+  "historicalOriginalReview": {
+    "ticket": "T-2384",
+    "reviewMode": "Four internal reviewers plus independent root critical review; no external peer-review service",
+    "archive": {
+      "helper": "/Users/arjen/golang/bin/pulsar",
+      "action": "publish (local archive only)",
+      "exit": 0,
+      "path": "/Users/arjen/CodeReviews/2026-10/2026-10-04-github-transit-branch-t-2384-batch-task-mutations.html",
+      "sha256": "083506b181c1a9154372cfec850bb54a32c0668e908d0b4ea19fe7517c199eec",
+      "bytes": 5850534,
+      "networkRequestPerformed": false,
+      "globalSettingsChanged": false
+    },
+    "reviewBase": "201205bd4e786c7f152d8f99006b37da7da888c7",
+    "testedCode": "5c42c7e059e8c810e89d366f0889aef132adf5c5",
+    "generatedSnapshot": "e8ae1b3 plus documentation-only working tree",
+    "cumulativeFiles": 417,
+    "commitsReviewed": 396,
+    "nativeAcceptance": {
+      "macOS": {
+        "declarations": 2409,
+        "cases": 3049
+      },
+      "iOSUnits": {
+        "declarations": 1289,
+        "cases": 1334
+      },
+      "iOSUI": {
+        "declarations": 21,
+        "cases": 24
+      }
+    },
+    "allFinalized": true,
+    "failures": 0,
+    "skips": 0,
+    "nativeRuntimeWarnings": 0,
+    "structuredReporting": "No detected JUnit/coverage runner; native xcresult evidence retained and counts explicit in HTML. Renderer JUnit summary zero is not a native test total.",
+    "releaseHold": "Parent-reported prior approval-review rejection for private Claude diff/context disclosure and GitHub push destination authority; no alternate publication route attempted",
+    "clientReadiness": "Deferred owner MacBook validation; no activation",
+    "inputDirectory": "/Users/arjen/Documents/Codex/2026-10-03/task-4/review-inputs"
+  },
+  "structuredReporting": "No detected JUnit/line-coverage runner; actual native counts/inventories retained"
 }

@@ -1,6 +1,6 @@
 # T2384 final implementation critical review
 
-Source reviewed: `5c42c7e059e8c810e89d366f0889aef132adf5c5`, including the verified common baseline through `a4a60de579e5a30bc2ad9ff88b6954233f7ff42f`.
+Current reconciled production source: `fde318d5`, based on merged main `adc98b55`; production/configuration matches the originally reviewed feature source. Fresh full macOS/iOS unit acceptance is pinned to `b90e6f8`; the separately reviewed UI-only fixture correction and full rerun are pinned to `b8f9fc7`. Four internal specialists cleared the unique current-main delta, and quality/spec reviewers cleared the UI fixture correction without assertion weakening. The root independently verified all final native summaries and 15 artifact hashes in [publication-verification.json](publication-verification.json).
 
 ## Findings
 
@@ -17,6 +17,6 @@ The fresh finalized macOS result independently establishes 2,409 declarations / 
 5. **Can an unknown result authorize repeating an effect with a fresh key?** The strict commitment classifier stops on unsupported, uncertain, active, or rejected outcomes. Caller documentation explicitly preserves original keys/store/expiry context, identifies absent receipts as inconclusive, and explains batch continuation and current canonical reconciliation.
 6. **Does this expand concurrent read or global-import guarantees?** The batch remains one application `tools/call`, outside protected outer-key registration, covered-read deadlines, read admission, and frozen snapshot retention. No global CloudKit transaction/import fence is claimed. The separately coordinated T1734 participating-commit factory remains a later owner-approved obligation, not an undisclosed batch dependency or guarantee.
 
-## Remaining completion boundary
+## Current publication boundary
 
-Completion explanations, overview/changelog and the local HTML archive are prepared; final source-equivalence and clean-tree checks accompany handoff. Client activation is unverified and deferred. External private-diff review, GitHub publication, PR creation, merge, and deployment have not occurred; the parent's recorded approval restrictions remain in force. The explicitly invoked pre-push-review workflow archived the report locally through the inspected Pulsar helper with exit0, without a network request or global settings change. It sent no diff to an external reviewer or forge.
+All native verification, lint, source-equivalence and cleanup checks passed. The first fresh UI attempt remains qualified as four real fixture failures plus sampled runner-only termination during stalled finalization; it was not counted as acceptance. The corrected full UI run finalized normally. The owner resolved prior GitHub/Claude disclosure holds and approved the configured review/eligible squash-merge workflow. PRPilot outcomes will be reported when observed. MacBook activation is deferred and is not a merge blocker. No production/live writes, client changes or deployment occurred.

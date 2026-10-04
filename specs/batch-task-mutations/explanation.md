@@ -1,6 +1,6 @@
 # Batch task mutations: implementation explanation
 
-This explanation describes the completed feature-local implementation and modern MCP integration at runtime source `5c42c7e059e8c810e89d366f0889aef132adf5c5`. Fresh native macOS, isolated iOS unit, and UI acceptance all passed. Publication and client activation remain separate approval/readiness boundaries.
+This explanation describes the completed feature-local implementation reconciled onto merged main `adc98b55`. Fresh full macOS and isolated iOS units passed at `b90e6f8`; the complete UI rerun passed at `b8f9fc7` after reviewed fixture corrections, with unchanged production/unit sources. See [publication-verification.json](publication-verification.json) for exact evidence and the retained failed first UI attempt. The owner approved publication and configured Claude review; MacBook client activation remains deferred and is not a merge blocker.
 
 ## Beginner Level
 

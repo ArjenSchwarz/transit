@@ -1,48 +1,35 @@
 # T2384 publication handoff
 
-## Reconciled publication checkpoint
+All 14 approved Rune tasks are complete. Reconciliation applies only the unique T2384 delta onto merged main `adc98b55e69af6be22e095126c81986d0d8e48a8`; the existing common T63/T2383/T2382 foundation is retained. Original feature worktree and paused T1734 work remain untouched.
 
-The owner has explicitly approved pushes, sharing changes with the configured Claude reviewer, and eligible overnight merges. Earlier publication/disclosure holds described below are historical and have been resolved by that approval. MacBook client activation remains deferred and is not a merge blocker. No live Transit writes, production launch, settings change or deployment is authorised by this publication workflow.
+## Source and review
 
-The isolated publication worktree is `/Users/arjen/Documents/Codex/2026-10-03/task-4/transit-t2384-final`, branch `T-2384/publication`. Reconciled feature commit `fde318d5f8eedbef62f825bd9ad69889187c5f09` starts from merged main `adc98b55e69af6be22e095126c81986d0d8e48a8`, applying only the unique T2384 delta from the reviewed common baseline. All 271 compared production/configuration/isolation files are byte-identical to the original reviewed feature snapshot; merged main fixes are preserved. Original worktrees and paused T1734 work are untouched. All four internal reviewers cleared the production delta. The repository MCP guide has been corrected to include the thirteenth tool.
+- Publication worktree: `/Users/arjen/Documents/Codex/2026-10-03/task-4/transit-t2384-final`.
+- Branch: `T-2384/publication`.
+- Reconciled source: `fde318d5f8eedbef62f825bd9ad69889187c5f09`; tested pin: `b90e6f84255f01c3de39104ea59a9aa0c77c7acb`.
+- All 271 production/configuration/isolation files compared are byte-identical to reviewed original tip `db775173`; merged main's test and documentation changes are preserved. Three documentation conflicts were resolved by retaining main and adding the feature.
+- Four internal specialists cleared the current production delta. Review fixes correct the MCP guide's 13-tool list and restore the batch specs index row. Neither changes production behaviour.
 
-Fresh publication verification and PRPilot results will be recorded here when observed; the acceptance below belongs to the earlier original worktree and is not substituted for verification on reconciled main.
+`mutate_tasks` is one modern application tool call, with saved-only dry runs and 1–50 ordered update/status/comment items. It preserves original per-item receipt evidence, original argument binding, revision preconditions and atomic domain/result saves. Execution stops at the first unsuccessful or unestablished item; committed prefix effects remain. A complete correlated serialization-failure response is prepared before dispatch and later selected without reencoding. Caller retry/reconciliation guidance is in [the write contract](../../docs/mcp-write-contract.md#application-batch-task-mutations).
 
-## Historical local completion
+## Fresh reconciled acceptance
 
-All 14 approved Rune tasks are complete. The four internal pre-push reviews and independent root critical review found no unresolved implementation blocker. No external peer-review service was used.
-
-## Source and integration
-
-- Worktree: `/Users/arjen/Documents/Codex/2026-10-03/task-4/transit`
-- Branch: `T-2384/batch-task-mutations`
-- Canonical main and review merge base: `201205bd4e786c7f152d8f99006b37da7da888c7`; existing canonical work was preserved.
-- Verified common baseline: `a4a60de579e5a30bc2ad9ff88b6954233f7ff42f`, containing final T63/T2383 delivery.
-- Tested code: `5c42c7e059e8c810e89d366f0889aef132adf5c5`.
-- Worker evidence/task completion commit: `0298daa4efa60611f72b3a99065fd1d9c5cbd473`.
-- Later root commits contain completion documentation and review artifacts; code equivalence is checked before final handoff.
-
-`mutate_tasks` is one modern application tool call with explicit dry-run/execute mode and 1–50 ordered, uniquely targeted operations. It preserves existing per-item receipts, revision checks, status-plus-comment atomicity, original argument binding and saved evidence. Preview observes saved local data without writes or key reservation. Execution stops on the first unsuccessful/unestablished result. Complete correlated fallback bytes are prepared before effects, with original index/tool/key/UUID reconciliation rather than fresh-key advice. Caller guidance is in [the write contract](../../docs/mcp-write-contract.md#application-batch-task-mutations).
-
-## Fresh native acceptance
-
-| Suite | Enabled declarations | Passed cases | Failed / skipped / native runtime warnings |
+| Suite | Enabled declarations | Passing native cases | Source pin |
 | --- | ---: | ---: | --- |
-| Full macOS units | 2,409 | 3,049 | 0 / 0 / 0 |
-| Full isolated iOS units | 1,289 | 1,334 | 0 / 0 / 0 |
-| Full isolated iOS UI | 21 | 24 | 0 / 0 / 0 |
-| Focused real batch integration | 17 | 22 | 0 / 0 / 0 |
+| Full macOS units | 2,409 | 3,049 | `b90e6f8` |
+| Full isolated iOS units | 1,289 | 1,334 | `b90e6f8` |
+| Full isolated iOS UI | 21 | 24 | `b8f9fc7` |
 
-Every run finalized normally with exit zero, exact compiled-to-executed inventory mapping, no expected failures, and complete owned process drain. Focused integration overlaps the full macOS run and is not added to a unique total. The macOS native case count includes two repetition leaves. Full iOS unit and UI targets were discovered and run separately without Only/Skip filters on one newly owned disposable simulator; it was deleted after normal drain. Existing simulators, persistent test stores and the installed app were untouched.
+All three runs finalized normally with exit zero, exact enabled-inventory mapping, zero failures/skips/expected failures/native runtime warnings, and complete owned process drain without host signals. Only the UI fixture changed between pins; production, configuration and unit sources remain identical. Both fresh platform builds, the corrected UI incremental build, and final strict lint (596 Swift files and all guards) passed. The newly owned simulator was deleted; all other simulator UUIDs and existing stores were preserved.
 
-Both platform builds and final full lint passed; lint covered 596 Swift files and ownership/schema/development guards. The first integration build failed before tests on missing explicit `try`, then passed after the narrow compiler correction. The initial iOS preflight failed closed before launch because a macOS debugger-entitlement predicate was unsuitable for simulator signing; root-reviewed simulator-specific identity/signature/platform/no-CloudKit checks passed. Earlier intended RED runs with teardown exit143/unfinalized results remain qualified, rather than being counted as clean acceptance.
+The first fresh UI attempt completed 24 test bodies with four real fixture failures, then stalled in finalization. Its sampled owned runner was terminated (subprocess -15, wrapper 241), with no host signals and complete owned drain; that result is unfinalized and is not counted as acceptance. Three direct Settings assumptions were replaced by the existing overflow-aware toolbar helper. The portrait fixture now asserts a captured frame instead of timing out during a remote predicate query. All behavior assertions and all 21 declarations remain, and the full 24-case rerun passed. Native warnings are zero; ordinary XCTest debugger/animation-idle console diagnostics remain in logs.
 
-The root independently inspected native summaries and checked all 31 artifact SHA256 values in [task14-green-actual.json](task14-green-actual.json). Raw logs, native trees, inventories, signed preflights and drain records remain under `.codex-cache/task14-green-attempt2-readiness`, `.codex-cache/final-macos-units`, and `.codex-cache/final-ios`. No matching JUnit/coverage runner is detected for this Xcode project; no JUnit or coverage data is invented.
+See [publication-verification.json](publication-verification.json) for source-equivalence, native summaries, inventories, drain records and artifact hashes. The root independently checked every final native summary/inventory and all 15 recorded artifact hashes.
 
-## Review and remaining release boundaries
+The original worktree's task14 evidence remains historical, including early qualified RED teardown failures. It is not substituted for the fresh publication results. No matching JUnit or line-coverage runner exists for this Xcode project; native results and inventories are retained without invented conversions.
 
-See [implementation.md](implementation.md), [final-critical-review.md](final-critical-review.md), and [local-review.json](local-review.json). The HTML contains the cumulative diff against canonical main, including already reviewed common integration. Specialist review records remain in the parent workspace `reviews/prepush-{reuse,quality,efficiency,specdocs}.md`.
+## Publication and downstream boundaries
 
-Installed modern-client compatibility/activation remains deferred to owner MacBook validation. Common task-link presentation explicitly marks navigation unavailable pending T572; no navigation URL is invented. T1734 participating-commit factory work remains separately coordinated and this feature claims no global import fence. No production write, guard-store recovery action, client setting change, installed-app restart, deployment, GitHub push, PR, merge or external private-diff disclosure was performed.
+The owner explicitly approved GitHub pushes, disclosure to the configured Claude reviewer, and eligible overnight merges. Earlier automatic approval denials are historical and have been resolved by that approval. PRPilot will record actual external review/check/merge outcomes on the PR and in the final parent report; this document does not preclaim them.
 
-Parent reports prior automatic approval review rejected private Claude diff/context disclosure and destination authority for the T2382 GitHub push. This branch contains that common baseline, so publishing it through a different route would not resolve that restriction. PRPilot remains held until the parent resolves the specific publication/disclosure approvals. The explicitly invoked pre-push-review workflow archived the HTML locally with Pulsar (exit0); [local-review.json](local-review.json) records the actual archive path and SHA256. The helper made no network request or global configuration change. This local archive does not resolve GitHub or external-review disclosure approvals.
+MacBook installed-client compatibility/activation is owner-deferred and is not a merge blocker. Before feature use, validate the latest-only 2026-07-28 connection, structured/text result compatibility and advertised `mutate_tasks` schema. No production/live task writes, guard-store recovery, production application/server launch, client setting changes, CloudKit changes or deployment were performed during this publication workflow. Ticket status remains unchanged under the parent's no-live-writes constraint. T1734's participating-commit factory and T572 navigation remain separate; no global import fence or task navigation URL is claimed.

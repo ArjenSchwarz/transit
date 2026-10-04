@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- T-2384: Add `mutate_tasks` for saved-only advisory preview and 1–50 ordered task updates, status-plus-comment changes or comments. Items retain independent revision/receipt/retry boundaries, stop after the first unsuccessful result, preserve complete original evidence and select a preencoded correlated recovery fallback after encoding failure. Fresh macOS, isolated iOS unit and UI suites pass; publication and installed-client activation remain separate gates.
+- T-2384: Add `mutate_tasks` for saved-only advisory preview and 1–50 ordered task updates, status-plus-comment changes or comments. Items retain independent revision/receipt/retry boundaries, stop after the first unsuccessful result, preserve complete original evidence and select a preencoded correlated recovery fallback after encoding failure. Fresh macOS, isolated iOS unit and UI suites pass; reviewed UI fixture corrections retain navigation/layout assertions. Installed-client activation remains deferred.
 
 - T-2382: Complete portfolio regression coverage and caller guidance for saved summary counts, half-open completion windows and activity, with reusable frozen task queries. Remove the obsolete unused scaffold error.
 
