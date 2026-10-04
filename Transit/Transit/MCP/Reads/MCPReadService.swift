@@ -107,8 +107,11 @@ final class MCPReadService: MCPReadCapturedPreparing {
         if let query {
             results = try MCPReadProjection.tasks(captured, request: query, arguments: arguments)
         } else {
-            results = tool == "get_projects" ? try MCPReadProjection.projects(captured)
-                : try MCPReadProjection.milestones(captured, arguments: arguments)
+            let checkpoint = {
+                guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
+            }
+            results = tool == "get_projects" ? try MCPReadProjection.projects(captured, checkpoint: checkpoint)
+                : try MCPReadProjection.milestones(captured, arguments: arguments, checkpoint: checkpoint)
         }
         if let query {
             return try preparePages(results, query: query, view: captured, operation: operation,
@@ -228,7 +231,9 @@ final class MCPReadService: MCPReadCapturedPreparing {
             ? IntentHelpers.encodeJSON(["error": ["code": code, "message": message]]) : message
         // This error envelope consists only of valid strings and fixed metadata values.
         let evidence = jsonFailure ? nil
-            : MCPResultProviderEvidence(origin: .plainText, evidence: .established)
+            : MCPResultProviderEvidence(origin: .plainText, evidence: .established,
+                failure: MCPResultFailure(category: MCPResultClassification.category(for: code) ?? .internalFailure,
+                                          diagnostic: nil))
         return try MCPPreparedToolRead(text: text, isError: true, metadata: metadata, providerEvidence: evidence)
     }
 

@@ -2,20 +2,40 @@
 import Foundation
 
 extension MCPReadProjection {
-    static func projects(_ view: CapturedReadView) throws -> [[String: Any]] {
-        try view.projects.sorted { $0.name < $1.name }.map { project in
+    static func projects(_ view: CapturedReadView, checkpoint: () throws -> Void = {}) throws -> [[String: Any]] {
+        let tasksByKey = try catalogTaskIndex(view, checkpoint: checkpoint)
+        var milestonesByProject: [UUID: [ReadMilestone]] = [:]
+        for milestone in view.milestones {
+            try checkpoint()
+            if let projectID = milestone.storedProjectID {
+                milestonesByProject[projectID, default: []].append(milestone)
+            }
+        }
+        return try view.projects.sorted { $0.name < $1.name }.map { project in
+            try checkpoint()
             var record = try object(project.selectedRecordJSON)
-            let tasks = project.taskKeys.compactMap { key in view.tasks.first { $0.physicalKey == key } }
-            guard tasks.count == project.taskKeys.count else { throw MCPReadCaptureError.incoherentCapture }
-            record["activeTaskCount"] = tasks.filter { !["done", "abandoned"].contains($0.effectiveStatus) }.count
+            var activeTaskCount = 0
+            for key in project.taskKeys {
+                try checkpoint()
+                guard let task = tasksByKey[key] else { throw MCPReadCaptureError.incoherentCapture }
+                if !["done", "abandoned"].contains(task.effectiveStatus) { activeTaskCount += 1 }
+            }
+            record["activeTaskCount"] = activeTaskCount
             // Ordinary catalog queries historically select milestones by project UUID.
-            let milestones = view.milestones.filter { $0.storedProjectID == project.id }
-            if !milestones.isEmpty { record["milestones"] = milestones.map(milestoneSummary) }
+            let milestones = milestonesByProject[project.id, default: []]
+            if !milestones.isEmpty {
+                record["milestones"] = try milestones.map { milestone in
+                    try checkpoint()
+                    return milestoneSummary(milestone)
+                }
+            }
             return record
         }
     }
 
-    static func milestones(_ view: CapturedReadView, arguments: [String: Any]) throws -> [[String: Any]] {
+    static func milestones(_ view: CapturedReadView, arguments: [String: Any],
+                           checkpoint: () throws -> Void = {}) throws -> [[String: Any]] {
+        try checkpoint()
         let project = try project(arguments, view: view, validateIgnoredName: false)
         try enumeration(arguments, key: "status", type: MilestoneStatus.self)
         try string(arguments, key: "search")
@@ -23,23 +43,30 @@ extension MCPReadProjection {
         let id = IntentHelpers.parseIntValue(arguments["displayId"])
         var milestones = view.milestones
         if let id {
-            milestones = milestones.filter { $0.permanentDisplayId == id }
+            milestones = try milestones.filter { milestone in
+                try checkpoint()
+                return milestone.permanentDisplayId == id
+            }
             guard milestones.count <= 1 else {
                 throw MCPTaskQueryError(code: "AMBIGUOUS_FILTER",
                     message: "Duplicate milestone identifier detected for displayId \(id)")
             }
         }
+        let tasksByKey = id == nil ? [:] : try catalogTaskIndex(view, checkpoint: checkpoint)
         return try milestones.filter { milestone in
-            matchesMilestone(ReadMilestoneIdentity(id: milestone.id,
+            try checkpoint()
+            return matchesMilestone(ReadMilestoneIdentity(id: milestone.id,
                 permanentDisplayId: milestone.permanentDisplayId, name: milestone.name,
                 storedProjectID: milestone.storedProjectID, rawStatus: milestone.rawStatus,
                 milestoneDescription: milestone.milestoneDescription), arguments: arguments, projectID: project?.id)
         }.map { milestone in
+            try checkpoint()
             var record = try object(milestone.selectedRecordJSON)
             record["taskCount"] = milestone.taskKeys.count
             if id != nil {
                 record["tasks"] = try milestone.taskKeys.map { key in
-                    guard let task = view.tasks.first(where: { $0.physicalKey == key }) else {
+                    try checkpoint()
+                    guard let task = tasksByKey[key] else {
                         throw MCPReadCaptureError.incoherentCapture
                     }
                     var summary: [String: Any] = ["taskId": task.id.uuidString, "name": task.name,
@@ -50,6 +77,19 @@ extension MCPReadProjection {
             }
             return record
         }
+    }
+
+    private static func catalogTaskIndex(_ view: CapturedReadView,
+                                         checkpoint: () throws -> Void) throws -> [LocalRecordKey: ReadTask] {
+        try checkpoint()
+        var index: [LocalRecordKey: ReadTask] = [:]
+        for task in view.tasks {
+            try checkpoint()
+            guard index.updateValue(task, forKey: task.physicalKey) == nil else {
+                throw MCPReadCaptureError.incoherentCapture
+            }
+        }
+        return index
     }
 
     static func matchesMilestone(_ milestone: ReadMilestoneIdentity, arguments: [String: Any],

@@ -93,7 +93,8 @@ nonisolated struct MCPResultClassification {
         "READ_BUSY": .admissionBusy, "QUERY_UNAVAILABLE": .admissionBusy,
         "STORE_BUSY": .admissionBusy, "OPERATION_IN_PROGRESS": .admissionBusy,
         "READ_TIMEOUT": .deadlineExceeded, "QUERY_CAPACITY_EXCEEDED": .retentionCapacity,
-        "INVALID_CURSOR": .invalidCursor, "QUERY_EXPIRED": .expiredCursor,
+        "INVALID_CURSOR": .invalidCursor, "INVALID_SNAPSHOT": .invalidCursor, "QUERY_EXPIRED": .expiredCursor,
+        "SNAPSHOT_INCOMPATIBLE": .invalidInput, "IDENTITY_AMBIGUITY": .ambiguousIdentity,
         "OUTCOME_UNCERTAIN": .outcomeUncertain, "INTERNAL_ERROR": .internalFailure,
         "INTERRUPTED_BEFORE_COMMIT": .internalFailure
     ]

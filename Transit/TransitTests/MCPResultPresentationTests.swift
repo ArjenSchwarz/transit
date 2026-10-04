@@ -149,6 +149,15 @@ import Testing
         #expect(presentation.errorCategory == category)
     }
 
+    @Test func invalidSnapshotRestartsReadWithoutChangingSavedFailure() throws {
+        let text = #"{"error":{"code":"INVALID_SNAPSHOT","message":"Start a new summary"}}"#
+        let source = try Self.source(text, isError: true, origin: .retainedJSON)
+        let presentation = try MCPResultAdapter.present(source, context: Self.context("query_project_summaries"))
+        #expect(presentation.errorCategory == .invalidCursor)
+        #expect(presentation.recovery?.direction == .restartRead)
+        #expect(source.originalText == text)
+    }
+
     @Test(arguments: MCPPresentationCodeFixture.all)
     func knownHistoricCodesMapWithoutChangingOriginalFields(fixture: MCPPresentationCodeFixture) throws {
         let text = "{\"error\":{\"code\":\"\(fixture.code)\",\"message\":\"saved message\"},\"extra\":null}"
@@ -373,23 +382,4 @@ import Testing
     }
 }
 
-nonisolated struct MCPPresentationCodeFixture: Sendable {
-    let code: String
-    let category: MCPResultErrorCategory
-
-    static let all: [MCPPresentationCodeFixture] = [
-        .init(code: "INVALID_INPUT", category: .invalidInput),
-        .init(code: "TASK_NOT_FOUND", category: .notFound),
-        .init(code: "AMBIGUOUS_TASK_ID", category: .ambiguousIdentity),
-        .init(code: "REVISION_CONFLICT", category: .revisionConflict),
-        .init(code: "IDEMPOTENCY_KEY_REUSED", category: .keyConflict),
-        .init(code: "PERSISTENCE_UNAVAILABLE", category: .storageFailure),
-        .init(code: "READ_BUSY", category: .admissionBusy),
-        .init(code: "READ_TIMEOUT", category: .deadlineExceeded),
-        .init(code: "QUERY_CAPACITY_EXCEEDED", category: .retentionCapacity),
-        .init(code: "INVALID_CURSOR", category: .invalidCursor),
-        .init(code: "QUERY_EXPIRED", category: .expiredCursor),
-        .init(code: "OUTCOME_UNCERTAIN", category: .outcomeUncertain)
-    ]
-}
 #endif
