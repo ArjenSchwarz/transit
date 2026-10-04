@@ -30,18 +30,23 @@ final class MCPToolHandler {
 
     let readService: MCPReadService?
     let taskQuerySnapshots: MCPTaskQuerySnapshotStore
+    nonisolated let reusableSnapshots: Result<MCPReusableSnapshotStore, Error>
+    private(set) var reusableSnapshotLifecycleFailure: Error?
     private(set) var taskQueryAdmissionOpen = true
 
     func setTaskQueryAdmission(open: Bool) {
         taskQueryAdmissionOpen = open
-        taskQuerySnapshots.clear()
+        clearTaskQuerySnapshots()
     }
 
-    func clearTaskQuerySnapshots() { taskQuerySnapshots.clear() }
+    func clearTaskQuerySnapshots() {
+        taskQuerySnapshots.clear()
+        do { try reusableSnapshots.get().invalidate() } catch { reusableSnapshotLifecycleFailure = error }
+    }
 
     /// Tools that only read.
     private static let readOnlyToolNames: Set<String> = [
-        "query_tasks", "query_milestones", "get_projects", "scan_duplicate_display_ids"
+        "query_tasks", "query_milestones", "get_projects", "query_project_summaries", "scan_duplicate_display_ids"
     ]
 
     /// Tools blocked while fallback storage is active. Derived by subtracting the read-only
@@ -68,7 +73,8 @@ final class MCPToolHandler {
         taskQuerySnapshots: MCPTaskQuerySnapshotStore? = nil,
         writeCoordinator: MCPWriteCoordinator? = nil,
         readService: MCPReadService? = nil,
-        readCoordinator: MCPReadCoordinator? = nil
+        readCoordinator: MCPReadCoordinator? = nil,
+        reusableSnapshots: MCPReusableSnapshotStore? = nil
     ) {
         self.taskService = taskService
         self.taskFetcher = taskFetcher ?? taskService
@@ -81,7 +87,22 @@ final class MCPToolHandler {
         self.settings = settings
         self.persistence = persistence ?? .shared
         self.taskQuerySnapshots = taskQuerySnapshots ?? readService?.snapshots ?? MCPTaskQuerySnapshotStore()
-        self.readCoordinator = readCoordinator ?? MCPReadCoordinator(domain: self.taskQuerySnapshots.domain)
+        let domain = self.taskQuerySnapshots.domain
+        let coordinator = readCoordinator ?? MCPReadCoordinator(domain: domain)
+        self.readCoordinator = coordinator
+        self.reusableSnapshots = Result {
+            guard coordinator.domain === domain,
+                  readService == nil || readService?.snapshots.domain === domain else {
+                throw PublicationRejection.busy
+            }
+            if let reusableSnapshots {
+                guard reusableSnapshots.domain === domain else {
+                    throw PublicationRejection.busy
+                }
+                return reusableSnapshots
+            }
+            return try MCPReusableSnapshotStore(domain: domain)
+        }
         self.writeCoordinator = writeCoordinator
         self.readService = readService
     }

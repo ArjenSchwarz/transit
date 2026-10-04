@@ -5,7 +5,8 @@
 nonisolated enum MCPToolDefinitions {
     static let coreTools: [MCPToolDefinition] = [
         createTask, updateTaskStatus, queryTasks, addComment, getProjects, createProject,
-        createMilestone, queryMilestones, updateMilestone, deleteMilestone, updateTask
+        createMilestone, queryMilestones, updateMilestone, deleteMilestone, updateTask,
+        MCPPortfolioToolDefinitions.queryProjectSummaries
     ]
 
     static let maintenanceTools: [MCPToolDefinition] = [
@@ -162,12 +163,13 @@ extension MCPToolDefinitions {
             ]
 
     nonisolated static let queryTasks = MCPToolDefinition(
-        name: "query_tasks", description: queryTasksDescription,
+        name: "query_tasks",
+        description: queryTasksDescription + "\n\n" + MCPPortfolioToolDefinitions.snapshotTaskQueryDescription,
         inputSchema: JSONSchema(type: "object", properties: nil, required: nil, oneOf: [
             JSONSchema(type: "object", properties: queryTaskProperties,
                        required: ["detailLevel", "includeComments", "limit"], additionalProperties: false),
-            JSONSchema(type: "object", properties: ["cursor": .string("Opaque next-page cursor; send alone")],
-                       required: ["cursor"], additionalProperties: false)
+            MCPPortfolioToolDefinitions.reusableContinuationSchema,
+            MCPPortfolioToolDefinitions.snapshotTaskQueryInitialSchema
         ])
     )
 

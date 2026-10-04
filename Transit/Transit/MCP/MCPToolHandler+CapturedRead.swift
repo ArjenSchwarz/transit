@@ -7,8 +7,7 @@ nonisolated struct MCPReadToolRequest: Sendable {
 }
 
 extension MCPToolHandler {
-    /// Task 13 routes covered requests here after independent transport admission.
-    /// Existing direct dispatch remains the pre-integration baseline until that wiring.
+    /// Covered tools prepare privately after independent transport admission.
     func prepareCoveredRead(_ request: MCPReadToolRequest,
                             operation: MCPReadOperation) async throws -> MCPPreparedToolRead {
         guard let readService else {
@@ -17,8 +16,16 @@ extension MCPToolHandler {
             return try MCPPreparedToolRead(text: "Saved read capture service is unavailable", isError: true,
                                            metadata: .failure(metadata))
         }
-        return try await readService.prepare(tool: request.tool,
-            arguments: request.arguments.mapValues(\.value), operation: operation)
+        let arguments = request.arguments.mapValues(\.value)
+        if request.tool == "query_project_summaries" {
+            return try await preparePortfolioRead(arguments: arguments, service: readService, operation: operation)
+        }
+        if request.tool == "query_tasks",
+           arguments["snapshotId"] != nil
+            || (arguments["cursor"] as? String).map({ MCPCursorFamily.classify($0) == .reusable }) == true {
+            return try prepareSnapshotRead(arguments: arguments, service: readService, operation: operation)
+        }
+        return try await readService.prepare(tool: request.tool, arguments: arguments, operation: operation)
     }
 }
 #endif

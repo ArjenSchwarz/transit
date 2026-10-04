@@ -11,7 +11,8 @@ nonisolated enum MCPBoundedReadDispatcher {
     static func classify(_ rpc: JSONRPCRequest) -> MCPClassifiedRead? {
         guard rpc.jsonrpc == "2.0", !rpc.isNotification, rpc.id != nil, rpc.method == "tools/call",
               let params = rpc.params?.value as? [String: Any], let tool = params["name"] as? String,
-              ["query_tasks", "query_milestones", "get_projects"].contains(tool) else { return nil }
+              ["query_tasks", "query_milestones", "get_projects", "query_project_summaries"].contains(tool)
+        else { return nil }
         let arguments = params["arguments"] as? [String: Any]
         return MCPClassifiedRead(request: MCPReadToolRequest(tool: tool,
             arguments: (arguments ?? [:]).mapValues(AnyCodable.init)),
@@ -33,9 +34,7 @@ nonisolated enum MCPBoundedReadDispatcher {
                                category: .busy, code: "READ_BUSY")
         let serialization = try failure(id: id, operationID: admission.operationID, policy: policy,
             category: .serializationFailure, code: read.request.tool == "query_tasks" ? "QUERY_FAILED" : "READ_FAILED")
-        let errors = PreencodedPublicationErrors(busy: busy,
-            expired: try queryFailure(id: id, code: "QUERY_EXPIRED"),
-            capacity: try queryFailure(id: id, code: "QUERY_CAPACITY_EXCEEDED"))
+        let errors = try publicationErrors(for: read.request, id: id, busy: busy)
         return await coordinator.execute(timeout: timeout, busy: busy, admittedAt: admittedAt,
                                          admission: admission) { operation in
             var prepared: MCPPreparedToolRead?
@@ -64,6 +63,26 @@ nonisolated enum MCPBoundedReadDispatcher {
         result.append(tool.encodedToolResult)
         result.append(Data("}".utf8))
         return result
+    }
+
+    /// Prepares transport errors before the terminal gate; retention families own distinct expiry codes.
+    static func publicationErrors(for request: MCPReadToolRequest, id: JSONRPCId,
+                                  busy: Data) throws -> PreencodedPublicationErrors {
+        let expiryCode: String
+        if request.tool == "query_project_summaries" {
+            expiryCode = request.arguments["cursor"] == nil ? "INVALID_SNAPSHOT" : "INVALID_CURSOR"
+        } else if request.tool == "query_tasks", request.arguments["snapshotId"] != nil {
+            expiryCode = "INVALID_SNAPSHOT"
+        } else if request.tool == "query_tasks",
+                  let cursor = request.arguments["cursor"]?.value as? String,
+                  MCPCursorFamily.classify(cursor) == .reusable {
+            expiryCode = "INVALID_CURSOR"
+        } else {
+            expiryCode = "QUERY_EXPIRED"
+        }
+        return PreencodedPublicationErrors(busy: busy,
+            expired: try queryFailure(id: id, code: expiryCode),
+            capacity: try queryFailure(id: id, code: "QUERY_CAPACITY_EXCEEDED"))
     }
 
     private static func failure(id: JSONRPCId, operationID: UUID, policy: MCPReadPolicy,

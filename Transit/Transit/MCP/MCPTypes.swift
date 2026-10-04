@@ -245,10 +245,15 @@ nonisolated struct JSONSchemaProperty: Encodable, Sendable {
     let enumValues: [String]?
     let items: JSONSchemaItems?
     var pattern: String?
+    var minimum: Int?
+    var maximum: Int?
+    var const: Bool?
+    var defaultValue: String?
 
     nonisolated enum CodingKeys: String, CodingKey {
-        case type, description, items, pattern
+        case type, description, items, pattern, minimum, maximum, const
         case enumValues = "enum"
+        case defaultValue = "default"
     }
 
     static func string(_ description: String) -> JSONSchemaProperty {

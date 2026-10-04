@@ -67,7 +67,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
             return try await prepareCapturedRead(request: request, policy: policy, operation: operation,
                                                 transform: transform)
         } catch {
-            return try failure(error, tool: tool, operation: operation, policy: policy)
+            return try prepareFailure(error, tool: tool, operation: operation, policy: policy)
         }
     }
 
@@ -228,8 +228,9 @@ final class MCPReadService: MCPReadCapturedPreparing {
         } catch { throw MCPReadCaptureError.serializationFailure }
     }
 
-    private func failure(_ error: Error, tool: String, operation: MCPReadOperation,
-                         policy: MCPReadPolicy) throws -> MCPPreparedToolRead {
+    /// Prepares the existing tool failure shape before outer transport serialization.
+    func prepareFailure(_ error: Error, tool: String, operation: MCPReadOperation,
+                        policy: MCPReadPolicy) throws -> MCPPreparedToolRead {
         let failureCode = tool == "query_tasks" ? "QUERY_FAILED" : "READ_FAILED"
         let category: ReadFailureCategory?
         let code: String
