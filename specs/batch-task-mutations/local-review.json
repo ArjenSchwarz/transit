@@ -79,7 +79,14 @@
   "artifactHashesIndependentlyVerified": 15,
   "publicationAuthority": "Explicit owner approval for all pushes, configured Claude review and eligible overnight merges; prior denial resolved",
   "clientReadiness": "MacBook activation deferred by owner; not merge blocker",
-  "archive": null,
+  "archive": {
+    "helper": "/Users/arjen/golang/bin/pulsar",
+    "exit": 0,
+    "path": "/Users/arjen/CodeReviews/2026-10/2026-10-04-github-transit-branch-t-2384-publication.html",
+    "bytes": 1198209,
+    "sha256": "e5b0ee3008930c2290bc4cb5455b472d4e933b24e5aba385198504b9a731a12f",
+    "networkRequestPerformed": false
+  },
   "historicalOriginalReview": {
     "ticket": "T-2384",
     "reviewMode": "Four internal reviewers plus independent root critical review; no external peer-review service",
@@ -121,5 +128,6 @@
     "clientReadiness": "Deferred owner MacBook validation; no activation",
     "inputDirectory": "/Users/arjen/Documents/Codex/2026-10-03/task-4/review-inputs"
   },
-  "structuredReporting": "No detected JUnit/line-coverage runner; actual native counts/inventories retained"
+  "structuredReporting": "No detected JUnit/line-coverage runner; actual native counts/inventories retained",
+  "generatedSnapshot": "1a7e8bc plus reviewed overview publication-pending wording; later archive bookkeeping is documentation only"
 }

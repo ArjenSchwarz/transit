@@ -39,7 +39,7 @@
 | [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | Ready for Review | Structured/text results and latest-only transport locally verified; client compatibility explicitly deferred post-merge |
 | [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | Done | Bound MCP read completion and report immutable saved capture/import evidence |
 | [Portfolio Summaries](#portfolio-summaries) | 2026-10-04 | Done | Saved portfolio counts and reusable frozen task views; qualified native verification complete |
-| [Batch Task Mutations](#batch-task-mutations) | 2026-10-04 | Done | Saved-only previews and ordered per-item MCP task writes; fresh native verification complete, publication held |
+| [Batch Task Mutations](#batch-task-mutations) | 2026-10-04 | Done | Saved-only previews and ordered per-item MCP task writes; fresh native verification complete, publication pending |
 
 ---
 
