@@ -182,6 +182,17 @@ actor MCPWriteLifecycleCounter: DisplayIDAllocator.CounterStore {
     private var loads = 0
     private var released = false
 
+    func waitForLoad() async {
+        let cutoff = ContinuousClock.now.advanced(by: .seconds(2))
+        while loads == 0 && ContinuousClock.now < cutoff {
+            do { try await Task.sleep(for: .milliseconds(10)) } catch {
+                Issue.record("Allocator rendezvous cancelled before entry")
+                return
+            }
+        }
+        if loads == 0 { Issue.record("Allocator rendezvous expired before entry") }
+    }
+
     func hasStarted() -> Bool { loads > 0 }
     func loadCount() -> Int { loads }
     func release() {
