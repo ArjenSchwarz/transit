@@ -36,7 +36,7 @@
 | [MCP Project Creation](#mcp-project-creation) | 2026-10-02 | Ready for Review | Create projects through MCP with validation and reusable project metadata |
 | [Batch Task Queries](#batch-task-queries) | 2026-10-03 | Done | MCP task detail selection, batch lookup, and frozen cursor pagination |
 | [MCP Write Safety](#mcp-write-safety) | 2026-10-03 | Done | Add retry-safe MCP writes, local revision preconditions, and structured saved outcomes |
-| [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | In Progress | Immutable structured/text results and latest-only MCP transport preserving replay and bounded reads |
+| [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | Ready for Review | Structured/text results and latest-only transport locally verified; client compatibility explicitly deferred post-merge |
 | [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | In Progress | Bound MCP read completion and report immutable saved capture/import evidence |
 
 ---

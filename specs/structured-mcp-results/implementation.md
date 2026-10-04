@@ -503,3 +503,7 @@ Retention owns logical source, frozen tool fragments and capture metadata separa
 ### Completeness assessment
 
 Local source/presentation/schema/protocol/provider/read/subscription code and synthetic readiness fixture are delivered and locally verified. Caller contract documentation is now supplied and legacy transport instructions corrected. Actual installed-client compatibility remains unverified and is explicitly deferred to post-merge MacBook validation by the owner's amendment. T572 navigation and T2384 production batch integration remain independently scoped. Pre-push full iOS/UI checks and PR review remain completion-workflow gates until actual results are recorded.
+
+## Completion-workflow verification
+
+Final pre-push source9c41be6 passed44declarations/90expandedcases with signedhost/inventory/globalissue checks and lint527/0violations. Full guarded iOS1310/1358 and separate UI21/24 finalized PASS with no failures/skips/global/runtime warnings. Owned simulator/processes drained; raw shutdown149 alreadyShutdown and delete0 preserved. Caller docs d65d305 satisfy both supporting-doc gates. See pre-push-handoff.md for exact source/equivalence/evidence and remaining PR workflow. Actual client AC6.3 remains owner-approved deferred and unverified.

@@ -1,4 +1,6 @@
-# One bounded client approval request for parent
+# Deferred client validation: historical probe proposal
+
+Current status: the owner deferred actual compatibility checks to post-merge MacBook validation. This preserved proposal is unexecuted and is no longer a premerge approval request. It grants no client setup or runtime action here.
 
 Local implementation and tests are complete. Actual client actions remain parked. No client settings/feature activation, app-server start, native client connection or model turn has been performed. Historical synthetic endpoint61985 is closed and must not be reused as a live target.
 
