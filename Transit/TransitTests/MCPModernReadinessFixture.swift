@@ -126,6 +126,7 @@ nonisolated enum MCPReadinessFixtureError: Error { case unsafeEndpoint, invalidT
         var object: [String: Any] = ["jsonrpc": "2.0", "method": method, "params": parameters]
         if let id { object["id"] = id }
         var request = URLRequest(url: endpoint); request.httpMethod = "POST"
+        request.timeoutInterval = 5
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(accept, forHTTPHeaderField: "Accept")
         request.setValue(version, forHTTPHeaderField: "MCP-Protocol-Version")
@@ -154,8 +155,10 @@ nonisolated enum MCPReadinessFixtureError: Error { case unsafeEndpoint, invalidT
 
     private static func subscription(_ session: URLSession, endpoint: URL, group: ServiceGroup,
                                      env: MCPTestEnv) async throws -> SubscriptionEvidence {
-        let outgoing = try request(endpoint, method: "subscriptions/listen", id: "readiness-subscription",
+        var outgoing = try request(endpoint, method: "subscriptions/listen", id: "readiness-subscription",
             params: ["notifications": ["toolsListChanged": true]], accept: "text/event-stream")
+        let requestedHold = ProcessInfo.processInfo.environment["TRANSIT_READINESS_HOLD_SECONDS"] ?? "0"
+        outgoing.timeoutInterval = Double(min(120, max(0, Int(requestedHold) ?? 0)) + 10)
         let (bytes, response) = try await session.bytes(for: outgoing)
         let http = try #require(response as? HTTPURLResponse); try #require(http.statusCode == 200)
         var frames = [[String: Any]](); var eventIDs = [String]()
