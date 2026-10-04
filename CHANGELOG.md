@@ -8,11 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- T-2383: MCP tool results expose a versioned structured source/presentation envelope while preserving original text, saved receipt outcomes and retry evidence. Tool output schemas and a synthetic read-only loopback readiness harness cover the contract; navigable links remain unavailable pending T-572.
 - T-2380: Eight standard MCP writes require retry keys, and task/milestone updates require revision preconditions. Local receipts retain saved outcomes for seven days, durable guards protect uncertain requests across restart, and full-record reads return content revisions for conflict detection.
 - T-2377: MCP `create_project` accepts a required name and six-digit colour, validates optional description/repository fields and case-insensitive name uniqueness, persists through `ProjectService`, and returns project ID and metadata for subsequent task creation. Regression tests cover discovery, validation, storage failures, fallback write rejection, and project-to-task creation.
 
 ### Changed
 
+- T-2383: Replace legacy MCP initialization, session groups and GET streams with latest-only request validation, stateless discovery and request-scoped POST subscriptions. Acknowledgements and completion frames remain separate from coalesced invalidations, and cancellation/lifecycle cleanup preserves bounded read ownership. Local isolated tests pass; production activation remains held for actual installed-client readiness.
 - T-2380: Full bounded task queries now capture complete comment-covered revisions even when comments are omitted from the response. Duplicate batch references share one capture and continuation pages retain frozen revisions; summary reads without comments still skip comment retrieval.
 - T-2379: MCP `query_tasks` requires explicit detail, comments, and page-size options and returns bounded pages over five-minute frozen results. Batch UUID/display-ID lookup reports ordered per-input outcomes, comments are optional, and opaque cursors expire or invalidate on server restart. Existing filters are preserved; the query response changes from an array to an object containing results, next cursor, and expiry. Task serialization shares one date formatter per query, and regression coverage verifies frozen comment values after edits, removal, and creation.
 
