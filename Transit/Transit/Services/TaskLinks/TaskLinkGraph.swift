@@ -6,6 +6,8 @@ enum TaskLinkGraph {
     static let knownStatuses: Set<String> = [
         "idea", "planning", "spec", "ready-for-implementation", "in-progress", "ready-for-review", "done", "abandoned"
     ]
+    static let storedKinds: Set<String> = ["dependency", "association", "attribution", "duplicate"]
+    static let evidenceLifetime: TimeInterval = 7 * 24 * 60 * 60
 
     static func occurrenceRevision(_ row: TaskLinkOccurrenceValue) throws -> String {
         let fields: [String: Any] = ["id": row.id.uuidString.lowercased(), "kind": row.kind,
@@ -15,61 +17,118 @@ enum TaskLinkGraph {
         return "l1:" + SHA256.hash(data: Data(canonical.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
+    static func relation(_ row: TaskLinkOccurrenceValue) -> TaskLinkRelation {
+        if row.kind == "association" {
+            return TaskLinkType.relatesTo.normalized(source: row.source, target: row.target)
+        }
+        return TaskLinkRelation(kind: row.kind, source: row.source, target: row.target)
+    }
+
     static func project(
         tasks: [TaskLinkTaskValue], occurrences: [TaskLinkOccurrenceValue],
         removalEvidence: [TaskLinkRemovalValue], evaluationInstant: Date,
         budget: TaskLinkGraphBudget = TaskLinkGraphBudget()
     ) throws -> TaskLinkGraphView {
-        try budget.check()
-        let taskIndex = Dictionary(grouping: tasks, by: \.id)
-        let edgeIndex = Dictionary(grouping: occurrences, by: \.id)
-        var incidence: [UUID: [TaskLinkOccurrenceValue]] = [:]
-        var diagnostics: [TaskLinkDiagnostic] = []
-        var retainedBytes = tasks.reduce(0) {
-            $0 + $1.physicalKey.count + $1.name.utf8.count + $1.status.utf8.count + 16
-        }
-        for row in occurrences {
+        var state = try TaskLinkGraphIndex(tasks: tasks, occurrences: occurrences,
+                                          evidence: removalEvidence, instant: evaluationInstant, budget: budget)
+        try state.diagnoseOccurrences(budget: budget)
+        let cyclic = try cycleMembers(tasks: state.tasksById, occurrences: occurrences, budget: budget)
+        for id in cyclic {
             try budget.check()
-            retainedBytes += row.physicalKey.count + row.kind.utf8.count + 56
-            incidence[row.source, default: []].append(row)
-            if row.target != row.source { incidence[row.target, default: []].append(row) }
-            func diagnose(_ code: String) {
-                diagnostics.append(TaskLinkDiagnostic(code: code, taskIds: [row.source, row.target],
-                    edgeId: row.id, physicalKey: row.physicalKey))
-            }
-            for endpoint in [row.source, row.target] {
-                if taskIndex[endpoint] == nil {
-                    diagnose("missing_endpoint")
-                } else if taskIndex[endpoint]?.count != 1 { diagnose("ambiguous_endpoint") }
-            }
-            if row.source == row.target { diagnose("self_link") }
-            if !["dependency", "association", "attribution", "duplicate"].contains(row.kind) {
-                diagnose("unknown_kind")
-            }
-            if !row.createdAt.timeIntervalSinceReferenceDate.isFinite { diagnose("malformed_date") }
-            if edgeIndex[row.id]?.count != 1 { diagnose("occurrence_identity_collision") }
+            state.diagnostics.append(TaskLinkDiagnostic(code: "dependency_cycle", taskIds: [id],
+                                                        edgeId: nil, physicalKey: Data()))
         }
-        retainedBytes += removalEvidence.reduce(0) {
-            $0 + $1.physicalKey.count + $1.kind.utf8.count + $1.occurrenceRevision.utf8.count + 88
-        }
-        guard retainedBytes <= budget.maximumBytes else { throw TaskLinkGraphError.capacityExceeded }
         var blockers: [UUID: TaskLinkBlockerAssessment] = [:]
-        for (id, matches) in taskIndex {
+        for (id, matches) in state.tasksById {
             try budget.check()
-            guard matches.count == 1, knownStatuses.contains(matches[0].status) else {
-                blockers[id] = .invalid; continue
-            }
-            let incoming = incidence[id, default: []].filter { $0.kind == "dependency" && $0.target == id }
-            if incoming.contains(where: { edge in diagnostics.contains { $0.physicalKey == edge.physicalKey } }) {
-                blockers[id] = .invalid
-            } else if incoming.contains(where: { taskIndex[$0.source]?.first?.status != "done" }) {
-                blockers[id] = .blocked
-            } else { blockers[id] = .unblocked }
+            blockers[id] = state.assessment(id: id, matches: matches, cyclic: cyclic)
+        }
+        state.diagnostics.sort {
+            let left = ($0.code, $0.taskIds.map(\.uuidString).joined(), $0.edgeId?.uuidString ?? "")
+            let right = ($1.code, $1.taskIds.map(\.uuidString).joined(), $1.edgeId?.uuidString ?? "")
+            return left == right ? $0.physicalKey.lexicographicallyPrecedes($1.physicalKey) : left < right
         }
         return TaskLinkGraphView(tasks: tasks, occurrences: occurrences, removalEvidence: removalEvidence,
-            evaluationInstant: evaluationInstant, tasksById: taskIndex, occurrencesById: edgeIndex,
-            incidence: incidence, diagnostics: diagnostics, cyclicTasks: [], blockers: blockers,
-            retainedBytes: retainedBytes)
+            evaluationInstant: evaluationInstant, tasksById: state.tasksById, occurrencesById: state.edgesById,
+            incidence: state.incidence, diagnostics: state.diagnostics, cyclicTasks: cyclic, blockers: blockers,
+            retainedBytes: state.retainedBytes, invalidOccurrences: state.invalidOccurrences,
+            recognizedRemovals: state.recognizedRemovals)
+    }
+
+    // Iterative Kosaraju. Every structurally resolvable physical dependency is retained.
+    // Both traversals are iterative to bound stack use on large imported graphs.
+    // swiftlint:disable:next cyclomatic_complexity
+    static func cycleMembers(
+        tasks: [UUID: [TaskLinkTaskValue]], occurrences: [TaskLinkOccurrenceValue], budget: TaskLinkGraphBudget
+    ) throws -> Set<UUID> {
+        var adjacency: [UUID: [UUID]] = [:], reverse: [UUID: [UUID]] = [:]
+        for edge in occurrences {
+            try budget.check()
+            guard edge.kind == "dependency", tasks[edge.source]?.count == 1, tasks[edge.target]?.count == 1 else {
+                continue
+            }
+            adjacency[edge.source, default: []].append(edge.target)
+            reverse[edge.target, default: []].append(edge.source)
+        }
+        var visited: Set<UUID> = [], ordered: [UUID] = []
+        for id in tasks.keys {
+            try budget.check()
+            guard visited.insert(id).inserted else { continue }
+            var stack: [(UUID, Int)] = [(id, 0)]
+            while let (node, offset) = stack.last {
+                try budget.check()
+                let neighbors = adjacency[node, default: []]
+                if offset == neighbors.count { ordered.append(node); stack.removeLast(); continue }
+                stack[stack.count - 1].1 += 1
+                let next = neighbors[offset]
+                if visited.insert(next).inserted { stack.append((next, 0)) }
+            }
+        }
+        visited.removeAll(keepingCapacity: true)
+        var cyclic: Set<UUID> = []
+        for id in ordered.reversed() {
+            try budget.check()
+            guard visited.insert(id).inserted else { continue }
+            var stack = [id], component: [UUID] = []
+            while let node = stack.popLast() {
+                try budget.check()
+                component.append(node)
+                for next in reverse[node, default: []] {
+                    try budget.check()
+                    if visited.insert(next).inserted { stack.append(next) }
+                }
+            }
+            if component.count > 1 || adjacency[id, default: []].contains(id) { cyclic.formUnion(component) }
+        }
+        return cyclic
+    }
+
+    static func duplicateResolution(
+        for id: UUID, in view: TaskLinkGraphView, budget: TaskLinkGraphBudget = TaskLinkGraphBudget()
+    ) throws -> TaskLinkDuplicateResolution {
+        var current = id, path: [UUID] = [], visited: Set<UUID> = []
+        while true {
+            try budget.check()
+            guard visited.insert(current).inserted else {
+                return TaskLinkDuplicateResolution(path: path + [current], canonical: nil,
+                                                   diagnostic: "duplicate_cycle")
+            }
+            path.append(current)
+            guard let matches = view.tasksById[current], matches.count == 1 else {
+                return TaskLinkDuplicateResolution(path: path, canonical: nil,
+                    diagnostic: view.tasksById[current] == nil ? "missing_endpoint" : "ambiguous_endpoint")
+            }
+            let edges = view.incidence[current, default: []].filter { $0.kind == "duplicate" && $0.source == current }
+            guard edges.count <= 1 else {
+                return TaskLinkDuplicateResolution(path: path, canonical: nil, diagnostic: "duplicate_cardinality")
+            }
+            guard let edge = edges.first else {
+                return TaskLinkDuplicateResolution(path: path, canonical: current, diagnostic: nil)
+            }
+            guard !view.invalidOccurrences.contains(edge.physicalKey) else {
+                return TaskLinkDuplicateResolution(path: path, canonical: nil, diagnostic: "invalid_occurrence")
+            }
+            current = edge.target
+        }
     }
 }

@@ -11,7 +11,7 @@ from prepare_unit_run import require, validated_unit_run
 def main():
     require(len(sys.argv) == 3, "Build-products path and RED/GREEN run tag required")
     tag = sys.argv[2]
-    require(tag in ("red", "green"), "Exact RED/GREEN run tag required")
+    require(tag in ("red", "plan-red", "green"), "Exact RED/GREEN run tag required")
     products = pathlib.Path(sys.argv[1]).resolve()
     derived = products / f"T1734Graph-{tag}.xctestrun"
     result = products / f"T1734Graph-{tag}.xcresult"
@@ -19,7 +19,7 @@ def main():
     for output in (derived, result, preflight):
         require(not output.exists() and not output.is_symlink(), f"Fresh output required: {output}")
     configuration, unit, host, info, entitlements, source = validated_unit_run(products)
-    suites = ["TaskLinkGraphTests"]
+    suites = ["TaskLinkGraphTests", "TaskLinkGraphGeneratedTests", "TaskLinkPlanTests"]
     unit["OnlyTestIdentifiers"] = suites
     environment = unit["EnvironmentVariables"]
     for flag in ("T1734_TRANSACTION_DIAGNOSTIC", "T1734_TRANSACTION_ABORT_DIAGNOSTIC",
@@ -28,10 +28,10 @@ def main():
     environment.pop("T1734_OUTSIDE_WRITER_OBSERVATIONS", None)
     command = ["xcodebuild", "test-without-building", "-xctestrun", str(derived),
                "-destination", "platform=macOS,arch=arm64", "-parallel-testing-enabled", "NO",
-               "-only-testing:TransitTests/TaskLinkGraphTests",
+               *[f"-only-testing:TransitTests/{suite}" for suite in suites],
                "-resultBundlePath", str(result)]
     evidence = dict(host=str(host), bundleID=info["CFBundleIdentifier"], entitlements=entitlements,
-                    sourceXctestrun=str(source), suites=suites, expectedExpandedCases=9,
+                    sourceXctestrun=str(source), suites=suites, expectedExpandedCases=29,
                     expectedSkips=0, launched=False, outsideWriterExclusion=False,
                     primitiveDiagnosticsExcluded=True, derivedXctestrun=str(derived),
                     resultBundlePath=str(result), expectedCommand=command)

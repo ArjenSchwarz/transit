@@ -101,6 +101,8 @@ nonisolated struct TaskLinkGraphView: Sendable {
     let cyclicTasks: Set<UUID>
     let blockers: [UUID: TaskLinkBlockerAssessment]
     let retainedBytes: Int
+    let invalidOccurrences: Set<Data>
+    let recognizedRemovals: [UUID: [TaskLinkRemovalValue]]
 
     func assessment(for id: UUID) -> TaskLinkBlockerAssessment { blockers[id] ?? .unavailable }
 }
