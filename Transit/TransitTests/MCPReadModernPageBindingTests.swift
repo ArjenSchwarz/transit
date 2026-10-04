@@ -167,7 +167,7 @@ struct MCPReadModernPageBindingTests {
         }
     }
 
-    private final class Source: MCPReadCaptureSource {
+    @MainActor private final class Source: MCPReadCaptureSource {
         let builder: MCPReadCaptureBuilder
         var failure: MCPReadCaptureError?
         var calls = 0

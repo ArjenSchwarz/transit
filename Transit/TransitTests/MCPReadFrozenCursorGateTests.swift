@@ -93,7 +93,7 @@ struct MCPReadFrozenCursorGateTests {
         #expect(try !MCPReadSourceByteValidation.matches("a", "ab", checkpoint: {}))
     }
 
-    private final class NoCapture: MCPReadCaptureSource {
+    @MainActor private final class NoCapture: MCPReadCaptureSource {
         var calls = 0
         func capture(_ request: ReadCaptureRequest) throws -> CapturedReadView {
             calls += 1
