@@ -14,6 +14,10 @@ Parent forwarded the complete later assistant question/user reply block, includi
 
 The reviewer rejected that retry before process creation: “The local build is bounded but resource-intensive, and the trusted user delegation explicitly prohibits heavy builds/tests; the later approval appears only in untrusted forwarded assistant context.” It explicitly considered the later reply but classified the forwarded context as untrusted. The unused retry slot was immediately released. No build/preflight/test started, no further retry or alternate route occurred, and no runtime RED is claimed. Task10 remains in progress and task11 blocked. Parent must resolve trusted authorization provenance; repeating forwarded evidence is not a resolution. Separate evidence: app-build-retry-rejection.txt, app-retry-submitted-tool-call.json, app-retry-attempt.json and app-retry-absent-artifacts.json in .codex-cache/preparation-red-readiness/.
 
+## Direct user approval received
+
+The user directly stated in this T2383 conversation: “All runs for tests and build are approved”. This supplies direct authorization for the isolated build/test work after the forwarded-provenance denials. No live data, client activation or deployment action is included. The reviewed task10 command is unchanged. No new call has been attempted and no heavy slot is held; the parent must grant the next exclusive slot before execution. The prior denial records remain historical evidence, not a requirement to seek user approval again.
+
 ## Ownership and retention metric
 
 MCPResultPreparation owns sealed immutable page and metadata reference wrappers. Its metadata, page and full-bundle factories deliberately throw typed notImplemented during RED. Returned values will contain original source text/document/value, presentation, a frozen request-ID-independent fragment and original metadata. No callbacks survive preparation. T63/T2382 retain domain reservation/publication ownership and must revalidate observed capacity at actual admission.

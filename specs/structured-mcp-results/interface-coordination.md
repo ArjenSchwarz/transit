@@ -1,6 +1,6 @@
 # Pending common result seam coordination
 
-## Current checkpoint: task10 RED execution blocked before start
+## Current checkpoint: direct testing approval received; task10 awaiting slot
 
 Task8 meaningful RED is reviewed and complete at `0695c7c`, retaining command exit143/unfinalized result limitations. Task9 descriptor source `a25bf99` and recovery correction `1f20e11` passed the guarded run at `2df0648`: finalized5/5 app tests and actual-export host checks876 plus3. Build/preflight/test/summary exited0, owned processes drained and slot released; runtime critic clear. Rune9 is complete. See schema-green.md and `.codex-cache/schema-recovery-conformance/results.md`.
 
@@ -54,3 +54,8 @@ The seven fixtures are labeled optional/separately authorized by the manifest; t
 Manifest evidence reports StageB64/64 production equivalence, owner router4/4 atb4c104e7 and expiry2/2 atee053269 separately. These are external owner evidence, not a combined/local run. Current HTTP-helper focused router/expiry verification with the real modern adapter remains an API15 obligation, alongside frozen metadata, full-byte publication and exact retention accounting. Diagnostics/descriptions/full-platform checks are not handoff blockers.
 
 This satisfies only the named production ownership gate. Task10 actual RED is still blocked by approval provenance, task11 blocked by10, task14 blocked by11, and DELIVERED15 undelivered. No heavy slot held and no test retry is authorized by the ownership transfer. Integration planning follows the approved DAG; no source work is advanced past it.
+
+
+## Direct testing authorization
+
+User directly approved all test/build runs in this task conversation. The provenance issue has direct user authorization available for the next normal review; no test call has yet been attempted under it. Task10 remains inprogress awaiting the next parent-exclusive slot; task11 stays blocked until meaningful RED. The exact reviewed commands and isolation constraints remain unchanged. No live/client/deployment authorization or API15 delivery is implied.
