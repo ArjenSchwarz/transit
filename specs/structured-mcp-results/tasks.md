@@ -161,7 +161,7 @@ metadata:
   - Requirements: [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [5.6](requirements.md#5.6), [6.1](requirements.md#6.1)
   - References: design.md, Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift, Transit/Transit/MCP/MCPServer+ToolListNotifications.swift
 
-- [-] 19. GREEN: implement POST subscription broadcaster and lifecycle wiring <!-- id:gpzncw3 -->
+- [x] 19. GREEN: implement POST subscription broadcaster and lifecycle wiring <!-- id:gpzncw3 -->
   - Replace session-grouped broadcaster with request registrations, separate first-ack staging and bounded coalesced invalidations; carry original RPC subscription ID on every message and accepted filter only.
   - Integrate existing availability observer/service teardown/port-change hooks under handoff; flush SSE data frames, omit event IDs/resumability, graceful complete result on server closure where possible, cleanup exactly once. No store capture/read permit or extra progress stream. Pass task18.
   - Blocked-by: gpzncw2 (RED: specify request-scoped subscription ordering and cleanup)
@@ -169,7 +169,7 @@ metadata:
   - Requirements: [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [5.6](requirements.md#5.6), [6.1](requirements.md#6.1)
   - References: design.md, Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift, Transit/Transit/MCP/MCPServer+ToolListNotifications.swift, Transit/Transit/MCP/MCPServer.swift
 
-- [ ] 20. RED: specify isolated client-readiness fixture and negotiation evidence checks <!-- id:gpzncw4 -->
+- [-] 20. RED: specify isolated client-readiness fixture and negotiation evidence checks <!-- id:gpzncw4 -->
   - Add automated fixture/harness tests with synthetic data: modern discovery/list/call/structured consumption, conforming subscription filter/first-ack/correlation, wrong/legacy protocol negatives, and no real writes or production endpoint replacement.
   - Write negotiation-evidence checks that reject binary symbols/version-only/legacy success, missing intended surfaces and missing structured consumption. Require concrete actual intended Codex surfaces, Claude Code and Desktop discovery/list/call traces; subscription only for opted-in installed surfaces plus conforming fixture. Actual runtime connection/settings prerequisites remain separate from coding.
   - Blocked-by: gpzncw3 (GREEN: implement POST subscription broadcaster and lifecycle wiring)
