@@ -22,7 +22,13 @@ struct MCPPortfolioModernAcceptanceTests {
                 let tool = try #require(tools.first { $0["name"] as? String == name })
                 let output = try #require(tool["outputSchema"] as? [String: Any])
                 let properties = try #require(output["properties"] as? [String: Any])
-                #expect(properties["structuredContent"] != nil && properties["content"] != nil)
+                #expect(properties["contractVersion"] != nil && properties["source"] != nil
+                        && properties["presentation"] != nil)
+                let required = try #require(output["required"] as? [String])
+                #expect(Set(required) == ["contractVersion", "source", "presentation"])
+                #expect(output["additionalProperties"] as? Bool == false)
+                let version = try #require(properties["contractVersion"] as? [String: Any])
+                #expect(version["const"] as? Int == 1)
                 #expect(tool["inputSchema"] is [String: Any])
             }
             let valid = try MCPPortfolioModernHTTPHarness.request(tool: "query_project_summaries", arguments: initial)
