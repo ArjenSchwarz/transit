@@ -10,6 +10,7 @@ import SwiftData
         monitor.start()
         let source = MCPReadCaptureBuilder(container: container, generation: { monitor.snapshot().generation })
         let service = MCPReadService(source: source, monitor: monitor, snapshots: snapshots,
+            diagnostics: .application,
             pagePreparer: { try MCPModernProviderBinding.prepareReadPages($0, tool: $1, operation: $2) })
         return service
     }

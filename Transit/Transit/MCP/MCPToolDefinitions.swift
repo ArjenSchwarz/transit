@@ -135,7 +135,9 @@ extension MCPToolDefinitions {
     (TASK_NOT_FOUND/AMBIGUOUS_TASK_ID). Full detail includes nullable description, nonempty metadata and
     a revision covering complete comment state. Full reads fetch comments even when includeComments=false;
     that option omits only their payload. Summary reads with includeComments=false do not fetch comments.
-    Continue with only cursor. Results are frozen for five minutes; replay does not extend expiry.
+    A new ordinary query creates a new capture. Continue with cursor and optionally the identical retained readPolicy;
+    frozen cursor replay never captures or refreshes again. Results expire five minutes after the original capture;
+    replay does not extend expiry. There is no automatic retry.
     Whole-query errors are {error:{code,message}}: INVALID_INPUT, AMBIGUOUS_TASK_ID, AMBIGUOUS_FILTER,
     QUERY_FAILED, INVALID_CURSOR (start a new query), QUERY_EXPIRED, QUERY_UNAVAILABLE, or
     QUERY_CAPACITY_EXCEEDED (reduce scope/comments or retry after expiry). Unknown fields are rejected.
@@ -177,7 +179,8 @@ extension MCPToolDefinitions {
 
     nonisolated static let queryTasks = MCPToolDefinition(
         name: "query_tasks",
-        description: queryTasksDescription + "\n\n" + MCPPortfolioToolDefinitions.snapshotTaskQueryDescription,
+        description: queryTasksDescription + "\n\n" + readExecutionDescription
+            + "\n\n" + MCPPortfolioToolDefinitions.snapshotTaskQueryDescription,
         inputSchema: JSONSchema(type: "object", properties: nil, required: nil, oneOf: [
             JSONSchema(type: "object", properties: queryTaskProperties,
                        required: ["detailLevel", "includeComments", "limit"], additionalProperties: false),
@@ -223,7 +226,8 @@ extension MCPToolDefinitions {
 
     nonisolated static let getProjects = MCPToolDefinition(
         name: "get_projects",
-        description: "List all projects with metadata. Returns an array of project objects sorted by name.",
+        description: "List all projects with metadata. Returns an array of project objects sorted by name."
+            + "\n\n" + readExecutionDescription,
         inputSchema: .object(properties: [:], required: [])
     )
 
@@ -254,7 +258,7 @@ extension MCPToolDefinitions {
 
     nonisolated static let queryMilestones = MCPToolDefinition(
         name: "query_milestones",
-        description: queryMilestonesDescription,
+        description: queryMilestonesDescription + "\n\n" + readExecutionDescription,
         inputSchema: .object(
             properties: [
                 "displayId": .integer("Milestone display ID for single-milestone lookup (e.g. 3 for M-3)"),

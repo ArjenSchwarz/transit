@@ -10,6 +10,7 @@ extension MCPToolHandler {
     /// Covered tools prepare privately after independent transport admission.
     func prepareCoveredRead(_ request: MCPReadToolRequest,
                             operation: MCPReadOperation) async throws -> MCPPreparedToolRead {
+        operation.finishActorQueue()
         guard let readService else {
             let metadata = ReadFailureMetadata(requestId: operation.id.uuidString, category: .storageFailure,
                 read: ReadExecutionMetadata(policy: .refreshIfNeeded, refreshOutcome: .unavailable, budgetMs: 5_000))

@@ -92,7 +92,8 @@ final class MCPToolHandler {
         self.persistence = persistence ?? .shared
         self.taskQuerySnapshots = taskQuerySnapshots ?? readService?.snapshots ?? MCPTaskQuerySnapshotStore()
         let domain = self.taskQuerySnapshots.domain
-        let coordinator = readCoordinator ?? MCPReadCoordinator(domain: domain)
+        let coordinator = readCoordinator ?? MCPReadCoordinator(
+            domain: domain, diagnostics: readService?.diagnostics ?? .disabled)
         self.readCoordinator = coordinator
         self.reusableSnapshots = Result {
             guard coordinator.domain === domain,

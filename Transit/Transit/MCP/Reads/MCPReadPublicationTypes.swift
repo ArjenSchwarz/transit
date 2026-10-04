@@ -44,5 +44,15 @@ nonisolated struct PreparedReadResult: Sendable {
     let encodedResponse: Data
     let publications: [any MCPPreparedPublication]
     let publicationErrors: PreencodedPublicationErrors
+    /// Known typed tool outcome only. Nil leaves opaque responses unclassified.
+    let diagnosticOutcome: MCPReadDiagnosticOutcome?
+
+    init(encodedResponse: Data, publications: [any MCPPreparedPublication],
+         publicationErrors: PreencodedPublicationErrors, diagnosticOutcome: MCPReadDiagnosticOutcome? = nil) {
+        self.encodedResponse = encodedResponse
+        self.publications = publications
+        self.publicationErrors = publicationErrors
+        self.diagnosticOutcome = diagnosticOutcome
+    }
 }
 #endif

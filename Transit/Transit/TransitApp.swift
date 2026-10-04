@@ -163,7 +163,7 @@ struct TransitApp: App {
         self.mcpWriteCoordinator = writeCoordinator
         try? writeCoordinator.cleanupExpiredOutcomes()
         let reads = MCPReadAppDependencies.make(container: container, syncActive: cloudSyncActive)
-        let readCoordinator = MCPReadCoordinator(domain: reads.snapshots.domain)
+        let readCoordinator = MCPReadCoordinator(domain: reads.snapshots.domain, diagnostics: reads.diagnostics)
         let mcpToolHandler = MCPToolHandler(
             taskService: taskService, projectService: projectService,
             commentService: commentService, milestoneService: milestoneService,

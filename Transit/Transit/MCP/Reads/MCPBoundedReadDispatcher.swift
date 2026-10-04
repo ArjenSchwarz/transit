@@ -41,23 +41,43 @@ nonisolated enum MCPBoundedReadDispatcher {
         let errors = try publicationErrors(for: read.request, id: id, busy: busy,
                                            encodeConstantToolFailure: constantEncoder)
         return await coordinator.execute(timeout: timeout, busy: busy, admittedAt: admittedAt,
-                                         admission: admission) { operation in
+                                         admission: admission, diagnosticTool: read.request.tool) { operation in
             var prepared: MCPPreparedToolRead?
             do {
                 if read.malformedArguments {
                     let bytes = try JSONEncoder().encode(JSONRPCResponse.error(id: id,
                         code: JSONRPCErrorCode.invalidParams, message: "Invalid arguments: must be a JSON object"))
-                    return PreparedReadResult(encodedResponse: bytes, publications: [], publicationErrors: errors)
+                    return PreparedReadResult(encodedResponse: bytes, publications: [], publicationErrors: errors,
+                                              diagnosticOutcome: .failure)
                 }
+                operation.beginActorQueue()
                 let tool = try await handler.prepareCoveredRead(read.request, operation: operation)
                 prepared = tool
-                let bytes = try encodeWithOperation?(tool, id, operation) ?? encode(tool, id)
+                let bytes = try encodeMeasured(tool, id: id, operation: operation) { tool, id, operation in
+                    try encodeWithOperation?(tool, id, operation) ?? encode(tool, id)
+                }
                 return PreparedReadResult(encodedResponse: bytes, publications: tool.publications,
-                                          publicationErrors: errors)
+                    publicationErrors: errors, diagnosticOutcome: tool.result.isError == true ? .failure : .success)
             } catch {
                 if let prepared { discard(prepared.publications, in: coordinator.domain) }
-                return PreparedReadResult(encodedResponse: serialization, publications: [], publicationErrors: errors)
+                return PreparedReadResult(encodedResponse: serialization, publications: [],
+                                          publicationErrors: errors, diagnosticOutcome: .failure)
             }
+        }
+    }
+
+    /// Measures the actual complete RPC encoder outside the publication gate and on the original operation.
+    static func encodeMeasured(_ tool: MCPPreparedToolRead, id: JSONRPCId, operation: MCPReadOperation,
+                               encode: @Sendable (MCPPreparedToolRead, JSONRPCId, MCPReadOperation) throws -> Data)
+        throws -> Data {
+        let started = ContinuousClock.now
+        do {
+            let bytes = try encode(tool, id, operation)
+            operation.recordDiagnostic(.serialization, startedAt: started)
+            return bytes
+        } catch {
+            operation.recordDiagnostic(.serialization, startedAt: started, outcome: .failure)
+            throw error
         }
     }
 

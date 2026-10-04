@@ -17,6 +17,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
     let source: any MCPReadCaptureSource
     let monitor: MCPImportEvidenceMonitor
     let snapshots: MCPTaskQuerySnapshotStore
+    let diagnostics: MCPReadDiagnosticSink
     let pagePreparer: MCPReadPagePreparer?
     private let applicability: () -> MCPReadImportApplicability
     private let proof: (CapturedReadView) -> MCPImportCaptureProof?
@@ -27,12 +28,13 @@ final class MCPReadService: MCPReadCapturedPreparing {
              MCPReadImportApplicability(inFlightImportIDs: [], visibleSavedImportProof: nil)
          },
          proof: @escaping (CapturedReadView) -> MCPImportCaptureProof? = { _ in nil },
-         pagePreparer: MCPReadPagePreparer? = nil) {
+         diagnostics: MCPReadDiagnosticSink = .disabled, pagePreparer: MCPReadPagePreparer? = nil) {
         self.source = source
         self.monitor = monitor
         self.snapshots = snapshots
         self.applicability = applicability
         self.proof = proof
+        self.diagnostics = diagnostics
         self.pagePreparer = pagePreparer
     }
 
@@ -60,6 +62,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
 
     func prepare(tool: String, arguments: [String: Any],
                  operation: MCPReadOperation) async throws -> MCPPreparedToolRead {
+        operation.finishActorQueue()
         var policy = MCPReadPolicy.refreshIfNeeded
         do {
             guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
@@ -130,67 +133,17 @@ final class MCPReadService: MCPReadCapturedPreparing {
         let view = try await capture(request: request, policy: policy, operation: operation,
                                      context: (observation, applicable.visibleSavedImportProof))
         guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
+        let transformStarted = ContinuousClock.now
+        defer { operation.recordDiagnostic(.transform, startedAt: transformStarted) }
         let metadataBytes = try JSONEncoder().encode(view.metadata)
         return try await transform(MCPPreparedReadCapture(view: view, frozenMetadataBytes: metadataBytes), operation)
-    }
-
-    private func captureRequest(tool: String, arguments: [String: Any], selection: ReadCaptureSelection,
-                                includeComments: Bool, query: MCPTaskQueryRequest?) -> ReadCaptureRequest {
-        let fields = arguments.mapValues(AnyCodable.init)
-        let state = ValidationState()
-        return ReadCaptureRequest(projectSelectors: nil, selection: selection,
-                completeness: .selectedRead, includeComments: includeComments,
-                validateProjects: { projects in
-                    let args = fields.mapValues(\.value)
-                    guard tool != "get_projects" else { return }
-                    state.project = try MCPReadProjection.projectIdentity(args, projects: projects,
-                                                             validateIgnoredName: tool == "query_tasks")
-                    if tool == "query_tasks" {
-                        try MCPReadProjection.validateTaskScalars(args)
-                    } else {
-                        try MCPReadProjection.enumeration(args, key: "status", type: MilestoneStatus.self)
-                        try MCPReadProjection.string(args, key: "search")
-                        try MCPReadProjection.integer(args, key: "displayId")
-                    }
-                }, validateMilestones: { milestones in
-                    let args = fields.mapValues(\.value)
-                    state.milestones = milestones
-                    if tool == "query_tasks" {
-                        if case .noMatch = try MCPReadProjection.milestoneFilter(args, project: state.project,
-                                                                               milestones: milestones) { return false }
-                        return true
-                    }
-                    guard tool == "query_milestones", let id = IntentHelpers.parseIntValue(args["displayId"]) else {
-                        return tool == "get_projects"
-                    }
-                    let matches = milestones.filter { $0.permanentDisplayId == id }
-                    guard matches.count <= 1 else {
-                        throw MCPTaskQueryError(code: "AMBIGUOUS_FILTER",
-                            message: "Duplicate milestone identifier detected for displayId \(id)")
-                    }
-                    guard let match = matches.first else { return false }
-                    return MCPReadProjection.matchesMilestone(match, arguments: args, projectID: state.project?.id)
-                }, selectTaskBodies: { values in
-                    guard let query else { return Set(values.map(\.physicalKey)) }
-                    let filters = try MCPReadProjection.taskFilters(fields.mapValues(\.value),
-                        project: state.project, milestones: state.milestones)
-                    return try MCPReadProjection.taskBodyKeys(values, request: query, filters: filters)
-                }, selectMilestoneBodies: { values in
-                    guard tool == "query_milestones" else { return [] }
-                    return try MCPReadProjection.milestoneBodyKeys(values, arguments: fields.mapValues(\.value),
-                        projectID: state.project?.id)
-                })
-    }
-
-    private final class ValidationState {
-        var project: ReadProjectIdentity?
-        var milestones: [ReadMilestoneIdentity] = []
     }
 
     private func capture(request: ReadCaptureRequest,
                          policy: MCPReadPolicy, operation: MCPReadOperation,
                          context: (MCPImportObservationWindow?, MCPImportCaptureProof?))
         async throws -> CapturedReadView {
+        let refreshStarted = ContinuousClock.now
         let (observation, decisionProof) = context
         // The active window starts before the decision snapshot and remains through metadata freezing.
         let applicable = observation?.applicableImportIDs ?? []
@@ -210,8 +163,15 @@ final class MCPReadService: MCPReadCapturedPreparing {
                                                     duration: duration, observation: observation)
             skipped = nil
         }
+        operation.recordDiagnostic(.refresh, startedAt: refreshStarted)
         guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
-        let view = try source.capture(request)
+        let captureStarted = ContinuousClock.now
+        let view: CapturedReadView
+        do { view = try source.capture(request) } catch {
+            operation.recordDiagnostic(.capture, startedAt: captureStarted, outcome: .failure)
+            throw error
+        }
+        operation.recordDiagnostic(.capture, startedAt: captureStarted)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         guard let date = formatter.date(from: view.metadata.asOf) else { throw MCPReadCaptureError.incoherentCapture }
