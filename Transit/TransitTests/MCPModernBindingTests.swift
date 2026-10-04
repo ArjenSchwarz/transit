@@ -1,6 +1,7 @@
 #if os(macOS)
 import Foundation
 import HTTPTypes
+import NIOCore
 import NIOEmbedded
 import SwiftData
 import Testing
