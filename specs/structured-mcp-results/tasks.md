@@ -177,7 +177,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.3](requirements.md#1.3), [3.2](requirements.md#3.2), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [6.3](requirements.md#6.3)
   - References: design.md, scripts/mcp-modern-readiness, prerequisites.md
 
-- [-] 21. GREEN: implement isolated loopback fixture and readiness trace verifier <!-- id:gpzncw5 -->
+- [x] 21. GREEN: implement isolated loopback fixture and readiness trace verifier <!-- id:gpzncw5 -->
   - Implement scripts/mcp-modern-readiness test launcher/verifier using approved app encoder/validator test hooks on a separate loopback port and synthetic read-only records. Verify headers/meta/discovery/list/call/structured response and subscription evidence; verify fixture cannot address real store or replace production listener.
   - Pass task20. Produce machine-checkable evidence for each approved installed-client probe without installing clients, changing flags/connectors/settings, starting external-model agents or activating Transit. Unsupported modern runtime is an explicit blocker, not a fallback to legacy.
   - Blocked-by: gpzncw4 (RED: specify isolated client-readiness fixture and negotiation evidence checks)
@@ -185,7 +185,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.3](requirements.md#1.3), [3.2](requirements.md#3.2), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [6.3](requirements.md#6.3)
   - References: design.md, scripts/mcp-modern-readiness, prerequisites.md
 
-- [ ] 22. Test integrated modern contracts and approved client evidence <!-- id:gpzncw6 -->
+- [-] 22. Test integrated modern contracts and approved client evidence <!-- id:gpzncw6 -->
   - Test-only task after T63 slot release: run selected Swift Testing suites and schema fixture validation then repository make lint/test-quick appropriate to changes, with owning TestModelContainer fixtures and no host-checkout reads in app test processes. Broaden only for new failures/unresolved concerns.
   - Validate approved real-client negotiation evidence with task21 harness only once prerequisites are satisfied; missing evidence keeps6.3 open. Exercise all present provider registrations and synthetic future batch seam; production T2384 completion is not a blocker or claimed proof.
   - No activation/settings/push/merge/deploy here. If prerequisites remain unavailable, report readiness blocked while retaining delivered common API; no false complete task status.
