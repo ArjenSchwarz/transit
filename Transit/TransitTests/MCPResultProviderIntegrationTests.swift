@@ -138,7 +138,7 @@ struct MCPResultProviderIntegrationTests {
         let expiry = receipt.expiresAt
         let request = receipt.requestJSON
         let original = try #require(receipt.resultJSON)
-        #require(original.last == "}")
+        try #require(original.last == "}")
         let variants = [
             #", "historical":{"presentation":null,"false":false,"adjacentNull":null,"n":-0.00E+0}"#,
             #", "historical":[false,null,{"unknown":true}],"source":"opaque historic field""#,
@@ -164,9 +164,9 @@ struct MCPResultProviderIntegrationTests {
         _ = await env.handler.handle(MCPTestHelpers.toolCallRequest(tool: "create_project", arguments: rejectedArgs))
         let rejected = try #require(try env.context.fetch(FetchDescriptor<MCPWriteReceipt>())
             .first { $0.key == "historical-rejected" })
-        #require(rejected.stateRawValue == "rejected" && rejected.resultIsError == true)
+        try #require(rejected.stateRawValue == "rejected" && rejected.resultIsError == true)
         let rejectedOriginal = try #require(rejected.resultJSON)
-        #require(rejectedOriginal.last == "}")
+        try #require(rejectedOriginal.last == "}")
         let rejectedExpiry = rejected.expiresAt
         let rejectedRequest = rejected.requestJSON
         let rejectedSeed = String(rejectedOriginal.dropLast()) + #", "historical":{"retryAction":null,"n":-0.00E+0}}"#
