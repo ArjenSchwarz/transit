@@ -153,7 +153,7 @@ metadata:
   - Requirements: [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [3.3](requirements.md#3.3), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2)
   - References: design.md, Transit/Transit/MCP/MCPToolHandler+TaskQuery.swift, Transit/Transit/MCP/Reads, Transit/Transit/MCP/MCPTaskQuerySnapshotStore.swift
 
-- [ ] 18. RED: specify request-scoped subscription ordering and cleanup <!-- id:gpzncw2 -->
+- [-] 18. RED: specify request-scoped subscription ordering and cleanup <!-- id:gpzncw2 -->
   - Replace legacy session/GET stream expectations in MCPToolListChangeNotificationTests/MCPServerRouteTests; valid POST subscriptions require request IDs/modern headers/SSE Accept and acknowledge only supported requested filters.
   - Stress immediate availability changes before/after acknowledgement, coalescing, parallel string/integer subscription IDs, disconnect/shutdown/restart/port-change cleanup and graceful complete closure. First acknowledgement is never evicted; no unrequested notification, session state or further canceled-stream delivery.
   - Blocked-by: gpzncw1 (GREEN: wire frozen tool fragments and full-byte read publication)
