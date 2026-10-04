@@ -21,6 +21,12 @@ import SwiftData
         self.init(makeCommitServices: nil, onPendingEditsStop: {}, validateBeforeApply: validateBeforeApply)
     }
 
+    init(makeCommitServices: @escaping @MainActor (ModelContext) throws -> MCPWriteCommitServices,
+         validateBeforeApply: @escaping @MainActor (MCPWriteCommand, ModelContext) throws -> Void) {
+        self.init(makeCommitServices: makeCommitServices, onPendingEditsStop: {},
+                  validateBeforeApply: validateBeforeApply)
+    }
+
     init(
         makeCommitServices: (@MainActor (ModelContext) throws -> MCPWriteCommitServices)? = nil,
         onPendingEditsStop: @escaping @MainActor () -> Void = {},
