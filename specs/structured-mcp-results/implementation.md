@@ -365,3 +365,12 @@ Existing37/40 accounting-fixed packet is NOWBLOCKED until T2382 ownercorrection 
 
 
 Parent newexclusiveSTARTgrant after T2384GREEN84/drain includes reviewed narrowincidentalcompilerfixes within same37/40scope. Exact innertry patch importedas936d10b (gitapply-p0 because unprefixedpaths); postsourceSHA256722144dcd884dac4033da1b5b4cf3e49af7e413b34469c3d00009fec04456d20 matches successful targetedoverlay. This parentauthorisation resolves exactfixturecoordination exception, not ownerwriteownershiptransfer or semanticchange. New sourcepin/freshevidence labels beingprepared for actualcombinedrun; previousbuildfailures/typecheckattempts preserved. No testexecution yet.
+
+
+## Task16 meaningful RED complete / gpzncw0
+
+Actual source936d10b owner-fixed build/preflight/enumeration/exactcompiledinventory allEXIT0. Console reached all37declarations/40argument-expanded bodies in8suites,4.469seconds/67globalissues. Runtimecriticclears meaningfulmissingfeatureRED: factory/store declarationsnotImplemented, attachedfragmentreparse and actualpagedservicepreparerinactive; existingcapture/provider/physicalpermitrestart/race controlsPASS. DetachedworkerownerIssues may be attributedunknown and methods misleadinglylabelledPASS; no reusableownerretention/sibling/retirement successclaim or scopedPASS count. Laterassertions behind missingseams remainGREENobligations. ScopedNIOmisuse0.
+
+Finalizationremainedactive afterbodies; exactrunner85923+guardedhost85928 identities and3second samples both0 BEFOREverifiedrunnerTERM. Hostalreadyabsentafterrunnerstop/nohostsignal; bothfinalps1, rootindependentps confirmsabsent. ImmediateRELEASEbeforeextraction/bookkeeping. ActualtestEXIT143, xcresultmissingInfo.plist/unfinalizedsummaryEXIT64; no finalizedPASS/FAIL count, no causeclaim/cosmeticreplay. Root rehashed42finalartifacts zeromismatch; preservedprior43/22artifacts alsozero. See .codex-cache/task16-combined-retention-red-owner-fixed/results.md and app-actual-results.json.
+
+Rune16/gpzncw0completed; approved17/gpzncw1 is next and may proceed through retainedownerhandoffs, no17source yet/noactiveheavyjob. task17-owner-runtime-handoff.md packages exactsource/evidence/innertryimport and parallelcommon/T63/T2382 scopes, including existingcapacitymapping/originaloperationaggregatecheckpoint agreement. No liveclientactivation/push/merge/deploy.
