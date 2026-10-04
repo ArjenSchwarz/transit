@@ -10,8 +10,9 @@ struct MCPServerRouteTests {
     @Test(arguments: ["GET", "DELETE", "HEAD", "OPTIONS"])
     func allLegacyListeningMethodsRejectEvenWithSessionAndSSE(method: String) async throws {
         let env = try MCPTestHelpers.makeEnv()
+        let verb = try #require(HTTPRequest.Method(rawValue: method))
         let response = try await MCPModernResultFixture.transport(handler: env.handler,
-            method: HTTPRequest.Method(rawValue: method), accept: "text/event-stream",
+            method: verb, accept: "text/event-stream",
             orderedHeaders: [HTTPField(name: .mcpSessionID, value: "obsolete")], loggerLabel: "subscription-method")
         #expect(response.status == .methodNotAllowed)
         #expect(response.allow == "POST")
