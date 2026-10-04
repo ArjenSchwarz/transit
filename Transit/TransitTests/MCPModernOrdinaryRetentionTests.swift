@@ -149,7 +149,7 @@ struct MCPModernOrdinaryRetentionTests {
         }
     }
 
-    private func saveLaterEdits(comment: Comment, task: TransitTask, project: Project,
+    private func saveLaterEdits(comment: Transit.Comment, task: TransitTask, project: Project,
                                 context: ModelContext) throws {
         comment.content = "Later saved comment"
         task.name = "Later saved task"
