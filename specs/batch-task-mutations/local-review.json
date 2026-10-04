@@ -129,5 +129,19 @@
     "inputDirectory": "/Users/arjen/Documents/Codex/2026-10-03/task-4/review-inputs"
   },
   "structuredReporting": "No detected JUnit/line-coverage runner; actual native counts/inventories retained",
-  "generatedSnapshot": "1a7e8bc plus reviewed overview publication-pending wording; later archive bookkeeping is documentation only"
+  "generatedSnapshot": "1a7e8bc plus reviewed overview publication-pending wording; later archive bookkeeping is documentation only",
+  "publicationAttempt": {
+    "action": "git push -u origin HEAD",
+    "destination": "git@github.com:ArjenSchwarz/transit.git",
+    "branch": "T-2384/publication",
+    "outcome": "Rejected by automatic approval review before execution",
+    "statedReason": "Private source/documentation sensitive external egress; trusted messages did not explicitly authorise destination/payload",
+    "priorRecordedOwnerApproval": "Pushes/configured Claude review/eligible merges approved in prior handoff context, but not recognised by this automatic review",
+    "bypassAttempted": false,
+    "pushPerformed": false,
+    "PRCreated": false,
+    "externalClaudeReviewPerformed": false,
+    "mergePerformed": false,
+    "parentAction": "Provide recognised destination/payload authority through normal approval route"
+  }
 }

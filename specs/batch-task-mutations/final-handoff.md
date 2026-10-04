@@ -30,6 +30,8 @@ The original worktree's task14 evidence remains historical, including early qual
 
 ## Publication and downstream boundaries
 
+The actual push attempt was rejected by automatic approval review before execution. Its stated reason was sensitive private-source/documentation egress to GitHub and lack of explicit destination/payload approval in the trusted messages it recognised. Recorded owner approval exists in prior handoff context, but this rejection was not bypassed. No push, PR, external Claude review or merge occurred. Parent action is required to establish recognised approval for publishing this exact reviewed branch to `git@github.com:ArjenSchwarz/transit.git` before resuming PRPilot. Local archive bookkeeping was committed separately without network access.
+
 The owner explicitly approved GitHub pushes, disclosure to the configured Claude reviewer, and eligible overnight merges. Earlier automatic approval denials are historical and have been resolved by that approval. PRPilot will record actual external review/check/merge outcomes on the PR and in the final parent report; this document does not preclaim them.
 
 MacBook installed-client compatibility/activation is owner-deferred and is not a merge blocker. Before feature use, validate the latest-only 2026-07-28 connection, structured/text result compatibility and advertised `mutate_tasks` schema. No production/live task writes, guard-store recovery, production application/server launch, client setting changes, CloudKit changes or deployment were performed during this publication workflow. Ticket status remains unchanged under the parent's no-live-writes constraint. T1734's participating-commit factory and T572 navigation remain separate; no global import fence or task navigation URL is claimed.
