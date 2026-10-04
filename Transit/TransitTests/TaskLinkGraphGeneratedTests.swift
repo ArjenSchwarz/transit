@@ -8,7 +8,8 @@ struct TaskLinkGraphGeneratedTests {
     func generatedSCCMatchesIndependentReachability(seed: UInt64) throws {
         var state = seed
         let tasks = (0..<6).map { index in
-            TaskLinkTaskValue(physicalKey: Data([UInt8(index)]), id: UUID(), name: "generated", status: "done")
+            TaskLinkTaskValue(physicalKey: Data([UInt8(index)]), id: UUID(), name: "generated",
+                              status: ["done", "planning", "future-status", "abandoned"][index % 4])
         }
         var rows: [TaskLinkOccurrenceValue] = []
         for source in tasks.indices {
@@ -29,6 +30,18 @@ struct TaskLinkGraphGeneratedTests {
             }
         }
         #expect(view.cyclicTasks == expected)
+        for task in tasks {
+            let direct = rows.filter { $0.target == task.id }.compactMap { edge in
+                tasks.first { $0.id == edge.source }
+            }
+            let assessment: TaskLinkBlockerAssessment
+            if expected.contains(task.id) || direct.contains(where: { $0.status == "future-status" }) {
+                assessment = .invalid
+            } else if direct.contains(where: { $0.status != "done" }) { assessment = .blocked } else {
+                assessment = .unblocked
+            }
+            #expect(view.assessment(for: task.id) == assessment)
+        }
         let reversed = try project(tasks.reversed(), rows.reversed())
         #expect(reversed.cyclicTasks == view.cyclicTasks)
         #expect(reversed.blockers == view.blockers)

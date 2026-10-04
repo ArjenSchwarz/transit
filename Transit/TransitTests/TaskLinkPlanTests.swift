@@ -151,6 +151,16 @@ struct TaskLinkPlanTests {
         }
     }
 
+    @Test func exactSelfLinkRepairNeedsNoDuplicateSourceEndpointGuard() throws {
+        let source = task(1), row = edge(1, source.id, source.id)
+        let graph = try project([source], [row])
+        let plan = try TaskLinkPlan.validate(delta: [.remove(edgeId: row.id,
+                                                           occurrenceRevision: TaskLinkGraph.occurrenceRevision(row))],
+            source: source.id, preconditions: [:], revisions: [:], savedGraph: graph)
+        #expect(plan.removals == [row])
+        #expect(plan.affectedEndpoints.isEmpty)
+    }
+
     private func task(_ number: UInt8) -> TaskLinkTaskValue {
         TaskLinkTaskValue(physicalKey: Data([number]), id: UUID(), name: "task", status: "idea")
     }

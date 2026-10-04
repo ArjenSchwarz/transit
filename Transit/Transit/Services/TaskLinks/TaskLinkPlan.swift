@@ -44,8 +44,10 @@ extension TaskLinkPlan {
                     }
                     removals.append(row)
                     removedRelations.insert(TaskLinkGraph.relation(row))
-                    try registerEndpoint(row.source == source ? row.target : row.source,
-                                         graph: savedGraph, affected: &affected, requireExisting: false)
+                    let opposite = row.source == source ? row.target : row.source
+                    if opposite != source {
+                        try registerEndpoint(opposite, graph: savedGraph, affected: &affected, requireExisting: false)
+                    }
                 } else {
                     guard let rows = savedGraph.recognizedRemovals[edgeId], rows.count == 1,
                           let row = rows.first, row.source == source || row.target == source,
