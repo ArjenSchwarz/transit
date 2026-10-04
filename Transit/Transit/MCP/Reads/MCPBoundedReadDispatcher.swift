@@ -22,19 +22,24 @@ nonisolated enum MCPBoundedReadDispatcher {
     @concurrent static func response(
         for read: MCPClassifiedRead, rpc: JSONRPCRequest, handler: MCPToolHandler,
         coordinator: MCPReadCoordinator, admittedAt: ContinuousClock.Instant,
-        encode: @escaping @Sendable (MCPPreparedToolRead, JSONRPCId) throws -> Data = encodeResult
+        encode: @escaping @Sendable (MCPPreparedToolRead, JSONRPCId) throws -> Data = encodeResult,
+        encodeWithOperation: (@Sendable (MCPPreparedToolRead, JSONRPCId, MCPReadOperation) throws -> Data)? = nil,
+        encodeConstantToolFailure: (@Sendable (MCPPreparedToolRead, JSONRPCId) throws -> Data)? = nil
     ) async throws -> Data {
         guard let id = rpc.id else { throw MCPReadCaptureError.serializationFailure }
+        let constantEncoder = encodeConstantToolFailure ?? encodeResult
         let admission = MCPReadAdmission()
         let policy = (read.request.arguments["readPolicy"]?.value as? String).flatMap(MCPReadPolicy.init(rawValue:))
             ?? .refreshIfNeeded
         let timeout = try failure(id: id, operationID: admission.operationID, policy: policy,
-                                  category: .timeout, code: "READ_TIMEOUT")
+                                  category: .timeout, code: "READ_TIMEOUT", encode: constantEncoder)
         let busy = try failure(id: id, operationID: admission.operationID, policy: policy,
-                               category: .busy, code: "READ_BUSY")
+                               category: .busy, code: "READ_BUSY", encode: constantEncoder)
         let serialization = try failure(id: id, operationID: admission.operationID, policy: policy,
-            category: .serializationFailure, code: read.request.tool == "query_tasks" ? "QUERY_FAILED" : "READ_FAILED")
-        let errors = try publicationErrors(for: read.request, id: id, busy: busy)
+            category: .serializationFailure, code: read.request.tool == "query_tasks" ? "QUERY_FAILED" : "READ_FAILED",
+            encode: constantEncoder)
+        let errors = try publicationErrors(for: read.request, id: id, busy: busy,
+                                           encodeConstantToolFailure: constantEncoder)
         return await coordinator.execute(timeout: timeout, busy: busy, admittedAt: admittedAt,
                                          admission: admission) { operation in
             var prepared: MCPPreparedToolRead?
@@ -46,7 +51,7 @@ nonisolated enum MCPBoundedReadDispatcher {
                 }
                 let tool = try await handler.prepareCoveredRead(read.request, operation: operation)
                 prepared = tool
-                let bytes = try encode(tool, id)
+                let bytes = try encodeWithOperation?(tool, id, operation) ?? encode(tool, id)
                 return PreparedReadResult(encodedResponse: bytes, publications: tool.publications,
                                           publicationErrors: errors)
             } catch {
@@ -67,7 +72,11 @@ nonisolated enum MCPBoundedReadDispatcher {
 
     /// Prepares transport errors before the terminal gate; retention families own distinct expiry codes.
     static func publicationErrors(for request: MCPReadToolRequest, id: JSONRPCId,
-                                  busy: Data) throws -> PreencodedPublicationErrors {
+                                  busy: Data,
+                                  encodeConstantToolFailure:
+                                    (@Sendable (MCPPreparedToolRead, JSONRPCId) throws -> Data)? = nil
+    ) throws -> PreencodedPublicationErrors {
+        let constantEncoder = encodeConstantToolFailure ?? encodeResult
         let expiryCode: String
         if request.tool == "query_project_summaries" {
             expiryCode = request.arguments["cursor"] == nil ? "INVALID_SNAPSHOT" : "INVALID_CURSOR"
@@ -81,27 +90,31 @@ nonisolated enum MCPBoundedReadDispatcher {
             expiryCode = "QUERY_EXPIRED"
         }
         return PreencodedPublicationErrors(busy: busy,
-            expired: try queryFailure(id: id, code: expiryCode),
-            capacity: try queryFailure(id: id, code: "QUERY_CAPACITY_EXCEEDED"))
+            expired: try queryFailure(id: id, code: expiryCode, encode: constantEncoder),
+            capacity: try queryFailure(id: id, code: "QUERY_CAPACITY_EXCEEDED", encode: constantEncoder))
     }
 
+    // The encoder is separate from failure identity/category to keep fallback preparation independent.
+    // swiftlint:disable:next function_parameter_count
     private static func failure(id: JSONRPCId, operationID: UUID, policy: MCPReadPolicy,
-                                category: ReadFailureCategory, code: String) throws -> Data {
+                                category: ReadFailureCategory, code: String,
+                                encode: @Sendable (MCPPreparedToolRead, JSONRPCId) throws -> Data) throws -> Data {
         let metadata = ReadFailureMetadata(requestId: operationID.uuidString, category: category,
             read: ReadExecutionMetadata(policy: policy, refreshOutcome: .unavailable, budgetMs: 5_000))
         let textBytes = try JSONEncoder().encode(["error": ["code": code, "message": code]])
         guard let text = String(data: textBytes, encoding: .utf8) else {
             throw MCPReadCaptureError.serializationFailure
         }
-        return try encodeResult(MCPPreparedToolRead(text: text, isError: true, metadata: .failure(metadata)), id: id)
+        return try encode(MCPPreparedToolRead(text: text, isError: true, metadata: .failure(metadata)), id)
     }
 
-    private static func queryFailure(id: JSONRPCId, code: String) throws -> Data {
+    private static func queryFailure(id: JSONRPCId, code: String,
+                                     encode: @Sendable (MCPPreparedToolRead, JSONRPCId) throws -> Data) throws -> Data {
         let bytes = try JSONEncoder().encode(["error": ["code": code, "message": code]])
         guard let text = String(data: bytes, encoding: .utf8) else {
             throw MCPReadCaptureError.serializationFailure
         }
-        return try encodeResult(MCPPreparedToolRead(text: text, isError: true), id: id)
+        return try encode(MCPPreparedToolRead(text: text, isError: true), id)
     }
 
     private static func discard(_ publications: [any MCPPreparedPublication], in domain: MCPReadPublicationDomain) {
