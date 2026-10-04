@@ -28,7 +28,9 @@ struct MCPServerRouteTests {
         let forbidden = try await MCPModernResultFixture.transport(handler: env.handler, method: .get,
             origin: "https://evil.example.com", loggerLabel: "subscription-origin")
         #expect(forbidden.status == .forbidden)
-        #expect(forbidden.body.isEmpty)
+        #expect(forbidden.body == Data("Forbidden".utf8))
+        #expect(forbidden.json == nil && forbidden.sessionID == nil)
+        #expect(env.handler.activeToolListChangeStreamCount == 0)
     }
 
     @Test func modernPOSTSubscriptionRequiresSSEAccept() async throws {
