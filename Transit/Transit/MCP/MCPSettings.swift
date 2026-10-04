@@ -11,6 +11,10 @@ final class MCPSettings {
     private static let maintenanceToolsKey = "mcpMaintenanceToolsEnabled"
     @ObservationIgnored nonisolated private let maintenanceAvailability = NIOLockedValueBox(false)
     private let toolListChangeBroadcaster = MCPToolListChangeBroadcaster()
+
+    @MainActor var subscriptionBroadcaster: MCPToolListChangeBroadcaster {
+        toolListChangeBroadcaster
+    }
     static let defaultPort = 3141
 
     /// Valid TCP port range. Port 0 means "any available port" to the OS and is
