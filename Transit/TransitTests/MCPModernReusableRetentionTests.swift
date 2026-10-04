@@ -234,14 +234,14 @@ struct MCPModernReusableRetentionTests {
             defer { fixture.domain.withLock { second.publication.discardLocked(in: fixture.domain) } }
             let before = try fixture.domain.accounting(for: fixture.store.publicationStoreID)
             if sharedNew {
-                try self.requireAggregateMisuse(fixture: fixture, first: first, second: second)
+                try self.requireAggregateMisuse(fixture: fixture, first: first, second: second, operation: operation)
                 #expect(try fixture.domain.accounting(for: fixture.store.publicationStoreID) == before)
                 #expect(first.publication.status == .pending && second.publication.status == .pending)
             } else {
                 let expected = try fixture.results(pages + [firstPage, secondPage])
                 #expect(before.pendingBytes == expected.charge.totalBytes - before.visibleBytes)
                 let aggregate = try fixture.store.prepareAggregate([first.publication, second.publication],
-                    in: fixture.domain)
+                    in: fixture.domain, operation: operation)
                 try fixture.domain.withLock {
                     if let rejection = aggregate.validateLocked(in: fixture.domain) { throw rejection }
                     aggregate.commitLocked(in: fixture.domain)
@@ -261,9 +261,10 @@ extension MCPModernReusableRetentionTests {
     }
 
     private func requireAggregateMisuse(fixture: Fixture, first: RetentionReservation,
-                                       second: RetentionReservation) throws {
+                                       second: RetentionReservation, operation: MCPReadOperation) throws {
         do {
-            _ = try fixture.store.prepareAggregate([first.publication, second.publication], in: fixture.domain)
+            _ = try fixture.store.prepareAggregate([first.publication, second.publication],
+                in: fixture.domain, operation: operation)
             Issue.record("New shared sibling owner unexpectedly transferred")
         } catch { #expect(Self.isOwnerMisuse(error)) }
     }
@@ -322,7 +323,7 @@ private struct Fixture {
             initialRequest: .initial(window: window, limit: 1, project: nil, policy: .cached),
             firstPage: Data(#"{"projects":[],"first":true}"#.utf8))
         bundle = EncodedViewBundle(root: root, pages: [Data(#"{"projects":[],"next":true}"#.utf8)],
-            cursors: [cursor], encodedCaptureByteCount: 128)
+            cursors: [cursor], encodedCaptureByteCount: 128 + root.frozenMetadataBytes.count)
     }
 
     func pages() throws -> [MCPResultPreparedPage] {
@@ -345,7 +346,7 @@ private struct Fixture {
     func results(_ pages: [MCPResultPreparedPage]) throws -> MCPResultRetainedBundle {
         // Existing legacy copies remain retained alongside frozen modern owners.
         let original = bundle.encodedCaptureByteCount + bundle.root.firstPage.count
-            + bundle.pages.reduce(0) { $0 + $1.count } + bundle.root.frozenMetadataBytes.count
+            + bundle.pages.reduce(0) { $0 + $1.count }
         return try MCPResultPreparation.prepare(pages: pages, budget: MCPResultRetentionBudget(store: .reusable,
             originalCaptureIndexBytes: original, visibleBytes: 0, pendingBytes: 0))
     }
