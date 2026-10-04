@@ -371,6 +371,8 @@ Immutable source/presentation results, supported-link availability and modern-on
 - [Prerequisites](structured-mcp-results/prerequisites.md)
 - [Decision log](structured-mcp-results/decision_log.md)
 - [Implementation evidence](structured-mcp-results/implementation.md)
+- [Local verification handoff](structured-mcp-results/local-verification-handoff.md)
+- [Bounded client approval request](structured-mcp-results/client-readiness-next-approval.md)
 - [Source RED evidence](structured-mcp-results/source-red.md)
 - [Source cap RED evidence](structured-mcp-results/source-cap-red.md)
 - [Source GREEN evidence](structured-mcp-results/source-green.md)

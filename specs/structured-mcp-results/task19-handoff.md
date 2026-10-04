@@ -1,3 +1,7 @@
+# Current verification status
+
+The source-only blockers below are historical: exact Settings cleanupb94fb1e is delivered, task19 finalized77/109 PASS, task21 real fixture2/2 PASS and task22 local81/116 PASS. Installed-client AC6.3 remains open. See local-verification-handoff.md for actual current outcomes; all older preparation evidence remains preserved.
+
 # Task19 subscription source readiness
 
 Owned implementation source commit868ed04: seven paths covering broadcaster, SSE response, modern routing, server lifecycle, Handler forwarding, subscription fixture and availability-binding fixture. Strict no-cache lint, Swift frontend parse and diff check passed. Independent internal critic cleared source semantics and reviewed the small installed ResponseBodyWriter API probe (inout mutation/cancellation closure usage only); this is not a Transit build or runtime GREEN.

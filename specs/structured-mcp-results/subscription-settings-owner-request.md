@@ -1,3 +1,7 @@
+# Current verification status
+
+The source-only blockers below are historical: exact Settings cleanupb94fb1e is delivered, task19 finalized77/109 PASS, task21 real fixture2/2 PASS and task22 local81/116 PASS. Installed-client AC6.3 remains open. See local-verification-handoff.md for actual current outcomes; all older preparation evidence remains preserved.
+
 # T63 bundled Settings request for task19
 
 Prepared against subscription RED fixture4366824 and handoff f40dfb3. Task18 remains in progress; this is an owner coordination request, not task19 implementation or a new approval of its gate. Keep the reviewed RED source and its515-input/command pin unchanged. Current queue: T63 corrected13-body RED → T2384 task8 GREEN → T2383 task18 RED → T2382 full-platform work.

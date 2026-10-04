@@ -1,3 +1,7 @@
+# Current verification status
+
+The source-only blockers below are historical: exact Settings cleanupb94fb1e is delivered, task19 finalized77/109 PASS, task21 real fixture2/2 PASS and task22 local81/116 PASS. Installed-client AC6.3 remains open. See local-verification-handoff.md for actual current outcomes; all older preparation evidence remains preserved.
+
 # Modern fixture source handoff
 
 Commit405ffc7 ports exactly five owned fixtures: MCPNotificationDispatchTests, MCPNullIdTests, MCPProtocolVersionTests, MCPServerBatchRequestTests and MCPServerOriginValidationTests. Original47 declarations and62 parameter-expanded cases are preserved. Strict no-cache lint, frontend parse and diff check passed; independent internal critic cleared source semantics. Root independently matched every file to committed bytes and verified original/current declaration counts. Evidence: `.codex-cache/task19-modern-fixture-ports/` and `.codex-cache/task19-root-review/modern-fixture-ports-verification.json`. No production source changed in this commit.

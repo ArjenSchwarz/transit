@@ -186,6 +186,7 @@ metadata:
   - References: design.md, scripts/mcp-modern-readiness, prerequisites.md
 
 - [-] 22. Test integrated modern contracts and approved client evidence <!-- id:gpzncw6 -->
+  - Local verification COMPLETE:81 declarations/116 cases finalized PASS; lint0/527; actual schema876 assertions/recovery3/readiness5 pass. Actual installed-client AC6.3 evidence remains OPEN; no activation or false task completion. See local-verification-handoff.md.
   - Test-only task after T63 slot release: run selected Swift Testing suites and schema fixture validation then repository make lint/test-quick appropriate to changes, with owning TestModelContainer fixtures and no host-checkout reads in app test processes. Broaden only for new failures/unresolved concerns.
   - Validate approved real-client negotiation evidence with task21 harness only once prerequisites are satisfied; missing evidence keeps6.3 open. Exercise all present provider registrations and synthetic future batch seam; production T2384 completion is not a blocker or claimed proof.
   - No activation/settings/push/merge/deploy here. If prerequisites remain unavailable, report readiness blocked while retaining delivered common API; no false complete task status.
