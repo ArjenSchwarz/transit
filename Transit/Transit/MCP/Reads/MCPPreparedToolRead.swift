@@ -7,23 +7,32 @@ nonisolated struct MCPPreparedToolRead: Sendable {
     let encodedToolResult: Data
     let frozenMetadataBytes: Data?
     let publications: [any MCPPreparedPublication]
+    let preparedResultPage: MCPResultPreparedPage?
 
     private init(result: MCPToolResult, encodedToolResult: Data, frozenMetadataBytes: Data?,
-                 publications: [any MCPPreparedPublication]) {
+                 publications: [any MCPPreparedPublication], preparedResultPage: MCPResultPreparedPage?) {
         self.result = result
         self.encodedToolResult = encodedToolResult
         self.frozenMetadataBytes = frozenMetadataBytes
         self.publications = publications
+        self.preparedResultPage = preparedResultPage
     }
 
     /// Attaching a reservation cannot fail after its ownership has been allocated.
     func attaching(_ publications: [any MCPPreparedPublication]) -> Self {
         Self(result: result, encodedToolResult: encodedToolResult, frozenMetadataBytes: frozenMetadataBytes,
-             publications: publications)
+             publications: publications, preparedResultPage: preparedResultPage)
+    }
+
+    /// Carries the sealed immutable owner without rebuilding existing tool bytes or metadata.
+    func attachingPreparedResultPage(_ page: MCPResultPreparedPage) -> Self {
+        Self(result: result, encodedToolResult: encodedToolResult, frozenMetadataBytes: frozenMetadataBytes,
+             publications: publications, preparedResultPage: page)
     }
 
     init(text: String, isError: Bool? = nil, metadata: MCPReadResultMetadata? = nil,
-         frozenMetadataBytes: Data? = nil, publications: [any MCPPreparedPublication] = []) throws {
+         frozenMetadataBytes: Data? = nil, publications: [any MCPPreparedPublication] = [],
+         preparedResultPage: MCPResultPreparedPage? = nil) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let bytes = try frozenMetadataBytes ?? metadata.map { try encoder.encode($0) }
@@ -44,6 +53,7 @@ nonisolated struct MCPPreparedToolRead: Sendable {
         encodedToolResult = encoded
         self.frozenMetadataBytes = bytes
         self.publications = publications
+        self.preparedResultPage = preparedResultPage
     }
 }
 #endif
