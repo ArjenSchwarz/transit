@@ -78,7 +78,8 @@ nonisolated enum MCPPortfolioReadEncoding {
 
     private static func retentionFault(_ error: Error, cursor: Bool) -> (code: String, message: String)? {
         switch error {
-        case PublicationRejection.capacity: return ("QUERY_CAPACITY_EXCEEDED", "Captured read capacity exceeded")
+        case PublicationRejection.capacity, MCPResultPreparationError.retentionCapacity:
+            return ("QUERY_CAPACITY_EXCEEDED", "Captured read capacity exceeded")
         case PublicationRejection.busy: return ("READ_BUSY", "Read publication changed; retry the request")
         case PublicationRejection.expired:
             return (cursor ? "INVALID_CURSOR" : "INVALID_SNAPSHOT", "Retained view expired; start a new summary")

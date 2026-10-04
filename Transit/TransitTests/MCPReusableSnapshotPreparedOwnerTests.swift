@@ -27,7 +27,7 @@ struct MCPReusableSnapshotPreparedOwnerTests {
                 + right[1].source.originalText.utf8.count
             let expected = try self.measure(root.owners + left + right, legacyBytes: legacy, operation: operation)
             #expect(pending.pendingBytes == expected.charge.totalBytes - base.visibleBytes)
-            let aggregate = try env.store.prepareAggregate(children, in: env.store.domain)
+            let aggregate = try env.store.prepareAggregate(children, in: env.store.domain, operation: operation)
             try self.commit(aggregate, env: env)
             let accounting = try env.store.domain.accounting(for: env.store.publicationStoreID)
             #expect(accounting.visibleBytes == expected.charge.totalBytes && accounting.pendingBytes == 0)
@@ -57,7 +57,7 @@ struct MCPReusableSnapshotPreparedOwnerTests {
             let second = try self.append(env, root: root, pages: right, cursor: secondCursor, operation: operation)
             defer { try? env.store.rollback(second) }
             let children = try [env.store.prepare(reservation: first), env.store.prepare(reservation: second)]
-            let aggregate = try env.store.prepareAggregate(children, in: env.store.domain)
+            let aggregate = try env.store.prepareAggregate(children, in: env.store.domain, operation: operation)
             try self.commit(aggregate, env: env)
             #expect(try env.store.preparedResultPage(for: firstCursor, now: .now).preparedPage === left[1])
             #expect(try env.store.preparedResultPage(for: secondCursor, now: .now).preparedPage === right[1])
@@ -81,13 +81,28 @@ struct MCPReusableSnapshotPreparedOwnerTests {
             #expect((left[0] === right[0]) == (kind == "page"))
             let first = try self.append(env, root: root, pages: left, cursor: self.cursor(), operation: operation)
             defer { try? env.store.rollback(first) }
-            let second = try self.append(env, root: root, pages: right, cursor: self.cursor(), operation: operation)
+            let firstChild = try env.store.prepare(reservation: first)
+            let beforeReserve = try env.store.domain.snapshot(for: env.store.publicationStoreID)
+            let beforeAccounting = try env.store.domain.accounting(for: env.store.publicationStoreID)
+            let second: RetentionReservation
+            do {
+                second = try self.append(env, root: root, pages: right, cursor: self.cursor(), operation: operation)
+            } catch {
+                #expect((error as? PublicationRejection) == .busy)
+                let after = try env.store.domain.snapshot(for: env.store.publicationStoreID)
+                #expect(after.version == beforeReserve.version && after.tokenVersion == beforeReserve.tokenVersion)
+                #expect(ObjectIdentifier(after.index) == ObjectIdentifier(beforeReserve.index))
+                #expect(after.allocatedTokenSets == beforeReserve.allocatedTokenSets)
+                #expect(try env.store.domain.accounting(for: env.store.publicationStoreID) == beforeAccounting)
+                #expect(env.store.domain.withLock { firstChild.validateLocked(in: env.store.domain) } == nil)
+                return
+            }
             defer { try? env.store.rollback(second) }
-            let children = try [env.store.prepare(reservation: first), env.store.prepare(reservation: second)]
+            let children = try [firstChild, env.store.prepare(reservation: second)]
             let before = try env.store.domain.snapshot(for: env.store.publicationStoreID)
             let accounting = try env.store.domain.accounting(for: env.store.publicationStoreID)
             #expect(throws: PublicationRejection.busy) {
-                try env.store.prepareAggregate(children, in: env.store.domain)
+                try env.store.prepareAggregate(children, in: env.store.domain, operation: operation)
             }
             let after = try env.store.domain.snapshot(for: env.store.publicationStoreID)
             #expect(after.version == before.version && after.tokenVersion == before.tokenVersion)
@@ -123,7 +138,7 @@ struct MCPReusableSnapshotPreparedOwnerTests {
                 before = try env.store.domain.snapshot(for: env.store.publicationStoreID)
                 accounting = try env.store.domain.accounting(for: env.store.publicationStoreID)
                 do {
-                    unexpected = try env.store.prepareAggregate(children, in: env.store.domain)
+                    unexpected = try env.store.prepareAggregate(children, in: env.store.domain, operation: operation)
                     Issue.record("Cross-root owner misuse unexpectedly produced an aggregate")
                 } catch {
                     #expect(self.isOwnerMisuseRejection(error))
@@ -291,16 +306,32 @@ private extension MCPReusableSnapshotPreparedOwnerTests {
     func withOperation(_ env: Environment,
                        body: @escaping @MainActor @Sendable (MCPReadOperation) throws -> Void) async {
         let success = Data("finished".utf8)
-        let response = await env.coordinator.execute(
-            timeout: Data("timeout".utf8), busy: Data("busy".utf8)) { operation in
+        let (operations, offerOperation) = AsyncStream<MCPReadOperation>.makeStream()
+        let (completion, finishBody) = AsyncStream<Void>.makeStream()
+        let worker = Task {
+            let response = await env.coordinator.execute(
+                timeout: Data("timeout".utf8), busy: Data("busy".utf8)) { operation in
+                offerOperation.yield(operation)
+                offerOperation.finish()
+                for await _ in completion { break }
+                return PreparedReadResult(encodedResponse: success, publications: [],
+                    publicationErrors: PreencodedPublicationErrors(busy: Data(), expired: Data(), capacity: Data()))
+            }
+            offerOperation.finish()
+            return response
+        }
+        // Execute assertions in the original test task, not the coordinator's detached worker.
+        for await operation in operations {
             do {
-                try await MainActor.run { try body(operation) }
+                try body(operation)
             } catch {
                 Issue.record("Required prepared-retention behavior failed: \(error)")
             }
-            return PreparedReadResult(encodedResponse: success, publications: [],
-                publicationErrors: PreencodedPublicationErrors(busy: Data(), expired: Data(), capacity: Data()))
+            break
         }
+        finishBody.yield(())
+        finishBody.finish()
+        let response = await worker.value
         #expect(response == success)
         let deadline = ContinuousClock.now.advanced(by: .seconds(8))
         while env.coordinator.unfinishedCount != 0 && ContinuousClock.now < deadline {

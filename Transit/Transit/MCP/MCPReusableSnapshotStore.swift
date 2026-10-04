@@ -151,6 +151,7 @@ nonisolated final class MCPReusableSnapshotStore: MCPRetainedViewSource, MCPRead
         let base = try liveSnapshot()
         guard let index = base.index as? MCPReusableSnapshotIndex,
               let root = index.entries[snapshotID] else { throw MCPReusableSnapshotError.invalidSnapshot }
+        guard root.preparedResultBundle == nil else { throw MCPReusableSnapshotError.incompatible }
         var mapping = root.pages
         for (cursor, bytes) in additions {
             guard mapping[cursor] == nil else { throw PublicationRejection.busy }
@@ -187,6 +188,13 @@ nonisolated final class MCPReusableSnapshotStore: MCPRetainedViewSource, MCPRead
             return MCPReusableSnapshotGuardedPublication(publicationStoreID: publicationStoreID,
                 domain: domain, pins: pins, mutation: nil)
         }
+        if children.count == 1, let child = children.first,
+           let candidate = child.index as? MCPReusableSnapshotIndex,
+           candidate.entries.values.contains(where: { $0.preparedResultBundle != nil }) {
+            if pins.isEmpty { return child }
+            return MCPReusableSnapshotGuardedPublication(publicationStoreID: publicationStoreID,
+                domain: domain, pins: pins, mutation: child)
+        }
         let base = try domain.snapshot(for: publicationStoreID)
         guard let original = base.index as? MCPReusableSnapshotIndex else { throw PublicationRejection.busy }
         var entries = original.entries
@@ -211,7 +219,9 @@ nonisolated final class MCPReusableSnapshotStore: MCPRetainedViewSource, MCPRead
                 continue
             }
             guard let current = entries[id] else { throw PublicationRejection.busy }
-            guard entry.preparedResultPages.isEmpty, current.preparedResultPages.isEmpty,
+            guard entry.preparedResultBundle == nil, current.preparedResultBundle == nil,
+                  initial.preparedResultBundle == nil, entry.preparedResultPages.isEmpty,
+                  current.preparedResultPages.isEmpty,
                   initial.preparedResultPages.isEmpty, entry.bundle.preparedResultBundle == nil,
                   current.bundle.preparedResultBundle == nil, initial.bundle.preparedResultBundle == nil,
                   entry.bundle.root.preparedResultPage == nil, current.bundle.root.preparedResultPage == nil,
@@ -251,7 +261,7 @@ nonisolated final class MCPReusableSnapshotStore: MCPRetainedViewSource, MCPRead
         }
     }
 
-    private func pageMapping(pages: [Data], cursors: [String]) throws -> [String: Data] {
+    func pageMapping(pages: [Data], cursors: [String]) throws -> [String: Data] {
         guard pages.count == cursors.count, Set(cursors).count == cursors.count,
               cursors.allSatisfy({ MCPCursorFamily.classify($0) == .reusable }) else {
             throw MCPReusableSnapshotError.incompatible
@@ -259,24 +269,27 @@ nonisolated final class MCPReusableSnapshotStore: MCPRetainedViewSource, MCPRead
         return Dictionary(uniqueKeysWithValues: zip(cursors, pages))
     }
 
-    private func reserve(base: MCPPublicationStoreSnapshot, candidate: MCPReusableSnapshotIndex,
-                         deadline: ContinuousClock.Instant) throws -> RetentionReservation {
+    func reserve(base: MCPPublicationStoreSnapshot, candidate: MCPReusableSnapshotIndex,
+                 deadline: ContinuousClock.Instant) throws -> RetentionReservation {
         let original = base.index.descriptor
         let descriptor = candidate.descriptor
         // Reject oversize candidates as capacity rather than descriptor-shape contention.
         guard descriptor.entryCount <= 8, descriptor.encodedByteCount <= 16 * 1024 * 1024 else {
             throw PublicationRejection.capacity
         }
+        let (entryDelta, entryOverflow) = descriptor.entryCount.subtractingReportingOverflow(original.entryCount)
+        let (byteDelta, byteOverflow) = descriptor.encodedByteCount
+            .subtractingReportingOverflow(original.encodedByteCount)
+        guard !entryOverflow, !byteOverflow, entryDelta >= 0, byteDelta >= 0 else { throw PublicationRejection.busy }
         let publication = try domain.reserve(storeID: publicationStoreID, operationID: UUID(),
             expectedVersion: base.version, expectedTokenVersion: base.tokenVersion, index: candidate,
-            chargeEntries: descriptor.entryCount - original.entryCount,
-            chargeBytes: descriptor.encodedByteCount - original.encodedByteCount,
+            chargeEntries: entryDelta, chargeBytes: byteDelta,
             newTokens: descriptor.tokens.subtracting(original.tokens), deadline: deadline)
         return RetentionReservation(publication: publication)
     }
 
     /// Expiry removal is prepared outside the domain; a competing swap produces busy.
-    private func liveSnapshot(now: ContinuousClock.Instant? = nil) throws -> MCPPublicationStoreSnapshot {
+    func liveSnapshot(now: ContinuousClock.Instant? = nil) throws -> MCPPublicationStoreSnapshot {
         let instant = now ?? domain.withLock { domain.currentInstantLocked }
         let base = try domain.snapshot(for: publicationStoreID)
         guard let original = base.index as? MCPReusableSnapshotIndex else { throw PublicationRejection.busy }
@@ -288,54 +301,8 @@ nonisolated final class MCPReusableSnapshotStore: MCPRetainedViewSource, MCPRead
     }
 }
 
-/// Task-16 source-only owner ABI. These modern retention paths deliberately fail before reservation.
-/// The common factory supplies actual immutable owners; this store never substitutes equal-byte owners.
 extension MCPReusableSnapshotStore {
-    /// Future preflight uses exact descriptor replacement with checked subtraction, then domain revalidation.
-    /// Base includes capture/index AND every retained legacy Data/metadata compatibility copy.
-    nonisolated func preparedResultBudget(
-        originalCaptureIndexBytes: Int, replacingSnapshotID: String? = nil, operation: MCPReadOperation
-    ) throws -> MCPResultRetentionBudget {
-        throw MCPResultPreparationError.notImplemented
-    }
-
-    /// All pages (first plus continuations) must already be prepared with this SAME operation.
-    nonisolated func reservePreparedCreate(
-        bundle: EncodedViewBundle, preparedResults: MCPResultRetainedBundle,
-        operation: MCPReadOperation, publicationDeadline: ContinuousClock.Instant
-    ) throws -> RetentionReservation {
-        throw MCPResultPreparationError.notImplemented
-    }
-
-    // swiftlint:disable function_parameter_count large_tuple
-    /// preparedPages is first-response owner followed by owners matching pages/cursors in order.
-    /// Zero cursors still retains the first owner. GREEN must measure the actual full owner union,
-    /// deduplicate reference identities, preserve shared metadata and coalesce aggregate owner changes.
-    nonisolated func reservePreparedAppend(
-        snapshotID: String, pages: [Data], cursors: [String], preparedPages: [MCPResultPreparedPage],
-        operation: MCPReadOperation, publicationDeadline: ContinuousClock.Instant
-    ) throws -> RetentionReservation {
-        throw MCPResultPreparationError.notImplemented
-    }
-
-    /// Returns the retained first owner and unchanged root identity/expiry pin; never recaptures/reclassifies.
-    nonisolated func preparedResultView(
-        for snapshotID: String, now: ContinuousClock.Instant, testingAfterPin: (() throws -> Void)? = nil
-    ) throws -> (root: RetainedView, firstPage: MCPResultPreparedPage, pin: MCPReusableSnapshotReadPin) {
-        throw MCPResultPreparationError.notImplemented
-    }
-
-    /// Returns exactly the same retained cursor owner, guarded by the existing publication-domain pin.
-    nonisolated func preparedResultPage(
-        for cursor: String, now: ContinuousClock.Instant, testingAfterPin: (() throws -> Void)? = nil
-    ) throws -> (page: RetainedPage, preparedPage: MCPResultPreparedPage, pin: MCPReusableSnapshotReadPin) {
-        throw MCPResultPreparationError.notImplemented
-    }
-    // swiftlint:enable function_parameter_count large_tuple
-}
-
-extension MCPReusableSnapshotStore {
-    nonisolated private func publicationParts(
+    nonisolated func publicationParts(
         _ publications: [any MCPPreparedPublication], in domain: MCPReadPublicationDomain
     ) throws -> ([MCPPublicationReservation], [MCPReusableSnapshotReadPin]) {
         var children: [MCPPublicationReservation] = []

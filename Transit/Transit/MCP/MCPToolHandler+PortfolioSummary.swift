@@ -15,18 +15,18 @@ extension MCPToolHandler {
                 guard let capture else { throw MCPReadCaptureError.incoherentCapture }
                 return try preparePortfolioCapture(capture, request: request, store: store, operation: operation)
             case .replay(let snapshotID):
-                let pinned = try store.preparedRetainedView(for: snapshotID, now: retainedReadInstant(store))
+                let pinned = try store.preparedResultView(for: snapshotID, now: retainedReadInstant(store))
                 let result = try MCPPortfolioReadEncoding.prepared(
                     pinned.root.firstPage, metadata: pinned.root.frozenMetadataBytes)
                 try MCPPortfolioReadEncoding.check(operation)
-                return result.attaching([pinned.pin])
+                return result.attachingPreparedResultPage(pinned.firstPage).attaching([pinned.pin])
             case .continuation(let cursor, let policy):
-                let pinned = try store.preparedPage(for: cursor, now: retainedReadInstant(store))
+                let pinned = try store.preparedResultPage(for: cursor, now: retainedReadInstant(store))
                 try requireRetainedPolicy(policy, root: pinned.page.root)
                 let result = try MCPPortfolioReadEncoding.prepared(
                     pinned.page.encodedPage, metadata: pinned.page.root.frozenMetadataBytes)
                 try MCPPortfolioReadEncoding.check(operation)
-                return result.attaching([pinned.pin])
+                return result.attachingPreparedResultPage(pinned.preparedPage).attaching([pinned.pin])
             }
         } catch {
             if let failure = try MCPPortfolioReadEncoding.normalized(error, cursor: cursorRequest) { return failure }
@@ -45,20 +45,36 @@ extension MCPToolHandler {
         try MCPPortfolioReadEncoding.check(operation)
         let pages = try MCPPortfolioReadEncoding.summaryPages(summary, view: capture.view, limit: limit,
                                                              operation: operation)
-        let first = try MCPPortfolioReadEncoding.prepared(pages.pages[0], metadata: capture.frozenMetadataBytes)
+        let reads = try pages.pages.map {
+            try MCPPortfolioReadEncoding.check(operation)
+            return try MCPPortfolioReadEncoding.prepared($0, metadata: capture.frozenMetadataBytes)
+        }
+        let owners = try MCPModernProviderBinding.prepareReadPages(reads,
+            tool: "query_project_summaries", operation: operation)
+        guard owners.count == reads.count, let firstOwner = owners.first, let first = reads.first else {
+            throw MCPReadCaptureError.serializationFailure
+        }
         let root = RetainedView(capture: capture.view, frozenMetadataBytes: capture.frozenMetadataBytes,
-                                window: window, initialRequest: request, firstPage: pages.pages[0])
+            window: window, initialRequest: request, firstPage: pages.pages[0], preparedResultPage: firstOwner)
+        let captureBytes = try MCPPortfolioCaptureCharge.bytes(capture, operation: operation)
+        let legacyBytes = try pages.pages.reduce(captureBytes) { total, bytes in
+            try MCPPortfolioReadEncoding.check(operation)
+            return try MCPResultRetentionAccounting.add(total, bytes.count)
+        }
+        let budget = try store.preparedResultBudget(originalCaptureIndexBytes: legacyBytes, operation: operation)
+        let measured = try MCPResultPreparation.prepare(pages: owners, budget: budget,
+            checkpoint: { try MCPPortfolioReadEncoding.check(operation) })
         let bundle = EncodedViewBundle(root: root, pages: Array(pages.pages.dropFirst()), cursors: pages.cursors,
-            encodedCaptureByteCount: try MCPPortfolioCaptureCharge.bytes(capture, operation: operation))
+            encodedCaptureByteCount: captureBytes, preparedResultBundle: measured)
         try MCPPortfolioReadEncoding.check(operation)
-        let reservation = try store.reserveCreate(bundle: bundle,
-            publicationDeadline: MCPPortfolioReadEncoding.publicationDeadline(operation))
+        let reservation = try store.reservePreparedCreate(bundle: bundle, preparedResults: measured,
+            operation: operation, publicationDeadline: MCPPortfolioReadEncoding.publicationDeadline(operation))
         var attached = false
         defer { if !attached { try? store.rollback(reservation) } }
         let publication = try store.prepare(reservation: reservation)
         try MCPPortfolioReadEncoding.check(operation)
         attached = true
-        return first.attaching([publication])
+        return first.attachingPreparedResultPage(firstOwner).attaching([publication])
     }
 
     nonisolated func retainedReadInstant(_ store: MCPReusableSnapshotStore) -> ContinuousClock.Instant {

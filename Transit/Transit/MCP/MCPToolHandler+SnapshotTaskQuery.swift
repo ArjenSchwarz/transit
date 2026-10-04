@@ -12,14 +12,20 @@ extension MCPToolHandler {
             let store = try reusableSnapshots.get()
             switch request {
             case .initial(let snapshotID, _, _, _, _):
-                let pinned = try store.preparedRetainedView(for: snapshotID, now: retainedReadInstant(store))
+                let pinned = try store.preparedResultView(for: snapshotID, now: retainedReadInstant(store))
                 let plan = try MCPPortfolioProjection.query(root: pinned.root, request: request)
                 try MCPPortfolioReadEncoding.check(operation)
-                let first = try MCPPortfolioReadEncoding.prepared(
-                    plan.firstPage, metadata: pinned.root.frozenMetadataBytes)
-                if plan.pages.isEmpty { return first.attaching([pinned.pin]) }
-                let reservation = try store.reserveAppend(
-                    snapshotID: snapshotID, pages: plan.pages, cursors: plan.cursors,
+                let reads = try ([plan.firstPage] + plan.pages).map {
+                    try MCPPortfolioReadEncoding.check(operation)
+                    return try MCPPortfolioReadEncoding.prepared($0, metadata: pinned.root.frozenMetadataBytes)
+                }
+                let owners = try MCPModernProviderBinding.prepareReadPages(reads,
+                    tool: "query_tasks", operation: operation)
+                guard owners.count == reads.count, let firstOwner = owners.first, let first = reads.first else {
+                    throw MCPReadCaptureError.serializationFailure
+                }
+                let reservation = try store.reservePreparedAppend(snapshotID: snapshotID,
+                    pages: plan.pages, cursors: plan.cursors, preparedPages: owners, operation: operation,
                     publicationDeadline: MCPPortfolioReadEncoding.publicationDeadline(operation))
                 var attached = false
                 defer { if !attached { try? store.rollback(reservation) } }
@@ -29,14 +35,14 @@ extension MCPToolHandler {
                     domain: store.domain, pins: [pinned.pin], mutation: reservation.publication)
                 try MCPPortfolioReadEncoding.check(operation)
                 attached = true
-                return first.attaching([publication])
+                return first.attachingPreparedResultPage(firstOwner).attaching([publication])
             case .continuation(let cursor, let policy):
-                let pinned = try store.preparedPage(for: cursor, now: retainedReadInstant(store))
+                let pinned = try store.preparedResultPage(for: cursor, now: retainedReadInstant(store))
                 try requireRetainedPolicy(policy, root: pinned.page.root)
                 let result = try MCPPortfolioReadEncoding.prepared(
                     pinned.page.encodedPage, metadata: pinned.page.root.frozenMetadataBytes)
                 try MCPPortfolioReadEncoding.check(operation)
-                return result.attaching([pinned.pin])
+                return result.attachingPreparedResultPage(pinned.preparedPage).attaching([pinned.pin])
             }
         } catch {
             if let failure = try MCPPortfolioReadEncoding.normalized(error, cursor: cursorRequest) { return failure }
