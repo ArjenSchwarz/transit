@@ -7,47 +7,57 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct MCPWriteLifecycleTests {
-    @Test func protectedNotificationPersistsAndReplaysAcrossResponderReplacement() async throws {
+    @Test func protectedRequestPersistsAndReplaysAcrossResponderReplacement() async throws {
         let env = try MCPTestHelpers.makeEnv()
         let key = MCPTestHelpers.freshWriteKey()
-        let args: [String: Any] = ["name": "notification", "colorHex": "#123456", "idempotencyKey": key]
-        let notification: [String: Any] = ["jsonrpc": "2.0", "method": "tools/call",
-                                          "params": ["name": "create_project", "arguments": args]]
-        let data = try JSONSerialization.data(withJSONObject: notification)
-        let body = try #require(String(data: data, encoding: .utf8))
-        let response = try await MCPTestHelpers.respond(handler: env.handler, contentType: "application/json",
-                                                        body: body, loggerLabel: "write.notification")
-        #expect(response.status == .accepted)
-        #expect(response.body.isEmpty)
-        let retry: [String: Any] = ["jsonrpc": "2.0", "id": 7, "method": "tools/call",
-                                   "params": ["name": "create_project", "arguments": args]]
-        let retryData = try JSONSerialization.data(withJSONObject: retry)
-        let retryBody = try #require(String(data: retryData, encoding: .utf8))
-        let replay = try await MCPTestHelpers.respond(handler: env.handler, contentType: "application/json",
-                                                      body: retryBody, loggerLabel: "write.notification.replay")
-        let envelope = try MCPTestHelpers.decodeHTTPToolResult(try #require(replay.json as? [String: Any]))
+        let args: [String: Any] = ["name": "request", "colorHex": "#123456", "idempotencyKey": key]
+        let initial = try await MCPModernResultFixture.respond(env, method: "tools/call", id: "original",
+            parameters: ["name": "create_project", "arguments": args])
+        let initialRPC = try #require(initial.json as? [String: Any])
+        #expect(initial.status == .ok && initialRPC["id"] as? String == "original")
+        #expect(try MCPTestHelpers.decodeHTTPToolResult(initialRPC)["outcome"] as? String == "committed")
+        // Each transport call constructs a new responder while retaining the app-owned retry store.
+        let replay = try await MCPModernResultFixture.respond(env, method: "tools/call", id: 7,
+            parameters: ["name": "create_project", "arguments": args])
+        let replayRPC = try #require(replay.json as? [String: Any])
+        let envelope = try MCPTestHelpers.decodeHTTPToolResult(replayRPC)
+        #expect(replay.status == .ok && replayRPC["id"] as? Int == 7)
         #expect(envelope["outcome"] as? String == "committed")
-        #expect(try env.context.fetch(FetchDescriptor<Project>()).count == 1)
-        #expect(try env.context.fetch(FetchDescriptor<MCPWriteReceipt>()).count == 1)
+        #expect(envelope["accepted"] as? Bool == true)
+        let originalText = try MCPModernResultFixture.text(initial)
+        let replayText = try MCPModernResultFixture.text(replay)
+        #expect(originalText.utf8.elementsEqual(replayText.utf8))
+        #expect(try env.context.fetchCount(FetchDescriptor<Project>()) == 1)
+        let receipts = try env.context.fetch(FetchDescriptor<MCPWriteReceipt>())
+        try #require(receipts.count == 1)
+        #expect(receipts[0].resultJSON == originalText)
     }
 
-    @Test func orderedBatchRetainsFirstCommitWhenSecondWriteRejects() async throws {
+    @Test(arguments: [false, true])
+    func orderedRequestsRetainFirstCommitWhenSecondWriteRejects(distinctKey: Bool) async throws {
         let env = try MCPTestHelpers.makeEnv()
-        let body = """
-        [
-          {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"create_project",
-          "arguments":{"name":"first","colorHex":"#123456","idempotencyKey":"batch-first"}}},
-          {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"create_project",
-          "arguments":{"name":"first","colorHex":"#123456","idempotencyKey":"batch-second"}}}
-        ]
-        """
-        let response = try await MCPTestHelpers.respond(handler: env.handler, contentType: "application/json",
-                                                        body: body, loggerLabel: "write.batch")
-        let objects = try #require(response.json as? [[String: Any]])
-        #expect(objects.count == 2)
-        #expect(try MCPTestHelpers.decodeHTTPToolResult(objects[0])["outcome"] as? String == "committed")
-        #expect(try MCPTestHelpers.decodeHTTPToolResult(objects[1])["outcome"] as? String == "rejected")
-        #expect(try env.context.fetch(FetchDescriptor<Project>()).map(\.name) == ["first"])
+        let key = MCPTestHelpers.freshWriteKey()
+        let first = try await MCPModernResultFixture.respond(env, method: "tools/call", id: 1,
+            parameters: ["name": "create_project", "arguments": ["name": "first", "colorHex": "#123456",
+                "idempotencyKey": key]])
+        let second = try await MCPModernResultFixture.respond(env, method: "tools/call", id: 2,
+            parameters: ["name": "create_project", "arguments": ["name": "first", "colorHex": "#654321",
+                "idempotencyKey": distinctKey ? MCPTestHelpers.freshWriteKey() : key]])
+        let firstRPC = try #require(first.json as? [String: Any])
+        let secondRPC = try #require(second.json as? [String: Any])
+        #expect(first.status == .ok && second.status == .ok)
+        #expect(firstRPC["id"] as? Int == 1 && secondRPC["id"] as? Int == 2)
+        let committed = try MCPTestHelpers.decodeHTTPToolResult(firstRPC)
+        let rejected = try MCPTestHelpers.decodeHTTPToolResult(secondRPC)
+        #expect(committed["outcome"] as? String == "committed" && committed["accepted"] as? Bool == true)
+        #expect(rejected["outcome"] as? String == "rejected")
+        #expect(rejected["accepted"] as? Bool == distinctKey)
+        #expect((rejected["error"] as? [String: Any])?["code"] as? String
+            == (distinctKey ? "DUPLICATE_PROJECT_NAME" : "IDEMPOTENCY_KEY_REUSED"))
+        let projects = try env.context.fetch(FetchDescriptor<Project>())
+        #expect(projects.map(\.name) == ["first"])
+        #expect(projects.first?.colorHex == "#123456")
+        #expect(try env.context.fetchCount(FetchDescriptor<MCPWriteReceipt>()) == (distinctKey ? 2 : 1))
     }
 
     @Test func localAndSeparatelySavedChangesInvalidateObservedRevision() async throws {
@@ -74,27 +84,72 @@ struct MCPWriteLifecycleTests {
         let counter = MCPWriteLifecycleCounter()
         let env = try MCPTestHelpers.makeEnv(taskCounterStore: counter)
         let project = MCPTestHelpers.makeProject(in: env.context)
+        try env.context.save()
         let args: [String: Any] = ["name": "disconnect", "type": "feature",
-                                  "projectId": project.id.uuidString, "idempotencyKey": "disconnect"]
-        let request = MCPTestHelpers.toolCallRequest(tool: "create_task", arguments: args)
-        let object: [String: Any] = ["jsonrpc": "2.0", "id": 1, "method": "tools/call",
-                                    "params": ["name": "create_task", "arguments": args]]
-        let data = try JSONSerialization.data(withJSONObject: object)
-        let body = try #require(String(data: data, encoding: .utf8))
-        let connection = Task {
-            try await MCPTestHelpers.respond(handler: env.handler, contentType: "application/json",
-                                              body: body, loggerLabel: "write.disconnect")
+            "projectId": project.id.uuidString, "idempotencyKey": "disconnect"]
+        let observation = MCPWriteConnectionObservation()
+        let connection = Task { @MainActor in
+            do {
+                observation.response = try await MCPModernResultFixture.respond(env, method: "tools/call", id: 1,
+                    parameters: ["name": "create_task", "arguments": args])
+            } catch { observation.failure = String(describing: error) }
+            observation.finished = true
         }
-        await counter.waitForLoad()
-        connection.cancel()
-        await counter.release()
-        _ = try? await connection.value
-        let replay = await env.handler.handle(request)
-        let result = try MCPTestHelpers.decodeResult(replay)
-        #expect(result["accepted"] as? Bool == true)
-        #expect(try MCPTestHelpers.errorCode(replay) == "CANCELLED")
-        #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
-        #expect(try env.context.fetch(FetchDescriptor<MCPWriteReceipt>()).count == 1)
+        do {
+            try await waitForAcceptance(counter, observation: observation)
+            // The real allocator suspension occurs only after durable acceptance.
+            #expect(try env.context.fetchCount(FetchDescriptor<MCPWriteReceipt>()) == 1)
+            connection.cancel()
+            await counter.release()
+            try #require(await waitForCompletion(observation), "Accepted cancelled request did not drain")
+            await connection.value
+            let replay = try await MCPModernResultFixture.respond(env, method: "tools/call", id: "replay",
+                parameters: ["name": "create_task", "arguments": args])
+            let rpc = try #require(replay.json as? [String: Any])
+            #expect(rpc["id"] as? String == "replay")
+            let result = try MCPTestHelpers.decodeHTTPToolResult(rpc)
+            #expect(result["outcome"] as? String == "rejected")
+            #expect(result["accepted"] as? Bool == true)
+            #expect((result["error"] as? [String: Any])?["code"] as? String == "CANCELLED")
+            #expect(try env.context.fetch(FetchDescriptor<TransitTask>()).isEmpty)
+            let receipts = try env.context.fetch(FetchDescriptor<MCPWriteReceipt>())
+            try #require(receipts.count == 1)
+            let stored = try #require(receipts[0].resultJSON)
+            let replayText = try MCPModernResultFixture.text(replay)
+            #expect(stored.utf8.elementsEqual(replayText.utf8))
+            #expect(await counter.loadCount() == 1)
+        } catch {
+            connection.cancel()
+            await counter.release()
+            let drained = await waitForCompletion(observation)
+            #expect(drained, "Failed cancellation fixture must drain its released connection")
+            if drained { await connection.value }
+            throw error
+        }
+    }
+
+    private func waitForAcceptance(_ counter: MCPWriteLifecycleCounter,
+                                   observation: MCPWriteConnectionObservation) async throws {
+        let cutoff = ContinuousClock.now.advanced(by: .seconds(2))
+        while ContinuousClock.now < cutoff {
+            if await counter.hasStarted() { return }
+            if observation.finished {
+                Issue.record("Request completed before allocator acceptance: \(observation.evidence)")
+                throw MCPWriteLifecycleFixtureError.notAccepted
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        Issue.record("Allocator acceptance deadline expired: \(observation.evidence)")
+        throw MCPWriteLifecycleFixtureError.notAccepted
+    }
+
+    private func waitForCompletion(_ observation: MCPWriteConnectionObservation) async -> Bool {
+        let cutoff = ContinuousClock.now.advanced(by: .seconds(2))
+        while ContinuousClock.now < cutoff {
+            if observation.finished { return true }
+            do { try await Task.sleep(for: .milliseconds(10)) } catch { return observation.finished }
+        }
+        return observation.finished
     }
 
     @Test func missingSafetyIsRejectedWithoutReservingAKey() async throws {
@@ -108,26 +163,37 @@ struct MCPWriteLifecycleTests {
         #expect(try env.context.fetch(FetchDescriptor<MCPWriteReceipt>()).isEmpty)
     }
 }
+@MainActor private final class MCPWriteConnectionObservation {
+    var response: MCPHTTPTestResponse?
+    var failure: String?
+    var finished = false
+    var evidence: String {
+        if let response {
+            let body = String(data: response.body.prefix(1024), encoding: .utf8) ?? "<non-UTF8>"
+            return "HTTP \(response.status), body \(body)"
+        }
+        return failure ?? "request still running"
+    }
+}
+private enum MCPWriteLifecycleFixtureError: Error { case notAccepted }
+
 actor MCPWriteLifecycleCounter: DisplayIDAllocator.CounterStore {
     private var continuation: CheckedContinuation<Void, Never>?
-    private var observer: CheckedContinuation<Void, Never>?
-    private var started = false
+    private var loads = 0
+    private var released = false
 
-    func waitForLoad() async {
-        if started { return }
-        await withCheckedContinuation { observer = $0 }
+    func hasStarted() -> Bool { loads > 0 }
+    func loadCount() -> Int { loads }
+    func release() {
+        released = true
+        continuation?.resume()
+        continuation = nil
     }
-
-    func release() { continuation?.resume(); continuation = nil }
-
     func loadCounter() async throws -> DisplayIDAllocator.CounterSnapshot {
-        started = true
-        observer?.resume()
-        observer = nil
-        await withCheckedContinuation { continuation = $0 }
+        loads += 1
+        if !released { await withCheckedContinuation { continuation = $0 } }
         return .init(nextDisplayID: 1, changeTag: nil)
     }
-
     func saveCounter(nextDisplayID: Int, expectedChangeTag: String?) async throws { }
 }
 #endif
