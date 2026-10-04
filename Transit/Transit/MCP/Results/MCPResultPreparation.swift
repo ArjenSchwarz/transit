@@ -95,20 +95,44 @@ nonisolated struct MCPResultRetainedBundle: Sendable {
     }
 }
 
-/// Task10 RED boundary. Task11 implements checked, checkpointed full-bundle preparation.
+/// Synchronous immutable preparation. Original checkpoints are used but never retained.
 nonisolated enum MCPResultPreparation {
     static func metadata(value: MCPResultMetadata) throws -> MCPResultPreparedMetadata {
-        throw MCPResultPreparationError.notImplemented
+        MCPResultPreparedMetadata(value: value)
     }
 
     static func page(request: MCPResultPagePreparationRequest,
                      checkpoint: @escaping @Sendable () throws -> Void = {}) throws -> MCPResultPreparedPage {
-        throw MCPResultPreparationError.notImplemented
+        try checkpoint()
+        let source = try MCPResultAdapter.source(text: request.text, isError: request.isError,
+            origin: request.origin, evidence: request.evidence, checkpoint: checkpoint)
+        let presentation = try MCPResultAdapter.present(source, context: request.context, checkpoint: checkpoint)
+        let fragment = try MCPResultEncoder.freeze(source: source, presentation: presentation,
+                                                   metadata: request.metadataOwner?.value, checkpoint: checkpoint)
+        try checkpoint()
+        return MCPResultPreparedPage(source: source, presentation: presentation, fragment: fragment,
+                                     metadataOwner: request.metadataOwner)
     }
 
     static func prepare(pages: [MCPResultPreparedPage], budget: MCPResultRetentionBudget,
                         checkpoint: @escaping @Sendable () throws -> Void = {}) throws -> MCPResultRetainedBundle {
-        throw MCPResultPreparationError.notImplemented
+        try checkpoint()
+        let observed = [budget.originalCaptureIndexBytes, budget.visibleBytes, budget.pendingBytes]
+        guard observed.allSatisfy({ $0 >= 0 }) else { throw MCPResultPreparationError.invalidAccounting }
+        var ledger = MCPResultRetentionAccounting(checkpoint: checkpoint)
+        try ledger.measure(pages)
+        let total = try ledger.total(originalCaptureIndexBytes: budget.originalCaptureIndexBytes)
+        let used = try MCPResultRetentionAccounting.add(
+            MCPResultRetentionAccounting.add(budget.visibleBytes, budget.pendingBytes), total)
+        guard used <= MCPResultRetentionBudget.limitBytes else { throw MCPResultPreparationError.retentionCapacity }
+        try checkpoint()
+        let charge = MCPResultRetainedCharge(originalCaptureIndexBytes: budget.originalCaptureIndexBytes,
+            originalTextBytes: ledger.originalTextBytes, sourceDocumentBytes: ledger.sourceDocumentBytes,
+            sourceValueBytes: ledger.sourceValueBytes, presentationValueBytes: ledger.presentationValueBytes,
+            fragmentBytes: ledger.fragmentBytes, metadataDocumentBytes: ledger.metadataDocumentBytes,
+            metadataValueBytes: ledger.metadataValueBytes, ownerReferenceBytes: ledger.ownerReferenceBytes,
+            totalBytes: total)
+        return MCPResultRetainedBundle(pages: pages, charge: charge)
     }
 }
 #endif

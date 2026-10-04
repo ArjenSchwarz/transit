@@ -93,7 +93,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [2.2](requirements.md#2.2), [3.3](requirements.md#3.3), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2)
   - References: design.md, Transit/TransitTests/MCPResultPreparationBudgetTests.swift
 
-- [ ] 11. GREEN: implement charged frozen result preparation and cancellation checks <!-- id:gpzncvv -->
+- [-] 11. GREEN: implement charged frozen result preparation and cancellation checks <!-- id:gpzncvv -->
   - Implement value-only frozen-fragment/size preparation in Results modules using task1 seams. Avoid needless duplicate backing, preserve all existing capture/index charges and metadata; check supplied cutoff/cancellation between bounded encoding stages.
   - Pass task10 before integrating retention or common transport. If volume preparation cannot succeed inside limits, select the already prepared defined failure and discard privately staged output; no deadline/capacity expansion or weakened evidence.
   - Blocked-by: gpzncvu (RED: bound expanded result preparation with production-shaped synthetic cases)
