@@ -222,10 +222,12 @@ final class MCPReadService: MCPReadCapturedPreparing {
         let metadata = category.map { MCPReadResultMetadata.failure(ReadFailureMetadata(
             requestId: operation.id.uuidString, category: $0,
             read: ReadExecutionMetadata(policy: policy, refreshOutcome: .unavailable, budgetMs: 5_000))) }
-        let text = tool == "query_tasks"
+        let jsonFailure = tool == "query_tasks" || (code == "READ_FAILED"
+            && (tool == "get_projects" || tool == "query_milestones"))
+        let text = jsonFailure
             ? IntentHelpers.encodeJSON(["error": ["code": code, "message": message]]) : message
         // This error envelope consists only of valid strings and fixed metadata values.
-        let evidence = tool == "query_tasks" ? nil
+        let evidence = jsonFailure ? nil
             : MCPResultProviderEvidence(origin: .plainText, evidence: .established)
         return try MCPPreparedToolRead(text: text, isError: true, metadata: metadata, providerEvidence: evidence)
     }

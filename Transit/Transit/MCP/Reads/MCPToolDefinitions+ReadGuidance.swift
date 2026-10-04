@@ -9,7 +9,7 @@ extension MCPToolDefinitions {
         Read metadata uses asOf for the saved local capture time and an opaque snapshotId.
         freshness.assessedAt equals asOf.
         Cursor pages retain the original metadata and expiry; a cursor request has its own log correlation.
-        Task storage/projection errors use QUERY_FAILED. Project/milestone failures retain their text error message.
+        Task storage/projection errors use QUERY_FAILED. Project/milestone execution failures use READ_FAILED.
         Failure metadata categories are storage_failure, serialization_failure, or incoherent_capture;
         READ_TIMEOUT and READ_BUSY never invent successful asOf or snapshotId metadata.
         No automatic retry occurs. After READ_BUSY or READ_TIMEOUT, use backoff before explicitly retrying;
