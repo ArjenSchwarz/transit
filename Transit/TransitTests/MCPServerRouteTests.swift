@@ -4,190 +4,127 @@ import HTTPTypes
 import Testing
 @testable import Transit
 
-/// Regression tests for the MCP Streamable HTTP endpoint routes.
-///
-/// MCP 2025-03-26 permits GET to open an SSE listening stream when the client
-/// accepts `text/event-stream`. A GET without that required negotiation remains
-/// unsupported, while POST dispatch, origin validation, and unrelated routes
-/// keep their existing behavior.
+/// Latest-only POST negotiation; no GET SSE/session compatibility.
 @MainActor @Suite(.serialized)
 struct MCPServerRouteTests {
-
-    @Test func getMcpWithoutEventStreamAcceptReturnsMethodNotAllowed() async throws {
+    @Test(arguments: ["GET", "DELETE", "HEAD", "OPTIONS"])
+    func allLegacyListeningMethodsRejectEvenWithSessionAndSSE(method: String) async throws {
         let env = try MCPTestHelpers.makeEnv()
-        let response = try await respond(
-            handler: env.handler,
-            method: .get,
-            path: "/mcp"
-        )
-
+        let response = try await MCPModernResultFixture.transport(handler: env.handler,
+            method: HTTPRequest.Method(rawValue: method), accept: "text/event-stream",
+            orderedHeaders: [HTTPField(name: .mcpSessionID, value: "obsolete")], loggerLabel: "subscription-method")
         #expect(response.status == .methodNotAllowed)
         #expect(response.allow == "POST")
+        #expect(response.sessionID == nil)
+        #expect(env.handler.activeToolListChangeStreamCount == 0)
     }
 
-    @Test func eventStreamAcceptParsingRequiresExactPositiveQualityMediaRange() {
-        #expect(MCPServer.acceptsEventStream("text/event-stream"))
-        #expect(MCPServer.acceptsEventStream(
-            "application/json, TEXT/EVENT-STREAM; charset=utf-8; q=0.5"
-        ))
-        #expect(MCPServer.acceptsEventStream(
-            "text/event-stream;q=0, text/event-stream;q=0.001"
-        ))
-
-        #expect(!MCPServer.acceptsEventStream(nil))
-        #expect(!MCPServer.acceptsEventStream("application/x-text/event-stream"))
-        #expect(!MCPServer.acceptsEventStream("text/event-streaming"))
-        #expect(!MCPServer.acceptsEventStream("text/event-stream;q=0"))
-        #expect(!MCPServer.acceptsEventStream("text/event-stream;q=1.1"))
-        #expect(!MCPServer.acceptsEventStream("text/event-stream;q=.5"))
-        #expect(!MCPServer.acceptsEventStream("text/event-stream;note=\"a,b\";q=0"))
-    }
-
-    @Test func getMcpRejectsEventStreamWithZeroQuality() async throws {
+    @Test func unrelatedPathIsStillNotFoundAndOriginPrecedesMethodRejection() async throws {
         let env = try MCPTestHelpers.makeEnv()
-        let response = try await respond(
-            handler: env.handler,
-            method: .get,
-            path: "/mcp",
-            accept: "application/json, text/event-stream;q=0"
-        )
-
-        #expect(response.status == .methodNotAllowed)
-        #expect(response.allow == "POST")
+        let unrelated = try await MCPModernResultFixture.transport(handler: env.handler, method: .get,
+            path: "/not-mcp", loggerLabel: "subscription-unrelated")
+        #expect(unrelated.status == .notFound)
+        let forbidden = try await MCPModernResultFixture.transport(handler: env.handler, method: .get,
+            origin: "https://evil.example.com", loggerLabel: "subscription-origin")
+        #expect(forbidden.status == .forbidden)
+        #expect(forbidden.body.isEmpty)
     }
 
-    @Test func getMcpRejectsEventStreamMediaTypeSuperstring() async throws {
+    @Test func modernPOSTSubscriptionRequiresSSEAccept() async throws {
         let env = try MCPTestHelpers.makeEnv()
-        let response = try await respond(
-            handler: env.handler,
-            method: .get,
-            path: "/mcp",
-            accept: "application/x-text/event-stream"
-        )
-
-        #expect(response.status == .methodNotAllowed)
-        #expect(response.allow == "POST")
+        let response = try await rejected(env, accept: "application/json")
+        #expect(response.status == .notAcceptable)
+        #expect(env.handler.activeToolListChangeStreamCount == 0)
     }
 
-    @Test func getMcpWithEventStreamAcceptRequiresSession() async throws {
+    @Test(arguments: ["application/x-text/event-stream", "text/event-stream;q=0", "text/event-streaming"])
+    func unacceptableSSEMediaRangesNeverRegister(accept: String) async throws {
         let env = try MCPTestHelpers.makeEnv()
-        let response = try await respond(
-            handler: env.handler,
-            method: .get,
-            path: "/mcp",
-            accept: "text/event-stream; charset=utf-8; q=0.5"
-        )
+        let response = try await rejected(env, accept: accept)
+        #expect(response.status == .notAcceptable)
+        #expect(env.handler.activeToolListChangeStreamCount == 0)
+    }
 
+    @Test(arguments: [0, 1, 2, 3, 4, 5, 6]) func malformedModernSubscriptionDoesNotRegister(variant: Int) async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let valid = try MCPModernResultFixture.body(method: "subscriptions/listen",
+            parameters: ["notifications": ["toolsListChanged": true]])
+        var body = valid
+        var version: String? = "2026-07-28"
+        var mirrored = "subscriptions/listen"
+        switch variant {
+        case 0:
+            var json = try #require(try JSONSerialization.jsonObject(with: Data(valid.utf8)) as? [String: Any])
+            json.removeValue(forKey: "id")
+            body = try #require(String(data: try JSONSerialization.data(withJSONObject: json), encoding: .utf8))
+        case 1:
+            body = try MCPModernResultFixture.body(method: "subscriptions/listen", id: NSNull(),
+                parameters: ["notifications": [:]])
+        case 2: version = nil
+        case 3: mirrored = "tools/list"
+        case 4:
+            body = try MCPModernResultFixture.body(method: "subscriptions/listen", parameters: ["notifications": []])
+        case 5:
+            body = try MCPModernResultFixture.body(method: "subscriptions/listen",
+                parameters: ["notifications": ["toolsListChanged": "true"]])
+        default:
+            body = #"{"jsonrpc":"2.0","id":1,"method":"subscriptions/listen","params":{"notifications":{}}}"#
+        }
+        let response = try await rejected(env, body: body, version: version, mirrored: mirrored)
         #expect(response.status == .badRequest)
+        #expect(response.sessionID == nil)
+        #expect(env.handler.activeToolListChangeStreamCount == 0)
     }
 
-    @Test func getMcpRejectsUnknownSession() async throws {
+    @Test func invalidKnownResourceFilterRejectsWhileUnknownExtensionsRemainValid() async throws {
         let env = try MCPTestHelpers.makeEnv()
-        let response = try await respond(
-            handler: env.handler,
-            method: .get,
-            path: "/mcp",
-            accept: "text/event-stream",
-            sessionID: "unknown-session"
-        )
-
-        #expect(response.status == .notFound)
+        let invalid = try MCPModernResultFixture.body(method: "subscriptions/listen",
+            parameters: ["notifications": ["resourceSubscriptions": [1]]])
+        let response = try await rejected(env, body: invalid)
+        #expect(response.status == .badRequest)
+        #expect(env.handler.activeToolListChangeStreamCount == 0)
+        let stream = try await MCPSubscriptionFixture.open(handler: env.handler,
+            filters: ["unknown": ["nested": NSNull()]])
+        do { try MCPToolListChangeNotificationTests.requireStream(stream) } catch {
+            await stream.close(); throw error
+        }
+        await stream.close()
     }
 
-    @Test func postMcpStillDispatchesNormally() async throws {
+    @Test func duplicateMirroredHeadersNeverCreateSubscription() async throws {
         let env = try MCPTestHelpers.makeEnv()
-        let response = try await respond(
-            handler: env.handler,
-            method: .post,
-            path: "/mcp",
-            body: #"{"jsonrpc":"2.0","id":1,"method":"ping"}"#
-        )
-
-        #expect(response.status == .ok)
+        let body = try MCPModernResultFixture.body(method: "subscriptions/listen", parameters: ["notifications": [:]])
+        let response = try await MCPModernResultFixture.transport(handler: env.handler,
+            contentType: "application/json", accept: "text/event-stream", protocolVersion: "2026-07-28",
+            orderedHeaders: [HTTPField(name: HTTPField.Name("Mcp-Method")!, value: "subscriptions/listen"),
+                HTTPField(name: HTTPField.Name("Mcp-Method")!, value: "subscriptions/listen")],
+            body: body, loggerLabel: "subscription-duplicate-header")
+        #expect(response.status == .badRequest)
+        #expect(env.handler.activeToolListChangeStreamCount == 0)
     }
 
-    @Test func getMcpStillValidatesUntrustedOrigins() async throws {
+    @Test func invalidContentTypeAndHostRejectBeforeRegistration() async throws {
         let env = try MCPTestHelpers.makeEnv()
-        let response = try await respond(
-            handler: env.handler,
-            method: .get,
-            path: "/mcp",
-            origin: "https://evil.example.com"
-        )
-
-        #expect(response.status == .forbidden)
+        let body = try MCPModernResultFixture.body(method: "subscriptions/listen", parameters: ["notifications": [:]])
+        let unsupported = try await MCPModernResultFixture.transport(handler: env.handler,
+            contentType: "text/plain", accept: "text/event-stream", body: body, loggerLabel: "subscription-content")
+        #expect(unsupported.status == .unsupportedMediaType)
+        let forbidden = try await MCPModernResultFixture.transport(handler: env.handler,
+            authority: "rebind.example:3141", contentType: "application/json", accept: "text/event-stream",
+            body: body, loggerLabel: "subscription-host")
+        #expect(forbidden.status == .forbidden)
+        #expect(env.handler.activeToolListChangeStreamCount == 0)
     }
 
-    @Test func getMcpStillValidatesNonLoopbackHost() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-        let response = try await respond(
-            handler: env.handler,
-            method: .get,
-            path: "/mcp",
-            host: "rebind.example.com:3141"
-        )
-
-        #expect(response.status == .forbidden)
-    }
-
-    @Test func headMcpRemainsNotFoundWithoutAutoGeneratedHeadRoute() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-        let response = try await respond(
-            handler: env.handler,
-            method: .head,
-            path: "/mcp"
-        )
-
-        #expect(response.status == .notFound)
-        #expect(response.allow == nil)
-    }
-
-    @Test func optionsMcpRemainsNotFoundWithoutExplicitOptionsRoute() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-        let response = try await respond(
-            handler: env.handler,
-            method: .options,
-            path: "/mcp"
-        )
-
-        #expect(response.status == .notFound)
-        #expect(response.allow == nil)
-    }
-
-    @Test func getOnUnrelatedPathRemainsNotFound() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-        let response = try await respond(
-            handler: env.handler,
-            method: .get,
-            path: "/not-mcp"
-        )
-
-        #expect(response.status == .notFound)
-        #expect(response.allow == nil)
-    }
-
-    private func respond(
-        handler: MCPToolHandler,
-        method: HTTPRequest.Method,
-        path: String,
-        origin: String? = nil,
-        host: String = "127.0.0.1:3141",
-        accept: String? = nil,
-        sessionID: String? = nil,
-        body: String = ""
-    ) async throws -> MCPHTTPTestResponse {
-        try await MCPTestHelpers.respond(
-            handler: handler,
-            method: method,
-            path: path,
-            origin: origin,
-            authority: host,
-            accept: accept,
-            sessionID: sessionID,
-            body: body,
-            loggerLabel: "mcp-route-tests"
-        )
+    private func rejected(_ env: MCPTestEnv, body: String? = nil, accept: String = "text/event-stream",
+                          version: String? = "2026-07-28", mirrored: String = "subscriptions/listen") async throws
+        -> MCPHTTPTestResponse {
+        let requestBody = try body ?? MCPModernResultFixture.body(method: "subscriptions/listen",
+            parameters: ["notifications": ["toolsListChanged": true]])
+        return try await MCPModernResultFixture.transport(handler: env.handler,
+            contentType: "application/json", accept: accept, protocolVersion: version,
+            orderedHeaders: [HTTPField(name: HTTPField.Name("Mcp-Method")!, value: mirrored)],
+            body: requestBody, loggerLabel: "subscription-rejection")
     }
 }
-
 #endif
