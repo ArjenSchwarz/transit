@@ -15,6 +15,12 @@ import SwiftData
     let makeCommitServices: (@MainActor (ModelContext) throws -> MCPWriteCommitServices)?
     let validateBeforeApply: @MainActor (MCPWriteCommand, ModelContext) throws -> Void
 
+    /// Swift's forward matching can bind an unlabelled trailing closure to the
+    /// optional factory. Preserve the existing two-argument validation API.
+    init(validateBeforeApply: @escaping @MainActor (MCPWriteCommand, ModelContext) throws -> Void) {
+        self.init(makeCommitServices: nil, onPendingEditsStop: {}, validateBeforeApply: validateBeforeApply)
+    }
+
     init(
         makeCommitServices: (@MainActor (ModelContext) throws -> MCPWriteCommitServices)? = nil,
         onPendingEditsStop: @escaping @MainActor () -> Void = {},
