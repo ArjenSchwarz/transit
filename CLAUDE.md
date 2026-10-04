@@ -138,15 +138,16 @@ Shared intent infrastructure lives in `Intents/Shared/`: entities (`ProjectEntit
 
 ### MCP Server (macOS only)
 
-HTTP-based JSON-RPC 2.0 server using **Hummingbird**, gated behind `#if os(macOS)`. Configured via `MCPSettings` (UserDefaults-backed toggle and port). Exposes 12 normal tools:
+HTTP-based JSON-RPC 2.0 server using **Hummingbird**, gated behind `#if os(macOS)`. Configured via `MCPSettings` (UserDefaults-backed toggle and port). Exposes 13 normal tools:
 
-`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `query_project_summaries`
+`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `query_project_summaries`, `mutate_tasks`
 
 Key implementation files:
 - `MCP/MCPServer.swift` — Hummingbird router, lifecycle management
 - `MCP/MCPToolHandler.swift` — dispatches `tools/call` to service layer
 - `MCP/MCPToolDefinitions.swift` — tool schemas with input validation
 - `MCP/MCPTypes.swift` — shared JSON-RPC types; exposed transport is latest-only `2026-07-28` via `MCP/Protocol` and `MCPServer+Routing.swift`
+- `MCP/BatchWrites/` — saved-only mutation previews and ordered per-item protected writes; no whole-batch receipt or transaction
 - `MCP/Results/` — immutable source/presentation, output schemas and complete response/fallback encoding
 - `MCP/Reads/` — bounded capture/admission/deadline/publication services
 - `MCP/MCPHelperTypes.swift` — query filter logic (`MCPQueryFilters`)

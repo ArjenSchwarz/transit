@@ -1,4 +1,14 @@
-# T2384 local completion handoff
+# T2384 publication handoff
+
+## Reconciled publication checkpoint
+
+The owner has explicitly approved pushes, sharing changes with the configured Claude reviewer, and eligible overnight merges. Earlier publication/disclosure holds described below are historical and have been resolved by that approval. MacBook client activation remains deferred and is not a merge blocker. No live Transit writes, production launch, settings change or deployment is authorised by this publication workflow.
+
+The isolated publication worktree is `/Users/arjen/Documents/Codex/2026-10-03/task-4/transit-t2384-final`, branch `T-2384/publication`. Reconciled feature commit `fde318d5f8eedbef62f825bd9ad69889187c5f09` starts from merged main `adc98b55e69af6be22e095126c81986d0d8e48a8`, applying only the unique T2384 delta from the reviewed common baseline. All 271 compared production/configuration/isolation files are byte-identical to the original reviewed feature snapshot; merged main fixes are preserved. Original worktrees and paused T1734 work are untouched. All four internal reviewers cleared the production delta. The repository MCP guide has been corrected to include the thirteenth tool.
+
+Fresh publication verification and PRPilot results will be recorded here when observed; the acceptance below belongs to the earlier original worktree and is not substituted for verification on reconciled main.
+
+## Historical local completion
 
 All 14 approved Rune tasks are complete. The four internal pre-push reviews and independent root critical review found no unresolved implementation blocker. No external peer-review service was used.
 
