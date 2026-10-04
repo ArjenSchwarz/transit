@@ -1,5 +1,17 @@
 # Structured result schema implementation readiness
 
+## Actual guarded GREEN
+
+Task9/gpzncvt is complete after the reviewed run at `2df0648` (schema `a25bf99`, recovery fix `1f20e11`). Build, signed development-host preflight, serial test and finalized xcresult extraction exited0. Actual app tests passed **5/5**, zero failures/skips; finalized runtime-warning and test-failure lists are empty. Startup system shortcut messages are recorded separately and do not alter these test results.
+
+Both host validators received the actual app exit0 and copied app-owned exports. The baseline validates 12 actual schemas against 36 emitted responses and 37 malformed variants: **876 assertions**. The supplemental checker validates **three actual schema/result pairs** and their original identities. Critic independently compared all copied artifacts with the app-owned directories byte-for-byte and cleared runtime evidence; no pure-probe substitution or fabricated schema/exit.
+
+No hang, sampling, signals, cleanup or replay occurred. Owned processes drained and the heavy slot was released immediately before extraction/bookkeeping. Original fixtures/source/isolation and prior artifact hashes are unchanged. Evidence `.codex-cache/schema-recovery-conformance/results.md`, app-actual-commands.json, app-xcresult-summary.json, app-export-origins.json and source/export/artifact hashes; full result `DerivedData/t2383-encoder-red-a480d06/SchemaRecoveryGreen.xcresult` is finalized. No routine file delivery or live/client changes.
+
+Only task10 RED preparation is next. Task11 accounting, task14 production selection and DELIVERED15 remain pending; this component verification is not common-provider/transport delivery. No subsequent app run follows the task9 slot grant.
+
+## Historical GREEN preparation
+
 Task9/gpzncvt is in progress and GREEN-ready at source `1f20e11` after descriptor implementation `a25bf99`. App GREEN has not run; the next parent-coordinated slot follows the current T1734 job and queued T2382 GREEN. DELIVERED15/gpzncvz remains pending. No routine phone/upload delivery is performed.
 
 ## Descriptor and source-only proof

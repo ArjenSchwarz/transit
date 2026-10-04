@@ -1,12 +1,12 @@
 # Pending common result seam coordination
 
-## Current checkpoint: task9 GREEN-ready
+## Current checkpoint: task9 verified GREEN
 
-Task8 meaningful RED is reviewed and complete at `0695c7c`, retaining command exit143/unfinalized result limitations. Task9 descriptor source `a25bf99` and recovery correction `1f20e11` are reviewed and ready for a separately coordinated GREEN slot. Actual immutable descriptors pass the original 876 pure-source host matrix plus the supplemental regression proof; no app GREEN or task9 completion is claimed. Exact prepared five-method/two-suite commands are under `.codex-cache/schema-recovery-conformance/guarded-commands.json`. See schema-green.md.
+Task8 meaningful RED is reviewed and complete at `0695c7c`, retaining command exit143/unfinalized result limitations. Task9 descriptor source `a25bf99` and recovery correction `1f20e11` passed the guarded run at `2df0648`: finalized5/5 app tests and actual-export host checks876 plus3. Build/preflight/test/summary exited0, owned processes drained and slot released; runtime critic clear. Rune9 is complete. See schema-green.md and `.codex-cache/schema-recovery-conformance/results.md`.
 
 The recovery correction permits supplemental follow_source from saved receipt evidence only for protectedWrite. Batch and maintenance retain their original-key/no-key reconciliation policies; source payload/text/isError/retryAction and original identities are unchanged. No schema relaxation or receipt rewrite. MCPResultSchemas.descriptor(tool:description:) returns owned MCPJSONDocument outputSchema without editing shared MCPTypes/definitions.
 
-Task11 accounting, task14 production selection proof and task15 common provider/schema/wiring delivery remain pending. **DELIVERED15/gpzncvz is not available to T2384.** T63 retains shared wiring ownership and T2384 owns MCPWriteCoordinator/coordinator-specific tests. Current parent heavy queue is T1734 then T2382; no app job is running here. Live data/client activation remain held, and routine checkpoint deliveries stay local.
+Task10 RED preparation is next; task11 accounting, task14 production selection proof and task15 common provider/schema/wiring delivery remain pending. **DELIVERED15/gpzncvz is not available to T2384.** T63 retains shared wiring ownership and T2384 owns MCPWriteCoordinator/coordinator-specific tests. No app job is running here and any later app run needs its own coordinated slot. Live data/client activation remain held, and routine checkpoint deliveries stay local.
 
 ## Historical checkpoint after task7
 

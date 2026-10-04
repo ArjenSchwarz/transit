@@ -77,7 +77,7 @@ metadata:
   - Requirements: [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.4](requirements.md#2.4), [3.2](requirements.md#3.2)
   - References: design.md, Transit/Transit/MCP/Results/MCPResultSchemas.swift, tests/validation/validate_mcp_result_schemas.py
 
-- [-] 9. GREEN: implement output descriptor/schema providers and host fixture validation <!-- id:gpzncvt -->
+- [x] 9. GREEN: implement output descriptor/schema providers and host fixture validation <!-- id:gpzncvt -->
   - Implement MCPResultSchemas.swift explicit2020-12 self-contained wrapper definitions; source JSON accepts any original JSON value/unknown fields, while source-kind and presentation invariants remain constrained.
   - Connect schema descriptors to the synthetic provider seam and test runner/export path; no independent edits to shared MCPTypes or common registry. Keep existing input-schema support unchanged until coordinated integration. Pass task8.
   - Blocked-by: gpzncvs (RED: validate structured output schemas across every source variant)
