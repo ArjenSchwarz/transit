@@ -34,7 +34,7 @@ For an intended ChatGPT desktop-host surface, this CLI command is only a startin
 
 ## Claude Code: separate configuration input
 
-Installed help confirms `--mcp-config` accepts a JSON string/file and `--strict-mcp-config` selects only those servers. Propose the following JSON as a disposable fixture input outside the repository and normal user configuration:
+Installed help confirms `--mcp-config` accepts a JSON string/file and `--strict-mcp-config` selects only those servers. Current installed help additionally confirms `--bare` skips automatically discovered hooks/plugins/memory and permits explicit MCP configuration; propose that invocation-only context minimisation for this synthetic session. Propose the following JSON as a disposable fixture input outside the repository and normal user configuration:
 
 ```json
 {"mcpServers":{"transit_structured_readiness":{"type":"http","url":"http://127.0.0.1:<PORT>/mcp"}}}
@@ -43,7 +43,7 @@ Installed help confirms `--mcp-config` accepts a JSON string/file and `--strict-
 ```text
 cd '<EMPTY_DIR>'
 /Users/arjen/.local/bin/claude \
-  --mcp-config '<EXACT_DISPOSABLE_JSON_PATH>' --strict-mcp-config
+  --bare --mcp-config '<EXACT_DISPOSABLE_JSON_PATH>' --strict-mcp-config
 ```
 
 The official [Claude Code MCP runtime documentation](https://code.claude.com/docs/en/mcp#mcp-client-runtimes) identifies the v2 runtime as the modern protocol path and documents strict fixture configuration. Do not change telemetry, cached feature flags or persistent server configuration to force it. Record the actual native negotiation. If the installed session uses an unsupported runtime, retain that evidence and propose its exact minimal correction separately; do not infer success from version or embedded symbols.
@@ -71,3 +71,7 @@ After probes, close the synthetic sessions, await fixture shutdown, remove only 
 ## Observed capability evidence
 
 Read-only commands performed during proposal preparation: standalone `codex features list`, Codex/Claude CLI help, MCP-add help, and `codex mcp list --help` only. The configured-server list with proposed overrides was not run. No add command was executed; no client session, endpoint or model agent was started. Codex help/list succeeded with an incidental PATH-alias permission warning; no retry or permission change was made to repair that warning. Saved relevant help/list output and hashes of the inspected Desktop vendor-source files are in `.codex-cache/client-readiness-setup-proposal/`; these artifacts prove available controls/code paths, not runtime negotiation.
+
+## Verified installed target clarification
+
+Read-only app identity inspection verifies `/Applications/ChatGPT.app` is bundle `com.openai.codex`: the installed Codex desktop host despite its directory/display name. Its supporting executable is `/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex`; a read-only feature list also reports `mcp_2026_07_28` disabled. This is a distinct target from `/Users/arjen/.local/bin/codex`; probing that supporting CLI alone cannot establish host readiness. The concise action/configuration/data-exposure bundle is [client-readiness-approval-bundle.md](client-readiness-approval-bundle.md). Actual model-provider/context isolation remains to establish before proposing a model turn; synthetic endpoint data alone does not bound native global context.
