@@ -7,6 +7,18 @@ nonisolated struct RetainedView: Sendable {
     let window: CompletionWindow
     let initialRequest: MCPPortfolioSummaryRequest
     let firstPage: Data
+    let preparedResultPage: MCPResultPreparedPage?
+
+    init(capture: CapturedReadView, frozenMetadataBytes: Data, window: CompletionWindow,
+         initialRequest: MCPPortfolioSummaryRequest, firstPage: Data,
+         preparedResultPage: MCPResultPreparedPage? = nil) {
+        self.capture = capture
+        self.frozenMetadataBytes = frozenMetadataBytes
+        self.window = window
+        self.initialRequest = initialRequest
+        self.firstPage = firstPage
+        self.preparedResultPage = preparedResultPage
+    }
 }
 
 nonisolated struct RetentionReservation: Sendable {
@@ -19,16 +31,19 @@ nonisolated struct EncodedViewBundle: Sendable {
     let pages: [Data]
     let cursors: [String]
     let encodedCaptureByteCount: Int
+    let preparedResultBundle: MCPResultRetainedBundle?
     /// Internal lifetime seam: retain with the actual immutable bundle, never invoke manually.
     let lifetimeProbe: (any MCPReusableSnapshotLifetimeProbe)?
 
     init(root: RetainedView, pages: [Data], cursors: [String], encodedCaptureByteCount: Int,
-         lifetimeProbe: (any MCPReusableSnapshotLifetimeProbe)? = nil) {
+         lifetimeProbe: (any MCPReusableSnapshotLifetimeProbe)? = nil,
+         preparedResultBundle: MCPResultRetainedBundle? = nil) {
         self.root = root
         self.pages = pages
         self.cursors = cursors
         self.encodedCaptureByteCount = encodedCaptureByteCount
         self.lifetimeProbe = lifetimeProbe
+        self.preparedResultBundle = preparedResultBundle
     }
 }
 
@@ -37,6 +52,13 @@ nonisolated protocol MCPReusableSnapshotLifetimeProbe: AnyObject, Sendable {}
 nonisolated struct RetainedPage: Sendable {
     let root: RetainedView
     let encodedPage: Data
+    let preparedResultPage: MCPResultPreparedPage?
+
+    init(root: RetainedView, encodedPage: Data, preparedResultPage: MCPResultPreparedPage? = nil) {
+        self.root = root
+        self.encodedPage = encodedPage
+        self.preparedResultPage = preparedResultPage
+    }
 }
 
 nonisolated enum MCPReusableSnapshotError: Error, Equatable, Sendable {
@@ -102,6 +124,9 @@ nonisolated final class MCPReusableSnapshotStore: MCPRetainedViewSource, MCPRead
 
     func reserveCreate(bundle: EncodedViewBundle, publicationDeadline: ContinuousClock.Instant)
         throws -> RetentionReservation {
+        guard bundle.preparedResultBundle == nil, bundle.root.preparedResultPage == nil else {
+            throw MCPResultPreparationError.notImplemented
+        }
         guard case .completePortfolio = bundle.root.capture.completeness,
               bundle.root.capture.captureScope != .selectedQuery,
               case .initial = bundle.root.initialRequest,
@@ -186,6 +211,13 @@ nonisolated final class MCPReusableSnapshotStore: MCPRetainedViewSource, MCPRead
                 continue
             }
             guard let current = entries[id] else { throw PublicationRejection.busy }
+            guard entry.preparedResultPages.isEmpty, current.preparedResultPages.isEmpty,
+                  initial.preparedResultPages.isEmpty, entry.bundle.preparedResultBundle == nil,
+                  current.bundle.preparedResultBundle == nil, initial.bundle.preparedResultBundle == nil,
+                  entry.bundle.root.preparedResultPage == nil, current.bundle.root.preparedResultPage == nil,
+                  initial.bundle.root.preparedResultPage == nil else {
+                throw MCPResultPreparationError.notImplemented
+            }
             var pages = current.pages
             for (token, bytes) in entry.pages where initial.pages[token] == nil {
                 guard pages[token] == nil else { throw PublicationRejection.busy }
@@ -254,6 +286,52 @@ nonisolated final class MCPReusableSnapshotStore: MCPRetainedViewSource, MCPRead
         try domain.retire(storeID: publicationStoreID, expectedVersion: base.version, replacementIndex: replacement)
         return try domain.snapshot(for: publicationStoreID)
     }
+}
+
+/// Task-16 source-only owner ABI. These modern retention paths deliberately fail before reservation.
+/// The common factory supplies actual immutable owners; this store never substitutes equal-byte owners.
+extension MCPReusableSnapshotStore {
+    /// Future preflight uses exact descriptor replacement with checked subtraction, then domain revalidation.
+    /// Base includes capture/index AND every retained legacy Data/metadata compatibility copy.
+    nonisolated func preparedResultBudget(
+        originalCaptureIndexBytes: Int, replacingSnapshotID: String? = nil, operation: MCPReadOperation
+    ) throws -> MCPResultRetentionBudget {
+        throw MCPResultPreparationError.notImplemented
+    }
+
+    /// All pages (first plus continuations) must already be prepared with this SAME operation.
+    nonisolated func reservePreparedCreate(
+        bundle: EncodedViewBundle, preparedResults: MCPResultRetainedBundle,
+        operation: MCPReadOperation, publicationDeadline: ContinuousClock.Instant
+    ) throws -> RetentionReservation {
+        throw MCPResultPreparationError.notImplemented
+    }
+
+    // swiftlint:disable function_parameter_count large_tuple
+    /// preparedPages is first-response owner followed by owners matching pages/cursors in order.
+    /// Zero cursors still retains the first owner. GREEN must measure the actual full owner union,
+    /// deduplicate reference identities, preserve shared metadata and coalesce aggregate owner changes.
+    nonisolated func reservePreparedAppend(
+        snapshotID: String, pages: [Data], cursors: [String], preparedPages: [MCPResultPreparedPage],
+        operation: MCPReadOperation, publicationDeadline: ContinuousClock.Instant
+    ) throws -> RetentionReservation {
+        throw MCPResultPreparationError.notImplemented
+    }
+
+    /// Returns the retained first owner and unchanged root identity/expiry pin; never recaptures/reclassifies.
+    nonisolated func preparedResultView(
+        for snapshotID: String, now: ContinuousClock.Instant, testingAfterPin: (() throws -> Void)? = nil
+    ) throws -> (root: RetainedView, firstPage: MCPResultPreparedPage, pin: MCPReusableSnapshotReadPin) {
+        throw MCPResultPreparationError.notImplemented
+    }
+
+    /// Returns exactly the same retained cursor owner, guarded by the existing publication-domain pin.
+    nonisolated func preparedResultPage(
+        for cursor: String, now: ContinuousClock.Instant, testingAfterPin: (() throws -> Void)? = nil
+    ) throws -> (page: RetainedPage, preparedPage: MCPResultPreparedPage, pin: MCPReusableSnapshotReadPin) {
+        throw MCPResultPreparationError.notImplemented
+    }
+    // swiftlint:enable function_parameter_count large_tuple
 }
 
 extension MCPReusableSnapshotStore {

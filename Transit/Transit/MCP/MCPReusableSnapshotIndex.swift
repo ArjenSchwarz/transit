@@ -6,14 +6,20 @@ nonisolated struct MCPReusableSnapshotEntry: Sendable {
     let identity: UUID
     let bundle: EncodedViewBundle
     let pages: [String: Data]
+    let preparedResultPages: [String: MCPResultPreparedPage]
 
-    init(identity: UUID = UUID(), bundle: EncodedViewBundle, pages: [String: Data]) {
+    init(identity: UUID = UUID(), bundle: EncodedViewBundle, pages: [String: Data],
+         preparedResultPages: [String: MCPResultPreparedPage] = [:]) {
         self.identity = identity
         self.bundle = bundle
         self.pages = pages
+        self.preparedResultPages = preparedResultPages
     }
 
     func descriptor() throws -> MCPPublicationRoot {
+        // RED guard: modern owners cannot publish under the old Data-only descriptor charge.
+        guard bundle.preparedResultBundle == nil, bundle.root.preparedResultPage == nil,
+              preparedResultPages.isEmpty else { throw MCPResultPreparationError.notImplemented }
         let id = bundle.root.capture.metadata.snapshotId
         guard bundle.encodedCaptureByteCount >= 0, pages[id] == nil else {
             throw MCPReusableSnapshotError.incompatible
