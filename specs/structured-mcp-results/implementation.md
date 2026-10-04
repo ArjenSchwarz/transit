@@ -205,3 +205,8 @@ Task10 stays in progress and task11 blocked until actual app RED. T2382 holds th
 ## Task10 execution attempt rejected before start
 
 The parent granted an exclusive slot for the reviewed task10 sequence at70d103a/docs3f7f835. Automatic approval review rejected the exact build before any process started, citing the original heavy-build/test restriction and saying parent approval cannot override it. Build exit absent, preflight/test unrun, slot immediately released unused. No retry, indirect route, source change or task11 drafting. Task10 remains inprogress, task11 blocked. See preparation-red.md and .codex-cache/preparation-red-readiness/app-attempt.json. Parent authorization-provenance resolution is required before another attempt.
+
+
+## Task10 single unchanged retry rejected
+
+Parent provided the complete later owner-testing approval and authorized one identical-call retry. The worker forwarded it unchanged and retried the same tool call without modifying action/arguments. Review explicitly considered the later reply but rejected it as untrusted forwarded assistant context, retaining the initial heavy-test restriction. No process started; unused slot released immediately. No further retry/alternate route or task11 drafting. Task10 stays inprogress and task11 blocked; no runtime RED counts. See preparation-red.md and locally preserved second-denial evidence.

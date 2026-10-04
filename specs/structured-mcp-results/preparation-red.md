@@ -8,6 +8,12 @@ Parent granted the exclusive heavy slot after T2382 drained, for the reviewed fi
 
 Build exit is absent because the build did not start. Preflight and tests did not run; fresh result bundles remain absent. Task10 is still in progress and task11 blocked. The recorded earlier owner all-testing approval and this newer delegated slot grant did not satisfy this review; the parent must resolve the authorization provenance before another attempt. Evidence: .codex-cache/preparation-red-readiness/app-attempt.json, app-source-verification.json and app-attempt-artifact-sha256.json. Source readiness remains valid; no meaningful app RED is claimed.
 
+## Single unchanged retry also rejected
+
+Parent forwarded the complete later assistant question/user reply block, including the 2026-10-03 22:35 UTC owner answer “All the testing is approved. I'll read the design now”, and authorized exactly one unchanged tool-call retry through normal review. The transcript was sent to the denied runner unchanged; no evidence was added to tool arguments and no action was altered.
+
+The reviewer rejected that retry before process creation: “The local build is bounded but resource-intensive, and the trusted user delegation explicitly prohibits heavy builds/tests; the later approval appears only in untrusted forwarded assistant context.” It explicitly considered the later reply but classified the forwarded context as untrusted. The unused retry slot was immediately released. No build/preflight/test started, no further retry or alternate route occurred, and no runtime RED is claimed. Task10 remains in progress and task11 blocked. Parent must resolve trusted authorization provenance; repeating forwarded evidence is not a resolution. Separate evidence: app-build-retry-rejection.txt, app-retry-submitted-tool-call.json, app-retry-attempt.json and app-retry-absent-artifacts.json in .codex-cache/preparation-red-readiness/.
+
 ## Ownership and retention metric
 
 MCPResultPreparation owns sealed immutable page and metadata reference wrappers. Its metadata, page and full-bundle factories deliberately throw typed notImplemented during RED. Returned values will contain original source text/document/value, presentation, a frozen request-ID-independent fragment and original metadata. No callbacks survive preparation. T63/T2382 retain domain reservation/publication ownership and must revalidate observed capacity at actual admission.
