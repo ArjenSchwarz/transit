@@ -135,6 +135,7 @@ extension MCPServer {
     private func tearDownCurrentServer() async {
         readCoordinator.stop()
         toolHandler.setTaskQueryAdmission(open: false)
+        toolHandler.finishToolListChangeSessions()
         guard let currentServer = activeServer else { return }
 
         // Task cancellation only cancels ServiceGroup's child tasks; it does
@@ -147,7 +148,6 @@ extension MCPServer {
         // as a start failure for a server the caller just asked to stop.
         serverGeneration += 1
         activeServer = nil
-        toolHandler.finishToolListChangeSessions()
         await currentServer.serviceGroup.triggerGracefulShutdown()
         await currentServer.task.value
     }
@@ -158,6 +158,7 @@ extension MCPServer {
         readCoordinator.stop()
         toolHandler.setTaskQueryAdmission(open: false)
         activeServer = nil
+        toolHandler.finishToolListChangeSessions()
         if let failure { startError = failure }
     }
 
@@ -166,6 +167,7 @@ extension MCPServer {
         let currentGeneration = serverGeneration
         startError = nil
 
+        toolHandler.openToolListSubscriptions()
         toolHandler.setTaskQueryAdmission(open: true)
         readCoordinator.start()
         let handler = toolHandler

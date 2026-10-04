@@ -7,39 +7,56 @@ import NIOFoundationCompat
 
 extension MCPServer {
     nonisolated static func toolListChangeStreamResponse(
-        request: Request,
-        context: MCPRequestContext,
-        handler: MCPToolHandler
-    ) async -> Response {
-        guard acceptsEventStream(request.head.headerFields[.accept]) else {
-            return Response(status: .methodNotAllowed, headers: [.allow: "POST"])
+        modern: MCPModernRequest, context: MCPRequestContext, handler: MCPToolHandler
+    ) async throws -> Response {
+        var wantsTools = false
+        if case .object(let params) = modern.params,
+           case .object(let filters) = params.first(where: { $0.name == "notifications" })?.value,
+           case .boolean(true) = filters.first(where: { $0.name == "toolsListChanged" })?.value {
+            wantsTools = true
         }
-        guard let sessionID = request.head.headerFields[.mcpSessionID] else {
-            return Response(status: .badRequest)
-        }
-        guard let notifications = await handler.toolListChangeNotifications(
-            sessionID: sessionID,
-            channelClose: context.channel.closeFuture
-        ) else {
-            return Response(status: .notFound)
-        }
-
-        return Response(
-            status: .ok,
-            headers: [
-                .contentType: "text/event-stream",
-                .cacheControl: "no-cache"
-            ],
+        let subscription = try await handler.subscribeToToolListChanges(id: modern.id,
+            toolsListChanged: wantsTools, channelClose: context.channel.closeFuture)
+        return Response(status: .ok, headers: [.contentType: "text/event-stream", .cacheControl: "no-cache"],
             body: ResponseBody { writer in
-                for await notification in notifications {
-                    try await writer.write(try Self.serverSentEvent(notification))
+                try await withTaskCancellationHandler {
+                    try await writeSubscription(subscription, writer: &writer, handler: handler)
+                } onCancel: {
+                    subscription.delivery.disconnect()
+                    Task { @MainActor in
+                        handler.disconnectToolListSubscription(subscription.registrationID)
+                    }
                 }
-                try await writer.finish(nil)
-            }
-        )
+            })
     }
 
-    /// GET listening streams require an explicit, acceptable
+    nonisolated private static func writeSubscription(
+        _ subscription: MCPToolListSubscription, writer: inout any ResponseBodyWriter, handler: MCPToolHandler
+    ) async throws {
+        do {
+            try Task.checkCancellation()
+            if subscription.delivery.isWritable {
+                try await writer.write(Self.serverSentEvent(subscription.acknowledgement))
+            }
+            for await change in subscription.changes {
+                try Task.checkCancellation()
+                guard subscription.delivery.isWritable else { break }
+                try await writer.write(Self.serverSentEvent(change))
+            }
+            try Task.checkCancellation()
+            if subscription.delivery.completesGracefully {
+                try await writer.write(Self.serverSentEvent(subscription.completion))
+            }
+            try await writer.finish(nil)
+            await handler.disconnectToolListSubscription(subscription.registrationID)
+        } catch {
+            subscription.delivery.disconnect()
+            await handler.disconnectToolListSubscription(subscription.registrationID)
+            throw error
+        }
+    }
+
+    /// Listening streams require an explicit, acceptable
     /// `text/event-stream` media range. A zero quality value means the client
     /// does not accept that representation; substring lookalikes are unrelated
     /// media types and must not negotiate SSE.
@@ -145,12 +162,7 @@ extension MCPServer {
         return nil
     }
 
-    nonisolated private static func serverSentEvent(
-        _ notification: MCPServerNotification
-    ) throws -> ByteBuffer {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        let payload = try encoder.encode(notification)
+    nonisolated private static func serverSentEvent(_ payload: Data) -> ByteBuffer {
         var event = Data("data: ".utf8)
         event.append(payload)
         event.append(contentsOf: [0x0A, 0x0A])

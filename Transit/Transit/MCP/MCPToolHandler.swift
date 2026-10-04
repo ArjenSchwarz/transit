@@ -149,18 +149,17 @@ final class MCPToolHandler {
 
     // MARK: - JSON-RPC Dispatch
 
-    func createToolListChangeSession() -> String {
-        settings.createToolListChangeSession()
+    func subscribeToToolListChanges(
+        id: JSONRPCId, toolsListChanged: Bool, channelClose: EventLoopFuture<Void>
+    ) throws -> MCPToolListSubscription {
+        try settings.subscriptionBroadcaster.subscribe(id: id, toolsListChanged: toolsListChanged,
+            channelClose: channelClose)
     }
 
-    func toolListChangeNotifications(
-        sessionID: String,
-        channelClose: EventLoopFuture<Void>
-    ) -> AsyncStream<MCPServerNotification>? {
-        settings.toolListChangeNotifications(
-            sessionID: sessionID,
-            channelClose: channelClose
-        )
+    func openToolListSubscriptions() { settings.subscriptionBroadcaster.openRequests() }
+
+    func disconnectToolListSubscription(_ registrationID: UUID) {
+        settings.subscriptionBroadcaster.disconnect(registrationID)
     }
 
     func finishToolListChangeSessions() {

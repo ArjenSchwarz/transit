@@ -133,12 +133,36 @@ import Testing
         let failWrites = NIOLockedValueBox(false)
         let finished = NIOLockedValueBox(false)
         let bodyCompleted = NIOLockedValueBox(false)
+        let blockedWriteEntered = NIOLockedValueBox(false)
+        private let blockedWrite = NIOLockedValueBox(SubscriptionBlockedWriteState())
+        func blockNextWrite() { blockedWrite.withLockedValue { $0.enabled = true } }
+        func releaseBlockedWrite() {
+            let continuation = blockedWrite.withLockedValue { stored in
+                stored.enabled = false
+                let value = stored.continuation
+                stored.continuation = nil
+                return value
+            }
+            continuation?.resume()
+        }
         func write(_ buffer: ByteBuffer) async throws {
+            await withCheckedContinuation { continuation in
+                let blocked = blockedWrite.withLockedValue { stored in
+                    guard stored.enabled else { return false }
+                    stored.continuation = continuation
+                    return true
+                }
+                if blocked { blockedWriteEntered.withLockedValue { $0 = true } } else { continuation.resume() }
+            }
             if failWrites.withLockedValue({ $0 }) { throw SubscriptionWriterFailure.injected }
             _ = bytes.withLockedValue { $0.writeImmutableBuffer(buffer) }
         }
         func finish(_: HTTPFields?) async throws { finished.withLockedValue { $0 = true } }
     }
+}
+private nonisolated struct SubscriptionBlockedWriteState {
+    var enabled = false
+    var continuation: CheckedContinuation<Void, Never>?
 }
 private nonisolated enum SubscriptionWriterFailure: Error { case injected }
 #endif

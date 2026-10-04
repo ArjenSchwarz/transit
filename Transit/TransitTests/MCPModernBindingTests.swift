@@ -1,6 +1,8 @@
 #if os(macOS)
 import Foundation
 import HTTPTypes
+import HummingbirdCore
+import NIOConcurrencyHelpers
 import NIOCore
 import NIOEmbedded
 import SwiftData
@@ -82,22 +84,97 @@ struct MCPModernBindingTests {
         let loop = NIOAsyncTestingEventLoop()
         let closed = loop.makePromise(of: Void.self)
         do {
-            let session = settings.createToolListChangeSession()
-            let notifications = try #require(settings.toolListChangeNotifications(sessionID: session,
-                channelClose: closed.futureResult))
+            let subscription = try settings.subscriptionBroadcaster.subscribe(id: .string("availability"),
+                toolsListChanged: true, channelClose: closed.futureResult)
             settings.maintenanceToolsEnabled = false
             settings.maintenanceToolsEnabled = true
             #expect(settings.maintenanceToolsEnabledSnapshot)
             settings.finishToolListChangeSessions()
+            let ack = try #require(try JSONSerialization.jsonObject(
+                with: subscription.acknowledgement) as? [String: Any])
+            #expect(ack["method"] as? String == "notifications/subscriptions/acknowledged")
             var methods: [String] = []
-            for await notification in notifications { methods.append(notification.method) }
+            for await frame in subscription.changes {
+                let notification = try #require(try JSONSerialization.jsonObject(with: frame) as? [String: Any])
+                methods.append(try #require(notification["method"] as? String))
+            }
             #expect(methods == ["notifications/tools/list_changed"])
+            #expect(subscription.delivery.completesGracefully)
+            let complete = try #require(try JSONSerialization.jsonObject(
+                with: subscription.completion) as? [String: Any])
+            let result = try #require(complete["result"] as? [String: Any])
+            #expect(result["resultType"] as? String == "complete")
+            #expect(complete["id"] as? String == "availability")
             closed.succeed(())
             await loop.shutdownGracefully()
         } catch {
             settings.finishToolListChangeSessions()
             closed.succeed(())
             await loop.shutdownGracefully()
+            throw error
+        }
+    }
+
+    @Test func cancellationDuringBlockedAcknowledgementUnregistersBeforeWriterReturns() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let stream = try await MCPSubscriptionFixture.open(handler: env.handler)
+        do {
+            try #require(stream.response.status == .ok)
+            stream.writer.blockNextWrite()
+            stream.startBody()
+            try #require(await MCPSubscriptionFixture.wait {
+                stream.writer.blockedWriteEntered.withLockedValue { $0 }
+            })
+            stream.cancelBodyOnly()
+            try #require(await MCPSubscriptionFixture.wait { env.handler.activeToolListChangeStreamCount == 0 })
+            #expect(!stream.writer.bodyCompleted.withLockedValue { $0 })
+            stream.writer.releaseBlockedWrite()
+            try #require(await MCPSubscriptionFixture.wait { stream.writer.bodyCompleted.withLockedValue { $0 } })
+            #expect(try stream.messages().count == 1)
+            await stream.close()
+        } catch {
+            stream.writer.releaseBlockedWrite()
+            await stream.close()
+            throw error
+        }
+    }
+
+    @Test func shutdownFenceRejectsLateRegistrationAndReopenOwnsReplacement() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        let old = try await MCPSubscriptionFixture.open(handler: env.handler, id: "old")
+        var replacement: MCPSubscriptionFixture?
+        var lateRequest: MCPSubscriptionFixture?
+        do {
+            try #require(old.response.status == .ok)
+            env.handler.finishToolListChangeSessions()
+            let late = try await MCPSubscriptionFixture.open(handler: env.handler, id: "late")
+            lateRequest = late
+            #expect(late.response.status == .serviceUnavailable)
+            late.startBody()
+            try #require(await MCPSubscriptionFixture.wait { late.writer.bodyCompleted.withLockedValue { $0 } })
+            let rejected = try #require(try JSONSerialization.jsonObject(
+                with: Data(late.writer.bytes.withLockedValue { $0.readableBytesView })) as? [String: Any])
+            #expect(rejected["id"] as? String == "late")
+            #expect((rejected["error"] as? [String: Any])?["code"] as? Int == -32603)
+            #expect(env.handler.activeToolListChangeStreamCount == 0)
+            await late.close()
+            env.handler.openToolListSubscriptions()
+            let next = try await MCPSubscriptionFixture.open(handler: env.handler, id: "new")
+            replacement = next
+            try #require(next.response.status == .ok)
+            #expect(env.handler.activeToolListChangeStreamCount == 1)
+            old.startBody()
+            try #require(await MCPSubscriptionFixture.wait { old.writer.bodyCompleted.withLockedValue { $0 } })
+            let messages = try old.messages()
+            try #require(messages.count == 2)
+            try MCPToolListChangeNotificationTests.assertComplete(messages[1], id: "old")
+            #expect(env.handler.activeToolListChangeStreamCount == 1)
+            await old.close()
+            await next.close()
+        } catch {
+            await lateRequest?.close()
+            await replacement?.close()
+            await old.close()
             throw error
         }
     }

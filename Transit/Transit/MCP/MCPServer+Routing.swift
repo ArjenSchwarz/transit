@@ -20,13 +20,13 @@ extension MCPServer {
                 return Response(status: .methodNotAllowed, headers: [.allow: "POST"])
             }
         }
-        router.post("mcp") { request, _ -> Response in
-            await modernPost(request, handler: handler, coordinator: coordinator)
+        router.post("mcp") { request, context -> Response in
+            await modernPost(request, context: context, handler: handler, coordinator: coordinator)
         }
         return router
     }
 
-    nonisolated private static func modernPost(_ request: Request, handler: MCPToolHandler,
+    nonisolated private static func modernPost(_ request: Request, context: MCPRequestContext, handler: MCPToolHandler,
                                                coordinator: MCPReadCoordinator) async -> Response {
         guard Self.isAllowedMCPRequest(request) else { return forbiddenResponse() }
         var headers = request.head.headerFields.map {
@@ -44,8 +44,8 @@ extension MCPServer {
                 headers: headers, body: Data(buffer: body)),
                 availability: MCPModernProviderBinding.availability(maintenanceEnabled: maintenanceEnabled))
             let admittedAt = ContinuousClock.now
-            return try await dispatchModern(modern, handler: handler, coordinator: coordinator,
-                maintenanceEnabled: maintenanceEnabled, admittedAt: admittedAt)
+            return try await dispatchModern(modern, context: context, handler: handler, coordinator: coordinator,
+                snapshot: (maintenanceEnabled, admittedAt))
         } catch let rejection as MCPModernRejection {
             return modernRejection(rejection)
         } catch let transport as HTTPError {
@@ -56,9 +56,10 @@ extension MCPServer {
     }
 
     nonisolated private static func dispatchModern(
-        _ modern: MCPModernRequest, handler: MCPToolHandler, coordinator: MCPReadCoordinator,
-        maintenanceEnabled: Bool, admittedAt: ContinuousClock.Instant
+        _ modern: MCPModernRequest, context: MCPRequestContext, handler: MCPToolHandler,
+        coordinator: MCPReadCoordinator, snapshot: (maintenanceEnabled: Bool, admittedAt: ContinuousClock.Instant)
     ) async throws -> Response {
+        let (maintenanceEnabled, admittedAt) = snapshot
         switch modern.method {
         case .discover:
             let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -88,9 +89,12 @@ extension MCPServer {
             case .suppressed: return Response(status: .accepted)
             }
         case .listenSubscriptions:
-            // The request-scoped subscription owner binds this method in task19.
-            return modernRejection(MCPModernRejection(httpStatus: 501, rpcCode: -32601,
-                message: "Subscriptions are unavailable", id: modern.id, data: nil))
+            do {
+                return try await toolListChangeStreamResponse(modern: modern, context: context, handler: handler)
+            } catch MCPSubscriptionRegistrationError.closed {
+                return modernRejection(MCPModernRejection(httpStatus: 503, rpcCode: -32603,
+                    message: "Subscriptions are closing", id: modern.id, data: nil))
+            }
         }
     }
 
