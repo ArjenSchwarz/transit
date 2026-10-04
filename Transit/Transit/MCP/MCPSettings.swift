@@ -53,20 +53,6 @@ final class MCPSettings {
         }
     }
 
-    func createToolListChangeSession() -> String {
-        toolListChangeBroadcaster.createSession()
-    }
-
-    func toolListChangeNotifications(
-        sessionID: String,
-        channelClose: EventLoopFuture<Void>
-    ) -> AsyncStream<MCPServerNotification>? {
-        toolListChangeBroadcaster.stream(
-            sessionID: sessionID,
-            channelClose: channelClose
-        )
-    }
-
     func finishToolListChangeSessions() {
         toolListChangeBroadcaster.finishAllSessions()
     }
