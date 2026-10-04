@@ -4,17 +4,19 @@ Transit agents need to know when a read describes only the endpoint's local view
 
 Review status: approved in full by the user in the parent conversation on 2026-10-03, including the 30,000 ms threshold, eight unfinished-read admission limit, diagnostics, and all decisions in the requirements review. Design, tasks and implementation are also approved by the user; approved scope and contracts remain binding.
 
+Current production transport: the separately approved latest-only T2383 migration accepts one JSON-RPC object per POST and rejects wire arrays. Historical read-only/mixed wire-batch requirements below describe the earlier foundation contract and retained generic component evidence; they do not require array support in final production. A `query_tasks` identifier batch remains one supported read operation. This records an approved integration decision, not a new product approval gate.
+
 ## Proposed observable contract
 
 - Covered tools: `query_tasks` (single, batch, list, and cursor), `query_milestones`, and `get_projects`, including related comments/milestones required by their selected output.
 - Default policy: `refresh_if_needed`; optional `cached` policy skips import waiting. No separate refresh tool is required.
-- Total read budget: 5,000 ms, measured from decoded read admission before executor queueing to an encoded success/error available to transport. Read-only JSON-RPC batches share their admission timestamp and must have a combined encoded response within this budget. For mixed read/write batches each read result's production is bounded while existing writes are preserved; combined HTTP delivery can wait on writes. The user approved this mixed-batch exception. Network upload/download and whole-process suspension are outside the server response guarantee.
+- Total read budget: 5,000 ms, measured from decoded read admission before executor queueing to an encoded success/error available to transport. Final production uses the approved single-object POST contract. Network upload/download and whole-process suspension are outside the server response guarantee.
 - Freshness wait limit: 2,000 ms within the total budget. A relevant successful import is recent when its age at capture is at most 30,000 ms.
 - Compatibility: keep existing data payload shapes, selection semantics, and query cursor expiry/capacity behavior; add read metadata to the MCP result. Success data are the selected local view, not a claim of remote convergence.
 - Admission bound: at most eight unfinished covered read operations, including timed-out work still running; return `READ_BUSY` when that capacity is unavailable. This is an operation-count limit, not a total transient-memory limit.
 - Recommended latency evidence: server diagnostics distinguish queueing, refresh wait, capture/fetch, transformation, serialization, and batch aggregation, including correlated late completion/discard after a caller timeout. This diagnostics detail is approved.
 
-The import recency threshold, admission bound, and latency diagnostics are approved requirements decisions. Exact metadata placement and supported import observation/refresh mechanisms are design decisions, constrained by compatibility and the behavior below. “JSON-RPC batch” means several protocol request elements; `query_tasks` batch mode is one read operation selecting multiple identifiers. Each covered request element is admitted separately in received order against the global available slots; excess elements receive `READ_BUSY`, while all elements keep the common decoded-batch admission timestamp.
+The import recency threshold, admission bound, and latency diagnostics are approved requirements decisions. Exact metadata placement and supported import observation/refresh mechanisms are design decisions, constrained by compatibility and the behavior below. “JSON-RPC batch” in historical component evidence means several protocol request elements; `query_tasks` batch mode is one read operation selecting multiple identifiers. Final production rejects the former and preserves the latter.
 
 ## Non-Goals
 
@@ -29,11 +31,11 @@ The import recency threshold, admission bound, and latency diagnostics are appro
 
 **Acceptance Criteria:**
 
-1. <a name="1.1"></a>WHEN a covered read is admitted, the server SHALL produce its encoded success or defined error within 5,000 ms, including queueing, freshness waiting, local fetches, related-data capture, transformation, and serialization; for individual reads and read-only batches this includes making the response available to transport, while mixed-batch delivery follows the approved exception in 1.5.  
+1. <a name="1.1"></a>WHEN a covered read is admitted, the server SHALL produce its encoded success or defined error available to transport within 5,000 ms, including queueing, freshness waiting, local fetches, related-data capture, transformation, and serialization.
 2. <a name="1.2"></a>IF a complete selected result cannot be returned within that budget, the server SHALL return `READ_TIMEOUT` with the exhausted phase when known and SHALL NOT later emit a second result for that request.  
 3. <a name="1.3"></a>WHEN eight unfinished covered reads already exist, the server SHALL reject additional covered reads with `READ_BUSY` within their total budget; timed-out work SHALL continue to count against capacity until it finishes.  
 4. <a name="1.4"></a>WHEN a response deadline expires while a local fetch is slow or blocked, the server SHALL still return the timeout within the total budget; a late result SHALL NOT create or replace a caller-visible snapshot.  
-5. <a name="1.5"></a>WHEN a batch contains only covered reads, the server SHALL make its complete encoded batch response available within 5,000 ms of batch admission, including aggregate serialization; IF successful-result encoding cannot finish within that deadline, the affected reads SHALL receive defined timeout results within the same deadline. WHEN a batch also contains writes, the server SHALL produce each covered read result within that deadline and disclose that combined delivery may wait for writes.  
+5. <a name="1.5"></a>WHEN an HTTP POST contains a JSON-RPC wire array, final production SHALL reject it under the already-approved latest-only protocol contract. Earlier whole-array deadline and mixed-delivery tests remain generic component evidence; they SHALL NOT establish an additional production wire path.
 6. <a name="1.6"></a>WHEN timed-out work finishes or the read service stops, the server SHALL release its admission slot and discard unneeded capture/page data without publishing a late response or snapshot; retained valid pages SHALL keep existing byte and expiry limits.  
 
 ### 2. Explicit local capture and freshness evidence

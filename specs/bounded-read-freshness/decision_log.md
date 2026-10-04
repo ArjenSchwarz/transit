@@ -1,5 +1,25 @@
 # T-63 decision log
 
+## Squash-main reconciliation and publication approval — 2026-10-04
+
+Parent forwarded explicit user approval for all Transit pushes and sharing changes with the configured Claude reviewer (Sentinel_26fb7496284881918233b3670bb003c1), alongside overnight merge authorization. The previous disclosure gate is cleared. No deployment, client activation or live-data repair is authorized.
+
+T2383 PR250 merged at `e6bde03631b2d4198e9ceff13b49ec56b62b64c3`. The old T63 head `ff6286a` is preserved at `T-63/pre-squash-ff6286a` and in existing native/Pulsar evidence. The dedicated branch is reconstructed on that squash commit with only its unique tests/docs; no already-merged foundation/common production commit is replayed. Newer T2383 breaking-change release notes are retained. All 537 compiled inputs remain byte-identical to verified `dbf3355`, so the exact native/iOS evidence and code reviews remain applicable; fresh lint and review check the reconciled scope. Native stall and overlap qualifications remain binding.
+
+## Final local verification checkpoint — 2026-10-04
+
+All 16 implementation tasks are complete at source `dbf3355d66ab51767fc97ef840dac2ead9c3573b`. Twenty-three finalized native selections cover 2,189 configured declarations exactly once, with 2,425 passing executions and no failures/skips/warnings/issues. Root independently queried actual bundles and verified source/artifact hashes. [Task16 acceptance](task16-green-acceptance.md) preserves five excluded stalled attempts, the Chunk05 post-body overlap qualification, and the adjacent fixture-only priority-inversion repair. The stall cause remains unproved. All heavy jobs are drained.
+
+Parent conveyed overnight push/PR/merge authorization after checks (Sentinel_da18efb69dec819181f52a872520d2fb); deployment, live-data repair, client activation and CloudKit operations remain excluded. That authorization is distinct from external Claude disclosure approval, which is still pending parent forwarding. Creating a PR triggers the repository's automated Claude review and remains held. User-requested pre-push Pulsar publication is part of the authorized local review workflow. Actual installed-client compatibility is separately owner-approved deferred post-merge for T2383.
+
+## Current integration decision — 2026-10-04
+
+The parent confirmed that the already-approved latest-only T2383 contract takes one JSON-RPC object per POST and rejects wire arrays. The original wire-batch and mixed-delivery decisions recorded below are historical foundation context; generic coordinator aggregation evidence remains useful, but final production exposes no dual-era array path. This supersession updates execution guidance without reopening product approval. Identifier batches within `query_tasks` and `mutate_tasks` application batches are distinct.
+
+Implemented portfolio source is consumed at `c123210`: exactly the six owned files from `8478b17`, matching the local owner hash/dependency handoff. The owner independently verified 54 declarations/61 expanded cases at `a3c2a705`; local integrated verification has not run. Stage B uses the confirmed direct `MCPPreparedReadCapture?` entrypoint and retained replay without recapture. Stage C still requires a stable verified integration checkpoint and explicit common-file transfer to T2383, including the extracted `MCPServer+Routing.swift`.
+
+The user approved local builds and tests on the isolated development/test target (Sentinel_10e284fb472881918fb01fad1bde10d2). Heavy jobs still require coordinated exclusive grants. Routine reports remain local; phone/document delivery is limited to spec review or an explicit user request. No live-data write, client activation, merge or deployment is authorized by that testing approval.
+
 ## Quick decisions
 
 | Date | Decision | Rationale / authority |

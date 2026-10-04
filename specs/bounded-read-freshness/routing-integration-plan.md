@@ -50,20 +50,23 @@ Use latches and physical-completion receipts rather than arbitrary cleanup sleep
 
 ## Stage B: actual T2382 modules
 
-After clean module delivery, wire the confirmed signatures returning `MCPPreparedToolRead`:
+Source integration is now `c123210ac2ed749726391e16b39cfab81fed84f3`: exactly six portfolio-owned production files from `8478b17f554e9d7e93a3dd5b76fd1396f4295d07`, with every hash matching the owner's dependency manifest. Shared wiring, App/project isolation and tests were not replaced. Owner verification at `a3c2a705` passed 54 declarations/61 expanded cases with normal exit/drain; that is separate component evidence, not T63 integrated GREEN. Local lint, syntax and diff checks passed. No integrated app run has been performed.
+
+The confirmed entrypoints return `MCPPreparedToolRead`:
 
 ```swift
 handlePortfolioSummary(request: MCPPortfolioSummaryRequest,
-                       view: CapturedReadView,
+                       capture: MCPPreparedReadCapture?,
                        operation: MCPReadOperation) throws -> MCPPreparedToolRead
 handleSnapshotTaskQuery(request: MCPSnapshotTaskQueryRequest,
-                        view: CapturedReadView,
                         operation: MCPReadOperation) throws -> MCPPreparedToolRead
 ```
 
 T2382 supplies requests, definitions/descriptors, aggregation, projection, reusable retention and lifecycle hooks. T63 supplies common construction, generic policy-bound preparation, shared registration and outer encoding. Fresh helpers consume the same capsule and original frozen metadata; snapshot replay uses retained view/policy/fragments without recapture or import wait. Do not add RPC IDs to helper interfaces.
 
-Final actual-module assertions include portfolio read classification and descriptor registration, `query_tasks` snapshot dispatch, declared physical-scope rejection, retained metadata/policy/expiry replay, actual reusable/ordinary participant coalescing and all-or-none publication, and lifecycle invalidation. Fixture GREEN cannot satisfy these assertions. Missing module delivery blocks Stage B acceptance only, not Stage A generic routing repair.
+Final actual-module assertions include portfolio read classification and descriptor registration, `query_tasks` snapshot dispatch, declared physical-scope rejection, retained metadata/policy/expiry replay, actual reusable/ordinary participant coalescing and all-or-none publication, and lifecycle invalidation. Copied source or fixture GREEN cannot satisfy these assertions; the delivered component is now an input to Stage B verification.
+
+The owner's prepared router suite at `c8e7ebb` contains four methods, including the 2,375-task case. It depends on `MCPPortfolioFixture.swift` and existing model-container/counter/fallback/HTTP test helpers; it has not been copied here. Its current request helper omits the protocol-version header, so the fixture owner must align that boundary with T2383's delivered modern adapter before final combined acceptance. Source/presentation and exact opaque-metadata lexical preservation require their separate modern acceptance assertions. Source delivery removes the implementation prerequisite; a parent-directed fixture handoff and exclusive test grant remain necessary for local Stage B verification.
 
 ## Stage C: modern wire ownership and final acceptance
 

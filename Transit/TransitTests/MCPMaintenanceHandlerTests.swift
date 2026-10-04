@@ -21,7 +21,10 @@ struct MCPMaintenanceHandlerTests {
         #expect(!names.contains("reassign_duplicate_display_ids"))
         // Core tools still present.
         #expect(names.contains("create_task"))
-        #expect(names.count == 11)
+        #expect(names.count == 12)
+        #expect(Set(names) == Set(["create_task", "update_task_status", "query_tasks", "update_task", "add_comment",
+            "get_projects", "create_project", "create_milestone", "query_milestones", "update_milestone",
+            "delete_milestone", "query_project_summaries"]))
     }
 
     @Test func toolsListWithMaintenanceOnIncludesBothMaintenanceTools() async throws {
@@ -33,7 +36,12 @@ struct MCPMaintenanceHandlerTests {
 
         #expect(names.contains("scan_duplicate_display_ids"))
         #expect(names.contains("reassign_duplicate_display_ids"))
-        #expect(names.count == 13)
+        #expect(names.count == 14)
+        #expect(Set(names) == Set(["create_task", "update_task_status", "query_tasks", "update_task", "add_comment",
+            "get_projects", "create_project", "create_milestone", "query_milestones", "update_milestone",
+            "delete_milestone", "query_project_summaries"] + [
+            "scan_duplicate_display_ids", "reassign_duplicate_display_ids"
+        ]))
     }
 
     @Test func toggleFlipReflectsImmediatelyInToolsList() async throws {

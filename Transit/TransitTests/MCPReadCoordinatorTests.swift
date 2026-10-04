@@ -15,10 +15,16 @@ nonisolated struct MCPReadCoordinatorTests {
     @Test @concurrent func actualRouterReturnsTimeoutWhileMainActorIsBlocked() async throws {
         let coordinator = MCPReadCoordinator()
         let started = DispatchSemaphore(value: 0)
-        let blocker = Task { @MainActor in
-            Self.blockMainActor(started)
+        let finished = DispatchSemaphore(value: 0)
+        let blocker = Task { @MainActor in Self.blockMainActor(started, finished: finished) }
+        let didStart = Self.waitForStart(started)
+        if !didStart {
+            #expect(coordinator.unfinishedCount == 0)
+            blocker.cancel()
+            #expect(Self.waitForFinish(finished),
+                "Cancelled blocker did not signal physical completion within 8 seconds")
         }
-        Self.waitForStart(started)
+        try #require(didStart, "MainActor blocker did not start within 2 seconds; request was not dispatched")
         let router = Router(context: MCPRequestContext.self)
         router.post("/read") { _, _ in
             await MCPReadTransportAdapter.response(coordinator: coordinator,
@@ -26,24 +32,28 @@ nonisolated struct MCPReadCoordinatorTests {
                     await MainActor.run { Self.result("success") }
                 }
         }
-        let channel = EmbeddedChannel()
-        defer { _ = try? channel.finish() }
-        let context = MCPRequestContext(source: ApplicationRequestContextSource(
-            channel: channel, logger: Logger(label: "read-deadline-fixture")))
         let request = Request(head: HTTPRequest(method: .post, scheme: "http", authority: "localhost", path: "/read"),
                               body: RequestBody(buffer: ByteBuffer()))
         let start = ContinuousClock.now
-        let response = try await router.buildResponder().respond(to: request, context: context)
-        let writer = ReadResponseWriter()
-        try await response.body.write(writer)
+        let output: (Response, Data)
+        do {
+            output = try await Self.respond(router: router, request: request)
+        } catch {
+            blocker.cancel()
+            #expect(Self.waitForFinish(finished), "Throwing request blocker did not finish within 8 seconds")
+            await Self.waitForPhysicalDrain(coordinator)
+            #expect(coordinator.unfinishedCount == 0)
+            throw error
+        }
+        let (response, bytes) = output
         let elapsed = start.duration(to: .now)
-        #expect(Data(buffer: writer.bytes.withLockedValue { $0 }) == Data("timeout".utf8))
+        #expect(bytes == Data("timeout".utf8))
         print("READ_DEADLINE router_and_body_elapsed=\(elapsed) blocked_main_actor=6s")
         #expect(elapsed < .seconds(5))
         #expect(response.status == .ok)
         #expect(coordinator.unfinishedCount == 1)
-        await blocker.value
-        try await Task.sleep(for: .milliseconds(30))
+        try #require(Self.waitForFinish(finished), "Started blocker did not finish within 8 seconds")
+        await Self.waitForPhysicalDrain(coordinator)
         #expect(coordinator.unfinishedCount == 0)
     }
 
@@ -139,6 +149,7 @@ nonisolated struct MCPReadCoordinatorTests {
         }
     }
 
+    // Synthetic /read adapter measures internal aggregate budgeting; production MCP rejects arrays.
     @Test @concurrent func nearBodyCeilingRouterBatchAccountsForFallbackPreparation() async throws {
         let coordinator = MCPReadCoordinator()
         let input = try Self.largeBatchInput()
@@ -167,18 +178,11 @@ nonisolated struct MCPReadCoordinatorTests {
             print("READ_BATCH admission_to_encoded=\(elapsed) request_bytes=\(input.count)")
             return Response(status: .ok, body: .init(byteBuffer: ByteBuffer(data: response ?? Data())))
         }
-        let channel = EmbeddedChannel()
-        defer { _ = try? channel.finish() }
-        let context = MCPRequestContext(source: ApplicationRequestContextSource(
-            channel: channel, logger: Logger(label: "large-read-batch-fixture")))
         let request = Request(head: HTTPRequest(method: .post, scheme: "http", authority: "localhost", path: "/read"),
                               body: RequestBody(buffer: ByteBuffer(data: input)))
         let start = ContinuousClock.now
-        let response = try await router.buildResponder().respond(to: request, context: context)
-        let writer = ReadResponseWriter()
-        try await response.body.write(writer)
+        let (_, bytes) = try await Self.respond(router: router, request: request)
         let elapsed = start.duration(to: .now)
-        let bytes = Data(buffer: writer.bytes.withLockedValue { $0 })
         let outcomes = try #require(try JSONSerialization.jsonObject(with: bytes) as? [[String: String]])
         #expect(elapsed < .seconds(5))
         #expect(outcomes.count == 80)
@@ -229,6 +233,33 @@ nonisolated struct MCPReadCoordinatorTests {
         #expect(coordinator.unfinishedCount == 0)
     }
 
+    @Test @concurrent func routerBodyFailurePreservesErrorAndAwaitsChannelCleanup() async throws {
+        let router = Router(context: MCPRequestContext.self)
+        router.post("/throw") { _, _ in
+            Response(status: .ok, body: .init { writer in
+                try await writer.write(ByteBuffer(string: "partial body"))
+                throw ReadBodyFailure.intentional
+            })
+        }
+        router.post("/clean") { _, _ in
+            Response(status: .ok, body: .init(byteBuffer: ByteBuffer(string: "next clean response")))
+        }
+        let started = ContinuousClock.now
+        let request = Request(head: HTTPRequest(method: .post, scheme: "http", authority: "localhost", path: "/throw"),
+                              body: RequestBody(buffer: ByteBuffer()))
+        do {
+            _ = try await Self.respond(router: router, request: request)
+            Issue.record("Throwing response body unexpectedly succeeded")
+        } catch let error as ReadBodyFailure {
+            #expect(error == .intentional)
+        }
+        #expect(started.duration(to: .now) <= .seconds(5))
+        let next = Request(head: HTTPRequest(method: .post, scheme: "http", authority: "localhost", path: "/clean"),
+                           body: RequestBody(buffer: ByteBuffer()))
+        let (_, bytes) = try await Self.respond(router: router, request: next)
+        #expect(bytes == Data("next clean response".utf8))
+    }
+
     private static func largeBatchInput() throws -> Data {
         let longID = String(repeating: "x", count: 30_000)
         let requests = (0..<32).map { ["jsonrpc": "2.0", "id": "\($0)-\(longID)", "method": "read"] }
@@ -237,24 +268,70 @@ nonisolated struct MCPReadCoordinatorTests {
         return try JSONSerialization.data(withJSONObject: requests)
     }
 
+    private static func result(_ text: String) -> PreparedReadResult {
+        PreparedReadResult(encodedResponse: Data(text.utf8), publications: [],
+                           publicationErrors: PreencodedPublicationErrors(
+                            busy: Data("busy".utf8), expired: Data("expired".utf8), capacity: Data("capacity".utf8)))
+    }
+}
+
+extension MCPReadCoordinatorTests {
+    private enum ReadBodyFailure: Error, Equatable { case intentional }
     private static func frame(id: String?, outcome: String) throws -> Data {
         try JSONSerialization.data(withJSONObject: ["id": id ?? "notification", "outcome": outcome])
     }
 
     private static func blockAssembly() { Thread.sleep(forTimeInterval: 0.5) }
 
-    @MainActor private static func blockMainActor(_ semaphore: DispatchSemaphore) {
+    @MainActor private static func blockMainActor(_ semaphore: DispatchSemaphore, finished: DispatchSemaphore) {
+        defer { finished.signal() }
+        guard !Task.isCancelled else { return }
         semaphore.signal()
         Thread.sleep(forTimeInterval: 6)
     }
 
-    private static func waitForStart(_ semaphore: DispatchSemaphore) { semaphore.wait() }
-
-    private static func result(_ text: String) -> PreparedReadResult {
-        PreparedReadResult(encodedResponse: Data(text.utf8), publications: [],
-                           publicationErrors: PreencodedPublicationErrors(
-                            busy: Data("busy".utf8), expired: Data("expired".utf8), capacity: Data("capacity".utf8)))
+    private static func waitForStart(_ semaphore: DispatchSemaphore) -> Bool {
+        semaphore.wait(timeout: .now() + .seconds(2)) == .success
     }
+
+    private static func waitForFinish(_ semaphore: DispatchSemaphore) -> Bool {
+        semaphore.wait(timeout: .now() + .seconds(8)) == .success
+    }
+
+    private static func waitForPhysicalDrain(_ coordinator: MCPReadCoordinator) async {
+        for _ in 0..<100 where coordinator.unfinishedCount != 0 {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+    }
+
+    private static func respond(router: Router<MCPRequestContext>, request: Request) async throws -> (Response, Data) {
+        let loop = NIOAsyncTestingEventLoop()
+        var ownedChannel: NIOAsyncTestingChannel?
+        do {
+            let channel = try await NIOAsyncTestingChannel(loop: loop) { _ in }
+            ownedChannel = channel
+            let context = MCPRequestContext(source: ApplicationRequestContextSource(
+                channel: channel, logger: Logger(label: "bounded-read-component")))
+            let response = try await router.buildResponder().respond(to: request, context: context)
+            let writer = ReadResponseWriter()
+            try await response.body.write(writer)
+            let bytes = Data(buffer: writer.bytes.withLockedValue { $0 })
+            let leftovers = try await channel.finish(acceptAlreadyClosed: true)
+            #expect(leftovers.isClean)
+            await loop.shutdownGracefully()
+            return (response, bytes)
+        } catch {
+            if let channel = ownedChannel {
+                do {
+                    let leftovers = try await channel.finish(acceptAlreadyClosed: true)
+                    #expect(leftovers.isClean)
+                } catch { Issue.record("Read test channel cleanup failed: \(error)") }
+            }
+            await loop.shutdownGracefully()
+            throw error
+        }
+    }
+
 }
 
 private nonisolated final class ReadRecordingPublication: MCPPreparedPublication, @unchecked Sendable {

@@ -73,10 +73,22 @@ struct MCPTaskQueryRequestTests {
         let data = try JSONEncoder().encode(MCPToolDefinitions.queryTasks.inputSchema)
         let schema = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
         let branches = try #require(schema["oneOf"] as? [[String: Any]])
-        #expect(branches.count == 2)
+        #expect(branches.count == 3)
         #expect(branches.allSatisfy { $0["additionalProperties"] as? Bool == false })
         #expect(branches[0]["required"] as? [String] == ["detailLevel", "includeComments", "limit"])
         #expect(branches[1]["required"] as? [String] == ["cursor"])
+        #expect(branches[2]["required"] as? [String] == ["snapshotId", "detailLevel", "includeComments", "limit"])
+        let ordinary = try #require(branches[0]["properties"] as? [String: Any])
+        let continuation = try #require(branches[1]["properties"] as? [String: Any])
+        let snapshot = try #require(branches[2]["properties"] as? [String: Any])
+        #expect(ordinary["cursor"] == nil && ordinary["snapshotId"] == nil)
+        #expect(ordinary["detailLevel"] != nil && ordinary["includeComments"] != nil
+            && ordinary["limit"] != nil)
+        #expect(Set(continuation.keys) == Set(["cursor", "readPolicy"]))
+        #expect(Set(snapshot.keys) == Set([
+            "snapshotId", "detailLevel", "includeComments", "limit", "projectId", "status"
+        ]))
+        #expect((snapshot["includeComments"] as? [String: Any])?["const"] as? Bool == false)
     }
 }
 #endif

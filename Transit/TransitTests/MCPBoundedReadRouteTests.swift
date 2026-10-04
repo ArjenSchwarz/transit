@@ -23,7 +23,8 @@ nonisolated struct MCPBoundedReadRouteTests {
         let id = String(repeating: "rpc-id-", count: 128)
         let response = try await MCPTestHelpers.respond(handler: fixture.handler,
             contentType: "application/json", accept: "application/json, text/event-stream",
-            protocolVersion: "2026-07-28", body: Self.body(id: id), loggerLabel: "bounded-read-route")
+            protocolVersion: "2026-07-28", orderedHeaders: Self.modernHeaders,
+            body: Self.body(id: id), loggerLabel: "bounded-read-route")
         #expect(response.status == .ok)
         let frame = try #require(response.json as? [String: Any])
         #expect(frame["jsonrpc"] as? String == "2.0" && frame["id"] as? String == id)
@@ -40,7 +41,8 @@ nonisolated struct MCPBoundedReadRouteTests {
         let fixture = try await Self.fixture(twoTasks: true)
         let first = try await MCPTestHelpers.respond(handler: fixture.handler,
             contentType: "application/json", accept: "application/json, text/event-stream",
-            protocolVersion: "2026-07-28", body: Self.body(id: "first"), loggerLabel: "bounded-read-cursor")
+            protocolVersion: "2026-07-28", orderedHeaders: Self.modernHeaders,
+            body: Self.body(id: "first"), loggerLabel: "bounded-read-cursor")
         let frame = try #require(first.json as? [String: Any])
         let result = try #require(frame["result"] as? [String: Any])
         let payload = try Self.payload(result)
@@ -52,7 +54,8 @@ nonisolated struct MCPBoundedReadRouteTests {
         await MainActor.run { fixture.savedTask.name = "Changed after capture" }
         let replay = try await MCPTestHelpers.respond(handler: fixture.handler,
             contentType: "application/json", accept: "application/json, text/event-stream",
-            protocolVersion: "2026-07-28", body: Self.body(id: "replay", arguments: ["cursor": cursor]),
+            protocolVersion: "2026-07-28", orderedHeaders: Self.modernHeaders,
+            body: Self.body(id: "replay", arguments: ["cursor": cursor]),
             loggerLabel: "bounded-read-cursor")
         let replayFrame = try #require(replay.json as? [String: Any])
         let replayResult = try #require(replayFrame["result"] as? [String: Any])
@@ -69,8 +72,15 @@ nonisolated struct MCPBoundedReadRouteTests {
     func actualRouterDeadlineCoversValidAndInvalidToolArguments(invalid: Bool) async throws {
         let fixture = try await Self.fixture(twoTasks: true)
         let started = DispatchSemaphore(value: 0)
-        let blocker = Task { @MainActor in Self.blockMainActor(started) }
-        Self.waitForStart(started)
+        let finished = DispatchSemaphore(value: 0)
+        let blocker = Task { @MainActor in Self.blockMainActor(started, finished: finished) }
+        let didStart = Self.waitForStart(started)
+        if !didStart {
+            blocker.cancel()
+            #expect(Self.waitForFinish(finished),
+                "Cancelled blocker did not signal physical completion within 8 seconds")
+        }
+        try #require(didStart, "MainActor blocker did not start within 2 seconds; request was not dispatched")
         let start = ContinuousClock.now
         var args: [String: Any] = ["detailLevel": "summary", "includeComments": false, "limit": 1]
         if invalid { args["status"] = true }
@@ -78,16 +88,18 @@ nonisolated struct MCPBoundedReadRouteTests {
         do {
             response = try await MCPTestHelpers.respond(handler: fixture.handler,
                 contentType: "application/json", accept: "application/json, text/event-stream",
-                protocolVersion: "2026-07-28", body: Self.body(id: "bounded", arguments: args),
+                protocolVersion: "2026-07-28", orderedHeaders: Self.modernHeaders,
+            body: Self.body(id: "bounded", arguments: args),
                 loggerLabel: "bounded-read-deadline")
         } catch {
-            await blocker.value
+            blocker.cancel()
+            #expect(Self.waitForFinish(finished), "Throwing request blocker did not finish within 8 seconds")
             throw error
         }
         let elapsed = start.duration(to: .now)
         print("T63_ROUTE invalid_tool_arguments=\(invalid) encoded_body_elapsed=\(elapsed)")
         #expect(elapsed < .seconds(5))
-        await blocker.value
+        try #require(Self.waitForFinish(finished), "Started blocker did not finish within 8 seconds")
         let accounting = try await MainActor.run {
             let store = fixture.service.snapshots
             return try store.domain.accounting(for: store.publicationStoreID)
@@ -101,12 +113,20 @@ nonisolated struct MCPBoundedReadRouteTests {
         #expect(meta["snapshotId"] == nil && meta["asOf"] == nil)
     }
 
-    @MainActor private static func blockMainActor(_ signal: DispatchSemaphore) {
+    @MainActor private static func blockMainActor(_ signal: DispatchSemaphore, finished: DispatchSemaphore) {
+        defer { finished.signal() }
+        guard !Task.isCancelled else { return }
         signal.signal()
         Thread.sleep(forTimeInterval: 6)
     }
 
-    private static func waitForStart(_ signal: DispatchSemaphore) { signal.wait() }
+    private static func waitForStart(_ signal: DispatchSemaphore) -> Bool {
+        signal.wait(timeout: .now() + .seconds(2)) == .success
+    }
+
+    private static func waitForFinish(_ signal: DispatchSemaphore) -> Bool {
+        signal.wait(timeout: .now() + .seconds(8)) == .success
+    }
 
     @MainActor private static func fixture(twoTasks: Bool = false) throws -> Fixture {
         let owner = try TestModelContainer()
@@ -137,10 +157,17 @@ nonisolated struct MCPBoundedReadRouteTests {
         return Fixture(owner: owner, handler: handler, service: service, savedTask: task)
     }
 
+    private static var modernHeaders: [HTTPField] {
+        [HTTPField(name: HTTPField.Name("Mcp-Method")!, value: "tools/call"),
+         HTTPField(name: HTTPField.Name("Mcp-Name")!, value: "query_tasks")]
+    }
+
     private static func body(id: String, arguments: [String: Any]? = nil) throws -> String {
         let args = arguments ?? ["detailLevel": "summary", "includeComments": false, "limit": 1]
         let bytes = try JSONSerialization.data(withJSONObject: ["jsonrpc": "2.0", "id": id,
-            "method": "tools/call", "params": ["name": "query_tasks", "arguments": args]])
+            "method": "tools/call", "params": ["name": "query_tasks", "arguments": args, "_meta": [
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": [:] as [String: Any]]]])
         return try #require(String(data: bytes, encoding: .utf8))
     }
 

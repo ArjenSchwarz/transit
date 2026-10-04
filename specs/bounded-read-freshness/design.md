@@ -2,6 +2,8 @@
 
 Review status: approved unchanged by the user in the parent conversation (Sentinel_541ceb19e7c8819193d04d23c5263041), including final scope/publication amendments at 5639c40. Tasks and implementation are also approved (Sentinel_c2e9343628948191b921868234aaf409).
 
+Current transport decision: the approved latest-only T2383 adapter accepts one JSON-RPC object per POST and rejects arrays. Wire-batch and mixed-delivery passages below preserve the historical foundation design and generic aggregation evidence only. Final routing must use the modern adapter; no dual-era production path is required. Identifier batches inside `query_tasks` and application batches such as `mutate_tasks` remain distinct from wire arrays.
+
 ## Architecture
 
 Place deadline/admission coordination between decoded Hummingbird requests and MainActor read dispatch. Store access remains MainActor isolated; encoded bytes, immutable captures, freshness evidence, and retention are safe to handle outside it. A caller timeout ends response delivery, not the physical operation's admission lifetime.
