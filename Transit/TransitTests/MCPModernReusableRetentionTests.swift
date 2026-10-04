@@ -261,7 +261,7 @@ extension MCPModernReusableRetentionTests {
     }
 
     private func requireAggregateMisuse(fixture: Fixture, first: RetentionReservation,
-                                       second: RetentionReservation, operation: MCPReadOperation) throws {
+                                        second: RetentionReservation, operation: MCPReadOperation) throws {
         do {
             _ = try fixture.store.prepareAggregate([first.publication, second.publication],
                 in: fixture.domain, operation: operation)
