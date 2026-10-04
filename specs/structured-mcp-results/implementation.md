@@ -235,3 +235,8 @@ Value-only preparation/accounting is committed and static critic clear. All ligh
 ## Task11 verified GREEN complete
 
 Actual source1135a88/readiness66e39d7 passed11/11 original app tests with finalized result,0fail/skip/expected failures/warnings. Build/preflight/test0, signed isolated unit-host guards preserved. Normal owneddrain and immediate slotrelease before extraction; nohang/cleanup/replay. Initial read-only summary cache restriction64 preserved, same normal-escalated extraction0. Sixty-nine actual artifacts hashed; sampled RED/source/isolation/fixtures unchanged. Runtimecriticclear; Rune11complete,14next ready. API15notdelivered; see preparation-green.md/localresults. StageB baseline/retained-owner dependencies must be coordinated for14; no unapproved imports/shared edits.
+
+
+## Task14 exact owner baseline imports
+
+Imported exact authorizedT63five+acceptedtwo common baseline36030cf and owner-confirmedT2382thirteen1a19dfd, all20 paths/SHA matching sourceb1f30256, internalcriticclear. Exactlist task14-baseline-import.json. Retained editingowners unchanged; no App/project/Results/Protocol/fixtures/helper/ordinaryretention changes. Combinedcompile/runtimepending, noAPI15claim. Specific orderedheaderHTTPhelper seam(T63) and twoadditionallegacyfixtureownership items sent parent for coordination; ownedsynthetic14prep proceeds, no heavyjobuntilgrant. No blanketbranchimport or diagnosticscycle.

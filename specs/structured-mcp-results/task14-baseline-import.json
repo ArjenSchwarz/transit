@@ -1,0 +1,167 @@
+{
+  "recipient": "38ad6631b35be9ca95c7a936861ef7cf3d39385e",
+  "stageA": "b500543",
+  "source": "b1f30256b4fb33270809188131d047a29807f162",
+  "sourceFileCount": 20,
+  "entries": [
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioCaptureCharge.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "ee800ad9c30d71473648c91f76c381c65fa0ac19b5c51aacf24919711bf7e9df",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioProjection.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "c0dd664e0b6165d4d28716e0e456d9688888c1ef8d3972b16ba9bb859f5e31a1",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioReadEncoding.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "45117778c9b1f1b9bca13cde8fafec19e37456a8f50baa34c2576bc25e664f0c",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioSummaryRequest.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "1a2b3ef24f059ec9852018ae03bf16d66a4e5313a53007baf1346aff5f880320",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioSummaryTypes.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "8fca6b967a8bf4fa8fe70492e0e27e52eae66e04f50c6608561fd79cc603371c",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioToolDefinitions.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "80b942df914211b7229576b2334efd1026924bf4be681e460fcf60253290d1e9",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPReusableSnapshotIndex.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "3ece2a9a32de2d6b6032568fff472db1d4980a4c86f8442492d27c1e2ddaceca",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPReusableSnapshotReadPin.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "180e0cc690db0a453ece931825eb07a5d64d6c308a11a7388f59eb57dd2c82d2",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPReusableSnapshotStore.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "43cb4128af0fdf73ceca6ae69a0415e924d7365e733277e3316ce37611a85d87",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPSnapshotTaskQueryRequest.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "e809a8c97808807476df24522b0961be7b7427ed6af600034181a5fa7dbdb890",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolDefinitions.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "decfde58b4728ace41b4c83f5b32f24a46ef397a001927843d90e279ab53d45a",
+      "owner": "T63",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler+CapturedRead.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "e57963b7384f3baca19b0d0b46fcc377dab584016fb8b45efd5cd4fa6b6a0d7e",
+      "owner": "T63",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler+PortfolioReadPreparation.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "e714aef4acd3eff8cbc9f143d4edad80136b2e7c8242823ba58c44c4cf7a513e",
+      "owner": "T63",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler+PortfolioSummary.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "c2d2ceeddc8daeabea4fc1e4db07a119d9f4509841f3055bf362d8e10b696da2",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler+SnapshotTaskQuery.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "78d8c5ae99676e5778354ea3a0fc103cedd20747c51c6f629a1a05855205a4a9",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "0749918c933b89f3e2aa4e1757bfd5243584ca1f559af54d7ac76cbc701581e2",
+      "owner": "T2383",
+      "state": "accepted sole writer baseline reconciled"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPTypes.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "ed9a44ffb38bcbe98a37cc742a52850ecab3ab9334f395e2a70a30a1423e7f06",
+      "owner": "T2383",
+      "state": "accepted sole writer baseline reconciled"
+    },
+    {
+      "path": "Transit/Transit/MCP/Reads/MCPBoundedReadDispatcher.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "0df7cbeb9ae535b16499257814225cebb3fc0643021eab2614fa01232eb4f506",
+      "owner": "T63",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/MCP/Reads/MCPReadService.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "2cbebce6a0107b2b3532c639b08fb40471c18060e686f354192108bf6e21a87d",
+      "owner": "T63",
+      "state": "imported byte-identical; edit owner retained"
+    },
+    {
+      "path": "Transit/Transit/Services/PortfolioSummaryService.swift",
+      "source": "b1f30256b4fb33270809188131d047a29807f162",
+      "sha256": "0f5ecc8d5601d7b7669610f442650f3a0de69fd9e545d4524e59367b9c0f5945",
+      "owner": "T2382",
+      "state": "imported byte-identical; edit owner retained"
+    }
+  ],
+  "T63Patch": "/Users/arjen/Documents/Codex/2026-10-03/task/t63-review-evidence/stage-b-retained-owner-handoff/retained-owner-baseline.patch",
+  "T63PatchSHA256": "b1bffff5a9e25e441d14991aa2cc0ebe2b3a47b13bdb598f1f14013f8175ab5e",
+  "currentHTTPHelperSHA256": "6ab7df966537972871c75b5cb390574ee2087e57d640d5cc61c4c5c85beebf97",
+  "optionalFixturesTransferred": false,
+  "appProjectChanged": false,
+  "productionImportsSoFar": true,
+  "APIDelivery15": false,
+  "T63AndTransferredBaselineCommit": "36030cf",
+  "T2382OwnerConfirmation": "explicit parent forwarded owner confirmation;13 exact import authorised",
+  "editingOwnershipTransferred": false,
+  "combinedCompileOrAcceptance": false,
+  "T2382BaselineCommit": "1a19dfda6761ac788db47821a838fb14f7de3e4b",
+  "review": "read-only internal critic clear; exact20 paths/no extras and all hashes match",
+  "current_helper_followup": "T63-owned respond needs ordered extra HTTP fields for Mcp-Method/Mcp-Name and duplicate-header tests; current signature supports protocolVersion only",
+  "additional_legacy_fixture_coordination": [
+    "Transit/TransitTests/MCPRequestDecodeErrorClassificationTests.swift",
+    "Transit/TransitTests/MCPInitializeHandshakeTests.swift"
+  ],
+  "diagnostics_checkpoint_excluded": "ce0f1a98d874d53f2c607d47e197ae7c64c0f2d3"
+}
