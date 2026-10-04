@@ -225,7 +225,7 @@ private extension MCPReusableSnapshotPreparedOwnerTests {
 
     func metadata(_ root: RetainedView) throws -> MCPResultPreparedMetadata {
         let read = try MCPPreparedToolRead(text: "{}", frozenMetadataBytes: root.frozenMetadataBytes)
-        let value = try #require(MCPResultProviderAdapters.metadata(result: read.result,
+        let value = try #require(try MCPResultProviderAdapters.metadata(result: read.result,
             frozenReadBytes: root.frozenMetadataBytes))
         return try MCPResultPreparation.metadata(value: value)
     }
