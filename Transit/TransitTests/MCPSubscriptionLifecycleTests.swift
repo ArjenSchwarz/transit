@@ -1,5 +1,6 @@
 #if os(macOS)
 import Foundation
+import NIOConcurrencyHelpers
 import Testing
 @testable import Transit
 
