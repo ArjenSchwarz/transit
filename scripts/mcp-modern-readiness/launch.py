@@ -96,7 +96,11 @@ def main():
     match = re.search(r"-xctestrun (\S+)", packet["test"])
     plist_path = pathlib.Path(match[1])
     configuration = plistlib.loads(plist_path.read_bytes())
-    targets = configuration["TestConfigurations"][0]["TestTargets"]
+    if "TestConfigurations" in configuration:
+        targets = configuration["TestConfigurations"][0]["TestTargets"]
+    else:
+        targets = [value for key, value in configuration.items()
+                   if not key.startswith("__") and isinstance(value, dict)]
     if len(targets) != 1 or targets[0]["BlueprintName"] != "TransitTests":
         raise ValueError("Only inspected unit target is eligible")
     environment = targets[0]["EnvironmentVariables"]
