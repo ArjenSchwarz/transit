@@ -30,7 +30,7 @@ extension MCPServer {
             })
     }
 
-    nonisolated private static func writeSubscription(
+    @concurrent nonisolated private static func writeSubscription(
         _ subscription: MCPToolListSubscription, writer: inout any ResponseBodyWriter, handler: MCPToolHandler
     ) async throws {
         do {
