@@ -1,10 +1,6 @@
 #if os(macOS)
 import Foundation
 
-nonisolated enum MCPPortfolioScaffoldError: Error {
-    case notImplemented
-}
-
 /// Pure saved-value aggregation. Identity closure validates attribution but never expands scope.
 nonisolated enum PortfolioSummaryService {
     private static let taskStatuses = [
