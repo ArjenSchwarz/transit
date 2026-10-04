@@ -54,19 +54,22 @@ final class CommentService: CommentFetching {
         isAgent: Bool,
         save: ((ModelContext) throws -> Void)? = { try $0.save() }
     ) throws -> Comment {
-        let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedContent.isEmpty else { throw Error.emptyContent }
-
-        let trimmedAuthor = authorName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedAuthor.isEmpty else { throw Error.emptyAuthorName }
+        let input: CommentInputValidation.Input
+        do {
+            input = try CommentInputValidation.normalize(content: content, authorName: authorName)
+        } catch CommentInputValidation.Error.emptyContent {
+            throw Error.emptyContent
+        } catch CommentInputValidation.Error.emptyAuthorName {
+            throw Error.emptyAuthorName
+        }
 
         // Resolve the task in this service's context to ensure the
         // relationship is established within a single ModelContext.
         let resolvedTask = try resolveTask(task)
 
         let comment = Comment(
-            content: trimmedContent,
-            authorName: trimmedAuthor,
+            content: input.content,
+            authorName: input.authorName,
             isAgent: isAgent,
             task: resolvedTask
         )

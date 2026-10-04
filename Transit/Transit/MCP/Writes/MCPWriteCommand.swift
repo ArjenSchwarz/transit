@@ -173,12 +173,11 @@ struct MCPWriteCommand {
                 milestoneService: services.milestones)
             return try saved(MCPRecordSnapshot.task(task, in: services.context))
         }
-        guard let status = TaskStatus(rawValue: try string("status")) else {
+        let validation = try MCPTaskMutationValidation.status(
+            currentStatus: task.statusRawValue, targetStatus: try string("status"),
+            comment: arguments["comment"] as? String, authorName: arguments["authorName"] as? String)
+        guard let status = TaskStatus(rawValue: validation.targetStatus) else {
             throw MCPWriteFailure("INVALID_STATUS", "Invalid task status")
-        }
-        if arguments["comment"] != nil,
-            (arguments["authorName"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
-            throw MCPWriteFailure("INVALID_INPUT", "authorName is required when comment is provided")
         }
         let comment = try services.tasks.updateStatus(
             task: task, to: status,

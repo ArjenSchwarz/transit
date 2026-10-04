@@ -69,6 +69,10 @@ extension MCPServer {
             return encodedResponse(try MCPModernDiscovery.encodeTools(id: modern.id,
                 tools: MCPToolDefinitions.modernTools(includingMaintenance: maintenanceEnabled)))
         case .callTool(let tool, let execution):
+            // Batch shape and numeric tokens must reach the parser before Any conversion.
+            if case .applicationBatch = execution {
+                return selectedResponse(try await MCPBatchModernProvider.call(modern, handler: handler))
+            }
             let rpc = MCPModernWire.request(modern, tool: tool)
             if case .coveredRead = execution {
                 guard let read = MCPBoundedReadDispatcher.classify(rpc) else {
@@ -83,11 +87,8 @@ extension MCPServer {
                     })
                 return encodedResponse(bytes)
             }
-            switch try await MCPModernProviderBinding.call(rpc, tool: tool, handler: handler,
-                maintenanceEnabled: maintenanceEnabled) {
-            case .normal(let bytes), .reconciliation(let bytes): return encodedResponse(bytes)
-            case .suppressed: return Response(status: .accepted)
-            }
+            return selectedResponse(try await MCPModernProviderBinding.call(rpc, tool: tool, handler: handler,
+                maintenanceEnabled: maintenanceEnabled))
         case .listenSubscriptions:
             do {
                 return try await toolListChangeStreamResponse(modern: modern, context: context, handler: handler)
@@ -95,6 +96,13 @@ extension MCPServer {
                 return modernRejection(MCPModernRejection(httpStatus: 503, rpcCode: -32603,
                     message: "Subscriptions are closing", id: modern.id, data: nil))
             }
+        }
+    }
+
+    nonisolated private static func selectedResponse(_ selection: MCPResultResponseSelection) -> Response {
+        switch selection {
+        case .normal(let bytes), .reconciliation(let bytes): return encodedResponse(bytes)
+        case .suppressed: return Response(status: .accepted)
         }
     }
 

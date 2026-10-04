@@ -1,0 +1,35 @@
+{
+  "sourcePin": "85bec71446a322f87a05af39360f2bab2fa9007d",
+  "implementation": "28bee6ae0bf48a756da7220a5840ba24cb0e7aa3",
+  "configurationGuardExit": 0,
+  "buildExit": 0,
+  "signedPreflightExit": 0,
+  "enumerationExit": 0,
+  "inventoryExit": 0,
+  "testExit": 0,
+  "finalizedResult": "Passed",
+  "enabledAndExecutedDeclarations": 21,
+  "parameterizedDeclarations": 14,
+  "parameterCaseRuns": 77,
+  "standaloneBodies": 7,
+  "actualExecutedBodies": 84,
+  "issues": 0,
+  "failedTests": 0,
+  "skippedTests": 0,
+  "runtimeWarnings": [],
+  "consoleWarning": "Xcode multiple matching destination selection; existing build scheme/test warnings retained in raw logs",
+  "summaryExtractionAttempts": [
+    {
+      "sandboxExit": 64,
+      "reason": "xcresulttool report-cache write denied"
+    },
+    {
+      "perCommandEscalatedExit": 0
+    }
+  ],
+  "ownedDrained": true,
+  "cleanup": "None: normal finish, no samples/signals/replay",
+  "slotReleasedBeforeExtraction": true,
+  "originalFixturesUnchanged": "13 declarations /52 cases",
+  "supplementalFixtures": "8 declarations /32 cases"
+}

@@ -9,9 +9,12 @@ struct MigrationProbe {
         precondition(arguments.count == 3)
         let mode = arguments[1]
         let root = ProcessInfo.processInfo.environment["TRANSIT_DISPOSABLE_ROOT"]!
-        let url = URL(fileURLWithPath: arguments[2]).standardizedFileURL.resolvingSymlinksInPath()
-        let allowed = URL(fileURLWithPath: root).standardizedFileURL.resolvingSymlinksInPath().path + "/"
-        precondition(url.path.hasPrefix(allowed) && url.lastPathComponent == "synthetic.store")
+        let url = try DisposableStorePath.resolve(path: arguments[2], rootPath: root)
+        if mode == "path-guard" {
+            try verifyPathGuard(root: URL(fileURLWithPath: root))
+            print("Path guard checks passed: aliases, new/existing leaves, escape and symlink rejection")
+            return
+        }
         var models: [any PersistentModel.Type] = [
             Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self
         ]
@@ -52,6 +55,42 @@ struct MigrationProbe {
             try report(context, phase: mode, receipt: receipt)
         default: fatalError("Unsupported probe mode")
         }
+    }
+
+    static func verifyPathGuard(root: URL) throws {
+        let files = FileManager.default
+        let allowed = root.appendingPathComponent("guard-allowed", isDirectory: true)
+        let sibling = root.appendingPathComponent("guard-allowed-sibling", isDirectory: true)
+        try files.createDirectory(at: allowed, withIntermediateDirectories: true)
+        try files.createDirectory(at: sibling, withIntermediateDirectories: true)
+        let leaf = allowed.appendingPathComponent("synthetic.store")
+        let new = try DisposableStorePath.resolve(path: leaf.path, rootPath: allowed.path)
+        let alias = allowed.resolvingSymlinksInPath()
+        let aliased = try DisposableStorePath.resolve(path: leaf.path, rootPath: alias.path)
+        precondition(aliased == new)
+        try Data().write(to: new)
+        let existing = try DisposableStorePath.resolve(path: leaf.path, rootPath: allowed.path)
+        precondition(existing == new)
+        func rejects(_ path: URL, expected: DisposableStorePath.Failure) throws {
+            do {
+                _ = try DisposableStorePath.resolve(path: path.path, rootPath: allowed.path)
+                fatalError("Unsafe path accepted")
+            } catch let error as DisposableStorePath.Failure {
+                precondition(error == expected)
+            }
+        }
+        try rejects(sibling.appendingPathComponent("synthetic.store"), expected: .outsideRoot)
+        try rejects(allowed.appendingPathComponent("wrong.store"), expected: .invalidName)
+        try rejects(allowed.appendingPathComponent("missing/synthetic.store"), expected: .missingDirectory)
+        try files.removeItem(at: new)
+        try files.createSymbolicLink(at: leaf, withDestinationURL: sibling.appendingPathComponent("missing.store"))
+        try rejects(leaf, expected: .symbolicLink)
+        try files.removeItem(at: leaf)
+        try files.createSymbolicLink(at: leaf, withDestinationURL: sibling)
+        try rejects(leaf, expected: .symbolicLink)
+        let escape = allowed.appendingPathComponent("escape", isDirectory: true)
+        try files.createSymbolicLink(at: escape, withDestinationURL: sibling)
+        try rejects(escape.appendingPathComponent("synthetic.store"), expected: .outsideRoot)
     }
 
     @MainActor static func verifyConfiguration(

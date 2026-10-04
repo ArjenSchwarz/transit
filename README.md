@@ -16,7 +16,7 @@ Transit sits alongside the existing tool ecosystem: [Orbit](https://github.com/A
 - **Reports** — generate summary reports of completed/abandoned tasks by date range
 - **Cross-device sync** via CloudKit private database
 - **CLI automation** through App Intents — create tasks, update statuses, manage milestones, add comments, generate reports
-- **MCP server** (macOS) — HTTP JSON-RPC server for AI agent integration with 12 normal tools
+- **MCP server** (macOS) — HTTP JSON-RPC server for AI agent integration with 13 normal tools
 - **Agent handoff statuses** (Ready for Implementation, Ready for Review) for AI/human workflow integration
 - **Adaptive layout**: width-based multi-column Kanban on iPhone/iPad/Mac, with a segmented single-column fallback only when one column fits
 - **Drag and drop** between columns to change task status
@@ -64,13 +64,15 @@ All intents accept a JSON string input and return a JSON string response, includ
 
 ## MCP Server (macOS)
 
-Transit includes a built-in MCP server on macOS for AI agent integration. Enable it in Settings and configure the port (default: 3141). The server exposes 12 normal tools over latest-only MCP `2026-07-28` HTTP JSON-RPC 2.0:
+Transit includes a built-in MCP server on macOS for AI agent integration. Enable it in Settings and configure the port (default: 3141). The server exposes 13 normal tools over latest-only MCP `2026-07-28` HTTP JSON-RPC 2.0:
 
-`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `query_project_summaries`
+`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `query_project_summaries`, `mutate_tasks`
 
 **Breaking transport change:** Older MCP clients using `initialize`, session negotiation, GET streams or JSON-RPC wire arrays are unsupported. Requests require the modern headers and `_meta` fields described in the [MCP result contract](docs/mcp-result-contract.md). Missing required metadata returns an explanatory HTTP 400 protocol error; an otherwise valid modern `initialize` request returns HTTP 404 / JSON-RPC method-not-found. Actual installed-client compatibility remains unverified.
 
-The eight write tools require an `idempotencyKey`. Task/milestone updates and milestone deletion also require the target's current `expectedRevision`. Read a revision before updating, and retry an interrupted request with the same key and arguments. Responses use structured saved-record outcomes; see the [MCP write contract](docs/mcp-write-contract.md) for examples, seven-day replay retention, conflicts, and local-store limits. See the [MCP result contract](docs/mcp-result-contract.md) for structuredContent, modern request headers and recovery. See the [bounded read contract](docs/mcp-read-contract.md) for saved capture freshness, policy, deadlines and retry guidance. See the [portfolio contract](docs/mcp-portfolio-contract.md) for project summaries and task queries over the same frozen snapshot. Actual installed-client compatibility is deferred to post-merge MacBook validation and remains unverified. App Intent inputs are unchanged.
+`mutate_tasks` accepts one application batch of 1–50 task updates, status updates or comments, with saved-only advisory previews and ordered per-item outcomes. See the [batch mutation contract](docs/mcp-write-contract.md#application-batch-task-mutations) for stopping, replay and recovery rules.
+
+The eight standalone write tools require an `idempotencyKey`. Task/milestone updates and milestone deletion also require the target's current `expectedRevision`. Read a revision before updating, and retry an interrupted request with the same key and arguments. Responses use structured saved-record outcomes; see the [MCP write contract](docs/mcp-write-contract.md) for examples, seven-day replay retention, conflicts, and local-store limits. See the [MCP result contract](docs/mcp-result-contract.md) for structuredContent, modern request headers and recovery. See the [bounded read contract](docs/mcp-read-contract.md) for saved capture freshness, policy, deadlines and retry guidance. See the [portfolio contract](docs/mcp-portfolio-contract.md) for project summaries and task queries over the same frozen snapshot. Actual installed-client compatibility is deferred to post-merge MacBook validation and remains unverified. App Intent inputs are unchanged.
 
 ## Documentation
 

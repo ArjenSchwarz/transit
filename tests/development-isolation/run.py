@@ -38,6 +38,9 @@ def main():
 
         configuration_root = root / "configuration"
         configuration_root.mkdir()
+        results["pathGuard"] = execute("path-guard", configuration_root / "synthetic.store")
+        if results["pathGuard"]["exit"]:
+            raise RuntimeError(results["pathGuard"])
         results["configuration"] = execute("configuration", configuration_root / "synthetic.store")
 
         def metadata(store):

@@ -1,0 +1,15 @@
+{
+  "sourcePin": "8342b3126a6e4c68705d90b5ae59a439b8252ecc",
+  "declarations": 33,
+  "parameterBodies": 110,
+  "standaloneBodies": 19,
+  "bodies": 129,
+  "failed": 0,
+  "skipped": 0,
+  "runtimeExit": 0,
+  "finalizedNativeResult": true,
+  "signals": [],
+  "ownedWorkersDrained": true,
+  "logSHA256": "9b542fd77e2a28e9fc46009a48a44816406ec994925d5035ee4c6fbb8766f58a",
+  "artifacts": ".codex-cache/task10-green-readiness"
+}

@@ -61,9 +61,46 @@ exclude child collections. No-ops keep their revision; restoring identical cover
 the same token. Tokens are neither timestamps nor monotonic counters. Edits not yet imported from
 CloudKit cannot be detected, and later sync merges can still conflict.
 
-These outcome and revision semantics are shared vocabulary for T-2384. They introduce no batch
-mutation application or dry-run behavior. Wire-level JSON-RPC arrays are rejected. A T-2384 application batch, when delivered by its owner, is one tools/call with its separate per-item effect policy.
+## Application batch task mutations
 
+`mutate_tasks` is one `tools/call`, not transport batching. Wire-level JSON-RPC arrays remain rejected.
+Supply explicit `mode:"dry_run"` or `mode:"execute"` and 1–50 ordered `items`. Each item has a nonempty
+opaque `itemId`, an `operation` (`update_task`, `update_task_status` or `add_comment`) and the original
+protected tool's `arguments`. Task UUIDs must be unique after UUID normalization, item IDs must be
+unique by exact spelling, and tool/key pairs must be unique. Updates require `expectedRevision`;
+comments reject that field. Unknown fields, malformed safety values and wrong JSON types reject the
+whole input before effects. Domain strings such as status, priority and type are validated per item.
+
+Dry runs read saved local records, ignoring pending UI inserts, edits and deletions. They return
+advisory proposals with `observation:"saved_local_store"` and `keyState:"unchecked"`; they neither
+reserve keys nor establish replay availability. Full comment state determines the canonical `r1`
+even when comment payloads are omitted. A later save can invalidate that revision.
+
+Execution applies items in order and advances only after established committed evidence. The first
+rejection, active or uncertain outcome, pending-edit stop, unavailable evidence or cancellation stops
+later items. Each successful item commits independently; the batch is not a transaction. There are
+no automatic retries or rollbacks of earlier commits. `not_attempted` describes this invocation,
+not the history of that key. Original per-item JSON, text, optional `isError`, revisions and retry
+instructions remain authoritative; aggregate `isError` does not replace them.
+
+There is no whole-batch receipt or replay key. Recover each attempted item with its original tool,
+arguments, key and originating local store. Regrouping items does not change protected request
+identity. An identical batch retry may replay earlier committed items and execute previously
+`not_attempted` items, stopping again at the first unsuccessful item. Exclude a retained no-effect
+rejection, or correct its arguments with a fresh key, before expecting later items to proceed. A historical canonical replay certifies its saved outcome, not current task contents.
+A removed or absent receipt does not prove that the original operation had no effect. If new duplicate closures require the canonical task to still match the plan, reconcile current
+canonical records and original evidence before submitting those closures. Historical replay does not
+establish that current-state condition.
+Respect each known seven-day expiry and retain the original first-submission time. When that time
+or acceptance evidence is lost, reconcile rather than assuming a fresh execution is safe. Retrying
+a removed key after expiry can repeat effects, including comments. Never rotate keys automatically
+for unknown outcomes.
+
+Lost responses and cancellation do not undo effects. If aggregate encoding fails after dispatch,
+the already prepared `summary:"serialization_failed"` fallback contains the correlated original
+indexes, operations, tools, keys and UUIDs, with unestablished effect evidence. Reconcile those keys;
+do not infer no effect from a failed response. Installed-client validation and activation remain
+deferred to post-merge MacBook checks.
 
 ## Recovery when local retry storage is unreadable
 

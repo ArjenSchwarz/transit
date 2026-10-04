@@ -169,7 +169,7 @@ struct TransitApp: App {
             commentService: commentService, milestoneService: milestoneService,
             maintenanceService: maintenanceService, settings: mcpSettings,
             persistence: persistence, taskQuerySnapshots: reads.snapshots, writeCoordinator: writeCoordinator,
-            readService: reads, readCoordinator: readCoordinator
+            readService: reads, readCoordinator: readCoordinator, batchContainer: container
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler, readCoordinator: readCoordinator)
         #endif

@@ -19,7 +19,6 @@ import SwiftData
     private let receipts: MCPWriteReceiptStore?
     private let startupFailure: MCPWriteFailure?
     private var active: [String: String] = [:]
-
     init(
         services: MCPWriteCommandServices, sidecarDirectory: URL,
         persistence: PersistenceAvailability? = nil,
@@ -69,7 +68,9 @@ import SwiftData
         }
     }
 
-    func execute(tool: String, arguments: [String: Any]) async -> MCPToolResult {
+    func execute(
+        tool: String, arguments: [String: Any], batchPolicy: MCPBatchWritePolicy? = nil
+    ) async -> MCPToolResult {
         let command: MCPWriteCommand
         do { command = try MCPWriteCommand.validate(tool: tool, arguments: arguments) } catch {
             return MCPWriteOutcome.result(
@@ -102,9 +103,14 @@ import SwiftData
                 command, .init("OPERATION_IN_PROGRESS", "Retry the same request after completion"),
                 accepted: true, outcome: "in_progress", retry: "retry_same_request")
         }
+        if batchPolicy != nil && services.context.hasChanges {
+            return inspectRetainedWhileDirty(
+                command, payload: payload, reservations: reservations, receipts: receipts,
+                now: clock(), batchPolicy: batchPolicy)
+        }
         return await accept(
-            command, payload: payload, namespace: namespace,
-            reservations: reservations, receipts: receipts)
+            command, payload: payload,
+            reservations: reservations, receipts: receipts, batchPolicy: batchPolicy)
     }
 }
 
@@ -141,13 +147,15 @@ extension MCPWriteCoordinator {
     }
 
     fileprivate func accept(
-        _ command: MCPWriteCommand, payload: String, namespace: String,
-        reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore
+        _ command: MCPWriteCommand, payload: String,
+        reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore,
+        batchPolicy: MCPBatchWritePolicy?
     ) async -> MCPToolResult {
         let acceptance: Acceptance
         do {
             acceptance = try reservations.withValidatedBindings {
-                acceptSynchronously(command, payload: payload, reservations: reservations, receipts: receipts)
+                acceptSynchronously(
+                    command, payload: payload, reservations: reservations, receipts: receipts, batchPolicy: batchPolicy)
             }
         } catch {
             return transient(
@@ -157,19 +165,26 @@ extension MCPWriteCoordinator {
         switch acceptance {
         case .result(let result): return result
         case .ready(let guardRecord, let receipt):
+            let namespace = command.tool + "\u{0000}" + command.key
             active[namespace] = payload
             defer { active.removeValue(forKey: namespace) }
             // The acceptance snapshot is gone before entering any async method.
             return await runAccepted(
                 command, guardRecord: guardRecord, receipt: receipt,
-                reservations: reservations, receipts: receipts)
+                reservations: reservations, batchPolicy: batchPolicy)
         }
     }
 
     private func acceptSynchronously(
         _ command: MCPWriteCommand, payload: String,
-        reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore
+        reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore,
+        batchPolicy: MCPBatchWritePolicy?
     ) -> Acceptance {
+        if batchPolicy != nil && services.context.hasChanges {
+            return .result(inspectRetainedWhileDirty(
+                command, payload: payload, reservations: reservations, receipts: receipts,
+                now: clock(), batchPolicy: batchPolicy))
+        }
         let tool = command.tool
         if let existing = existingOutcome(command, payload: payload, reservations: reservations, receipts: receipts) {
             return .result(existing)
@@ -215,14 +230,22 @@ extension MCPWriteCoordinator {
 
     fileprivate func runAccepted(
         _ command: MCPWriteCommand, guardRecord: MCPLocalReservation, receipt: MCPWriteReceipt,
-        reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore
+        reservations: MCPLocalReservationStore,
+        batchPolicy: MCPBatchWritePolicy?
     ) async -> MCPToolResult {
         let prepared: PreparedMCPWrite
         do {
             try await preparationHook(command)
+            if batchPolicy != nil && services.context.hasChanges {
+                return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
+            }
             prepared = try await command.prepare(using: services)
             try Task.checkCancellation()
         } catch {
+            // Return before a rejection phase can save or roll back UI edits.
+            if batchPolicy != nil && services.context.hasChanges {
+                return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
+            }
             // Validate a fresh scope after suspension, before retaining rejection.
             do {
                 return try reservations.withValidatedBindings {
@@ -232,26 +255,31 @@ extension MCPWriteCoordinator {
                 }
             } catch { return uncertain(command) }
         }
+        if batchPolicy != nil && services.context.hasChanges {
+            return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
+        }
         do {
             // No snapshot survives preparation. This fresh phase covers baseline,
             // mutation, terminal save, expiry repair, and synchronous recovery.
             return try reservations.withValidatedBindings {
                 try reservations.validateBinding(guardRecord)
                 if services.context.hasChanges { try save(services.context, .baseline) }
-                return commit(command, prepared: prepared, receipt: receipt, guardRecord: guardRecord)
+                return commit(
+                    command, prepared: prepared, receipt: receipt, guardRecord: guardRecord, batchPolicy: batchPolicy)
             }
         } catch { return uncertain(command) }
     }
 
     fileprivate func commit(
         _ command: MCPWriteCommand, prepared: PreparedMCPWrite,
-        receipt: MCPWriteReceipt, guardRecord: MCPLocalReservation
+        receipt: MCPWriteReceipt, guardRecord: MCPLocalReservation, batchPolicy: MCPBatchWritePolicy?
     ) -> MCPToolResult {
         let context = services.context
         let autosave = context.autosaveEnabled
         context.autosaveEnabled = false
         defer { context.autosaveEnabled = autosave }
         do {
+            try batchPolicy?.validateBeforeApply(command, context)
             var envelope = try command.apply(prepared, using: services)
             envelope["contractVersion"] = 1
             envelope["tool"] = command.tool
@@ -367,34 +395,6 @@ extension MCPWriteCoordinator {
         receipt.resultJSON = json
         receipt.resultIsError = rejected
         return MCPToolResult(content: [.text(json)], isError: rejected ? true : nil)
-    }
-
-    fileprivate func replay(_ receipt: MCPWriteReceipt) -> MCPToolResult? {
-        guard let json = receipt.resultJSON, let isError = receipt.resultIsError else { return nil }
-        return MCPToolResult(content: [.text(json)], isError: isError ? true : nil)
-    }
-
-    fileprivate func reused(_ command: MCPWriteCommand) -> MCPToolResult {
-        transient(
-            command, .init("IDEMPOTENCY_KEY_REUSED", "The key is already bound to different arguments"),
-            accepted: false)
-    }
-
-    fileprivate func uncertain(_ command: MCPWriteCommand) -> MCPToolResult {
-        transient(
-            command, .init("OUTCOME_UNCERTAIN", "Reconcile the original operation before issuing another write"),
-            accepted: true, outcome: "uncertain", retry: "reconcile")
-    }
-
-    fileprivate func transient(
-        _ command: MCPWriteCommand, _ failure: MCPWriteFailure, accepted: Bool?,
-        outcome: String = "rejected", retry: String? = nil
-    ) -> MCPToolResult {
-        MCPWriteOutcome.result(
-            MCPWriteOutcome.failure(
-                tool: command.tool, key: command.key,
-                failure: failure, accepted: accepted,
-                outcome: outcome, retryAction: retry), isError: true)
     }
 }
 #endif

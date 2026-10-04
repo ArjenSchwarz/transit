@@ -1,0 +1,19 @@
+{
+  "sourcePin": "23bcfe5b1e33cd8305e0d85a3901cdbf3ef397a3",
+  "declarations": 14,
+  "bodies": 18,
+  "missingRegistrationFailingBodies": 7,
+  "missingRegistrationIssues": 13,
+  "controlBodiesPassed": 11,
+  "otherIssues": 0,
+  "buildExit": 0,
+  "runtimeExit": 143,
+  "runnerSignal": "SIGTERM",
+  "hostSignals": [],
+  "ownedRemaining": [],
+  "finalizedResultClaim": false,
+  "cleanupExecuted": false,
+  "logSHA256": "3e3bd5d44d4d01724473a69df6bdab0803bf89b6c07248ce16806eca9b3f3160",
+  "time": 1791133470.028852,
+  "artifacts": ".codex-cache/task13-red-readiness"
+}

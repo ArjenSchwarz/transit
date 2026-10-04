@@ -1,0 +1,41 @@
+{
+  "ticket": "T-2384",
+  "reviewMode": "Four internal reviewers plus independent root critical review; no external peer-review service",
+  "archive": {
+    "helper": "/Users/arjen/golang/bin/pulsar",
+    "action": "publish (local archive only)",
+    "exit": 0,
+    "path": "/Users/arjen/CodeReviews/2026-10/2026-10-04-github-transit-branch-t-2384-batch-task-mutations.html",
+    "sha256": "083506b181c1a9154372cfec850bb54a32c0668e908d0b4ea19fe7517c199eec",
+    "bytes": 5850534,
+    "networkRequestPerformed": false,
+    "globalSettingsChanged": false
+  },
+  "reviewBase": "201205bd4e786c7f152d8f99006b37da7da888c7",
+  "testedCode": "5c42c7e059e8c810e89d366f0889aef132adf5c5",
+  "generatedSnapshot": "e8ae1b3 plus documentation-only working tree",
+  "cumulativeFiles": 417,
+  "commitsReviewed": 396,
+  "nativeAcceptance": {
+    "macOS": {
+      "declarations": 2409,
+      "cases": 3049
+    },
+    "iOSUnits": {
+      "declarations": 1289,
+      "cases": 1334
+    },
+    "iOSUI": {
+      "declarations": 21,
+      "cases": 24
+    }
+  },
+  "allFinalized": true,
+  "failures": 0,
+  "skips": 0,
+  "nativeRuntimeWarnings": 0,
+  "structuredReporting": "No detected JUnit/coverage runner; native xcresult evidence retained and counts explicit in HTML. Renderer JUnit summary zero is not a native test total.",
+  "releaseHold": "Parent-reported prior approval-review rejection for private Claude diff/context disclosure and GitHub push destination authority; no alternate publication route attempted",
+  "clientReadiness": "Deferred owner MacBook validation; no activation",
+  "inputDirectory": "/Users/arjen/Documents/Codex/2026-10-03/task-4/review-inputs"
+}

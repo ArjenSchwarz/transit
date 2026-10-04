@@ -83,6 +83,8 @@ nonisolated enum MCPModernProviderBinding {
                 execution = .coveredRead
             } else if $0.name == "scan_duplicate_display_ids" {
                 execution = .ordinaryRead
+            } else if $0.name == "mutate_tasks" {
+                execution = .applicationBatch
             } else if $0.name == "reassign_duplicate_display_ids" {
                 execution = .unprotectedMaintenance
             } else {

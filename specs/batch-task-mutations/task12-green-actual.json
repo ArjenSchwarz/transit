@@ -1,0 +1,15 @@
+{
+  "sourcePin": "515c2f41affdf7d9bf8caaa1e492747db44e2776",
+  "declarations": 10,
+  "bodies": 14,
+  "passed": 14,
+  "failed": 0,
+  "skipped": 0,
+  "runtimeExit": 0,
+  "finalizedNativeResult": true,
+  "ownedRemaining": [],
+  "signals": [],
+  "priorAttempt": "Task12Green:14 bodies,two spelling-fixture assertions, sampled teardown143; preserved",
+  "logSHA256": "943551d2847658ce709a45f3041fa2fd6f3bc754aa09adcd0b569976430da1c7",
+  "artifacts": ".codex-cache/task12-green-attempt2-readiness"
+}

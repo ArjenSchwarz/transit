@@ -1,0 +1,21 @@
+{
+  "sourcePin": "5da541615ff97ca9f77b15c032d274ce65c79acc",
+  "declarations": 7,
+  "bodies": 10,
+  "notImplementedIssues": 9,
+  "controlsPassed": 1,
+  "otherIssues": 0,
+  "runtimeExit": 143,
+  "ownedRemaining": [],
+  "runnerSignal": "SIGTERM",
+  "hostSignals": [],
+  "finalizedResultClaim": false,
+  "cleanupExecuted": false,
+  "time": 1791131706.176476,
+  "attempt1BuildExit": 65,
+  "attempt1Failure": "fixture missing SwiftData defining-module import; corrected without assertion changes",
+  "attempt2BuildExit": 0,
+  "logSHA256": "13b3cd80963f7838565128780453c68c4326d4e18e9bf7542c132649d416ca77",
+  "rootBoundaryReview": "clear;9 intended missing-builder issues +1 existing fallback control",
+  "artifacts": ".codex-cache/task11-red-attempt2-readiness"
+}

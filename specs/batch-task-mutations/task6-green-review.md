@@ -1,0 +1,15 @@
+# Task 6 parser and schema GREEN source review
+
+Reviewed source: `565c336afd4c02bbb4d52c34aa9904ee5d0eca41`. Review mode: independent internal root critic, separate from the implementation worker. No external review service was used.
+
+Source review is clear. The request's private initializer permits construction only after the full bounded closed shape and collision checks succeed. Parsing reaches no services, contexts, receipt/guard stores or coordinator. Items retain original logical arguments and their existing validated MainActor command; normalized UUID identity is used only for mapping/collision detection. String domain values and conditional status-comment authors pass shape validation for later domain checks. Add-comment has no revision precondition; updates with only safety fields remain valid shapes.
+
+Structural names, opaque caller IDs and tool/key identities use exact UTF8 comparisons rather than Swift's canonical String equality. Metadata string values are retained without trimming. Canonically equivalent metadata member names that cannot survive the existing dictionary binding reject the whole input with indexed INVALID_INPUT diagnostics before command construction. This mirrors the delivered modern request bridge's unsupported-envelope rejection; it neither drops a field nor rewrites historical evidence. Closed-member duplicate checks also protect the immutable-value entry point.
+
+The integer bridge checks decimal mantissa/exponent, mathematical integrality and Int range with checked arithmetic. It never rounds through Double/Decimal and never adds a positivity restriction. Original numeric spelling remains in the logical arguments. The schema derives actual protected field types/required fields, removes displayId, requires taskId, preserves safety formats, and describes captured domain enums without enforcing enum/const on them. Shared definitions and registration remain untouched.
+
+The document entry point delegates to the immutable-value entry point. Coordinated Task 14 wiring must pass the original modern arguments subtree before the generic Any request bridge, preserving original number tokens and exact input diagnostics. This review grants no shared routing edit or ownership handoff.
+
+The original 17 declarations /109 parser cases and prior 84 evidence/fallback cases were independently compared with `dc10b9c`: eight fixture files are byte-identical. Four supplemental declarations /23 cases cover integer boundaries, metadata bridge representation, Unicode structural aliases and raw duplicate member positions. The planned GREEN selection is three suites, 21 declarations /132 bodies.
+
+Targeted lint, syntax parsing, whitespace and full lint passed (438 files). These are source-only checks: no Task 6 app build, typecheck, inventory or runtime GREEN has executed. Task 6 remains in progress. Execution requires the parent's exclusive slot, a rebuilt signed isolated source-pinned host, exact 21-declaration discovery, all 132 bodies passing and owned-process drain. T1734 currently owns the slot. No live writes, routine uploads, common/coordinator edits or Task 7 work occurred.
