@@ -30,6 +30,16 @@ nonisolated struct MCPPreparedToolRead: Sendable {
              publications: publications, preparedResultPage: page)
     }
 
+    /// Replays a sealed page without decoding frozen metadata or reparsing/reclassifying its source.
+    init(preparedResultPage page: MCPResultPreparedPage, frozenMetadataBytes: Data?,
+         publications: [any MCPPreparedPublication] = []) {
+        result = MCPToolResult(content: [.text(page.source.originalText)], isError: page.source.originalIsError)
+        encodedToolResult = page.fragment.encodedResult
+        self.frozenMetadataBytes = frozenMetadataBytes
+        self.publications = publications
+        preparedResultPage = page
+    }
+
     init(text: String, isError: Bool? = nil, metadata: MCPReadResultMetadata? = nil,
          frozenMetadataBytes: Data? = nil, publications: [any MCPPreparedPublication] = [],
          preparedResultPage: MCPResultPreparedPage? = nil,

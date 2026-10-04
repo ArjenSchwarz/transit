@@ -2,14 +2,15 @@
 import Foundation
 
 nonisolated struct MCPRetainedQueryPage: Sendable {
-    let text: String
+    private let legacyText: String?
+    var text: String { preparedResultPage?.source.originalText ?? legacyText ?? "" }
     let metadataBytes: Data?
     let policy: MCPReadPolicy?
     let preparedResultPage: MCPResultPreparedPage?
 
     init(text: String, metadataBytes: Data?, policy: MCPReadPolicy?,
          preparedResultPage: MCPResultPreparedPage? = nil) {
-        self.text = text
+        self.legacyText = preparedResultPage == nil ? text : nil
         self.metadataBytes = metadataBytes
         self.policy = policy
         self.preparedResultPage = preparedResultPage
@@ -30,12 +31,15 @@ nonisolated enum MCPCursorFamily: Sendable {
 
 @MainActor
 final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
-    nonisolated private final class Index: MCPPublicationIndex {
+    nonisolated final class Index: MCPPublicationIndex {
         let descriptor: MCPPublicationIndexDescriptor
         let pages: [String: MCPRetainedQueryPage]
-        init(roots: [MCPPublicationRoot] = [], pages: [String: MCPRetainedQueryPage] = [:]) throws {
+        let modernRoots: [String: ModernRoot]
+        init(roots: [MCPPublicationRoot] = [], pages: [String: MCPRetainedQueryPage] = [:],
+             modernRoots: [String: ModernRoot] = [:]) throws {
             descriptor = try MCPPublicationIndexDescriptor(roots: roots)
             self.pages = pages
+            self.modernRoots = modernRoots
         }
     }
 
@@ -72,7 +76,10 @@ final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
         let roots = index.descriptor.roots.values.filter { instant < $0.deadline }
         guard roots.count != index.descriptor.entryCount else { return }
         let tokens = roots.reduce(into: Set<String>()) { $0.formUnion($1.tokens) }
-        guard let replacement = try? Index(roots: roots, pages: index.pages.filter { tokens.contains($0.key) }) else {
+        guard let replacement = try? Index(roots: roots, pages: index.pages.filter { tokens.contains($0.key) },
+                                           modernRoots: index.modernRoots.filter { key, _ in
+                                               roots.contains { $0.id == key }
+                                           }) else {
             return
         }
         try? domain.retire(storeID: publicationStoreID, expectedVersion: base.version, replacementIndex: replacement)
@@ -104,7 +111,8 @@ final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
         for (token, text) in zip(cursors, pages.dropFirst()) {
             mapping[token] = MCPRetainedQueryPage(text: text, metadataBytes: metadataBytes, policy: policy)
         }
-        let candidate = try Index(roots: Array(original.descriptor.roots.values) + [root], pages: mapping)
+        let candidate = try Index(roots: Array(original.descriptor.roots.values) + [root], pages: mapping,
+                                  modernRoots: original.modernRoots)
         do {
             return try domain.reserve(storeID: publicationStoreID, operationID: operationID,
                 expectedVersion: base.version, expectedTokenVersion: base.tokenVersion, index: candidate,
@@ -112,14 +120,6 @@ final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
         } catch PublicationRejection.capacity { throw capacityError() } catch PublicationRejection.expired {
             throw expiryError()
         }
-    }
-
-    // Task16 RED declaration only; expanded-owner retention is deliberately not active.
-    // swiftlint:disable:next function_parameter_count
-    func prepare(preparedBundle: MCPResultRetainedBundle, cursors: [String],
-                 deadline: ContinuousClock.Instant, operationID: UUID,
-                 metadataBytes: Data?, policy: MCPReadPolicy?) throws -> MCPPublicationReservation? {
-        throw MCPResultPreparationError.notImplemented
     }
 
     func publish(pages: [String], cursors: [String], deadline: ContinuousClock.Instant) throws {
@@ -140,6 +140,11 @@ final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
     }
 
     func retainedPage(for cursor: String) throws -> MCPRetainedQueryPage {
+        try preparedRetainedPage(for: cursor).page
+    }
+
+    func preparedRetainedPage(for cursor: String) throws
+        -> (page: MCPRetainedQueryPage, pin: MCPOrdinaryQueryReadPin) {
         purgeExpired()
         let base = try domain.snapshot(for: publicationStoreID)
         guard let index = base.index as? Index else { throw PublicationRejection.busy }
@@ -149,12 +154,11 @@ final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
               let root = index.descriptor.roots.values.first(where: { $0.tokens.contains(cursor) }) else {
             throw cursorError()
         }
-        let valid = domain.withLock {
-            guard let state = domain.stores[publicationStoreID] else { return false }
-            return state.version == base.version && domain.currentInstantLocked < root.deadline
-        }
+        let pin = MCPOrdinaryQueryReadPin(publicationStoreID: publicationStoreID, domain: domain,
+            rootID: root.id, cursor: cursor, deadline: root.deadline)
+        let valid = domain.withLock { pin.validateLocked(in: domain) == nil }
         guard valid else { throw cursorError() }
-        return page
+        return (page, pin)
     }
 
     func page(for cursor: String) throws -> String { try retainedPage(for: cursor).text }
@@ -167,29 +171,7 @@ final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
     nonisolated func prepareAggregate(
         _ publications: [any MCPPreparedPublication], in domain: MCPReadPublicationDomain
     ) throws -> any MCPPreparedPublication {
-        guard domain === self.domain else { throw PublicationRejection.busy }
-        let children = try publications.map { publication -> MCPPublicationReservation in
-            guard let child = publication as? MCPPublicationReservation,
-                  child.publicationStoreID == publicationStoreID else { throw PublicationRejection.busy }
-            return child
-        }
-        let base = try domain.snapshot(for: publicationStoreID)
-        guard let index = base.index as? Index else { throw PublicationRejection.busy }
-        var roots = index.descriptor.roots
-        var pages = index.pages
-        for child in children {
-            guard let candidate = child.index as? Index else { throw PublicationRejection.busy }
-            for (key, root) in candidate.descriptor.roots where index.descriptor.roots[key] == nil {
-                guard roots[key] == nil else { throw PublicationRejection.busy }
-                roots[key] = root
-            }
-            for (token, page) in candidate.pages where index.pages[token] == nil {
-                guard pages[token] == nil else { throw PublicationRejection.busy }
-                pages[token] = page
-            }
-        }
-        return try domain.transfer(children, aggregateIndex: Index(roots: Array(roots.values), pages: pages),
-                                   operationID: UUID())
+        try prepareAggregate(publications, in: domain, checking: nil)
     }
 
     func capacityError() -> MCPTaskQueryError {
@@ -197,7 +179,7 @@ final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
                           message: "Query capacity exceeded; reduce scope/comments or retry after expiry")
     }
 
-    private func expiryError() -> MCPTaskQueryError {
+    func expiryError() -> MCPTaskQueryError {
         MCPTaskQueryError(code: "QUERY_EXPIRED", message: "Query expired during preparation; start a new query")
     }
 

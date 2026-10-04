@@ -43,6 +43,18 @@ final class MCPReadService: MCPReadCapturedPreparing {
         guard operation.shouldContinue() else { throw CancellationError() }
         let prepared = try pagePreparer(pages, tool, operation)
         guard operation.shouldContinue() else { throw CancellationError() }
+        guard prepared.count == pages.count else { throw MCPReadCaptureError.incoherentCapture }
+        for (original, owner) in zip(pages, prepared) {
+            guard operation.shouldContinue() else { throw CancellationError() }
+            guard original.result.content.count == 1,
+                  let text = original.result.content.first?.text,
+                  try MCPReadSourceByteValidation.matches(text, owner.source.originalText, checkpoint: {
+                      guard operation.shouldContinue() else { throw CancellationError() }
+                  }),
+                  original.result.isError == owner.source.originalIsError else {
+                throw MCPReadCaptureError.incoherentCapture
+            }
+        }
         return prepared
     }
 
@@ -59,12 +71,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
                 policy = parsed
             }
             if let cursor = query?.cursor {
-                let page = try snapshots.retainedPage(for: cursor)
-                if let requested = query?.readPolicy, let retained = page.policy, requested != retained {
-                    throw MCPTaskQueryError(code: "INVALID_INPUT",
-                                            message: "readPolicy conflicts with retained query")
-                }
-                return try MCPPreparedToolRead(text: page.text, frozenMetadataBytes: page.metadataBytes)
+                return try prepareRetainedPage(cursor: cursor, requestedPolicy: query?.readPolicy)
             }
             let selection: ReadCaptureSelection
             switch tool {
@@ -104,7 +111,13 @@ final class MCPReadService: MCPReadCapturedPreparing {
             return try preparePages(results, query: query, view: captured, operation: operation,
                                     frozenMetadataBytes: capsule.frozenMetadataBytes)
         }
-        return try MCPPreparedToolRead(text: jsonText(results), frozenMetadataBytes: capsule.frozenMetadataBytes)
+        let prepared = try MCPPreparedToolRead(text: jsonText(results),
+                                               frozenMetadataBytes: capsule.frozenMetadataBytes)
+        guard let owners = try preparePrivatePages([prepared], tool: tool, operation: operation) else {
+            return prepared
+        }
+        guard owners.count == 1, let owner = owners.first else { throw MCPReadCaptureError.incoherentCapture }
+        return prepared.attachingPreparedResultPage(owner)
     }
 
     func prepareCapturedRead(request: ReadCaptureRequest, policy: MCPReadPolicy,
@@ -214,30 +227,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
             tasks: view.tasks, milestones: view.milestones, comments: view.comments)
     }
 
-    private func preparePages(_ results: [[String: Any]], query: MCPTaskQueryRequest,
-                              view: CapturedReadView, operation: MCPReadOperation,
-                              frozenMetadataBytes: Data) throws -> MCPPreparedToolRead {
-        let count = max(1, (results.count + query.limit - 1) / query.limit)
-        let cursors = (0..<(count - 1)).map { _ in snapshots.makeCursor() }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        guard let asOf = formatter.date(from: view.metadata.asOf) else {
-            throw MCPReadCaptureError.incoherentCapture
-        }
-        let expiry = ISO8601DateFormatter().string(from: asOf.addingTimeInterval(300))
-        let pages = try (0..<count).map { position in
-            let start = position * query.limit
-            let end = min(start + query.limit, results.count)
-            let next: Any = position < cursors.count ? cursors[position] : NSNull()
-            return try jsonText(["results": Array(results[start..<end]), "nextCursor": next, "expiresAt": expiry])
-        }
-        let first = try MCPPreparedToolRead(text: pages[0], frozenMetadataBytes: frozenMetadataBytes)
-        let reservation = try snapshots.prepare(pages: pages, cursors: cursors, deadline: view.retentionDeadline,
-            operationID: operation.id, metadataBytes: first.frozenMetadataBytes, policy: view.metadata.read.policy)
-        return first.attaching(reservation.map { [$0] } ?? [])
-    }
-
-    private func jsonText(_ value: Any) throws -> String {
+    func jsonText(_ value: Any) throws -> String {
         do {
             let data = try JSONSerialization.data(withJSONObject: value, options: [.sortedKeys])
             guard let text = String(data: data, encoding: .utf8) else { throw MCPReadCaptureError.serializationFailure }
@@ -259,6 +249,9 @@ final class MCPReadService: MCPReadCapturedPreparing {
             category = .incoherentCapture; code = failureCode; message = "Saved capture could not be proved coherent"
         case MCPReadCaptureError.serializationFailure:
             category = .serializationFailure; code = failureCode; message = "Read serialization failed"
+        case MCPResultPreparationError.retentionCapacity:
+            category = nil; code = "QUERY_CAPACITY_EXCEEDED"
+            message = "Query capacity exceeded; reduce scope/comments or retry after expiry"
         case PublicationRejection.busy:
             category = .busy; code = "READ_BUSY"; message = "Read publication changed; retry the request"
         case ReadExecutionError.timeout:
