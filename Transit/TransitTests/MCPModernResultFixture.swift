@@ -1,13 +1,22 @@
 #if os(macOS)
 import Foundation
 import HTTPTypes
+import Hummingbird
+import Logging
+import NIOConcurrencyHelpers
+import NIOCore
+import NIOEmbedded
+import NIOFoundationCompat
 import SwiftData
 import Testing
 @testable import Transit
 
 /// App-test-owned in-memory providers; no production store, listener or client activation.
 @MainActor enum MCPModernResultFixture {
-    static let meta: [String: Any] = ["protocolVersion": "2026-07-28", "clientCapabilities": [:] as [String: Any]]
+    static let meta: [String: Any] = [
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": [:] as [String: Any]
+    ]
 
     static func makeEnvWithReads() throws -> MCPTestEnv {
         let env = try MCPTestHelpers.makeEnv()
@@ -74,10 +83,64 @@ import Testing
             fields.append(HTTPField(name: HTTPField.Name("Mcp-Name")!, value: name))
         }
         fields.append(contentsOf: headers)
-        return try await MCPTestHelpers.respond(handler: env.handler, origin: origin,
+        return try await transport(handler: env.handler, origin: origin,
             contentType: "application/json", accept: "application/json, text/event-stream",
             protocolVersion: "2026-07-28", orderedHeaders: fields,
             body: body(method: method, id: id, parameters: parameters), loggerLabel: "t2383-modern-result-fixture")
+    }
+
+    /// Supported asynchronous test transport; no socket/listener or retained helper changes.
+    nonisolated static func transport(
+        handler: MCPToolHandler, method: HTTPRequest.Method = .post, path: String = "/mcp",
+        origin: String? = nil, authority: String = "127.0.0.1:3141", contentType: String? = nil,
+        accept: String? = nil, protocolVersion: String? = nil, orderedHeaders: [HTTPField] = [],
+        body: String = "", loggerLabel: String
+    ) async throws -> MCPHTTPTestResponse {
+        let responder = MCPServer.makeRouter(handler: handler).buildResponder()
+        var headers = HTTPFields()
+        if let origin { headers[.origin] = origin }
+        if let contentType { headers[.contentType] = contentType }
+        if let accept { headers[.accept] = accept }
+        if let protocolVersion { headers[HTTPField.Name("MCP-Protocol-Version")!] = protocolVersion }
+        for field in orderedHeaders { headers.append(field) }
+        let request = Request(head: HTTPRequest(method: method, scheme: "http", authority: authority,
+            path: path, headerFields: headers), body: RequestBody(buffer: ByteBuffer(string: body)))
+        let loop = NIOAsyncTestingEventLoop()
+        var ownedChannel: NIOAsyncTestingChannel?
+        do {
+            let channel = try await NIOAsyncTestingChannel(loop: loop) { _ in }
+            ownedChannel = channel
+            let context = MCPRequestContext(source: ApplicationRequestContextSource(
+                channel: channel, logger: Logger(label: loggerLabel)))
+            let response = try await responder.respond(to: request, context: context)
+            let writer = Writer()
+            try await response.body.write(writer)
+            let result = MCPHTTPTestResponse(status: response.status, headers: response.headers,
+                body: Data(buffer: writer.bytes.withLockedValue { $0 }))
+            // Clear the owned reference before finishing so a cleanup failure cannot finish twice.
+            ownedChannel = nil
+            let leftovers = try await channel.finish(acceptAlreadyClosed: true)
+            #expect(leftovers.isClean)
+            await loop.shutdownGracefully()
+            return result
+        } catch {
+            if let channel = ownedChannel {
+                do {
+                    let leftovers = try await channel.finish(acceptAlreadyClosed: true)
+                    #expect(leftovers.isClean)
+                } catch { Issue.record("Async testing channel cleanup failed: \(error)") }
+            }
+            await loop.shutdownGracefully()
+            throw error
+        }
+    }
+
+    private nonisolated final class Writer: ResponseBodyWriter, Sendable {
+        let bytes = NIOLockedValueBox(ByteBuffer())
+        func write(_ buffer: ByteBuffer) async throws {
+            _ = bytes.withLockedValue { $0.writeImmutableBuffer(buffer) }
+        }
+        func finish(_: HTTPFields?) async throws {}
     }
 
     static func call(_ env: MCPTestEnv, tool: String, arguments: [String: Any],

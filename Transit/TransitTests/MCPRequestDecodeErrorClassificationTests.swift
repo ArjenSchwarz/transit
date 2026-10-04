@@ -94,7 +94,8 @@ struct MCPRequestDecodeErrorClassificationTests {
     @Test func wellFormedRequestDecodes() throws {
         let body = Data("""
             {"jsonrpc":"2.0","id":1,"method":"server/discover",
-            "params":{"_meta":{"protocolVersion":"2026-07-28","clientCapabilities":{}}}}
+            "params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities":{}}}}
             """.utf8)
         let result = try MCPModernValidator.validate(input(body), availability: MCPModernAvailability(tools: []))
         if case .discover = result.method {} else { Issue.record("Expected discover classification") }

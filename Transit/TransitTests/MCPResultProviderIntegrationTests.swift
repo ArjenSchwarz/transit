@@ -137,58 +137,77 @@ struct MCPResultProviderIntegrationTests {
         let receipt = try #require(try env.context.fetch(FetchDescriptor<MCPWriteReceipt>()).first)
         let expiry = receipt.expiresAt
         let request = receipt.requestJSON
-        let variants: [(String, Bool?)] = [
-            (#" {"unknown":{"presentation":null},"false":false,"missingAdjacent":null,"n":1E+9999} "#, false),
-            (#"[false,null,{"unknown":true}]"#, false),
-            ("null", true),
-            (#"{"error":{"unknown":"historical"},"accepted":false,"retryAction":null}"#, true),
-            ("{unreadable retained evidence", false)
+        let original = try #require(receipt.resultJSON)
+        #require(original.last == "}")
+        let variants = [
+            #", "historical":{"presentation":null,"false":false,"adjacentNull":null,"n":-0.00E+0}"#,
+            #", "historical":[false,null,{"unknown":true}],"source":"opaque historic field""#,
+            #", "historical":null,"largeInteger":9007199254740993"#
         ]
-        for (index, variant) in variants.enumerated() {
-            // Fixture seeding models historic durable evidence; the production adapter must never rewrite it.
-            receipt.resultJSON = variant.0
-            receipt.resultIsError = variant.1
+        for (index, additions) in variants.enumerated() {
+            // Add unknown members to a complete valid v1 receipt; never replace its known outcome fields.
+            let seeded = String(original.dropLast()) + additions + "}"
+            receipt.resultJSON = seeded
+            try MCPWriteReceiptStore(context: env.context, scopeID: receipt.localScopeID).validate(receipt)
             try env.context.save()
             let id = "historical-" + String(index)
             let replay = try await MCPModernResultFixture.call(env, tool: "create_project", arguments: args, id: id)
-            #expect(try MCPModernResultFixture.text(replay) == variant.0)
+            #expect(try MCPModernResultFixture.text(replay) == seeded)
             let result = try MCPModernResultFixture.assertSource(replay, id: .string(id))
-            #expect(MCPResultEncoderFixtures.field("isError", in: result)
-                == (variant.1 == true ? .boolean(true) : nil))
-            #expect(receipt.resultJSON == variant.0)
-            #expect(receipt.resultIsError == variant.1)
-            #expect(receipt.expiresAt == expiry)
-            #expect(receipt.requestJSON == request)
+            #expect(MCPResultEncoderFixtures.field("isError", in: result) == nil)
+            #expect(receipt.resultJSON == seeded && receipt.resultIsError == false)
+            #expect(receipt.expiresAt == expiry && receipt.requestJSON == request)
         }
+        // A rejected historic receipt retains its complete rejection evidence and delivered true flag.
+        let rejectedArgs: [String: Any] = ["name": "History", "colorHex": "#112233",
+                                           "idempotencyKey": "historical-rejected"]
+        _ = await env.handler.handle(MCPTestHelpers.toolCallRequest(tool: "create_project", arguments: rejectedArgs))
+        let rejected = try #require(try env.context.fetch(FetchDescriptor<MCPWriteReceipt>())
+            .first { $0.key == "historical-rejected" })
+        #require(rejected.stateRawValue == "rejected" && rejected.resultIsError == true)
+        let rejectedOriginal = try #require(rejected.resultJSON)
+        #require(rejectedOriginal.last == "}")
+        let rejectedExpiry = rejected.expiresAt
+        let rejectedRequest = rejected.requestJSON
+        let rejectedSeed = String(rejectedOriginal.dropLast()) + #", "historical":{"retryAction":null,"n":-0.00E+0}}"#
+        rejected.resultJSON = rejectedSeed
+        try MCPWriteReceiptStore(context: env.context, scopeID: rejected.localScopeID).validate(rejected)
+        try env.context.save()
+        let replay = try await MCPModernResultFixture.call(env, tool: "create_project",
+                                                          arguments: rejectedArgs, id: "rejected-history")
+        #expect(try MCPModernResultFixture.text(replay) == rejectedSeed)
+        let result = try MCPModernResultFixture.assertSource(replay, id: .string("rejected-history"))
+        #expect(MCPResultEncoderFixtures.field("isError", in: result) == .boolean(true))
+        #expect(rejected.resultJSON == rejectedSeed && rejected.resultIsError == true)
+        #expect(rejected.expiresAt == rejectedExpiry && rejected.requestJSON == rejectedRequest)
     }
 
     @Test func missingHistoricReceiptFlagUsesExistingUncertaintyWithoutSourceBypass() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-        defer { try? FileManager.default.removeItem(at: env.sidecarDirectory) }
-        let args: [String: Any] = ["name": "Unknown Flag", "colorHex": "#112233", "idempotencyKey": "missing-flag"]
-        _ = await env.handler.handle(MCPTestHelpers.toolCallRequest(tool: "create_project", arguments: args))
-        let receipt = try #require(try env.context.fetch(FetchDescriptor<MCPWriteReceipt>()).first)
-        let saved = try #require(receipt.resultJSON)
-        let expiry = receipt.expiresAt
-        receipt.resultIsError = nil
-        try env.context.save()
-        let response = try await MCPModernResultFixture.call(env, tool: "create_project",
-                                                              arguments: args, id: "missing-flag")
-        let text = try MCPModernResultFixture.text(response)
-        #expect(text != saved)
-        #expect(text.contains("OUTCOME_UNCERTAIN"))
-        _ = try MCPModernResultFixture.assertSource(response, id: .string("missing-flag"))
-        #expect(receipt.resultJSON == saved)
-        #expect(receipt.resultIsError == nil)
-        #expect(receipt.expiresAt == expiry)
-    }
-
-    private enum OuterFailure: Error { case encoding }
-    private nonisolated final class EncoderCount: @unchecked Sendable {
-        private let lock = NSLock()
-        private var value = 0
-        func record() { lock.lock(); defer { lock.unlock() }; value += 1 }
-        var count: Int { lock.lock(); defer { lock.unlock() }; return value }
+        // Receipt validation remains authoritative: unavailable flags and invalid payloads cannot be replayed.
+        let invalidVariants: [(String?, Bool?)] = [(nil, nil), ("null", false),
+            (#"{"unknown":1E+9999}"#, false), ("{unreadable retained evidence", false)]
+        for (index, variant) in invalidVariants.enumerated() {
+            let env = try MCPTestHelpers.makeEnv()
+            defer { try? FileManager.default.removeItem(at: env.sidecarDirectory) }
+            let args: [String: Any] = ["name": "Unknown Evidence", "colorHex": "#112233",
+                                       "idempotencyKey": "invalid-history-" + String(index)]
+            _ = await env.handler.handle(MCPTestHelpers.toolCallRequest(tool: "create_project", arguments: args))
+            let receipt = try #require(try env.context.fetch(FetchDescriptor<MCPWriteReceipt>()).first)
+            let original = try #require(receipt.resultJSON)
+            let saved = variant.0 ?? original
+            let expiry = receipt.expiresAt
+            let request = receipt.requestJSON
+            receipt.resultJSON = saved
+            receipt.resultIsError = variant.1
+            try env.context.save()
+            let id = "invalid-history-" + String(index)
+            let response = try await MCPModernResultFixture.call(env, tool: "create_project", arguments: args, id: id)
+            let text = try MCPModernResultFixture.text(response)
+            #expect(text != saved && text.contains("OUTCOME_UNCERTAIN"))
+            _ = try MCPModernResultFixture.assertSource(response, id: .string(id))
+            #expect(receipt.resultJSON == saved && receipt.resultIsError == variant.1)
+            #expect(receipt.expiresAt == expiry && receipt.requestJSON == request)
+        }
     }
 
     @Test func actualProtectedPostcommitOuterFailurePreservesReceiptAndReplay() async throws {
@@ -244,6 +263,14 @@ struct MCPResultProviderIntegrationTests {
 }
 
 extension MCPResultProviderIntegrationTests {
+    private enum OuterFailure: Error { case encoding }
+    private nonisolated final class EncoderCount: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value = 0
+        func record() { lock.lock(); defer { lock.unlock() }; value += 1 }
+        var count: Int { lock.lock(); defer { lock.unlock() }; return value }
+    }
+
     private func assertReadParity(_ env: MCPTestEnv, task: TransitTask, project: Project,
                                   savedRevision: String) async throws {
         project.name = "Relabeled Parent"

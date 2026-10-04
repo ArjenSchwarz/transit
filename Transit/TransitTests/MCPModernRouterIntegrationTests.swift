@@ -96,7 +96,8 @@ struct MCPModernRouterIntegrationTests {
         do {
             let body = try MCPModernResultFixture.body(method: "tools/call",
                 parameters: ["name": "query_tasks", "arguments": "invalid-object-shape"])
-            let response = try await MCPTestHelpers.respond(handler: handler, contentType: "application/json",
+            let response = try await MCPModernResultFixture.transport(
+                handler: handler, contentType: "application/json",
                 accept: "application/json, text/event-stream", protocolVersion: "2026-07-28", orderedHeaders: [
                     HTTPField(name: HTTPField.Name("Mcp-Method")!, value: "tools/call"),
                     HTTPField(name: HTTPField.Name("Mcp-Name")!, value: "query_tasks")
@@ -147,7 +148,8 @@ struct MCPModernRouterIntegrationTests {
                 throw FixtureFailure.barrier
             }
             do {
-                let response = try await MCPTestHelpers.respond(handler: handler, contentType: "application/json",
+                let response = try await MCPModernResultFixture.transport(
+                    handler: handler, contentType: "application/json",
                     accept: "application/json, text/event-stream", protocolVersion: "2026-07-28", orderedHeaders: [
                         HTTPField(name: HTTPField.Name("Mcp-Method")!, value: "tools/call"),
                         HTTPField(name: HTTPField.Name("Mcp-Name")!, value: "unavailable_tool")
@@ -193,9 +195,10 @@ struct MCPModernRouterIntegrationTests {
         let body = ##"""
             {"jsonrpc":"2.0","method":"tools/call","params":{"name":"create_project",
             "arguments":{"name":"Blocked","colorHex":"#112233","idempotencyKey":"notify-key"},
-            "_meta":{"protocolVersion":"2026-07-28","clientCapabilities":{}}}}
+            "_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities":{}}}}
             """##
-        let response = try await MCPTestHelpers.respond(handler: env.handler,
+        let response = try await MCPModernResultFixture.transport(handler: env.handler,
             contentType: "application/json", accept: "application/json, text/event-stream",
             protocolVersion: "2026-07-28", orderedHeaders: [
                 HTTPField(name: HTTPField.Name("Mcp-Method")!, value: "tools/call"),

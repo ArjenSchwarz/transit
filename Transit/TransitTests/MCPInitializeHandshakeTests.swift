@@ -30,7 +30,7 @@ struct MCPInitializeHandshakeTests {
     }
 
     @Test func everyRequiredMetadataFieldRemainsRequired() throws {
-        for field in ["protocolVersion", "clientCapabilities"] {
+        for field in ["io.modelcontextprotocol/protocolVersion", "io.modelcontextprotocol/clientCapabilities"] {
             var meta = validMetadata()
             meta.removeValue(forKey: field)
             #expect(try reject(params: ["_meta": meta]).rpcCode == -32602)
@@ -39,7 +39,9 @@ struct MCPInitializeHandshakeTests {
     }
 
     @Test func wrongRequiredFieldTypesRemainRejected() throws {
-        for (field, value) in [("protocolVersion", 20260728), ("clientCapabilities", [])] as [(String, Any)] {
+        let invalidFields: [(String, Any)] = [("io.modelcontextprotocol/protocolVersion", 20260728),
+                                            ("io.modelcontextprotocol/clientCapabilities", [])]
+        for (field, value) in invalidFields {
             var meta = validMetadata()
             meta[field] = value
             #expect(try reject(params: ["_meta": meta]).rpcCode == -32602)
@@ -49,30 +51,34 @@ struct MCPInitializeHandshakeTests {
     @Test func malformedClientInfoRemainsRejectedWhenProvided() throws {
         for clientInfo in [
             ["version": "1.0"], ["name": "Transit Tests"], ["name": 42, "version": "1.0"],
-            ["name": "Transit Tests", "version": 1], ["name": "Transit Tests", "version": "1.0", "title": false]
+            ["name": "Transit Tests", "version": 1]
         ] as [[String: Any]] {
             var meta = validMetadata()
-            meta["clientInfo"] = clientInfo
+            meta["io.modelcontextprotocol/clientInfo"] = clientInfo
             #expect(try reject(params: ["_meta": meta]).rpcCode == -32602)
         }
     }
 
     @Test func optionalClientInfoAndUnknownMetadataDoNotRequireSession() throws {
+        _ = try MCPModernValidator.validate(input(method: "server/discover", params: ["_meta": validMetadata()]),
+                                            availability: MCPModernAvailability(tools: []))
         var meta = validMetadata()
         meta["example.test/extension"] = ["unknown": NSNull()]
+        meta["io.modelcontextprotocol/clientInfo"] = ["name": "Transit Tests", "version": "1.0", "title": false]
         _ = try MCPModernValidator.validate(input(method: "server/discover", params: ["_meta": meta]),
                                             availability: MCPModernAvailability(tools: []))
     }
 
     @Test func unsupportedVersionRejectsWithoutLegacyFallback() throws {
         var meta = validMetadata()
-        meta["protocolVersion"] = "2099-01-01"
+        meta["io.modelcontextprotocol/protocolVersion"] = "2099-01-01"
         let rejection = try reject(params: ["_meta": meta], version: "2099-01-01")
         #expect(rejection.rpcCode == -32022)
     }
 
     private func validMetadata() -> [String: Any] {
-        ["protocolVersion": "2026-07-28", "clientCapabilities": [:] as [String: Any]]
+        ["io.modelcontextprotocol/protocolVersion": "2026-07-28",
+         "io.modelcontextprotocol/clientCapabilities": [:] as [String: Any]]
     }
 
     private func input(method: String, params: Any?, version: String = "2026-07-28") throws -> MCPModernRequestInput {
