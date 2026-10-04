@@ -10,10 +10,69 @@ nonisolated enum MCPModernProviderPreflight: Sendable {
 /// Common value-only binding; providers continue to own storage, receipts and publication.
 nonisolated enum MCPModernProviderBinding {
     /// Owner callbacks supply every private page before reserving publication.
-    /// Deliberate task16 RED boundary; task17 supplies immutable value preparation.
+    /// Fresh sibling pages share one original capture metadata owner, or fail whole.
     static func prepareReadPages(_ pages: [MCPPreparedToolRead], tool: String,
                                  operation: MCPReadOperation) throws -> [MCPResultPreparedPage] {
-        throw MCPResultPreparationError.notImplemented
+        let checkpoint = readCheckpoint(operation)
+        try checkpoint()
+        var prepared: [MCPResultPreparedPage] = []
+        var metadataInitialized = false
+        var originalMetadata: Data?
+        var metadataOwner: MCPResultPreparedMetadata?
+        var hasAttachedMetadata = false
+        for page in pages {
+            try checkpoint()
+            if let attached = page.preparedResultPage {
+                metadataOwner = attached.metadataOwner
+                hasAttachedMetadata = true
+                break
+            }
+        }
+        for page in pages {
+            try checkpoint()
+            if let attached = page.preparedResultPage {
+                prepared.append(attached)
+                continue
+            }
+            if metadataInitialized {
+                guard try sameMetadata(originalMetadata, page.frozenMetadataBytes, checkpoint: checkpoint) else {
+                    throw MCPResultBoundaryError.unsupportedEvidence
+                }
+            } else {
+                originalMetadata = page.frozenMetadataBytes
+                let value = try MCPResultProviderAdapters.metadata(result: page.result,
+                    frozenReadBytes: originalMetadata, checkpoint: checkpoint)
+                if hasAttachedMetadata {
+                    guard try sameMetadata(metadataOwner?.value.document.originalUTF8,
+                        value?.document.originalUTF8, checkpoint: checkpoint) else {
+                        throw MCPResultBoundaryError.unsupportedEvidence
+                    }
+                } else if let value {
+                    try checkpoint()
+                    metadataOwner = try MCPResultPreparation.metadata(value: value)
+                    try checkpoint()
+                }
+                metadataInitialized = true
+            }
+            let outcome = try readOutcome(page, tool: tool, checkpoint: checkpoint)
+            prepared.append(try MCPResultPreparation.page(source: outcome.source, context: outcome.context,
+                metadataOwner: metadataOwner, checkpoint: checkpoint))
+        }
+        try checkpoint()
+        return prepared
+    }
+
+    private static func sameMetadata(_ left: Data?, _ right: Data?,
+                                     checkpoint: @Sendable () throws -> Void) throws -> Bool {
+        try checkpoint()
+        guard let left, let right else { return left == nil && right == nil }
+        guard left.count == right.count else { return false }
+        for (index, pair) in zip(left, right).enumerated() {
+            if index % 1_024 == 0 { try checkpoint() }
+            if pair.0 != pair.1 { return false }
+        }
+        try checkpoint()
+        return true
     }
 
     static func availability(maintenanceEnabled: Bool) -> MCPModernAvailability {
@@ -92,10 +151,30 @@ nonisolated enum MCPModernProviderBinding {
 
     static func read(_ prepared: MCPPreparedToolRead, id: JSONRPCId, tool: String,
                      operation: MCPReadOperation? = nil) throws -> Data {
-        let checkpoint: @Sendable () throws -> Void = {
+        let checkpoint = readCheckpoint(operation)
+        try checkpoint()
+        if let attached = prepared.preparedResultPage {
+            return try MCPResultEncoder.encode(fragment: attached.fragment, id: id, checkpoint: checkpoint)
+        }
+        let outcome = try readOutcome(prepared, tool: tool, checkpoint: checkpoint)
+        let metadata = try MCPResultProviderAdapters.metadata(result: prepared.result,
+            frozenReadBytes: prepared.frozenMetadataBytes, checkpoint: checkpoint)
+        let presentation = try MCPResultAdapter.present(outcome.source, context: outcome.context,
+            checkpoint: checkpoint)
+        return try MCPResultEncoder.encode(source: outcome.source, presentation: presentation, id: id,
+            metadata: metadata, checkpoint: checkpoint)
+    }
+
+    private static func readCheckpoint(_ operation: MCPReadOperation?) -> @Sendable () throws -> Void {
+        {
             if let operation, !operation.shouldContinue() { throw CancellationError() }
             try Task.checkCancellation()
         }
+    }
+
+    private static func readOutcome(_ prepared: MCPPreparedToolRead, tool: String,
+                                    checkpoint: @escaping @Sendable () throws -> Void) throws
+        -> MCPResultProviderOutcome {
         var failure: MCPResultFailure?
         if case .some(.failure(let value)) = prepared.result.metadata?.read {
             let category: MCPResultErrorCategory
@@ -112,13 +191,7 @@ nonisolated enum MCPModernProviderBinding {
             mutationRecovery: nil, entityPositions: [])
         let outcome = try MCPResultProviderAdapters.outcome(result: prepared.result, context: context,
             origin: .generatedJSON, checkpoint: checkpoint)
-        let metadata = try MCPResultProviderAdapters.metadata(result: prepared.result,
-            frozenReadBytes: prepared.frozenMetadataBytes, checkpoint: checkpoint)
-        let declared = try declaringPositions(outcome, checkpoint: checkpoint)
-        let presentation = try MCPResultAdapter.present(declared.source, context: declared.context,
-            checkpoint: checkpoint)
-        return try MCPResultEncoder.encode(source: outcome.source, presentation: presentation, id: id,
-            metadata: metadata, checkpoint: checkpoint)
+        return try declaringPositions(outcome, checkpoint: checkpoint)
     }
     /// Explicit current public shapes only. Historical unknown fields are never traversed for IDs.
     private static func declaringPositions(

@@ -107,12 +107,21 @@ nonisolated enum MCPResultPreparation {
         try checkpoint()
         let source = try MCPResultAdapter.source(text: request.text, isError: request.isError,
             origin: request.origin, evidence: request.evidence, checkpoint: checkpoint)
-        let presentation = try MCPResultAdapter.present(source, context: request.context, checkpoint: checkpoint)
+        return try page(source: source, context: request.context,
+                        metadataOwner: request.metadataOwner, checkpoint: checkpoint)
+    }
+
+    /// Reuses a validated immutable source; provider position selection never reparses it.
+    static func page(source: MCPResultSource, context: MCPResultContext,
+                     metadataOwner: MCPResultPreparedMetadata?,
+                     checkpoint: @escaping @Sendable () throws -> Void = {}) throws -> MCPResultPreparedPage {
+        try checkpoint()
+        let presentation = try MCPResultAdapter.present(source, context: context, checkpoint: checkpoint)
         let fragment = try MCPResultEncoder.freeze(source: source, presentation: presentation,
-                                                   metadata: request.metadataOwner?.value, checkpoint: checkpoint)
+                                                   metadata: metadataOwner?.value, checkpoint: checkpoint)
         try checkpoint()
         return MCPResultPreparedPage(source: source, presentation: presentation, fragment: fragment,
-                                     metadataOwner: request.metadataOwner)
+                                     metadataOwner: metadataOwner)
     }
 
     static func prepare(pages: [MCPResultPreparedPage], budget: MCPResultRetentionBudget,
