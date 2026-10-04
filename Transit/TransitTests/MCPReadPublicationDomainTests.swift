@@ -205,7 +205,7 @@ extension MCPReadPublicationDomainTests {
                         started: started, release: release),
                     chargeEntries: 1, chargeBytes: 1, newTokens: ["a"], deadline: deadline)
             }
-            let finalizer = Task.detached {
+            let finalizer = Task.detached(priority: .userInitiated) {
                 domain.withLock {
                     if let pending = domain.stores[store]?.pending.values.first {
                         if commit { pending.commitLocked(in: domain) } else { pending.discardLocked(in: domain) }
@@ -214,7 +214,7 @@ extension MCPReadPublicationDomainTests {
             }
             #expect(wait(started) == .success)
             let gateStart = ContinuousClock.now
-            let gate = Task.detached { domain.withLock { 42 } }
+            let gate = Task.detached(priority: .userInitiated) { domain.withLock { 42 } }
             #expect(await gate.value == 42)
             #expect(gateStart.duration(to: .now) < .seconds(1))
             release.signal()
@@ -260,11 +260,11 @@ extension MCPReadPublicationDomainTests {
             index: PublicationDestructionIndex(descriptor: try MCPPublicationIndexDescriptor(roots: []),
                 started: started, release: release), maxEntries: 8, maxBytes: 100)
         let empty = try index()
-        let retirement = Task.detached {
+        let retirement = Task.detached(priority: .userInitiated) {
             try domain.retire(storeID: store, expectedVersion: 0, replacementIndex: empty)
         }
         #expect(wait(started) == .success)
-        let gate = Task.detached { domain.withLock { 42 } }
+        let gate = Task.detached(priority: .userInitiated) { domain.withLock { 42 } }
         #expect(await gate.value == 42)
         release.signal()
         try await retirement.value

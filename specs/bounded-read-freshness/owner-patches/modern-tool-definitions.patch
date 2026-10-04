@@ -1,0 +1,27 @@
+--- a/Transit/Transit/MCP/MCPToolDefinitions.swift
++++ b/Transit/Transit/MCP/MCPToolDefinitions.swift
+@@ -1,4 +1,5 @@
+ #if os(macOS)
++import Foundation
+ 
+ // MARK: - Tool Definitions
+ 
+@@ -20,6 +21,18 @@
+ 
+     static func tools(includingMaintenance: Bool) -> [MCPToolDefinition] {
+         includingMaintenance ? coreTools + maintenanceTools : coreTools
++    }
++
++    /// Uses the same selected definitions without altering their public input contracts.
++    static func modernTools(includingMaintenance: Bool) throws -> [MCPModernToolDescriptor] {
++        try tools(includingMaintenance: includingMaintenance).map { definition in
++            MCPModernToolDescriptor(
++                name: definition.name,
++                description: definition.description,
++                inputSchema: try MCPJSONDocument.parse(JSONEncoder().encode(definition.inputSchema)),
++                resultSchema: try MCPResultSchemas.descriptor(
++                    tool: definition.name, description: definition.description))
++        }
+     }
+ 
+     /// Names of tools gated behind `MCPSettings.maintenanceToolsEnabled`,

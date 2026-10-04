@@ -37,7 +37,7 @@
 | [Batch Task Queries](#batch-task-queries) | 2026-10-03 | Done | MCP task detail selection, batch lookup, and frozen cursor pagination |
 | [MCP Write Safety](#mcp-write-safety) | 2026-10-03 | Done | Add retry-safe MCP writes, local revision preconditions, and structured saved outcomes |
 | [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | Ready for Review | Structured/text results and latest-only transport locally verified; client compatibility explicitly deferred post-merge |
-| [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | In Progress | Bound MCP read completion and report immutable saved capture/import evidence |
+| [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | Done | Bound MCP read completion and report immutable saved capture/import evidence |
 
 ---
 
@@ -391,9 +391,11 @@ Immutable source/presentation results, supported-link availability and modern-on
 
 ## Bounded Read Freshness
 
-**Created:** 2026-10-03 · **Status:** In Progress
+**Created:** 2026-10-03 · **Status:** Done
 
 T-63 bounds MCP reads with saved-only coherent capture, explicit import evidence, independent deadlines and frozen pagination metadata. Shared capture/publication contracts support T2382 reusable portfolio views.
+
+All implementation tasks and native validation are complete. The remaining unique tests/docs proceed through PR review on merged main with explicit publication/disclosure approval.
 
 - [Requirements](bounded-read-freshness/requirements.md)
 - [Design](bounded-read-freshness/design.md)
@@ -401,3 +403,12 @@ T-63 bounds MCP reads with saved-only coherent capture, explicit import evidence
 - [Decisions](bounded-read-freshness/decision_log.md)
 - [Task review](bounded-read-freshness/tasks-review.md)
 - [Foundation handoff](bounded-read-freshness/foundation-handoff.md)
+- [Tasks12/13 acceptance and diagnostics readiness](bounded-read-freshness/task13-acceptance.md)
+- [Task14 diagnostics RED handoff](bounded-read-freshness/task14-red-handoff.md)
+- [Task15 source readiness and owner patches](bounded-read-freshness/task15-source-handoff.md)
+- [Catalog READ_FAILED focused RED preparation and diagnostic import](bounded-read-freshness/catalog-read-failed-red-preparation.md)
+- [Focused catalog RED evidence and fixture ports](bounded-read-freshness/catalog-read-failed-red-handoff.md) — historical six intended body failures; runtime result unfinalized; finalized GREEN recorded below.
+- [Caller read contract](../docs/mcp-read-contract.md)
+- [Task15 integrated GREEN acceptance](bounded-read-freshness/task15-green-acceptance.md)
+- [Task16 integrated native acceptance](bounded-read-freshness/task16-green-acceptance.md)
+- [Implementation explanation](bounded-read-freshness/implementation.md)

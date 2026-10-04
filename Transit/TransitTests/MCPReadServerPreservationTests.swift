@@ -1,5 +1,6 @@
 #if os(macOS)
 import Foundation
+import HTTPTypes
 import SwiftData
 import Testing
 @testable import Transit
@@ -12,7 +13,8 @@ struct MCPReadServerPreservationTests {
         let env = try MCPTestHelpers.makeEnv()
         let server = MCPServer(toolHandler: env.handler)
         await server.stop()
-        let response = try await call(env.handler, tool: tool, args: [:])
+        let response = try await call(env.handler, tool: tool, args: tool == "query_tasks"
+            ? ["detailLevel": "summary", "includeComments": false, "limit": 1] : [:])
         let result = try #require(response["result"] as? [String: Any])
         let meta = try #require((result["_meta"] as? [String: Any])?["me.nore.ig.transit/read"] as? [String: Any])
         #expect(meta["category"] as? String == "READ_BUSY")
@@ -102,11 +104,16 @@ struct MCPReadServerPreservationTests {
 
     private func call(_ handler: MCPToolHandler, tool: String, args: [String: Any]) async throws -> [String: Any] {
         let envelope: [String: Any] = ["jsonrpc": "2.0", "id": "preservation-id", "method": "tools/call",
-                                      "params": ["name": tool, "arguments": args]]
+                                      "params": ["name": tool, "arguments": args, "_meta": [
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": [:] as [String: Any]]]]
         let data = try JSONSerialization.data(withJSONObject: envelope)
         let response = try await MCPTestHelpers.respond(handler: handler,
             contentType: "application/json", accept: "application/json", protocolVersion: "2026-07-28",
-            body: try #require(String(data: data, encoding: .utf8)), loggerLabel: "read-server-preservation")
+            orderedHeaders: [
+                HTTPField(name: HTTPField.Name("Mcp-Method")!, value: "tools/call"),
+                HTTPField(name: HTTPField.Name("Mcp-Name")!, value: tool)
+            ], body: try #require(String(data: data, encoding: .utf8)), loggerLabel: "read-server-preservation")
         let object = try #require(response.json as? [String: Any])
         #expect(object["id"] as? String == "preservation-id")
         #expect(object["jsonrpc"] as? String == "2.0")

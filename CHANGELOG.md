@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- T-63: MCP reads capture saved local data with explicit capture/import metadata, cached or bounded-refresh policies, a five-second response budget and physical admission retained through late cleanup. Frozen pages preserve their original evidence. Bounded phase diagnostics and caller guidance cover failures, backoff and unsupported force-pull limits.
 - T-2383: MCP tool results expose a versioned structured source/presentation envelope while preserving original text, saved receipt outcomes and retry evidence. Tool output schemas and a synthetic read-only loopback readiness harness cover the contract; navigable links remain unavailable pending T-572.
 - T-2380: Eight standard MCP writes require retry keys, and task/milestone updates require revision preconditions. Local receipts retain saved outcomes for seven days, durable guards protect uncertain requests across restart, and full-record reads return content revisions for conflict detection.
 - T-2377: MCP `create_project` accepts a required name and six-digit colour, validates optional description/repository fields and case-insensitive name uniqueness, persists through `ProjectService`, and returns project ID and metadata for subsequent task creation. Regression tests cover discovery, validation, storage failures, fallback write rejection, and project-to-task creation.
@@ -58,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - T-1803: `UpdateStatusIntent` now includes a missing requested `displayId` in its `TASK_NOT_FOUND` hint (`No task with displayId N`), while missing UUIDs retain the existing generic lookup hint and malformed identifiers, duplicate IDs, status validation, and atomic mutation behavior remain unchanged.
 ### Fixed
 
+- T-63: Align detached publication-test producers with their user-initiated semaphore waiters, eliminating observed fixture priority-inversion warnings while preserving publication, cleanup and timing assertions.
 - T-2380: Reuse validated guard bindings only within synchronous write phases, revalidate after suspension, and discard snapshots on mutation failure. Document safe recovery without deleting uncertain bindings or resetting local scope.
 - T-2380: Reconcile retry guards in one validated pass, reject incomplete saved outcomes before replay, and preserve exact integer validation. Added malformed-result regressions and corrected MCP safety examples.
 - T-2103: Task and milestone creation now revalidate the selected project after asynchronous display-ID allocation using live pending state plus a fresh committed-state probe. A peer deletion now returns the established project-not-found error before insertion instead of persisting an orphan task or reporting false milestone success; App Intent and MCP callers retain their deterministic project-not-found contracts, with two-context service and MCP regressions covering the race.

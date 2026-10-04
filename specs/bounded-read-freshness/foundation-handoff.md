@@ -1,5 +1,7 @@
 # T-63 fixture foundation handoff
 
+Current acceptance: Tasks12/13 are complete after exact verified Task17 consumption. The earlier staged statements below retain their checkpoint provenance; [task13-acceptance.md](task13-acceptance.md) records the modern actual-module closure and queued Task14 RED readiness. No local runtime rerun is claimed.
+
 Tasks 2/3/6/7/8/9 are verified. The publication registry and ordinary retention are implemented and locally tested. T2382 may consume this shared API after parent review; actual cross-ticket routing acceptance remains tasks 13/16.
 
 ## Verified evidence
