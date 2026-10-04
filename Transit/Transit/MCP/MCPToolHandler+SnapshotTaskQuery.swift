@@ -39,10 +39,9 @@ extension MCPToolHandler {
             case .continuation(let cursor, let policy):
                 let pinned = try store.preparedResultPage(for: cursor, now: retainedReadInstant(store))
                 try requireRetainedPolicy(policy, root: pinned.page.root)
-                let result = try MCPPortfolioReadEncoding.prepared(
-                    pinned.page.encodedPage, metadata: pinned.page.root.frozenMetadataBytes)
                 try MCPPortfolioReadEncoding.check(operation)
-                return result.attachingPreparedResultPage(pinned.preparedPage).attaching([pinned.pin])
+                return MCPPreparedToolRead(preparedResultPage: pinned.preparedPage,
+                    frozenMetadataBytes: pinned.page.root.frozenMetadataBytes, publications: [pinned.pin])
             }
         } catch {
             if let failure = try MCPPortfolioReadEncoding.normalized(error, cursor: cursorRequest) { return failure }

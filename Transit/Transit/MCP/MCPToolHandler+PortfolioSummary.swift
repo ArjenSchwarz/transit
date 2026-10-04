@@ -16,17 +16,15 @@ extension MCPToolHandler {
                 return try preparePortfolioCapture(capture, request: request, store: store, operation: operation)
             case .replay(let snapshotID):
                 let pinned = try store.preparedResultView(for: snapshotID, now: retainedReadInstant(store))
-                let result = try MCPPortfolioReadEncoding.prepared(
-                    pinned.root.firstPage, metadata: pinned.root.frozenMetadataBytes)
                 try MCPPortfolioReadEncoding.check(operation)
-                return result.attachingPreparedResultPage(pinned.firstPage).attaching([pinned.pin])
+                return MCPPreparedToolRead(preparedResultPage: pinned.firstPage,
+                    frozenMetadataBytes: pinned.root.frozenMetadataBytes, publications: [pinned.pin])
             case .continuation(let cursor, let policy):
                 let pinned = try store.preparedResultPage(for: cursor, now: retainedReadInstant(store))
                 try requireRetainedPolicy(policy, root: pinned.page.root)
-                let result = try MCPPortfolioReadEncoding.prepared(
-                    pinned.page.encodedPage, metadata: pinned.page.root.frozenMetadataBytes)
                 try MCPPortfolioReadEncoding.check(operation)
-                return result.attachingPreparedResultPage(pinned.preparedPage).attaching([pinned.pin])
+                return MCPPreparedToolRead(preparedResultPage: pinned.preparedPage,
+                    frozenMetadataBytes: pinned.page.root.frozenMetadataBytes, publications: [pinned.pin])
             }
         } catch {
             if let failure = try MCPPortfolioReadEncoding.normalized(error, cursor: cursorRequest) { return failure }
