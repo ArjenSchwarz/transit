@@ -14,7 +14,8 @@ nonisolated enum MCPResultRetentionStore: Sendable, CaseIterable {
 nonisolated struct MCPResultRetentionBudget: Sendable {
     static let limitBytes = 16 * 1_024 * 1_024
     let store: MCPResultRetentionStore
-    /// ORIGINAL capture/index only; excludes text, documents, fragments and metadata below.
+    /// Original capture/index plus separately retained legacy compatibility backing.
+    /// Excludes text/documents/fragments/metadata already measured from prepared owners.
     let originalCaptureIndexBytes: Int
     /// Observations of this store only; the publication owner revalidates races later.
     let visibleBytes: Int
