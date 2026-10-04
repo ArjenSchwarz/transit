@@ -37,7 +37,7 @@ metadata:
   - Requirements: [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [4.6](requirements.md#4.6), [5.5](requirements.md#5.5), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 4. Green: implement coordinated saved validation and owned receipt commitment <!-- id:ev1ktkz -->
+- [x] 4. Green: implement coordinated saved validation and owned receipt commitment <!-- id:ev1ktkz -->
   - Implement the minimum shared coordinator policy/adapter for the participating synchronous MainActor saved-validation/apply/stage/save phase, with clean checks around preparation and explicit fresh saved resolution. Reuse the T-2384 policy and T-2380 receipt engine; retain one same-store domain/result commitment and existing replay/recovery semantics.
   - Complete the amended coordination, fresh-validation and owned-save tests before dependent graph-write integration. Outside writers/imports may race and produce temporary inconsistent links; projection reports their available evidence without automatic repair or post-commit rollback. No persistence-redesign or all-independent-writer predicate-fence proof is required. Ordinary implementation still stops on unsafe/ambiguous evidence, dirty drafts or uncertain persistence.
   - Blocked-by: ev1ktky (Red: test coordinated saved validation and owned receipt commitment)
@@ -45,7 +45,7 @@ metadata:
   - Requirements: [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [4.6](requirements.md#4.6), [5.5](requirements.md#5.5), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 5. Red: test normalized graph projection and exact change planning <!-- id:ev1ktl0 -->
+- [-] 5. Red: test normalized graph projection and exact change planning <!-- id:ev1ktl0 -->
   - Write TaskLinkGraphTests/TaskLinkPlanTests with seeded Swift Testing generated small graphs and an independent reference for inverse/reversed normalization, permutation invariance, SCC membership, direct blockers and duplicate paths.
   - Cover cross-project/missing/colliding identities, imported repeated occurrences, Done/Abandoned/unknown, valid Done ancestry exceptions, duplicate cardinality/chains/cycles/retarget and removal-only incremental repair. Seed outside-writer race faults into actual projection expectations for updated endpoint assessments and cycle/cardinality/identity/removal diagnostics, preserving the original committed receipt. Exact selector collisions fail closed; same-logical remove/add rejects; missing endpoint needs no invented revision.
   - Blocked-by: ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment), ev1ktkx (Green: implement pre-feature store migration and schema parity)
