@@ -126,3 +126,10 @@ Parent delivered owner patch6a748928ccb6b91e6cebaf1538997e50d664b9da. Exact publ
 ## Retained availability seam consumed
 
 Exact owner settings-only.patch105ba8fdfc9323d08248d615b1620232ae6bc687 consumed after normaldrain inb51ab96, applycheck/diffcheck0. SourceSHA256c2fe9f43e2283c792a98691d349da34ff7fe5dcb3545e5fb23e2c5a40d1cf062 matches owner; ownership retained. Use nonisolated maintenanceToolsEnabledSnapshot:Bool, initialized from stored value and synchronously updated by didSet before persistence/notifications. Source import changes no preferences. Both factory/availability owner seams delivered; runtime parity/initial/offactor/notification proofs remain15 obligations. Existing signed products built1a69d41 exclude the new settings seam and cannot prove it.
+
+
+## Task15 first implemented source boundary; delivery still pending
+
+Reviewed source checkpointfb776a0 implements MCPResultProviderSelection mutation selection, MCPResultProviderAdapters and optional non-wire MCPResultProviderEvidence on MCPToolResult. Selector prepares complete request-correlated reconciliation bytes before dispatch, dispatches once, preserves source identity and selects prepared bytes after provider/encoding failure without reencoding; cancellation suppresses delivery. Adapters retain declared source origin, original text/isError and frozen read metadata evidence rather than guessing origin from parse failure. This is static-reviewed source, not integrated/runtime-delivered API15. Owned handler/router binding and focused GREEN remain pending; T2384 must continue waiting for actual DELIVERED15/gpzncvz commit/interface handoff. No reverse dependency on production batch.
+
+The corrected four-body runtime used older signed products1a69d41 and excludes this checkpoint and imported settings snapshotb51ab96. Actual four identifiers all executed, decoderPASS/three intended feature failures/nine issues; NIO misuse0. Both sampled processes drained, slot released, test143/unfinalized summary64. Runtime critic clear with these limits, no further teardown-only retry gate. Retained T63 owner modules and T2384 write coordinator remain outside task15 editing ownership.
