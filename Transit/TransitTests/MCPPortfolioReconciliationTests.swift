@@ -206,7 +206,7 @@ extension MCPPortfolioProjectionTests {
         var allRows = try #require(page["results"] as? [[String: Any]])
         var visited: Set<String> = []
         while let cursor = page["nextCursor"] as? String {
-            #expect(visited.insert(cursor).inserted)
+            try #require(visited.insert(cursor).inserted)
             let retained = try store.page(for: cursor, now: root.capture.createdAt)
             #expect(retained.root.frozenMetadataBytes == root.frozenMetadataBytes)
             #expect(retained.root.window == root.window)
