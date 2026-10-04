@@ -14,7 +14,9 @@ extension MCPToolHandler {
             let metadata = ReadFailureMetadata(requestId: operation.id.uuidString, category: .storageFailure,
                 read: ReadExecutionMetadata(policy: .refreshIfNeeded, refreshOutcome: .unavailable, budgetMs: 5_000))
             return try MCPPreparedToolRead(text: "Saved read capture service is unavailable", isError: true,
-                                           metadata: .failure(metadata))
+                                           metadata: .failure(metadata),
+                                           providerEvidence: MCPResultProviderEvidence(
+                                            origin: .plainText, evidence: .established))
         }
         let arguments = request.arguments.mapValues(\.value)
         if request.tool == "query_project_summaries" {

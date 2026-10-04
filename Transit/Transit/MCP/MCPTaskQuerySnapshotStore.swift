@@ -5,6 +5,15 @@ nonisolated struct MCPRetainedQueryPage: Sendable {
     let text: String
     let metadataBytes: Data?
     let policy: MCPReadPolicy?
+    let preparedResultPage: MCPResultPreparedPage?
+
+    init(text: String, metadataBytes: Data?, policy: MCPReadPolicy?,
+         preparedResultPage: MCPResultPreparedPage? = nil) {
+        self.text = text
+        self.metadataBytes = metadataBytes
+        self.policy = policy
+        self.preparedResultPage = preparedResultPage
+    }
 }
 
 nonisolated enum MCPCursorFamily: Sendable {
@@ -103,6 +112,14 @@ final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
         } catch PublicationRejection.capacity { throw capacityError() } catch PublicationRejection.expired {
             throw expiryError()
         }
+    }
+
+    // Task16 RED declaration only; expanded-owner retention is deliberately not active.
+    // swiftlint:disable:next function_parameter_count
+    func prepare(preparedBundle: MCPResultRetainedBundle, cursors: [String],
+                 deadline: ContinuousClock.Instant, operationID: UUID,
+                 metadataBytes: Data?, policy: MCPReadPolicy?) throws -> MCPPublicationReservation? {
+        throw MCPResultPreparationError.notImplemented
     }
 
     func publish(pages: [String], cursors: [String], deadline: ContinuousClock.Instant) throws {

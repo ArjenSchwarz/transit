@@ -32,7 +32,8 @@ nonisolated struct MCPPreparedToolRead: Sendable {
 
     init(text: String, isError: Bool? = nil, metadata: MCPReadResultMetadata? = nil,
          frozenMetadataBytes: Data? = nil, publications: [any MCPPreparedPublication] = [],
-         preparedResultPage: MCPResultPreparedPage? = nil) throws {
+         preparedResultPage: MCPResultPreparedPage? = nil,
+         providerEvidence: MCPResultProviderEvidence? = nil) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let bytes = try frozenMetadataBytes ?? metadata.map { try encoder.encode($0) }
@@ -41,7 +42,8 @@ nonisolated struct MCPPreparedToolRead: Sendable {
             let original = try JSONDecoder().decode(ReadCaptureMetadata.self, from: bytes)
             resultMetadata = MCPToolResultMetadata(read: .capture(original))
         } else { resultMetadata = nil }
-        result = MCPToolResult(content: [.text(text)], isError: isError, metadata: resultMetadata)
+        result = MCPToolResult(content: [.text(text)], isError: isError, metadata: resultMetadata,
+                               providerEvidence: providerEvidence)
         var encoded = try encoder.encode(MCPToolResult(content: [.text(text)], isError: isError))
         if let bytes {
             // Insert the frozen metadata JSON verbatim; cursor replay does not assess or relabel it.

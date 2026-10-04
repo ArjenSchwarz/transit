@@ -1,6 +1,10 @@
 #if os(macOS)
 import Foundation
 
+/// A Sendable synchronous function value; no actor isolation or checkpoint is added.
+typealias MCPReadPagePreparer = @Sendable ([MCPPreparedToolRead], String, MCPReadOperation)
+    throws -> [MCPResultPreparedPage]
+
 nonisolated struct MCPReadImportApplicability: Sendable {
     let inFlightImportIDs: Set<UUID>
     /// Independent evidence of saved-store visibility available before the decision.
@@ -13,6 +17,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
     let source: any MCPReadCaptureSource
     let monitor: MCPImportEvidenceMonitor
     let snapshots: MCPTaskQuerySnapshotStore
+    let pagePreparer: MCPReadPagePreparer?
     private let applicability: () -> MCPReadImportApplicability
     private let proof: (CapturedReadView) -> MCPImportCaptureProof?
 
@@ -21,12 +26,24 @@ final class MCPReadService: MCPReadCapturedPreparing {
          applicability: @escaping () -> MCPReadImportApplicability = {
              MCPReadImportApplicability(inFlightImportIDs: [], visibleSavedImportProof: nil)
          },
-         proof: @escaping (CapturedReadView) -> MCPImportCaptureProof? = { _ in nil }) {
+         proof: @escaping (CapturedReadView) -> MCPImportCaptureProof? = { _ in nil },
+         pagePreparer: MCPReadPagePreparer? = nil) {
         self.source = source
         self.monitor = monitor
         self.snapshots = snapshots
         self.applicability = applicability
         self.proof = proof
+        self.pagePreparer = pagePreparer
+    }
+
+    /// Pure optional forwarding seam. Existing paged flow stays inactive until verified binding.
+    func preparePrivatePages(_ pages: [MCPPreparedToolRead], tool: String,
+                             operation: MCPReadOperation) throws -> [MCPResultPreparedPage]? {
+        guard let pagePreparer else { return nil }
+        guard operation.shouldContinue() else { throw CancellationError() }
+        let prepared = try pagePreparer(pages, tool, operation)
+        guard operation.shouldContinue() else { throw CancellationError() }
+        return prepared
     }
 
     func prepare(tool: String, arguments: [String: Any],
@@ -255,7 +272,9 @@ final class MCPReadService: MCPReadCapturedPreparing {
         let text = tool == "query_tasks"
             ? IntentHelpers.encodeJSON(["error": ["code": code, "message": message]]) : message
         // This error envelope consists only of valid strings and fixed metadata values.
-        return try MCPPreparedToolRead(text: text, isError: true, metadata: metadata)
+        let evidence = tool == "query_tasks" ? nil
+            : MCPResultProviderEvidence(origin: .plainText, evidence: .established)
+        return try MCPPreparedToolRead(text: text, isError: true, metadata: metadata, providerEvidence: evidence)
     }
 
     private enum ReadExecutionError: Error { case timeout }
