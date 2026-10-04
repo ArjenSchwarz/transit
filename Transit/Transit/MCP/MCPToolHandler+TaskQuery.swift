@@ -23,7 +23,9 @@ extension MCPToolHandler {
     }
 
     private func queryErrorResult(_ error: MCPTaskQueryError) -> MCPToolResult {
-        errorResult(IntentHelpers.encodeJSON(["error": ["code": error.code, "message": error.message]]))
+        let category = MCPResultClassification.category(for: error.code) ?? .unclassifiedHistorical
+        return errorResult(IntentHelpers.encodeJSON(["error": ["code": error.code, "message": error.message]]),
+            category: category, origin: .generatedJSON)
     }
 
     private func queryResults(_ request: MCPTaskQueryRequest, args: [String: Any]) throws -> [[String: Any]] {

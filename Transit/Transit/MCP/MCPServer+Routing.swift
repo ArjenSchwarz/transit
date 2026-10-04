@@ -1,66 +1,97 @@
 #if os(macOS)
 import Foundation
 import Hummingbird
+import HTTPTypes
 import NIOCore
 import NIOFoundationCompat
 
 extension MCPServer {
 
-    /// Builds the Hummingbird router for the MCP endpoint.
-    /// POST carries JSON-RPC; GET offers the optional Streamable HTTP SSE
-    /// channel used for server-initiated notifications.
-    /// `nonisolated` keeps transport construction independent of MainActor;
-    /// route callbacks execute on Hummingbird/NIO and hop to MainActor when dispatching.
+    /// Modern single-request transport. Availability is frozen before covered admission.
     nonisolated static func makeRouter(
         handler: MCPToolHandler, readCoordinator: MCPReadCoordinator? = nil
     ) -> Router<MCPRequestContext> {
         let coordinator = readCoordinator ?? handler.readCoordinator
         let router = Router(context: MCPRequestContext.self)
-        router.get("mcp") { request, context -> Response in
-            guard Self.isAllowedMCPRequest(request) else { return forbiddenResponse() }
-            return await Self.toolListChangeStreamResponse(
-                request: request,
-                context: context,
-                handler: handler
-            )
-        }
-        router.post("mcp") { request, _ -> Response in
-            // Validate origin before reading the body.
-            guard Self.isAllowedMCPRequest(request) else { return forbiddenResponse() }
-
-            let body = try await request.body.collect(upTo: 1_048_576)
-            let data = Data(buffer: body)
-
-            switch decodeIncomingRequest(data) {
-            case .success(let rpcRequest):
-                let admittedAt = ContinuousClock.now
-                if let read = MCPBoundedReadDispatcher.classify(rpcRequest) {
-                    let bytes = try await MCPBoundedReadDispatcher.response(for: read, rpc: rpcRequest,
-                        handler: handler, coordinator: coordinator, admittedAt: admittedAt)
-                    return Response(status: .ok, headers: [.contentType: "application/json"],
-                                    body: .init(byteBuffer: ByteBuffer(data: bytes)))
-                }
-                // A single notification has no JSON-RPC response body.
-                guard let rpcResponse = await handler.handle(rpcRequest) else {
-                    return Response(status: .accepted)
-                }
-                if rpcRequest.method == "initialize", rpcResponse.error == nil {
-                    let sessionID = await handler.createToolListChangeSession()
-                    return jsonResponse(
-                        rpcResponse,
-                        additionalHeaders: [.mcpSessionID: sessionID]
-                    )
-                }
-                return jsonResponse(rpcResponse)
-
-            case .batch(let elements):
-                return await batchResponse(for: elements, handler: handler)
-
-            case .failure(let errorResponse):
-                return jsonResponse(errorResponse)
+        let methods: [HTTPRequest.Method] = [.get, .delete, .head, .put, .patch, .options, .trace, .connect]
+        for method in methods {
+            router.on("mcp", method: method) { request, _ -> Response in
+                guard Self.isAllowedMCPRequest(request) else { return forbiddenResponse() }
+                return Response(status: .methodNotAllowed, headers: [.allow: "POST"])
             }
         }
+        router.post("mcp") { request, _ -> Response in
+            await modernPost(request, handler: handler, coordinator: coordinator)
+        }
         return router
+    }
+
+    nonisolated private static func modernPost(_ request: Request, handler: MCPToolHandler,
+                                               coordinator: MCPReadCoordinator) async -> Response {
+        guard Self.isAllowedMCPRequest(request) else { return forbiddenResponse() }
+        var headers = request.head.headerFields.map {
+            MCPModernHeader(name: $0.name.rawName, value: $0.value)
+        }
+        if !headers.contains(where: { $0.name.lowercased() == "host" }), let authority = request.head.authority {
+            headers.append(MCPModernHeader(name: "Host", value: authority))
+        }
+        do {
+            try MCPModernValidator.validateTransport(MCPModernRequestInput(httpMethod: "POST",
+                headers: headers, body: Data()))
+            let body = try await request.body.collect(upTo: 1_048_576)
+            let maintenanceEnabled = handler.modernMaintenanceEnabled
+            let modern = try MCPModernValidator.validate(MCPModernRequestInput(httpMethod: "POST",
+                headers: headers, body: Data(buffer: body)),
+                availability: MCPModernProviderBinding.availability(maintenanceEnabled: maintenanceEnabled))
+            let admittedAt = ContinuousClock.now
+            return try await dispatchModern(modern, handler: handler, coordinator: coordinator,
+                maintenanceEnabled: maintenanceEnabled, admittedAt: admittedAt)
+        } catch let rejection as MCPModernRejection {
+            return modernRejection(rejection)
+        } catch let transport as HTTPError {
+            return Response(status: transport.status, headers: transport.headers)
+        } catch {
+            return Response(status: .internalServerError)
+        }
+    }
+
+    nonisolated private static func dispatchModern(
+        _ modern: MCPModernRequest, handler: MCPToolHandler, coordinator: MCPReadCoordinator,
+        maintenanceEnabled: Bool, admittedAt: ContinuousClock.Instant
+    ) async throws -> Response {
+        switch modern.method {
+        case .discover:
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+            return encodedResponse(try MCPModernDiscovery.encodeDiscovery(id: modern.id,
+                identity: MCPModernServerIdentity(name: "transit", version: version)))
+        case .listTools:
+            return encodedResponse(try MCPModernDiscovery.encodeTools(id: modern.id,
+                tools: MCPToolDefinitions.modernTools(includingMaintenance: maintenanceEnabled)))
+        case .callTool(let tool, let execution):
+            let rpc = MCPModernWire.request(modern, tool: tool)
+            if case .coveredRead = execution {
+                guard let read = MCPBoundedReadDispatcher.classify(rpc) else {
+                    throw MCPResultBoundaryError.unsupportedEvidence
+                }
+                let bytes = try await MCPBoundedReadDispatcher.response(for: read, rpc: rpc,
+                    handler: handler, coordinator: coordinator, admittedAt: admittedAt,
+                    encodeWithOperation: { prepared, id, operation in
+                        try MCPModernProviderBinding.read(prepared, id: id, tool: tool, operation: operation)
+                    }, encodeConstantToolFailure: { prepared, id in
+                        try MCPModernProviderBinding.read(prepared, id: id, tool: tool)
+                    })
+                return encodedResponse(bytes)
+            }
+            switch try await MCPModernProviderBinding.call(rpc, tool: tool, handler: handler,
+                maintenanceEnabled: maintenanceEnabled) {
+            case .normal(let bytes), .reconciliation(let bytes): return encodedResponse(bytes)
+            case .suppressed: return Response(status: .accepted)
+            }
+        case .listenSubscriptions:
+            // The request-scoped subscription owner binds this method in task19.
+            return modernRejection(MCPModernRejection(httpStatus: 501, rpcCode: -32601,
+                message: "Subscriptions are unavailable", id: modern.id, data: nil))
+        }
     }
 
     /// Dispatches one non-empty JSON-RPC batch and builds its HTTP response.

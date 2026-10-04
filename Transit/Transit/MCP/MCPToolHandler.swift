@@ -24,7 +24,7 @@ final class MCPToolHandler {
     let milestoneFetcher: any MilestoneFetching
     let milestoneDisplayIDFinder: any MilestoneDisplayIDFinding
     private let maintenanceService: DisplayIDMaintenanceService
-    private let settings: MCPSettings
+    private nonisolated let settings: MCPSettings
     private let persistence: PersistenceAvailability
     private let writeCoordinator: MCPWriteCoordinator?
 
@@ -112,6 +112,40 @@ final class MCPToolHandler {
         self.readService = readService
     }
 
+    /// One immutable request snapshot; no MainActor hop or defaults access at admission.
+    nonisolated var modernMaintenanceEnabled: Bool { settings.maintenanceToolsEnabledSnapshot }
+
+    /// Delegates pure input validation to the existing write validator. Acceptance, receipts,
+    /// persistence and effects remain exclusively owned by the write coordinator.
+    func modernPreflight(_ request: JSONRPCRequest, tool: String) -> MCPModernProviderPreflight {
+        guard let params = request.params?.value as? [String: Any] else {
+            return .requestError(JSONRPCError(code: JSONRPCErrorCode.invalidParams,
+                message: "Missing tool name", data: nil))
+        }
+        let arguments: [String: Any]
+        switch parseArgumentsEnvelope(params) {
+        case .success(let value): arguments = value
+        case .failure(.message(let message)):
+            return .requestError(JSONRPCError(code: JSONRPCErrorCode.invalidParams, message: message, data: nil))
+        }
+        var recovery: MCPMutationRecoveryContext?
+        if MCPWriteCommand.protectedTools.contains(tool) {
+            do {
+                let command = try MCPWriteCommand.validate(tool: tool, arguments: arguments)
+                recovery = .protectedWrite(MCPProtectedRecoveryKey(tool: tool, idempotencyKey: command.key))
+            } catch {
+                let result = MCPWriteOutcome.result(MCPWriteOutcome.failure(tool: tool,
+                    key: arguments["idempotencyKey"] as? String, failure: MCPWriteFailure.from(error),
+                    accepted: false), isError: true)
+                return .rejected(result)
+            }
+        } else if tool == "reassign_duplicate_display_ids" {
+            recovery = .unprotectedMaintenance(tool: tool)
+        }
+        return .ready(MCPResultContext(tool: tool, semanticFailure: nil,
+            mutationRecovery: recovery, entityPositions: []))
+    }
+
     // MARK: - JSON-RPC Dispatch
 
     func createToolListChangeSession() -> String {
@@ -137,11 +171,11 @@ final class MCPToolHandler {
     }
 
     /// Returns `nil` for JSON-RPC notifications (no response required).
-    func handle(_ request: JSONRPCRequest) async -> JSONRPCResponse? {
+    func handle(_ request: JSONRPCRequest, maintenanceEnabled: Bool? = nil) async -> JSONRPCResponse? {
         // MCP 2025-03-26 requires a present request id to be a string or
         // integer. `JSONRPCRequest` preserves presence separately because an
         // omitted id is a notification while an explicit null is invalid.
-        guard request.isNotification || request.id != nil else {
+        guard !request.isNotification, request.id != nil else {
             return JSONRPCResponse.error(
                 id: nil,
                 code: JSONRPCErrorCode.invalidRequest,
@@ -167,7 +201,8 @@ final class MCPToolHandler {
         case "tools/list":
             response = handleToolsList(id: request.id)
         case "tools/call":
-            response = await handleToolCall(id: request.id, params: request.params)
+            response = await handleToolCall(id: request.id, params: request.params,
+                maintenanceEnabled: maintenanceEnabled ?? settings.maintenanceToolsEnabledSnapshot)
         default:
             response = JSONRPCResponse.error(
                 id: request.id,
@@ -288,7 +323,8 @@ final class MCPToolHandler {
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func handleToolCall(
         id: JSONRPCId?,
-        params: AnyCodable?
+        params: AnyCodable?,
+        maintenanceEnabled: Bool
     ) async -> JSONRPCResponse {
         guard let dict = params?.value as? [String: Any],
             let name = dict["name"] as? String
@@ -312,7 +348,7 @@ final class MCPToolHandler {
         // callers can tell a disabled tool from an unknown one (AC 5.5). The
         // outer tools/call method is supported; only its tool-name parameter is
         // invalid under the negotiated MCP protocol contract.
-        if MCPToolDefinitions.maintenanceToolNames.contains(name), !settings.maintenanceToolsEnabled {
+        if MCPToolDefinitions.maintenanceToolNames.contains(name), !maintenanceEnabled {
             return JSONRPCResponse.error(
                 id: id,
                 code: JSONRPCErrorCode.invalidParams,
@@ -351,7 +387,7 @@ final class MCPToolHandler {
         // action that could act on a stale read is blocked by this same gate.
         if Self.mutatingToolNames.contains(name), persistence.isFallbackStorageActive {
             return JSONRPCResponse.success(
-                id: id, result: errorResult(PersistenceAvailability.unavailableHint)
+                id: id, result: errorResult(PersistenceAvailability.unavailableHint, category: .storageFailure)
             )
         }
 
@@ -383,18 +419,25 @@ final class MCPToolHandler {
     private func handleScanDuplicateDisplayIds() -> MCPToolResult {
         do {
             let report = try maintenanceService.scanDuplicates()
-            return textResult(try IntentHelpers.encodeAsJSONString(report))
+            do { return textResult(try IntentHelpers.encodeAsJSONString(report)) } catch {
+                return errorResult("Failed to encode duplicate report: \(error.localizedDescription)",
+                category: .serializationFailure) }
         } catch {
-            return errorResult("Failed to scan duplicates: \(error.localizedDescription)")
+            return errorResult("Failed to scan duplicates: \(error.localizedDescription)", category: .storageFailure)
         }
     }
 
     private func handleReassignDuplicateDisplayIds() async -> MCPToolResult {
         let result = await maintenanceService.reassignDuplicates()
         do {
-            return textResult(try IntentHelpers.encodeAsJSONString(result))
+            let text = try maintenanceReassignmentEncoder?(result) ?? IntentHelpers.encodeAsJSONString(result)
+            return textResult(text)
         } catch {
-            return errorResult("Failed to encode reassignment result: \(error.localizedDescription)")
+            let message = "Failed to encode reassignment result: \(error.localizedDescription)"
+            return MCPToolResult(content: [.text(message)],
+                isError: true, providerEvidence: MCPResultProviderEvidence(origin: .plainText,
+                    evidence: .unestablished, failure: MCPResultFailure(category: .outcomeUncertain, diagnostic: nil),
+                    requiresPreparedReconciliation: true))
         }
     }
 
@@ -414,7 +457,7 @@ extension MCPToolHandler {
         switch resolveProjectFilter(args) {
         case .resolved(let pid): projectFilter = pid
         case .none: projectFilter = nil
-        case .error(let message): return errorResult(message)
+        case .error(let message, let category): return errorResult(message, category: category)
         }
 
         // Status filter — validate enum values before filtering [T-732]
@@ -440,7 +483,7 @@ extension MCPToolHandler {
         do {
             allMilestones = try milestoneService.fetchAllMilestones()
         } catch {
-            return errorResult("Failed to fetch milestones: \(error)")
+            return errorResult("Failed to fetch milestones: \(error)", category: .storageFailure)
         }
 
         let filtered = allMilestones.filter { milestoneMatches($0, args: args, projectFilter: projectFilter) }
@@ -448,7 +491,7 @@ extension MCPToolHandler {
         do {
             let results = try filtered.map { try milestoneToDict($0, formatter: formatter) }
             return textResult(IntentHelpers.encodeJSONArray(results))
-        } catch { return errorResult("Failed to capture milestones: \(error)") }
+        } catch { return errorResult("Failed to capture milestones: \(error)", category: .storageFailure) }
     }
 
     /// Returns true when `milestone` satisfies the project/status/search filters in `args`.
@@ -487,34 +530,36 @@ extension MCPToolHandler {
         } catch MilestoneService.Error.milestoneNotFound {
             return textResult(IntentHelpers.encodeJSONArray([]))
         } catch MilestoneService.Error.duplicateDisplayID {
-            return errorResult("Duplicate milestone identifier detected for displayId \(displayId)")
+            return errorResult("Duplicate milestone identifier detected for displayId \(displayId)",
+                category: .ambiguousIdentity)
         } catch {
-            return errorResult("Failed to look up milestone: \(error)")
+            return errorResult("Failed to look up milestone: \(error)", category: .storageFailure)
         }
     }
 
     private enum ProjectFilterResult {
         case resolved(UUID)
         case none
-        case error(String)
+        case error(String, MCPResultErrorCategory)
     }
 
     private func resolveProjectFilter(_ args: [String: Any]) -> ProjectFilterResult {
         // Reject malformed or non-string projectId when the key is present
         // [T-665, T-788].
         switch parseProjectIdArgument(args) {
-        case .failure(.message(let message)): return .error(message)
+        case .failure(.message(let message)): return .error(message, .invalidInput)
         case .success(let pid?):
             switch projectService.findProject(id: pid) {
             case .success(let project):
                 return .resolved(project.id)
             case .failure(let error):
-                return .error(IntentHelpers.mapProjectLookupError(error).hint)
+                let mapped = IntentHelpers.mapProjectLookupError(error)
+                return .error(mapped.hint, MCPResultClassification.category(for: mapped.code) ?? .internalFailure)
             }
         case .success(nil):
             // Reject non-string `project` filter [T-1116].
             if args["project"] != nil, !(args["project"] is String) {
-                return .error("project must be a string")
+                return .error("project must be a string", .invalidInput)
             }
             if let name = args["project"] as? String,
                 !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -522,7 +567,8 @@ extension MCPToolHandler {
                 case .success(let found):
                     return .resolved(found.id)
                 case .failure(let err):
-                    return .error(IntentHelpers.mapProjectLookupError(err).hint)
+                    let mapped = IntentHelpers.mapProjectLookupError(err)
+                    return .error(mapped.hint, MCPResultClassification.category(for: mapped.code) ?? .internalFailure)
                 }
             }
             return .none
@@ -545,20 +591,20 @@ extension MCPToolHandler {
         do {
             projects = try projectService.fetchAllProjects(sortedByName: true)
         } catch {
-            return errorResult("Failed to fetch projects: \(error)")
+            return errorResult("Failed to fetch projects: \(error)", category: .storageFailure)
         }
         var results: [[String: Any]] = []
         for project in projects {
             var dict: [String: Any]
             do { dict = try projectMetadataDict(project) } catch {
-                return errorResult("Failed to capture project: \(error)")
+                return errorResult("Failed to capture project: \(error)", category: .storageFailure)
             }
 
             let milestones: [Milestone]
             do {
                 milestones = try milestoneService.milestonesForProject(project)
             } catch {
-                return errorResult("Failed to fetch milestones: \(error)")
+                return errorResult("Failed to fetch milestones: \(error)", category: .storageFailure)
             }
             if !milestones.isEmpty {
                 dict["milestones"] = milestones.map { milestoneSummaryDict($0) }
@@ -580,9 +626,15 @@ extension MCPToolHandler {
         return "Duplicate task identifier detected for displayId \(displayId)"
     }
 
-    func textResult(_ text: String) -> MCPToolResult { MCPToolResult(content: [.text(text)], isError: nil) }
-    func errorResult(_ message: String) -> MCPToolResult {
-        MCPToolResult(content: [.text(message)], isError: true)
+    func textResult(_ text: String) -> MCPToolResult {
+        MCPToolResult(content: [.text(text)], isError: nil,
+            providerEvidence: MCPResultProviderEvidence(origin: .generatedJSON))
+    }
+    func errorResult(_ message: String, category: MCPResultErrorCategory = .invalidInput,
+                     origin: MCPResultOrigin = .plainText) -> MCPToolResult {
+        MCPToolResult(content: [.text(message)], isError: true,
+            providerEvidence: MCPResultProviderEvidence(origin: origin,
+                failure: MCPResultFailure(category: category, diagnostic: nil)))
     }
 
     /// Validates the `arguments` envelope of a `tools/call` request. Omitting the

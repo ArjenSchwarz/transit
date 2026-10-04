@@ -78,6 +78,8 @@ nonisolated struct MCPResultClassification {
         }
     }
 
+    static func category(for code: String) -> MCPResultErrorCategory? { categories[code] }
+
     private static let categories: [String: MCPResultErrorCategory] = [
         "INVALID_INPUT": .invalidInput, "INVALID_STATUS": .invalidInput, "INVALID_TYPE": .invalidInput,
         "INVALID_PRIORITY": .invalidInput, "MILESTONE_PROJECT_MISMATCH": .invalidInput,

@@ -5,6 +5,11 @@ import Foundation
 nonisolated enum MCPModernValidator {
     static let protocolVersion = "2026-07-28"
 
+    /// Run Origin/Host and content negotiation before the transport reads a request body.
+    static func validateTransport(_ input: MCPModernRequestInput) throws {
+        try validateHTTP(input)
+    }
+
     static func validate(
         _ input: MCPModernRequestInput,
         availability: MCPModernAvailability
