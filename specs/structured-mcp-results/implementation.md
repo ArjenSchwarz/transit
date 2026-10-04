@@ -353,3 +353,12 @@ Reviewed onefilefixf93d554 handles accounting explicitly: preserves pendingBytes
 
 
 Final accounting-fixed packet at sourcef93d554 is staticallyCLEAR: exact37 declarations/40 expected bodies, unchanged inventory/verifier/selection and signedisolatedhostguards; freshpaths preserve bothfailedbuilds. Preparedonly .codex-cache/task16-combined-retention-red-accounting-fixed/guarded-commands.json; buildSHA256ea5cc5ea272ba22f05915d1147c8ebe3555664709b761d00d66e8e92b9db9bf5. Root rehashed second22artifacts withzeromismatches, first43alsozero. Worktreeclean before thisdocumentation update. No activeheavyjob/no thirdbuild; ready fornewparentexclusive grant. No functionalRED/16completion/17implementationclaim.
+
+
+## Targeted frontend check catches remaining owner macro error
+
+While T2384 owns GREENslot, parent requested targeted compiler/typechecks with no competingappbuild. Actual bounded swift-frontend -typecheck checks11fixture/helper files (2052lines) against alreadybuiltTransitmodule using actualSDK/explicitmodules/Testingplugins; no emission/link/app/testexecution. Initialcommandsetup exit1 before sourcecheck lacked companionbuildsessionflag, preserved. Restoredexactflag currenttree invocation exit1 in2.5seconds identifies imported MCPReusableSnapshotPreparedOwnerTests228–229: throwing metadata adapter inside #require lacksinnertry. No otherdiagnostic emitted. Staticaudit had missed thismacroboundary; actualcompilerproof supersedes priorstaticreadiness.
+
+Exact one-token ownerpatch .codex-cache/task16-targeted-typecheck/owner-inner-try.patch SHA25612d6ede64c91fd31ff8cc1a256af87dffdfe199428a910fc435596c5c84b0c75 adds innertry, preserving error propagation and requiredvalueassertion. Temporaryoverlay SHA256722144dcd884dac4033da1b5b4cf3e49af7e413b34469c3d00009fec04456d20 typechecksEXIT0 in2.401seconds, emptydiagnostics/notimedout. This isoverlayproof only: actualretainedowner source remains bf6952...unchanged. Root verified16artifacthashes zeromismatch. Allfrontend jobsdrained/noappbuild/heavyslotuse; semanticsunchanged.
+
+Existing37/40 accounting-fixed packet is NOWBLOCKED until T2382 ownercorrection is coordinated/imported, then same-scope sourcepin mustrefresh. No newuserapprovalgate: exactownerhandoff/slotcoordination only. Rune16stillinprogress/no actualRED/17GREEN. Failedbuilds and historicalguardedcommands remainunchanged.
