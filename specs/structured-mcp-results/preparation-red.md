@@ -1,14 +1,22 @@
 # Expanded result preparation RED readiness
 
-Task10/gpzncvu is in progress at reviewed fixture commit `70d103a05ae68334cc6f6c65ff919187a00ffb6f`. Task11/gpzncvv remains blocked until meaningful app RED. This checkpoint prepares value-only fixtures and an immutable Results-module boundary; it does not reserve capacity, publish a cursor, integrate transport, or deliver DELIVERED15/gpzncvz.
+Task10/gpzncvu is complete after meaningful reviewed RED on fixture `70d103a05ae68334cc6f6c65ff919187a00ffb6f`. Task11/gpzncvv is ready for source drafting; GREEN needs its own coordinated slot. This checkpoint prepares value-only fixtures and an immutable Results-module boundary; it does not reserve capacity, publish a cursor, integrate transport, or deliver DELIVERED15/gpzncvz.
 
-## Attempt blocked before execution
+## Actual guarded RED and slot release
+
+Task10/gpzncvu is complete after reviewed meaningful RED on fixture70d103a, observed HEADfec9ecf with only later documentation changes. Normal per-command review accepted the unchanged build and serial test calls under direct user approval. Build and signed development-host preflight exited0. Actual console records eleven functions/one suite: ten caught notImplemented failures and one passing parser/encoder barrier control, with no incidental assertion failures. Full charging/boundary/late-cutoff assertions after the placeholder factories await task11 GREEN.
+
+Finalization stalled. Exact runner68843 and guarded development host68848 were identity-verified and sampled successfully before any signal. Bounded runner-first SIGTERM produced actual test exit143; the host drained automatically without a signal. Owned processes are absent and the exclusive slot was released immediately before extraction/bookkeeping. PreparationRed.xcresult is unfinalized without Info.plist; actual summary extraction exited64; no finalized counts or normal test exit are claimed. No replay or diagnostic suppression. Cause remains unproven; samples show XCTestDriver/XCTTestRunSession/XCTWaiter and runner waitForBuild, without an observed collectSimulatorDiagnostics match.
+
+Read-only runtime critic clears meaningful RED with these limits. Task11 is the sole ready stream and may proceed with value-only source drafting; its GREEN needs a new coordinated slot. Actual evidence remains local under .codex-cache/preparation-red-readiness/results.md, app-actual-results.json, app-actual-commands.json, app-actual-artifact-sha256.json and app-final-hash-verification.json. Forty new actual artifacts are hashed; prior98 evidence files,13 source/isolation files and current fixtures remain unchanged. Prior denials below remain historical, with direct approval and successful call acceptance now recorded. DELIVERED15 remains pending; no live/client/shared-file action occurred.
+
+## Historical attempt blocked before execution
 
 Parent granted the exclusive heavy slot after T2382 drained, for the reviewed fixture70d103a/documentation3f7f835 sequence. Automatic approval review rejected the exact build command before any process started: “This is a resource-intensive build/test preparation command, while the user’s explicit scope prohibited heavy builds/tests; parent-agent approval does not override that user restriction.” The review also prohibited workaround or indirect execution. No retry or alternate route was attempted. The unused slot was immediately released.
 
 Build exit is absent because the build did not start. Preflight and tests did not run; fresh result bundles remain absent. Task10 is still in progress and task11 blocked. The recorded earlier owner all-testing approval and this newer delegated slot grant did not satisfy this review; the parent must resolve the authorization provenance before another attempt. Evidence: .codex-cache/preparation-red-readiness/app-attempt.json, app-source-verification.json and app-attempt-artifact-sha256.json. Source readiness remains valid; no meaningful app RED is claimed.
 
-## Single unchanged retry also rejected
+## Historical single unchanged retry also rejected
 
 Parent forwarded the complete later assistant question/user reply block, including the 2026-10-03 22:35 UTC owner answer “All the testing is approved. I'll read the design now”, and authorized exactly one unchanged tool-call retry through normal review. The transcript was sent to the denied runner unchanged; no evidence was added to tool arguments and no action was altered.
 
@@ -42,6 +50,6 @@ Read-only internal critic cleared final source, fixtures and guarded command at 
 
 Exact prepared sequence: guarded-commands.json, guarded-build-command.txt and host-preflight.py in that evidence directory. Build command SHA256: d3521fb4142c8ba3b8b996a8591be45c6098f93871ea1824e5191691ef08946a. Fresh PreparationRedBuild.xcresult, PreparationRed.xcresult and T2383PreparationRed.xctestrun are absent. Serial selection is TransitTests/MCPResultPreparationBudgetTests only; expected eleven methods are ten declaration failures and one existing control pass. This is an expectation, not observed app counts. If teardown stalls, sample identity-verified owned processes before bounded cleanup, record actual exits/finalization and drain before releasing the slot; no replay merely for cleaner teardown evidence.
 
-## Scheduling
+## Historical readiness scheduling
 
 No app build/test has run for task10. T2382 owns the current heavy slot. The next run requires the parent's exclusive grant for the exact reviewed guarded command, preserving the signed development-host identity, unit-test persistence, isolation guards and unit-only suite selection. Routine implementation evidence remains local under the owner's delivery preference. Live data, client activation, push/merge/deployment remain held.

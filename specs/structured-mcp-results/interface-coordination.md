@@ -1,6 +1,6 @@
 # Pending common result seam coordination
 
-## Current checkpoint: direct testing approval received; task10 awaiting slot
+## Current checkpoint: task10 meaningful RED complete; slot released
 
 Task8 meaningful RED is reviewed and complete at `0695c7c`, retaining command exit143/unfinalized result limitations. Task9 descriptor source `a25bf99` and recovery correction `1f20e11` passed the guarded run at `2df0648`: finalized5/5 app tests and actual-export host checks876 plus3. Build/preflight/test/summary exited0, owned processes drained and slot released; runtime critic clear. Rune9 is complete. See schema-green.md and `.codex-cache/schema-recovery-conformance/results.md`.
 
@@ -59,3 +59,8 @@ This satisfies only the named production ownership gate. Task10 actual RED is st
 ## Direct testing authorization
 
 User directly approved all test/build runs in this task conversation. The provenance issue has direct user authorization available for the next normal review; no test call has yet been attempted under it. Task10 remains inprogress awaiting the next parent-exclusive slot; task11 stays blocked until meaningful RED. The exact reviewed commands and isolation constraints remain unchanged. No live/client/deployment authorization or API15 delivery is implied.
+
+
+## Task10 verified meaningful RED
+
+Under direct approval, the exact build/test calls were accepted. Build/preflight0; actual console11 methods/1suite gives10 intentional notImplemented failures and1 parser/encoder controlPASS, no incidental errors. Finalization stalled; both exact runner68843/host68848 sampled before bounded runner SIGTERM, actual test143 and unfinalized bundle/noInfo.plist. Host drained automatically, no replay; slot released immediately. Critic clears meaningful RED, without finalized counts/normal-exit claim. Rune10 complete, only11 ready. Task11 value-only drafting next, GREEN separately coordinated. DELIVERED15 still pending. See preparation-red.md and local runtime evidence.

@@ -85,7 +85,7 @@ metadata:
   - Requirements: [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.4](requirements.md#2.4), [3.2](requirements.md#3.2)
   - References: design.md, Transit/Transit/MCP/Results/MCPResultSchemas.swift, tests/validation/validate_mcp_result_schemas.py
 
-- [-] 10. RED: bound expanded result preparation with production-shaped synthetic cases <!-- id:gpzncvu -->
+- [x] 10. RED: bound expanded result preparation with production-shaped synthetic cases <!-- id:gpzncvu -->
   - Add MCPResultPreparationBudgetTests with 2000 synthetic records/multiple pages and seeded large text/number fields; blocked parser/encoder and fake cancellation/cutoff inputs assert timely complete failure, never partial success.
   - Test exact backing charges for raw text, structured fragments and original metadata, shared backing once, pending reservations and both ordinary/reusable16-MiB boundary fixtures. Over-limit results must fail capacity/deadline, not be truncated or gain larger limits. This is automated code verification of the design measurement risk, not a standalone metrics exercise.
   - Blocked-by: gpzncvt (GREEN: implement output descriptor/schema providers and host fixture validation)
