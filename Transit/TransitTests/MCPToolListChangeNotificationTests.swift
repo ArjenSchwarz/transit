@@ -1,6 +1,7 @@
 #if os(macOS)
 import Foundation
 import HTTPTypes
+import HummingbirdCore
 import NIOConcurrencyHelpers
 import Testing
 @testable import Transit
