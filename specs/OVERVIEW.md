@@ -38,6 +38,7 @@
 | [MCP Write Safety](#mcp-write-safety) | 2026-10-03 | Done | Add retry-safe MCP writes, local revision preconditions, and structured saved outcomes |
 | [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | Ready for Review | Structured/text results and latest-only transport locally verified; client compatibility explicitly deferred post-merge |
 | [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | Done | Bound MCP read completion and report immutable saved capture/import evidence |
+| [Portfolio Summaries](#portfolio-summaries) | 2026-10-04 | Done | Saved portfolio counts and reusable frozen task views; qualified native verification complete |
 
 ---
 
@@ -412,3 +413,13 @@ All implementation tasks and native validation are complete. The remaining uniqu
 - [Task15 integrated GREEN acceptance](bounded-read-freshness/task15-green-acceptance.md)
 - [Task16 integrated native acceptance](bounded-read-freshness/task16-green-acceptance.md)
 - [Implementation explanation](bounded-read-freshness/implementation.md)
+
+## Portfolio Summaries
+
+T-2382 completes regression coverage and caller guidance for the portfolio implementation already integrated on main. Installed-client compatibility remains deferred to post-merge MacBook validation.
+
+- [Requirements](portfolio-summaries/requirements.md)
+- [Design](portfolio-summaries/design.md)
+- [Tasks](portfolio-summaries/tasks.md)
+- [Implementation](portfolio-summaries/implementation.md)
+- [Acceptance qualifications](portfolio-summaries/integration-acceptance.md)

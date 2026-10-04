@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- T-2382: Complete portfolio regression coverage and caller guidance for saved summary counts, half-open completion windows and activity, with reusable frozen task queries. Remove the obsolete unused scaffold error.
+
 - T-63: MCP reads capture saved local data with explicit capture/import metadata, cached or bounded-refresh policies, a five-second response budget and physical admission retained through late cleanup. Frozen pages preserve their original evidence. Bounded phase diagnostics and caller guidance cover failures, backoff and unsupported force-pull limits.
 - T-2383: MCP tool results expose a versioned structured source/presentation envelope while preserving original text, saved receipt outcomes and retry evidence. Tool output schemas and a synthetic read-only loopback readiness harness cover the contract; navigable links remain unavailable pending T-572.
 - T-2380: Eight standard MCP writes require retry keys, and task/milestone updates require revision preconditions. Local receipts retain saved outcomes for seven days, durable guards protect uncertain requests across restart, and full-record reads return content revisions for conflict detection.

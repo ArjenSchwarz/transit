@@ -129,6 +129,9 @@ struct MCPPortfolioModernAcceptanceTests {
             let replayResponse = try await send(
                 env, tool: "query_project_summaries", arguments: ["snapshotId": snapshot], id: 2383)
             let replay = try checkedSource(replayResponse, id: 2383)
+            let sealed = try #require(root.preparedResultPage)
+            let expected = try MCPResultEncoder.encode(fragment: sealed.fragment, id: .integer(2383))
+            #expect(replayResponse.body == expected)
             #expect(replay.text == summary.text && replay.value == summary.value)
             try exactMetadata(replayResponse, bytes: root.frozenMetadataBytes)
             #expect(env.fetchCount.value == 1)

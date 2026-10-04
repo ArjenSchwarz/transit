@@ -55,6 +55,44 @@ struct MCPPortfolioIntegrationTests {
         }
     }
 
+    @Test(arguments: [UInt64(0x2382), UInt64(0x63), UInt64(0x17)])
+    func seededSavedRouterPagesReconcileAndRemainFrozenAfterMutation(seed: UInt64) async throws {
+        let env = try Environment(taskCount: 48, commentOnEveryTask: true)
+        try await withDrainedEnvironment(env) {
+            let capture = try seedSavedRecords(env, seed: seed)
+            let summary = try success(try await request(env, tool: "query_project_summaries", arguments: initial))
+            let snapshot = try #require(summary.metadata["snapshotId"] as? String)
+            let original = try #require(try await taskPages(
+                env, snapshot: snapshot, metadata: summary.metadata, limit: 7))
+            try reconcile(summary, rows: original, expected: capture)
+            try reconcileGeneratedCompletions(summary, expected: capture)
+            for status in MCPSnapshotTaskQueryRequest.supportedStatuses {
+                var arguments = taskArguments(snapshot, limit: 100)
+                arguments["status"] = [status]
+                let filtered = try success(try await request(env, tool: "query_tasks", arguments: arguments))
+                let rows = try #require(filtered.payload["results"] as? [[String: Any]])
+                #expect(rows.count == capture.tasks.filter { $0.effectiveStatus == status }.count)
+                #expect(Set(rows.compactMap { $0["taskId"] as? String })
+                        == Set(capture.tasks.filter { $0.effectiveStatus == status }.map { $0.id.uuidString }))
+                #expect(try canonical(filtered.metadata) == canonical(summary.metadata))
+                #expect(filtered.payload["nextCursor"] is NSNull)
+            }
+            env.fixture.tasks[0].statusRawValue = "done"
+            env.fixture.tasks[0].taskDescription = "Changed after seeded capture"
+            env.fixture.comment.content = "Changed seeded comment evidence"
+            try env.fixture.owner.context.save()
+            let replay = try success(try await request(
+                env, tool: "query_project_summaries", arguments: ["snapshotId": snapshot]))
+            #expect(try canonical(replay.payload) == canonical(summary.payload))
+            #expect(try canonical(replay.metadata) == canonical(summary.metadata))
+            let frozen = try #require(try await taskPages(
+                env, snapshot: snapshot, metadata: summary.metadata, limit: 7))
+            #expect(try canonical(frozen) == canonical(original))
+            try reconcile(replay, rows: frozen, expected: capture)
+            #expect(env.fetchCount.value == 1)
+        }
+    }
+
     @Test func admissionLifecycleInvalidatesPublishedRootAndCursorWithoutAppendPublication() async throws {
         let env = try Environment()
         try await withDrainedEnvironment(env) {
@@ -106,10 +144,13 @@ private extension MCPPortfolioIntegrationTests {
     @MainActor struct Environment {
         let fixture: MCPPortfolioSavedFixture
         let handler: MCPToolHandler
+        let fetchCount: CaptureCounter
 
         init(taskCount: Int = 9, commentOnEveryTask: Bool = false) throws {
             fixture = try MCPPortfolioSavedFixture(taskCount: taskCount, commentOnEveryTask: commentOnEveryTask)
             let context = fixture.owner.context
+            let counter = CaptureCounter()
+            fetchCount = counter
             let taskAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
             let milestoneAllocator = DisplayIDAllocator(store: InMemoryCounterStore())
             let tasks = TaskService(modelContext: context, displayIDAllocator: taskAllocator)
@@ -121,7 +162,10 @@ private extension MCPPortfolioIntegrationTests {
             let domain = MCPReadPublicationDomain()
             let snapshots = MCPTaskQuerySnapshotStore(domain: domain)
             let service = MCPReadService(source: MCPReadCaptureBuilder(container: fixture.owner.container,
-                fence: .actorOnlyTestFixture),
+                fence: .actorOnlyTestFixture, fetchTasks: { context in
+                    counter.value += 1
+                    return try context.fetch(FetchDescriptor<TransitTask>())
+                }),
                 monitor: MCPImportEvidenceMonitor(syncActive: false, storeIdentifier: nil),
                 snapshots: snapshots, pagePreparer: {
                     try MCPModernProviderBinding.prepareReadPages($0, tool: $1, operation: $2)
@@ -130,6 +174,44 @@ private extension MCPPortfolioIntegrationTests {
                 milestoneService: milestones, maintenanceService: maintenance, settings: MCPSettings(),
                 persistence: FallbackOutcomeFixture.makeHealthy(), taskQuerySnapshots: snapshots,
                 readService: service, readCoordinator: MCPReadCoordinator(domain: domain))
+        }
+    }
+
+    @MainActor final class CaptureCounter { var value = 0 }
+
+    func seedSavedRecords(_ env: Environment, seed: UInt64) throws -> CapturedReadView {
+        var state = seed
+        let statuses = MCPSnapshotTaskQueryRequest.supportedStatuses + ["unknown"]
+        let offsets: [TimeInterval?] = [-1, 0, 3_599, 3_600, nil]
+        for (index, task) in env.fixture.tasks.enumerated() {
+            state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            task.statusRawValue = statuses[Int(state % UInt64(statuses.count))]
+            task.taskDescription = "Seed \(seed), record \(index), value \(state)"
+            task.metadata = ["seed": "\(seed)", "generated": "\(state)"]
+            state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            task.completionDate = offsets[Int(state % UInt64(offsets.count))].map {
+                MCPPortfolioFixture.window.start.addingTimeInterval($0)
+            }
+        }
+        try env.fixture.owner.context.save()
+        return try env.fixture.capture()
+    }
+
+    func reconcileGeneratedCompletions(_ summary: Result, expected: CapturedReadView) throws {
+        let projects = try #require(summary.payload["projects"] as? [[String: Any]])
+        let project = try #require(projects.first {
+            $0["projectId"] as? String == MCPPortfolioFixture.populatedProjectID.uuidString
+        })
+        let recent = try #require(project["recentCompletions"] as? [String: Int])
+        let terminal = expected.tasks.filter { ["done", "abandoned"].contains($0.effectiveStatus) }
+        #expect(recent["missingCompletionDateCount"] == terminal.filter { $0.completionDate == nil }.count)
+        for status in ["done", "abandoned"] {
+            let inside = terminal.filter {
+                guard let date = $0.completionDate else { return false }
+                return $0.effectiveStatus == status && date >= MCPPortfolioFixture.window.start
+                    && date < MCPPortfolioFixture.window.end
+            }
+            #expect(recent[status] == inside.count)
         }
     }
 
