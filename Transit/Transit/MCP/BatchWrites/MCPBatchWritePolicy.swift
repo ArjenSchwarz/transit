@@ -12,15 +12,18 @@ import SwiftData
     }
 
     let onPendingEditsStop: @MainActor () -> Void
+    let makeCommitServices: (@MainActor (ModelContext) throws -> MCPWriteCommitServices)?
     let validateBeforeApply: @MainActor (MCPWriteCommand, ModelContext) throws -> Void
 
     init(
+        makeCommitServices: (@MainActor (ModelContext) throws -> MCPWriteCommitServices)? = nil,
+        onPendingEditsStop: @escaping @MainActor () -> Void = {},
         validateBeforeApply: @escaping @MainActor (MCPWriteCommand, ModelContext) throws -> Void =
-            MCPBatchWritePolicy.validateTaskIdentity,
-        onPendingEditsStop: @escaping @MainActor () -> Void = {}
+            MCPBatchWritePolicy.validateTaskIdentity
     ) {
         self.validateBeforeApply = validateBeforeApply
         self.onPendingEditsStop = onPendingEditsStop
+        self.makeCommitServices = makeCommitServices
     }
 
     private static func validateTaskIdentity(_ command: MCPWriteCommand, context: ModelContext) throws {

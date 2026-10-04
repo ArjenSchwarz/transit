@@ -145,7 +145,7 @@ build: build-ios build-macos
 # Nested macro sandboxing is unavailable in some already-sandboxed runners.
 # Set MCP_PROBE_SWIFT_FLAGS=-disable-sandbox there; the outer runner policy stays active.
 MCP_PROBE_SWIFT_FLAGS ?=
-MCP_PROBE_MODELS = Transit/Transit/Models/{Project,TransitTask,Comment,Milestone,SyncHeartbeat,DisplayID,TaskPriority,TaskStatus,TaskType,MilestoneStatus,MCPWriteReceipt}.swift
+MCP_PROBE_MODELS = Transit/Transit/Models/{Project,TransitTask,Comment,Milestone,SyncHeartbeat,DisplayID,TaskPriority,TaskStatus,TaskType,MilestoneStatus,MCPWriteReceipt,TaskLinkOccurrence,TaskLinkRemovalEvidence}.swift
 
 # These standalone executables never launch Transit. Runtime children use a
 # network-denying sandbox and synthetic stores confined to DerivedData/tmp.

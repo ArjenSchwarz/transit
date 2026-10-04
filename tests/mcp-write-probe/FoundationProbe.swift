@@ -52,7 +52,8 @@ struct MCPWriteFoundationProbe {
 
     @MainActor static func receiptStorage() throws {
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self,
-                             SyncHeartbeat.self, MCPWriteReceipt.self])
+                             SyncHeartbeat.self, MCPWriteReceipt.self,
+                             TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self])
         let configuration = ModelConfiguration("receipt-probe", schema: schema,
                                                isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         let container = try ModelContainer(for: schema, configurations: configuration)

@@ -1,0 +1,48 @@
+{
+  "parent": "594c54987146b39257f26b1d152999fb452e8f6b",
+  "verifiedIsolationSource": "9ba4297b9747673f3a39486e7ff66ced16f8b741",
+  "staticGuardsPassed": true,
+  "ownedSwiftLint": {
+    "files": 15,
+    "violations": 0
+  },
+  "fullLint": {
+    "files": 406,
+    "violations": 3,
+    "allInUnchangedOwnerFixture": true
+  },
+  "MCPModelsAndOwnerFixturesUnchanged": true,
+  "branchRuntimeVerified": false,
+  "fileSHA256": {
+    "Transit/Transit/TransitApp.swift": "d6cf9dcb0ae63527b1c87554ce4b57b25c5cbeed26609e148b63ed9379a7514d",
+    "Transit/Transit.xcodeproj/project.pbxproj": "207934daaf68fae13c31519b428b8100e552a0a99353b0a8525ae6a4e2bd79cd",
+    "Makefile": "b820f4365bcd368424b5e1b6a0970a59c5e57075f68ae35ab7a756a200ddde53",
+    "Transit/TransitTests/TaskLinkMigrationTests.swift": "d4a3835743695dae4ddde3174ef56143e0ab1d83da10aa653b2d0f8b7b78af59",
+    "Transit/TransitTests/TestModelContainer.swift": "e8ace9bf519754289926bfc517c0fe4c9071f8e8dc3d05ccafa3df72a08387f5",
+    "Transit/Transit/MCP/MCPServer.swift": "06203ada49b19f12ce7f8451a17c89b59510841b78cb2e8bb3a2e716ee60ec51",
+    "Transit/Transit/MCP/MCPOriginValidator.swift": "8d51448b7770741ef2ecbfb9844cee7040d5d4649cb4588c994869da1663c0ef",
+    "Transit/Transit/MCP/MCPPortChangeCoordinator.swift": "32332acfa46792013b17b83e549071c89d2b49b62f1b50879a75defcaa682efa",
+    "Transit/Transit/MCP/MCPTaskQuerySnapshotStore.swift": "dbf0e9e958db9649a5e7d54cade6114d1dad01cc004add946ae37cd35d935924",
+    "Transit/Transit/MCP/MCPRequestContext.swift": "c2d158af8c5a8714f49b6df2586045eb2a048abc0074f1abd83d287ad5b88a20",
+    "Transit/Transit/MCP/MCPSettings.swift": "3a523397dcce1bf2770f62414bac9cbd39c20f409663f1c9d54b5ae6bf8d8023",
+    "Transit/Transit/MCP/MCPServerDecodeTypes.swift": "7d8243ee4e14ec1d4e8c4b7af5c29691ac3af9c592950fb43e696ba323d0edab",
+    "Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift": "8afa54367af4ded22a43acaca5f4692882d37511030a5d1430c4fe0c39dd4f66",
+    "Transit/Transit/MCP/MCPServerLifecycleConfiguration.swift": "6cc4fddb83d78e9c6e86eb54ee074a7ba35f2473337212b7e017c50bb5057d86",
+    "Transit/Transit/MCP/MCPToolHandler+TaskQuery.swift": "f46e9ca6386c3d7740654ac7d38ddb82a33c8dcde4a17ec569727ad3413ceb16",
+    "Transit/Transit/MCP/MCPToolDefinitions.swift": "9e9a57ede3b5b070c0098095bee23602cc079a75ba55b666df1780e3e12b583a",
+    "Transit/Transit/MCP/MCPToolHandler.swift": "7f22d19518bd414c45ac21c11d2a706a73121fb87611313b487952fbab11862a",
+    "Transit/Transit/MCP/MCPHelperTypes.swift": "df86f0ed2b5d1540878d55769a726e5421fa18b850ec6f040d41432491613709",
+    "Transit/Transit/MCP/MCPTaskQueryRequest.swift": "6d413b6fcf2d816764ab98f6509c692ae7ff0d8aed8bbda833e61eb1c0bc550c",
+    "Transit/Transit/MCP/MCPServer+Responses.swift": "c1da3a62420439cb6b7007a8871ff9ad2f45f4c06cabf4e7c7933a981b0e8bfb",
+    "Transit/Transit/MCP/MCPTypes.swift": "6f792b5556c09927896755c8ffa95d3819f149015a14dd157fd6ec58a79c9aeb",
+    "Transit/Transit/MCP/MCPServer+ToolListNotifications.swift": "0a6ea616cb23d54f325f1ab82c7338ea46e8c6ae303dd5f7b65f1120ae25e3cc",
+    "Transit/Transit/MCP/Writes/MCPWriteReceiptStore.swift": "1956f3368c974edab3a5c46a206c58544b8e125dd3a18917e2c7fee5f4041c9b",
+    "Transit/Transit/MCP/Writes/MCPWriteCoordinator.swift": "4ee5f5bf7bcee684825a74c04528b8281b22f285dae3c9426230989bf1e1be83",
+    "Transit/Transit/MCP/Writes/MCPWriteOutcome.swift": "e124654549a55eb2299ca9b6a5f392b8160afba3b44e30d2b0c1cdcca579d628",
+    "Transit/Transit/MCP/Writes/MCPWriteCommand.swift": "9194fd0996b8874995f59681745d5dcbdcf468b56c5f621c47e96066b704132a",
+    "Transit/Transit/MCP/Writes/MCPLocalReservationStore.swift": "b439b1a32f2d21fad7bdf42ddc593c6a06400335bf50ef71de1da690eea7dec2",
+    "Transit/Transit/MCP/Writes/MCPCanonicalJSON.swift": "5ff40d70708ddaa510861e93e21b49489e197a956d02646690187c0e2cf34c96",
+    "Transit/Transit/MCP/Writes/MCPRecordRevision.swift": "63a9401cfc2861b38f5b167cbd2e3f005b0bc8279c827bb3fb86f70feb91c0de",
+    "Transit/Transit/MCP/Writes/MCPRecordSnapshot.swift": "777dcc06a4cec1855fa29d50e516472a40cb4528a4ad03bffb5f0bd04b4cc421"
+  }
+}

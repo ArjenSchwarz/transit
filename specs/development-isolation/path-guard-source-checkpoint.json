@@ -1,0 +1,17 @@
+{
+  "parent": "a7afeb81a2a54f2d8aa30f67d86d248faf3c3de0",
+  "FoundationBehaviorReproduced": true,
+  "SwiftRegressionExecuted": false,
+  "fullHarnessExecuted": false,
+  "lint": {
+    "files": 407,
+    "violations": 0
+  },
+  "sandboxesUnchanged": true,
+  "fileSHA256": {
+    "Makefile": "43b2d9dafff57d65d7111f631b8688ba46d93bf86d087b0b3718bd23dd123e0d",
+    "tests/development-isolation/DisposableStorePath.swift": "bd1e917bd90dd8baf2bc2c9351ae80339dff311ba97ab7a53080d29f03e4de30",
+    "tests/development-isolation/MigrationProbe.swift": "153b4af7b2a2e7d5cf66f47d500b72ce12111a89a353f1a708787f41474f9787",
+    "tests/development-isolation/run.py": "850c10145b296d4e28146778f9fbfc902fb5dc051560da21e7f7ca6a5f26fa4a"
+  }
+}

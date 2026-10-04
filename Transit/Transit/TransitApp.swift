@@ -50,7 +50,8 @@ struct TransitApp: App {
         self.syncManager = syncManager
 
         let schema = Schema([
-            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
+            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self,
+            TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self
         ])
         let config: ModelConfiguration
         if mode != .production {
@@ -288,6 +289,9 @@ struct TransitApp: App {
         #endif
     }
 
+}
+
+extension TransitApp {
     // MARK: - Shared Environment
 
     private func withCoreEnvironments<V: View>(_ view: V) -> some View {

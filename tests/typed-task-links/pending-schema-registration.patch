@@ -1,0 +1,98 @@
+--- a/Transit/Transit/TransitApp.swift
++++ b/Transit/Transit/TransitApp.swift
+@@ -50,7 +50,8 @@
+         self.syncManager = syncManager
+ 
+         let schema = Schema([
+-            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
++            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self,
++            TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self
+         ])
+         let config: ModelConfiguration
+         if mode != .production {
+--- a/Transit/TransitTests/TestModelContainer.swift
++++ b/Transit/TransitTests/TestModelContainer.swift
+@@ -20,7 +20,8 @@
+ 
+     init() throws {
+         let schema = Schema([
+-            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
++            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self,
++            TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self
+         ])
+         let config = ModelConfiguration(
+             "TransitTests-\(UUID().uuidString)",
+--- a/Transit/TransitTests/MCPWritePersistenceProbeTests.swift
++++ b/Transit/TransitTests/MCPWritePersistenceProbeTests.swift
+@@ -7,7 +7,8 @@
+ struct MCPWritePersistenceProbeTests {
+     private var schema: Schema {
+         Schema([Project.self, TransitTask.self, Comment.self, Milestone.self,
+-                SyncHeartbeat.self, MCPWriteReceipt.self])
++                SyncHeartbeat.self, MCPWriteReceipt.self,
++                TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self])
+     }
+ 
+     private func diskFixture(at url: URL, writable: Bool = true) throws -> TestModelContainer {
+--- a/tests/mcp-write-probe/ServiceProbe.swift
++++ b/tests/mcp-write-probe/ServiceProbe.swift
+@@ -6,7 +6,8 @@
+     // swiftlint:disable:next function_body_length
+     @MainActor static func main() async throws {
+         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self,
+-                             SyncHeartbeat.self, MCPWriteReceipt.self])
++                             SyncHeartbeat.self, MCPWriteReceipt.self,
++                             TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self])
+         let config = ModelConfiguration("service-probe", schema: schema,
+                                         isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+         let container = try ModelContainer(for: schema, configurations: config)
+--- a/tests/mcp-write-probe/FoundationProbe.swift
++++ b/tests/mcp-write-probe/FoundationProbe.swift
+@@ -52,7 +52,8 @@
+ 
+     @MainActor static func receiptStorage() throws {
+         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self,
+-                             SyncHeartbeat.self, MCPWriteReceipt.self])
++                             SyncHeartbeat.self, MCPWriteReceipt.self,
++                             TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self])
+         let configuration = ModelConfiguration("receipt-probe", schema: schema,
+                                                isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+         let container = try ModelContainer(for: schema, configurations: configuration)
+--- a/tests/mcp-write-probe/CoordinatorProbe.swift
++++ b/tests/mcp-write-probe/CoordinatorProbe.swift
+@@ -10,7 +10,8 @@
+         defer { try? FileManager.default.removeItem(at: directory) }
+         let schema = Schema([
+             Project.self, TransitTask.self, Comment.self, Milestone.self,
+-            SyncHeartbeat.self, MCPWriteReceipt.self
++            SyncHeartbeat.self, MCPWriteReceipt.self,
++            TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self
+         ])
+         let configuration = ModelConfiguration(
+             schema: schema, url: directory.appendingPathComponent("probe.store"),
+--- a/tests/mcp-write-probe/Probe.swift
++++ b/tests/mcp-write-probe/Probe.swift
+@@ -13,7 +13,11 @@
+         var models: [any PersistentModel.Type] = [
+             Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self
+         ]
+-        if mode != "seed-old" { models.append(MCPWriteReceipt.self) }
++        if mode != "seed-old" {
++            models.append(MCPWriteReceipt.self)
++            models.append(TaskLinkOccurrence.self)
++            models.append(TaskLinkRemovalEvidence.self)
++        }
+         let schema = Schema(models)
+         let configuration = ModelConfiguration(schema: schema, url: url,
+                                                allowsSave: mode != "readonly", cloudKitDatabase: .none)
+--- a/Makefile
++++ b/Makefile
+@@ -145,7 +145,7 @@
+ # Nested macro sandboxing is unavailable in some already-sandboxed runners.
+ # Set MCP_PROBE_SWIFT_FLAGS=-disable-sandbox there; the outer runner policy stays active.
+ MCP_PROBE_SWIFT_FLAGS ?=
+-MCP_PROBE_MODELS = Transit/Transit/Models/{Project,TransitTask,Comment,Milestone,SyncHeartbeat,DisplayID,TaskPriority,TaskStatus,TaskType,MilestoneStatus,MCPWriteReceipt}.swift
++MCP_PROBE_MODELS = Transit/Transit/Models/{Project,TransitTask,Comment,Milestone,SyncHeartbeat,DisplayID,TaskPriority,TaskStatus,TaskType,MilestoneStatus,MCPWriteReceipt,TaskLinkOccurrence,TaskLinkRemovalEvidence}.swift
+ 
+ # These standalone executables never launch Transit. Runtime children use a
+ # network-denying sandbox and synthetic stores confined to DerivedData/tmp.

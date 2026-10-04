@@ -13,7 +13,11 @@ struct MCPWriteDiskProbe {
         var models: [any PersistentModel.Type] = [
             Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self
         ]
-        if mode != "seed-old" { models.append(MCPWriteReceipt.self) }
+        if mode != "seed-old" {
+            models.append(MCPWriteReceipt.self)
+            models.append(TaskLinkOccurrence.self)
+            models.append(TaskLinkRemovalEvidence.self)
+        }
         let schema = Schema(models)
         let configuration = ModelConfiguration(schema: schema, url: url,
                                                allowsSave: mode != "readonly", cloudKitDatabase: .none)

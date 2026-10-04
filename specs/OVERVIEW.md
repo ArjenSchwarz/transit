@@ -36,6 +36,7 @@
 | [MCP Project Creation](#mcp-project-creation) | 2026-10-02 | Ready for Review | Create projects through MCP with validation and reusable project metadata |
 | [Batch Task Queries](#batch-task-queries) | 2026-10-03 | Done | MCP task detail selection, batch lookup, and frozen cursor pagination |
 | [MCP Write Safety](#mcp-write-safety) | 2026-10-03 | Done | Add retry-safe MCP writes, local revision preconditions, and structured saved outcomes |
+| [Typed Task Links](#typed-task-links) | 2026-10-03 | In Progress | Saved typed task relationships with guarded edits, graph-covered revisions and frozen queries |
 | [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | Ready for Review | Structured/text results and latest-only transport locally verified; client compatibility explicitly deferred post-merge |
 | [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | Done | Bound MCP read completion and report immutable saved capture/import evidence |
 | [Portfolio Summaries](#portfolio-summaries) | 2026-10-04 | Done | Saved portfolio counts and reusable frozen task views; qualified native verification complete |
@@ -355,6 +356,27 @@ All 18 coding tasks are implemented and review findings are resolved. Verificati
 - [tasks.md](mcp-write-safety/tasks.md)
 - [prerequisites.md](mcp-write-safety/prerequisites.md)
 - [implementation.md](mcp-write-safety/implementation.md)
+
+
+## Typed Task Links
+
+Saved typed task relationships with guarded edits, graph-covered revisions and frozen queries.
+
+- [decision_log.md](typed-task-links/decision_log.md)
+- [design-review.md](typed-task-links/design-review.md)
+- [design.md](typed-task-links/design.md)
+- [explanation.md](typed-task-links/explanation.md)
+- [implementation.md](typed-task-links/implementation.md)
+- [isolation-integration-plan.md](typed-task-links/isolation-integration-plan.md)
+- [migration-next-tests.md](typed-task-links/migration-next-tests.md)
+- [prerequisites.md](typed-task-links/prerequisites.md)
+- [red-boundary-review.md](typed-task-links/red-boundary-review.md)
+- [requirements-review.md](typed-task-links/requirements-review.md)
+- [requirements.md](typed-task-links/requirements.md)
+- [scope-assessment.md](typed-task-links/scope-assessment.md)
+- [tasks-review.md](typed-task-links/tasks-review.md)
+- [tasks.md](typed-task-links/tasks.md)
+- [verification-readiness.md](typed-task-links/verification-readiness.md)
 
 
 ## Structured MCP Results
