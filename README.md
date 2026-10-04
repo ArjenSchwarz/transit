@@ -68,6 +68,8 @@ Transit includes a built-in MCP server on macOS for AI agent integration. Enable
 
 `create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `query_project_summaries`
 
+**Breaking transport change:** Older MCP clients using `initialize`, session negotiation, GET streams or JSON-RPC wire arrays are unsupported. Requests require the modern headers and `_meta` fields described in the [MCP result contract](docs/mcp-result-contract.md). Missing required metadata returns an explanatory HTTP 400 protocol error; an otherwise valid modern `initialize` request returns HTTP 404 / JSON-RPC method-not-found. Actual installed-client compatibility remains unverified.
+
 The eight write tools require an `idempotencyKey`. Task/milestone updates and milestone deletion also require the target's current `expectedRevision`. Read a revision before updating, and retry an interrupted request with the same key and arguments. Responses use structured saved-record outcomes; see the [MCP write contract](docs/mcp-write-contract.md) for examples, seven-day replay retention, conflicts, and local-store limits. See the [MCP result contract](docs/mcp-result-contract.md) for structuredContent, modern request headers and recovery. Actual installed-client compatibility is deferred to post-merge MacBook validation and remains unverified. App Intent inputs are unchanged.
 
 ## Documentation
