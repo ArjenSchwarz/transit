@@ -145,7 +145,7 @@ metadata:
   - Requirements: [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [3.3](requirements.md#3.3), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2)
   - References: design.md, Transit/Transit/MCP/MCPTaskQuerySnapshotStore.swift, Transit/Transit/MCP/Reads, /Users/arjen/Documents/Codex/2026-10-03/task-2/transit/specs/portfolio-summaries/design.md
 
-- [ ] 17. GREEN: wire frozen tool fragments and full-byte read publication <!-- id:gpzncw1 -->
+- [-] 17. GREEN: wire frozen tool fragments and full-byte read publication <!-- id:gpzncw1 -->
   - Use T63 retainedPage/PreparedReadResult seam and shared publication domain; privately charge/reserve expanded frozen fragments and original metadata/policy/expiry, then offer complete modern/text/structured/_meta/RPC bytes and all prepared publications.
   - Continuation encodes only new RPC wrapper. Keep original five-sec cutoff, eight physical workers and separate five-minute/eight-snapshot/16-MiB ordinary/reusable limits; atomic selection/discard only, large destruction outside lock, physical permits released by finalizers. Coordinate T2382 store-owned patch without altering aggregation. Pass task16.
   - Blocked-by: gpzncw0 (RED: prove frozen retention and atomic modern publication under faults)
