@@ -1,124 +1,99 @@
 #if os(macOS)
-
 import Foundation
 import Testing
 @testable import Transit
 
+/// Legacy handshake regressions now apply to each modern request's metadata.
+/// Initialize is unavailable; an absent optional clientInfo is valid.
 @MainActor @Suite(.serialized)
 struct MCPInitializeHandshakeTests {
-
-    @Test func initializeWithoutParamsReturnsInvalidParams() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-        let response = await env.handler.handle(MCPTestHelpers.request(method: "initialize"))
-
-        let error = try MCPTestHelpers.jsonRPCError(response)
-        #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
+    @Test func initializeIsUnavailableInsteadOfNegotiatingSession() throws {
+        let rejection = try reject(method: "initialize", params: ["_meta": validMetadata()])
+        #expect(rejection.httpStatus == 404)
+        #expect(rejection.rpcCode == -32601)
     }
 
-    @Test func initializeWithNonObjectParamsReturnsInvalidParams() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-        let request = JSONRPCRequest(
-            jsonrpc: "2.0",
-            id: .integer(1),
-            method: "initialize",
-            params: AnyCodable(["2025-03-26"])
-        )
-
-        let error = try MCPTestHelpers.jsonRPCError(await env.handler.handle(request))
-        #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
+    @Test func discoverWithoutParamsReturnsInvalidParams() throws {
+        let rejection = try reject(params: nil)
+        #expect(rejection.rpcCode == -32602)
     }
 
-    @Test func initializeWithScalarParamsReturnsInvalidRequest() throws {
-        for params in ["42", "true", "null", "\"invalid\""] {
-            let data = Data("""
-                {"jsonrpc":"2.0","id":1,"method":"initialize","params":\(params)}
-                """.utf8)
+    @Test func discoverWithNonObjectParamsReturnsInvalidParams() throws {
+        let rejection = try reject(params: ["2026-07-28"])
+        #expect(rejection.rpcCode == -32602)
+    }
 
-            let response: JSONRPCResponse
-            switch MCPServer.decodeIncomingRequest(data) {
-            case .failure(let errorResponse):
-                response = errorResponse
-            case .success, .batch:
-                Issue.record("Scalar initialize params must be an invalid request")
-                continue
-            }
-            let error = try MCPTestHelpers.jsonRPCError(response)
-            #expect(error["code"] as? Int == JSONRPCErrorCode.invalidRequest)
+    @Test func scalarParamsRemainInvalid() throws {
+        for value in [42, true, NSNull(), "invalid"] as [Any] {
+            #expect(try reject(params: value).rpcCode == -32602)
         }
     }
 
-    @Test func initializeRequiresEveryHandshakeField() async throws {
-        let env = try MCPTestHelpers.makeEnv()
+    @Test func everyRequiredMetadataFieldRemainsRequired() throws {
+        for field in ["protocolVersion", "clientCapabilities"] {
+            var meta = validMetadata()
+            meta.removeValue(forKey: field)
+            #expect(try reject(params: ["_meta": meta]).rpcCode == -32602)
+        }
+        #expect(try reject(params: [:] as [String: Any]).rpcCode == -32602)
+    }
 
-        for field in ["protocolVersion", "capabilities", "clientInfo"] {
-            var params = validInitializeParams()
-            params.removeValue(forKey: field)
-
-            let request = MCPTestHelpers.request(method: "initialize", params: params)
-            let error = try MCPTestHelpers.jsonRPCError(await env.handler.handle(request))
-            #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
+    @Test func wrongRequiredFieldTypesRemainRejected() throws {
+        for (field, value) in [("protocolVersion", 20260728), ("clientCapabilities", [])] as [(String, Any)] {
+            var meta = validMetadata()
+            meta[field] = value
+            #expect(try reject(params: ["_meta": meta]).rpcCode == -32602)
         }
     }
 
-    @Test func initializeRejectsWrongRequiredFieldTypes() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-        let malformedFields: [(String, Any)] = [
-            ("protocolVersion", 20250326),
-            ("capabilities", []),
-            ("clientInfo", "Transit Tests")
-        ]
-
-        for (field, value) in malformedFields {
-            var params = validInitializeParams()
-            params[field] = value
-
-            let request = MCPTestHelpers.request(method: "initialize", params: params)
-            let error = try MCPTestHelpers.jsonRPCError(await env.handler.handle(request))
-            #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
+    @Test func malformedClientInfoRemainsRejectedWhenProvided() throws {
+        for clientInfo in [
+            ["version": "1.0"], ["name": "Transit Tests"], ["name": 42, "version": "1.0"],
+            ["name": "Transit Tests", "version": 1], ["name": "Transit Tests", "version": "1.0", "title": false]
+        ] as [[String: Any]] {
+            var meta = validMetadata()
+            meta["clientInfo"] = clientInfo
+            #expect(try reject(params: ["_meta": meta]).rpcCode == -32602)
         }
     }
 
-    @Test func initializeRejectsMalformedClientInfo() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-        let malformedClientInfo: [[String: Any]] = [
-            ["version": "1.0"],
-            ["name": "Transit Tests"],
-            ["name": 42, "version": "1.0"],
-            ["name": "Transit Tests", "version": 1],
-            ["name": "Transit Tests", "version": "1.0", "title": false]
-        ]
-
-        for clientInfo in malformedClientInfo {
-            var params = validInitializeParams()
-            params["clientInfo"] = clientInfo
-
-            let request = MCPTestHelpers.request(method: "initialize", params: params)
-            let error = try MCPTestHelpers.jsonRPCError(await env.handler.handle(request))
-            #expect(error["code"] as? Int == JSONRPCErrorCode.invalidParams)
-        }
+    @Test func optionalClientInfoAndUnknownMetadataDoNotRequireSession() throws {
+        var meta = validMetadata()
+        meta["example.test/extension"] = ["unknown": NSNull()]
+        _ = try MCPModernValidator.validate(input(method: "server/discover", params: ["_meta": meta]),
+                                            availability: MCPModernAvailability(tools: []))
     }
 
-    @Test func initializeFallsBackToSupportedProtocolVersion() async throws {
-        let env = try MCPTestHelpers.makeEnv()
-        var params = validInitializeParams()
-        params["protocolVersion"] = "2099-01-01"
-
-        let request = MCPTestHelpers.request(method: "initialize", params: params)
-        let response = try #require(await env.handler.handle(request))
-        let data = try JSONEncoder().encode(response)
-        let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
-        let result = try #require(json["result"] as? [String: Any])
-
-        #expect(result["protocolVersion"] as? String == "2025-03-26")
+    @Test func unsupportedVersionRejectsWithoutLegacyFallback() throws {
+        var meta = validMetadata()
+        meta["protocolVersion"] = "2099-01-01"
+        let rejection = try reject(params: ["_meta": meta], version: "2099-01-01")
+        #expect(rejection.rpcCode == -32022)
     }
 
-    private func validInitializeParams() -> [String: Any] {
-        [
-            "protocolVersion": "2025-03-26",
-            "capabilities": [:] as [String: Any],
-            "clientInfo": ["name": "Transit Tests", "version": "1.0"]
-        ]
+    private func validMetadata() -> [String: Any] {
+        ["protocolVersion": "2026-07-28", "clientCapabilities": [:] as [String: Any]]
     }
+
+    private func input(method: String, params: Any?, version: String = "2026-07-28") throws -> MCPModernRequestInput {
+        var object: [String: Any] = ["jsonrpc": "2.0", "id": 1, "method": method]
+        if let params { object["params"] = params }
+        return MCPModernRequestInput(httpMethod: "POST", headers: [
+            .init(name: "Content-Type", value: "application/json"), .init(name: "Accept", value: "application/json"),
+            .init(name: "MCP-Protocol-Version", value: version), .init(name: "Mcp-Method", value: method)
+        ], body: try JSONSerialization.data(withJSONObject: object))
+    }
+
+    private func reject(method: String = "server/discover", params: Any?,
+                        version: String = "2026-07-28") throws -> MCPModernRejection {
+        do {
+            _ = try MCPModernValidator.validate(input(method: method, params: params, version: version),
+                                                availability: MCPModernAvailability(tools: []))
+            Issue.record("Expected modern metadata rejection")
+            throw FixtureFailure.expectedRejection
+        } catch let rejection as MCPModernRejection { return rejection }
+    }
+
+    private enum FixtureFailure: Error { case expectedRejection }
 }
-
 #endif

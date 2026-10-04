@@ -28,6 +28,9 @@ final class MCPToolHandler {
     private let persistence: PersistenceAvailability
     private let writeCoordinator: MCPWriteCoordinator?
 
+    /// Task14 fault seam declaration; task15 binds only the post-effect provider encoding stage.
+    let maintenanceReassignmentEncoder: (@Sendable (ReassignmentResult) throws -> String)?
+
     let readService: MCPReadService?
     let taskQuerySnapshots: MCPTaskQuerySnapshotStore
     nonisolated let reusableSnapshots: Result<MCPReusableSnapshotStore, Error>
@@ -74,7 +77,8 @@ final class MCPToolHandler {
         writeCoordinator: MCPWriteCoordinator? = nil,
         readService: MCPReadService? = nil,
         readCoordinator: MCPReadCoordinator? = nil,
-        reusableSnapshots: MCPReusableSnapshotStore? = nil
+        reusableSnapshots: MCPReusableSnapshotStore? = nil,
+        maintenanceReassignmentEncoder: (@Sendable (ReassignmentResult) throws -> String)? = nil
     ) {
         self.taskService = taskService
         self.taskFetcher = taskFetcher ?? taskService
@@ -104,6 +108,7 @@ final class MCPToolHandler {
             return try MCPReusableSnapshotStore(domain: domain)
         }
         self.writeCoordinator = writeCoordinator
+        self.maintenanceReassignmentEncoder = maintenanceReassignmentEncoder
         self.readService = readService
     }
 
