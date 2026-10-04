@@ -1,0 +1,5 @@
+# Modern protocol GREEN evidence
+
+Reviewed source b6b616e was integrated with T63 b500543 and presentation f4bd03a at fbbe7cb. The fixtures are byte-unchanged from366a1ad. After a fresh dedicated isolated smoke and shared Transit Debug signed-host/xctestrun preflight, the serial MCPModernProtocolTests + MCPModernDiscoveryTests test-without-building selection passed all30 functions/44 expanded runs, zero failures/skips, exit0. This includes both exact sentinel markers/decode-once, plain padded names, valid unsupported string[] subscription filters, depth32/33 classification and numeric-ID diagnostics.
+
+Evidence: DerivedData/t2383-shared-fbbe7cb/Protocol.xcresult and .codex-cache/t2383-final-isolated-fbbe7cb/protocol-{summary,tests}.json. Final read-only critic verified unchanged source/fixtures and actual incoming ID/origin signatures, with no blocker. Task13/gpzncvx is complete. This pure validator/discovery delivery does not establish production modern routing, real-client readiness or common API15. All owned processes drained; the parent received slot release, and no further app run is authorised during T2382's slot.

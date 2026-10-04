@@ -1,6 +1,7 @@
 #if os(macOS)
 import Foundation
 import NIOCore
+import NIOConcurrencyHelpers
 
 @Observable
 final class MCPSettings {
@@ -8,7 +9,12 @@ final class MCPSettings {
     private static let enabledKey = "mcpServerEnabled"
     private static let portKey = "mcpServerPort"
     private static let maintenanceToolsKey = "mcpMaintenanceToolsEnabled"
+    @ObservationIgnored nonisolated private let maintenanceAvailability = NIOLockedValueBox(false)
     private let toolListChangeBroadcaster = MCPToolListChangeBroadcaster()
+
+    @MainActor var subscriptionBroadcaster: MCPToolListChangeBroadcaster {
+        toolListChangeBroadcaster
+    }
     static let defaultPort = 3141
 
     /// Valid TCP port range. Port 0 means "any available port" to the OS and is
@@ -32,26 +38,19 @@ final class MCPSettings {
         didSet { UserDefaults.standard.set(port, forKey: Self.portKey) }
     }
 
+    /// Availability reads never hop to MainActor or inspect preferences.
+    nonisolated var maintenanceToolsEnabledSnapshot: Bool {
+        maintenanceAvailability.withLockedValue { $0 }
+    }
+
     var maintenanceToolsEnabled: Bool {
         didSet {
+            let enabled = maintenanceToolsEnabled
+            maintenanceAvailability.withLockedValue { $0 = enabled }
             UserDefaults.standard.set(maintenanceToolsEnabled, forKey: Self.maintenanceToolsKey)
             guard maintenanceToolsEnabled != oldValue else { return }
             toolListChangeBroadcaster.notifyToolsListChanged()
         }
-    }
-
-    func createToolListChangeSession() -> String {
-        toolListChangeBroadcaster.createSession()
-    }
-
-    func toolListChangeNotifications(
-        sessionID: String,
-        channelClose: EventLoopFuture<Void>
-    ) -> AsyncStream<MCPServerNotification>? {
-        toolListChangeBroadcaster.stream(
-            sessionID: sessionID,
-            channelClose: channelClose
-        )
     }
 
     func finishToolListChangeSessions() {
@@ -66,7 +65,9 @@ final class MCPSettings {
         self.isEnabled = UserDefaults.standard.bool(forKey: Self.enabledKey)
         let stored = UserDefaults.standard.integer(forKey: Self.portKey)
         self.port = stored > 0 ? stored : Self.defaultPort
-        self.maintenanceToolsEnabled = UserDefaults.standard.bool(forKey: Self.maintenanceToolsKey)
+        let maintenanceEnabled = UserDefaults.standard.bool(forKey: Self.maintenanceToolsKey)
+        self.maintenanceToolsEnabled = maintenanceEnabled
+        maintenanceAvailability.withLockedValue { $0 = maintenanceEnabled }
     }
 }
 

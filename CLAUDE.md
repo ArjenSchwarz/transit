@@ -138,21 +138,23 @@ Shared intent infrastructure lives in `Intents/Shared/`: entities (`ProjectEntit
 
 ### MCP Server (macOS only)
 
-HTTP-based JSON-RPC 2.0 server using **Hummingbird**, gated behind `#if os(macOS)`. Configured via `MCPSettings` (UserDefaults-backed toggle and port). Exposes 11 tools:
+HTTP-based JSON-RPC 2.0 server using **Hummingbird**, gated behind `#if os(macOS)`. Configured via `MCPSettings` (UserDefaults-backed toggle and port). Exposes 12 normal tools:
 
-`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`
+`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `query_project_summaries`
 
 Key implementation files:
 - `MCP/MCPServer.swift` — Hummingbird router, lifecycle management
 - `MCP/MCPToolHandler.swift` — dispatches `tools/call` to service layer
 - `MCP/MCPToolDefinitions.swift` — tool schemas with input validation
-- `MCP/MCPTypes.swift` — JSON-RPC request/response types
+- `MCP/MCPTypes.swift` — shared JSON-RPC types; exposed transport is latest-only `2026-07-28` via `MCP/Protocol` and `MCPServer+Routing.swift`
+- `MCP/Results/` — immutable source/presentation, output schemas and complete response/fallback encoding
+- `MCP/Reads/` — bounded capture/admission/deadline/publication services
 - `MCP/MCPHelperTypes.swift` — query filter logic (`MCPQueryFilters`)
 - `MCP/Writes/MCPWriteCoordinator.swift` — key acceptance, revision checks, atomic domain/result saves, and replay/recovery
 - `MCP/Writes/MCPWriteReceiptStore.swift` and `MCPLocalReservationStore.swift` — synced receipts and local durable payload guards
 - `MCP/Writes/MCPRecordSnapshot.swift` — normalized records and content revision coverage
 
-The MCP server reuses the same service instances as the UI (shared `mainContext`), so changes from MCP calls appear immediately in the app. `TransitApp` retains one write coordinator and store-scoped sidecar for its lifetime; listener restarts do not release accepted operations or their lock. Protected writes require keys, and updates/deletion require revision preconditions; MCP results wrap full saved records rather than matching App Intent response envelopes. See [docs/mcp-write-contract.md](docs/mcp-write-contract.md) before changing schemas or examples. Domain changes and their terminal receipt share one synchronous save; guards remain durable when outcome recovery is uncertain.
+The MCP server reuses the same service instances as the UI (shared `mainContext`), so changes from MCP calls appear immediately in the app. `TransitApp` retains one write coordinator and store-scoped sidecar for its lifetime; listener restarts do not release accepted operations or their lock. Protected writes require keys, and updates/deletion require revision preconditions; MCP results wrap full saved records rather than matching App Intent response envelopes. See [docs/mcp-write-contract.md](docs/mcp-write-contract.md) and [docs/mcp-result-contract.md](docs/mcp-result-contract.md) before changing schemas or examples. Domain changes and their terminal receipt share one synchronous save; guards remain durable when outcome recovery is uncertain.
 
 ### Reports
 

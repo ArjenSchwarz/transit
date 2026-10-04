@@ -9,6 +9,7 @@ final class SearchEmptyStateUITests: XCTestCase {
 
     private func launchBoardApp() -> XCUIApplication {
         let app = XCUIApplication()
+        app.launchEnvironment["TRANSIT_PERSISTENCE_MODE"] = "ui-test"
         app.launchEnvironment["TRANSIT_UI_TEST_SCENARIO"] = "board"
         app.launch()
         return app

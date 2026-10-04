@@ -1,0 +1,69 @@
+{
+  "bundleID": "me.nore.ig.Transit.development",
+  "host": "/Users/arjen/Documents/Codex/2026-10-02/task/transit-isolation/DerivedData/isolation-host/Build/Products/Debug/TransitDevelopment.app",
+  "entitlements": {
+    "com.apple.security.app-sandbox": true,
+    "com.apple.security.files.user-selected.read-only": true,
+    "com.apple.security.get-task-allow": true,
+    "com.apple.security.network.client": true,
+    "com.apple.security.network.server": true,
+    "com.apple.security.temporary-exception.files.absolute-path.read-only": [
+      "/"
+    ],
+    "com.apple.security.temporary-exception.mach-lookup.global-name": [
+      "com.apple.testmanagerd",
+      "com.apple.dt.testmanagerd.runner",
+      "com.apple.coresymbolicationd"
+    ]
+  },
+  "mode": "unit-test",
+  "fixture": "TransitIsolationSmokeTests/DevelopmentIsolationSmokeTests",
+  "parallel": false
+}
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test-without-building -xctestrun /Users/arjen/Documents/Codex/2026-10-02/task/transit-isolation/DerivedData/isolation-host/Build/Products/IsolationSmoke.xctestrun -destination platform=macOS,arch=arm64 -parallel-testing-enabled NO "-only-testing:TransitIsolationSmokeTests/DevelopmentIsolationSmokeTests" -resultBundlePath /Users/arjen/Documents/Codex/2026-10-02/task/transit-isolation/DerivedData/isolation-host/Build/Products/IsolationSmoke.xcresult
+
+Writing result bundle at path:
+	/Users/arjen/Documents/Codex/2026-10-02/task/transit-isolation/DerivedData/isolation-host/Build/Products/IsolationSmoke.xcresult
+
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:macOS, arch:arm64, id:00006001-001011E20C45801E, name:My Mac }
+{ platform:macOS, arch:arm64, variant:Mac Catalyst, id:00006001-001011E20C45801E, name:My Mac }
+{ platform:macOS, arch:arm64, variant:DriverKit, id:00006001-001011E20C45801E, name:My Mac }
+{ platform:macOS, arch:arm64, variant:Designed for [iPad,iPhone], id:00006001-001011E20C45801E, name:My Mac }
+2026-10-04 03:26:21.981929+1100 TransitDevelopment[28383:41332880] [Connection] Unable to get synchronousRemoteObjectProxy, error: Error Domain=NSCocoaErrorDomain Code=4097 "connection to service named com.apple.linkd.autoShortcut" UserInfo={NSDebugDescription=connection to service named com.apple.linkd.autoShortcut}
+2026-10-04 03:26:21.982449+1100 TransitDevelopment[28383:41332880] [Application] Error registering app with intents framework: Error Domain=NSCocoaErrorDomain Code=4097 "connection to service named com.apple.linkd.autoShortcut" UserInfo={NSDebugDescription=connection to service named com.apple.linkd.autoShortcut}
+2026-10-04 03:26:21.982738+1100 TransitDevelopment[28383:41332897] [Connection] Unable to get synchronousRemoteObjectProxy, error: Error Domain=NSCocoaErrorDomain Code=4097 "connection to service named com.apple.linkd.autoShortcut" UserInfo={NSDebugDescription=connection to service named com.apple.linkd.autoShortcut}
+2026-10-04 03:26:21.982756+1100 TransitDevelopment[28383:41332897] [Connection] Unable to re-register with Process Instance Registry, error: Error Domain=NSCocoaErrorDomain Code=4097 "connection to service named com.apple.linkd.autoShortcut" UserInfo={NSDebugDescription=connection to service named com.apple.linkd.autoShortcut}
+2026-10-04 03:26:21.983374+1100 TransitDevelopment[28383:41332880] [Connection] Unable to get synchronousRemoteObjectProxy, error: Error Domain=NSCocoaErrorDomain Code=4097 "connection to service named com.apple.linkd.autoShortcut" UserInfo={NSDebugDescription=connection to service named com.apple.linkd.autoShortcut}
+2026-10-04 03:26:21.983409+1100 TransitDevelopment[28383:41332880] [Connection] Unable to re-register with Process Instance Registry, error: Error Domain=NSCocoaErrorDomain Code=4097 "connection to service named com.apple.linkd.autoShortcut" UserInfo={NSDebugDescription=connection to service named com.apple.linkd.autoShortcut}
+2026-10-04 03:26:21.983969+1100 TransitDevelopment[28383:41332880] [Connection] Will NOT re-try to establish the connection
+2026-10-04 03:26:21.983999+1100 TransitDevelopment[28383:41332935] [Connection] Unable to get synchronousRemoteObjectProxy, error: Error Domain=NSCocoaErrorDomain Code=4097 "connection to service named com.apple.linkd.autoShortcut" UserInfo={NSDebugDescription=connection to service named com.apple.linkd.autoShortcut}
+2026-10-04 03:26:21.984015+1100 TransitDevelopment[28383:41332935] [Connection] Unable to re-register with Process Instance Registry, error: Error Domain=NSCocoaErrorDomain Code=4097 "connection to service named com.apple.linkd.autoShortcut" UserInfo={NSDebugDescription=connection to service named com.apple.linkd.autoShortcut}
+2026-10-04 03:26:22.208034+1100 TransitDevelopment[28383:41332738] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /Users/arjen/Library/Containers/me.nore.ig.Transit.development/Data/tmp/me.nore.ig.Transit.development.savedState
+Test Suite 'Selected tests' started at 2026-10-04 03:26:23.161.
+Test Suite 'TransitIsolationSmokeTests.xctest' started at 2026-10-04 03:26:23.162.
+Test Suite 'TransitIsolationSmokeTests.xctest' passed at 2026-10-04 03:26:23.162.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-04 03:26:23.162.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite DevelopmentIsolationSmokeTests started.
+◇ Test "Actual isolated host bootstrap uses no persistent or CloudKit store" started.
+Isolated host mode=unit-test memoryOnly=true cloudSync=false disabledCounters=true
+Isolated host configuration URL=/dev/null sidecar=/Users/arjen/Library/Containers/me.nore.ig.Transit.development/Data/tmp/mcp-tests-DAB4F472-FB5B-4149-9AAA-8B328E99C9C6
+✔ Test "Actual isolated host bootstrap uses no persistent or CloudKit store" passed after 0.001 seconds.
+✔ Suite DevelopmentIsolationSmokeTests passed after 0.001 seconds.
+✔ Test run with 1 test in 1 suite passed after 0.001 seconds.
+2026-10-04 03:26:23.444 xcodebuild[28374:41332629] [MT] IDETestOperationsObserverDebug: 2.894 elapsed -- Testing started completed.
+2026-10-04 03:26:23.444 xcodebuild[28374:41332629] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-10-04 03:26:23.444 xcodebuild[28374:41332629] [MT] IDETestOperationsObserverDebug: 2.894 sec, +2.894 sec -- end
+
+Test session results, code coverage, and logs:
+	/Users/arjen/Documents/Codex/2026-10-02/task/transit-isolation/DerivedData/isolation-host/Build/Products/IsolationSmoke.xcresult
+
+** TEST EXECUTE SUCCEEDED **
+
+Testing started

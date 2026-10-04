@@ -36,9 +36,8 @@ struct TransitApp: App {
     private let quickActionService: QuickActionService
     #endif
 
-    /// True when the app is launched as a unit test host (not UI tests, which set their own scenario).
-    private static let isUnitTestHost: Bool = NSClassFromString("XCTestCase") != nil
-        && ProcessInfo.processInfo.environment["TRANSIT_UI_TEST_SCENARIO"] == nil
+    /// Resolve before constructing SyncManager, a container, or receipt sidecars.
+    private static let persistenceMode = AppPersistencePolicy.current
 
     private static var uiTestScenario: UITestScenario? {
         UITestScenario(rawValue: ProcessInfo.processInfo.environment["TRANSIT_UI_TEST_SCENARIO"] ?? "")
@@ -46,22 +45,24 @@ struct TransitApp: App {
 
     // swiftlint:disable:next function_body_length
     init() {
-        let isInert = Self.isUnitTestHost
-        let syncManager = SyncManager()
+        let mode = Self.persistenceMode
+        let syncManager = SyncManager(cloudSyncAllowed: mode.permitsCloudSync)
         self.syncManager = syncManager
 
         let schema = Schema([
             Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
         ])
         let config: ModelConfiguration
-        if isInert || Self.uiTestScenario != nil {
-            config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
-            // Test hosts bypass makeModelConfiguration, so record the mode explicitly —
-            // otherwise the display-ID subsystem would think CloudKit is live [T-1797].
-            syncManager.recordActiveCloudSync(false)
+        if mode != .production {
+            do {
+                config = try IsolatedPersistenceConfiguration.make(mode: mode, schema: schema)
+            } catch {
+                fatalError("Unable to create isolated storage: \(error)")
+            }
         } else {
             config = syncManager.makeModelConfiguration(schema: schema)
         }
+        AppIsolationSmoke.preflight(mode: mode, configuration: config)
         let containerResult = ContainerFactory.makeContainer(schema: schema, configuration: config)
         // A fallback container is always CloudKit-free, even if the requested
         // configuration enabled sync. Derive and record the effective mode only
@@ -83,18 +84,16 @@ struct TransitApp: App {
         let persistence = PersistenceAvailability.shared
         persistence.update(from: containerResult)
 
-        if !isInert && Self.uiTestScenario == nil && containerResult.error == nil {
+        if mode.permitsCloudSync && containerResult.error == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
 
         let context = container.mainContext
-        let allocator = DisplayIDAllocator(isCloudSyncActive: cloudSyncActive)
+        let allocators = AppDisplayIDAllocators.make(mode: mode, syncActive: cloudSyncActive)
+        let allocator = allocators.tasks
         self.displayIDAllocator = allocator
 
-        let milestoneAllocator = DisplayIDAllocator(
-            counterRecordName: "milestone-counter",
-            isCloudSyncActive: cloudSyncActive
-        )
+        let milestoneAllocator = allocators.milestones
         self.milestoneIDAllocator = milestoneAllocator
 
         let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
@@ -108,7 +107,7 @@ struct TransitApp: App {
         let connectivityMonitor = ConnectivityMonitor()
         self.connectivityMonitor = connectivityMonitor
 
-        if !isInert {
+        if mode.permitsCloudSync {
             // Wire up connectivity restore to trigger display ID promotion.
             // The closure is @MainActor @Sendable, and context (container.mainContext)
             // is MainActor-isolated, so it can be captured directly.
@@ -154,20 +153,25 @@ struct TransitApp: App {
             tasks: taskService, projects: projectService,
             comments: commentService, milestones: milestoneService, context: context)
         // Own the retry scope and lock for the app lifetime, across listener restarts.
-        let sidecar = isInert || Self.uiTestScenario != nil
+        let sidecar = mode.usesMemoryStore
             ? FileManager.default.temporaryDirectory.appendingPathComponent("mcp-tests-" + UUID().uuidString)
             : config.url.appendingPathExtension("mcp-writes")
+        AppIsolationSmoke.record(mode: mode, container: container, cloudSyncActive: cloudSyncActive,
+                                 allocators: allocators, sidecar: sidecar)
         let writeCoordinator = MCPWriteCoordinator(services: writeServices,
             sidecarDirectory: sidecar, persistence: persistence)
         self.mcpWriteCoordinator = writeCoordinator
         try? writeCoordinator.cleanupExpiredOutcomes()
+        let reads = MCPReadAppDependencies.make(container: container, syncActive: cloudSyncActive)
+        let readCoordinator = MCPReadCoordinator(domain: reads.snapshots.domain, diagnostics: reads.diagnostics)
         let mcpToolHandler = MCPToolHandler(
             taskService: taskService, projectService: projectService,
             commentService: commentService, milestoneService: milestoneService,
             maintenanceService: maintenanceService, settings: mcpSettings,
-            persistence: persistence, writeCoordinator: writeCoordinator
+            persistence: persistence, taskQuerySnapshots: reads.snapshots, writeCoordinator: writeCoordinator,
+            readService: reads, readCoordinator: readCoordinator
         )
-        self.mcpServer = MCPServer(toolHandler: mcpToolHandler)
+        self.mcpServer = MCPServer(toolHandler: mcpToolHandler, readCoordinator: readCoordinator)
         #endif
 
     }
@@ -297,23 +301,26 @@ struct TransitApp: App {
             .environment(maintenanceService)
     }
 
-    // MARK: - MCP Server
-
-    #if os(macOS)
-    private func startMCPServerIfEnabled() async {
-        // Skip MCP server in unit test host to avoid port conflicts across test runs
-        guard mcpSettings.isEnabled, !Self.isUnitTestHost else { return }
-        await mcpServer.start(port: mcpSettings.port)
-        syncManager.startHeartbeat(container: container)
-    }
-    #endif
-
     // MARK: - UI Test Support
 
     private func seedUITestDataIfNeeded() {
         guard let scenario = Self.uiTestScenario else { return }
         scenario.seed(into: container.mainContext)
     }
+}
+
+extension TransitApp {
+    // MARK: - MCP Server
+
+    #if os(macOS)
+    private func startMCPServerIfEnabled() async {
+        // Skip MCP server in unit test host to avoid port conflicts across test runs
+        guard Self.persistenceMode.permitsAutomaticMCPStartup, mcpSettings.isEnabled else { return }
+        await mcpServer.start(port: mcpSettings.port)
+        syncManager.startHeartbeat(container: container)
+    }
+    #endif
+
 }
 
 // MARK: - macOS Commands

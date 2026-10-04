@@ -7,10 +7,10 @@ Embedded MCP server in the Transit macOS app using Hummingbird HTTP server. Expo
 ## Architecture
 
 ```
-Claude Code ←→ HTTP POST + session GET/SSE /mcp (localhost:3141) ←→ MCPServer ←→ MCPToolHandler ←→ read services / MCPWriteCoordinator ←→ SwiftData
+Claude Code ←→ HTTP POST + request-scoped POST/SSE /mcp (localhost:3141) ←→ MCPServer ←→ MCPToolHandler ←→ read services / MCPWriteCoordinator ←→ SwiftData
 ```
 
-- **Transport**: Streamable HTTP at `/mcp`. `POST /mcp` carries JSON-RPC requests and client notifications; a successful standalone `initialize` returns an `Mcp-Session-Id`. A GET with that session ID and an exact acceptable `text/event-stream` media range opens the optional SSE channel for server-initiated notifications. Missing session IDs return 400, unknown IDs return 404, and GET without SSE negotiation remains HTTP 405 with `Allow: POST`.
+- **Transport**: Latest-only MCP `2026-07-28` at `POST /mcp`: server/discover, tools/list, tools/call and request-scoped subscriptions/listen SSE. No initialize, session ID, GET listener or wire arrays. Required metadata/headers and result schemas are documented in [the result contract](../mcp-result-contract.md).
 - **HTTP server**: Hummingbird 2.x (SwiftNIO-based), binds to `127.0.0.1` only
 - **Lifecycle**: Opt-in via Settings toggle. Default port 3141.
 
@@ -21,10 +21,10 @@ Claude Code ←→ HTTP POST + session GET/SSE /mcp (localhost:3141) ←→ MCPS
 - `Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift` — active SSE stream registration and list-change broadcasting
 - `Transit/Transit/MCP/MCPToolHandler.swift` — Tool dispatch, handler methods, helpers
 - `Transit/Transit/MCP/MCPToolDefinitions.swift` — Tool schema definitions (extracted for file length)
-- `Transit/Transit/MCP/MCPServer.swift` — Hummingbird server lifecycle, session creation, and HTTP routing
+- `Transit/Transit/MCP/MCPServer.swift` — Hummingbird server lifecycle and modern HTTP routing
 - `Transit/Transit/MCP/MCPServer+Responses.swift` — shared JSON response encoding and header construction
 - `Transit/Transit/MCP/MCPRequestContext.swift` — request context retaining the NIO channel for disconnect observation
-- `Transit/Transit/MCP/MCPServer+ToolListNotifications.swift` — session validation, Streamable HTTP GET negotiation, and SSE framing
+- `Transit/Transit/MCP/MCPServer+ToolListNotifications.swift` — request-scoped POST subscription negotiation and SSE framing
 - `Transit/Transit/MCP/MCPServerLifecycleConfiguration.swift` — bounded shutdown and no-signal `ServiceGroup` policy
 - `Transit/Transit/MCP/MCPServerDecodeTypes.swift` — request decode outcome types shared by the route and decoder
 - `Transit/Transit/MCP/MCPOriginValidator.swift` — transport-level `Origin`/`Host` validation
@@ -50,28 +50,22 @@ All eight write tools require `idempotencyKey`; updates and milestone deletion a
 | `create_task` | Create a new task (name and type required; at least one of project / projectId required to identify the project; description, metadata, and priority optional — priority defaults to medium, invalid priority rejects with no task created) |
 | `update_task_status` | Change task status (by displayId or taskId) |
 | `update_task` | Update a task's mutable fields — any combination of `name`, `description`, `type`, `priority`, `metadata`, and milestone assignment (`milestone` / `milestoneDisplayId` / `clearMilestone`) — in a single atomic call. Priority is non-clearable: omit to leave unchanged. Identify task by displayId or taskId. |
-| `query_tasks` | Required detailLevel, includeComments, and limit (1–100); returns frozen {results,nextCursor,expiresAt} pages. Existing filters or single displayId; taskIds/displayIds batches reject filters. Continuations send only cursor. |
+| `query_tasks` | Required detailLevel, includeComments, and limit (1–100); returns frozen {results,nextCursor,expiresAt} pages. Existing filters or single displayId; taskIds/displayIds batches reject filters. Continuations send cursor and optional identical retained readPolicy. |
 | `add_comment` | Add a comment to a task (by displayId or taskId); always sets `isAgent: true` |
 
 ### Task query snapshots (T-2379)
 
-`MCPTaskQueryRequest` validates initial options and cursor-only continuation.
-`MCPToolHandler+TaskQuery` copies all selected task/comment values into JSON pages
-synchronously on MainActor before publication. Full queries fetch child-side comments once per unique task for a complete revision, even when `includeComments: false` omits their payload; summary queries with that option skip the fetch. Repeated batch IDs reuse one snapshot, and continuations retain frozen revisions without fetching. `MCPTaskQuerySnapshotStore` retains
-encoded pages for five minutes with monotonic expiry, at most eight multi-page
-snapshots and 16 MiB. Capacity rejection preserves existing cursors; reads do not
-extend lifetime. One-page results are byte-limited but need no retained snapshot.
-The listener closes query admission and clears snapshots before shutdown awaits,
-on generation-checked current-listener exit, and before reopening on launch.
-Whole-query tool errors contain a structured `{error:{code,message}}` object.
+`MCPTaskQueryRequest` validates initial options and cursor continuation (cursor plus optional identical retained readPolicy). The admitted `MCPReadService` captures saved values, then prepares projected pages, frozen tool fragments and capture metadata through the common result seam before atomic publication. Full queries fetch child-side comments for a complete revision even when bodies are omitted; summary queries without comments can skip that fetch. Repeated selector IDs reuse captured evidence. Continuations retain frozen revisions/text/metadata and add only a newly correlated RPC wrapper, without fetching live records.
+
+`MCPTaskQuerySnapshotStore` retains encoded pages for five minutes with monotonic expiry, at most eight multi-page snapshots and16MiB charged retained data. Capacity rejection preserves existing cursors; reads do not extend lifetime. One-page results are byte-limited but need no retained snapshot. Listener shutdown closes admission and clears indexes before awaiting listener teardown; unfinished physical read workers retain their slots until finalizers complete; canceled or failed publication cannot expose cursor success. The bounded coordinator retains unfinished physical slots across restart.
 
 ### Maintenance tools (gated, default off)
 
 `scan_duplicate_display_ids` and `reassign_duplicate_display_ids` are exposed only when `MCPSettings.maintenanceToolsEnabled` is true. The toggle is persisted under UserDefaults key `mcpMaintenanceToolsEnabled`.
 
 - `MCPToolDefinitions` is split into `coreTools` and `maintenanceTools`; `tools(includingMaintenance:)` returns the right subset. The legacy `all` alias still resolves to `coreTools` only — anything in production should use the helper.
-- When the toggle is off, `tools/list` excludes both maintenance tools and `tools/call` for either name returns JSON-RPC `invalidParams` (-32602) with the literal message `Tool '<name>' is disabled. Enable maintenance tools in Transit Settings.` — distinct from the "Unknown tool" message used for genuinely unknown names.
-- The toggle takes effect on the next `tools/list` without restart. Initialization advertises `tools.listChanged: true` and returns a unique session ID; each initialized session with one or more negotiated GET/SSE streams receives exactly one `notifications/tools/list_changed` on each real toggle change. `MCPToolListChangeBroadcaster` is scoped to the shared `MCPSettings` instance, deduplicates across concurrent streams in the same session, and retains only the newest pending invalidation because the notification is idempotent. The request context observes each NIO channel's close future so even an idle disconnected stream is promptly finished and unregistered.
+- When the toggle is off, tools/list excludes both maintenance tools. Exposed modern tools/call validation rejects unknown or disabled tool names with HTTP400/-32602, `Tool name is missing or unavailable`, before handler dispatch.
+- The toggle takes effect on the next tools/list without restart. Discovery advertises tools.listChanged; subscriptions/listen acknowledges supported requested filters before any change. Each opted-in request stream receives correlated availability changes with bounded coalescing. Disconnect/cancellation/server teardown releases its registration; there are no sessions.
 - Dispatch handlers (`handleScanDuplicateDisplayIds`, `handleReassignDuplicateDisplayIds`) encode `DisplayIDMaintenanceTypes` (Codable structs) via a shared `encodedTextResult(_:)` helper that JSON-encodes any `Encodable` and wraps it in the `MCPToolResult.content[text]` envelope.
 
 ## Origin / Host Validation (T-1833)
@@ -95,7 +89,7 @@ Gotchas:
 - **Never reject a missing `Origin`.** Claude Code and CLI callers send no
   `Origin` header at all; rejecting absence breaks the entire agent integration.
 - **Rejections are plain HTTP 403, not JSON-RPC errors.** The request never
-  entered a JSON-RPC session, and a `200` with an error object would confirm to
+  passed protocol validation, and a `200` with an error object would confirm to
   an attacker's page that the endpoint is live. The body is a fixed
   `"Forbidden"` rather than the specific reason, so a prober cannot tell whether
   the `Origin` or the `Host` check tripped.
@@ -115,19 +109,10 @@ Gotchas:
 - `MCPSettings.validPortRange` is `nonisolated` so the validator (which runs on
   NIO threads) can reuse it.
 
-## JSON-RPC Methods Handled
+## Modern request validation
 
-`initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`
-
-### Initialize handshake validation (T-1778)
-
-`initialize` requires an object `params` containing string `protocolVersion`, object `capabilities`, and object `clientInfo`. `clientInfo.name` and `clientInfo.version` are required strings; optional `clientInfo.title` must also be a string. Missing fields and object/array method-parameter mismatches return JSON-RPC `invalidParams` (`-32602`); scalar or null top-level `params` violate the JSON-RPC request shape and return `invalidRequest` (`-32600`). Transit currently supports only `2025-03-26`: that version is echoed when requested, while any unsupported requested version receives the latest advertised supported version (`2025-03-26`) per the MCP lifecycle negotiation rule.
-
-## JSON-RPC Batch Envelopes (T-1834)
-
-`POST /mcp` accepts either one `JSONRPCRequest` or a non-empty JSON-RPC batch. `MCPServer.decodeIncomingRequest` preserves invalid batch members so each produces its own `-32600` response, while an empty batch produces one standalone `-32600` object as required by JSON-RPC 2.0.
-
-Batch dispatch is sequential on the MainActor to keep mutations against the shared SwiftData context deterministic. Responses to request members remain inside an array even when notifications are omitted. A batch containing only notifications returns HTTP 202 with no body; notifications still execute their method/tool path before the result is discarded. Batched `initialize` requests are rejected with `-32600` because MCP 2025-03-26 requires initialization to be a standalone request. Single requests continue to return one response object.
+Supported methods: `server/discover`, `tools/list`, `tools/call`, `subscriptions/listen`.
+The route validates Origin/Host before collecting at most1MiB, then validates one request object, ID, required per-request metadata and matching protocol/method/name headers before dispatch. Unsupported versions return the supported revision; unknown methods return404. Arrays, initialize, GET listeners, null/missing IDs and unsupported client notifications reject without effects. See [the result contract](../mcp-result-contract.md) for exact fields, response schemas and rejection behavior.
 
 ## Dependencies
 
@@ -142,25 +127,11 @@ Batch dispatch is sequential on the MainActor to keep mutations against the shar
 
 Added `com.apple.security.network.server` and `com.apple.security.network.client` to `Transit.entitlements`.
 
-## Testing with curl
+## Client usage and compatibility
 
-Protected calls follow the [MCP write contract](../mcp-write-contract.md): supply a fresh key for a new logical request and reuse it unchanged for retries. Updates and milestone deletion also need the current revision from a read. The create example assumes an existing project named `Agent Work`.
+Use the request examples and header requirements in [the result contract](../mcp-result-contract.md). Protected effects additionally require the original key/revision evidence from [the write contract](../mcp-write-contract.md). Do not send legacy headerless curl calls or assume a client supports the latest-only endpoint from its version.
 
-```bash
-# List tools
-curl -X POST http://localhost:3141/mcp -H 'Content-Type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
-
-# Create task
-curl -X POST http://localhost:3141/mcp -H 'Content-Type: application/json' \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"create_task","arguments":{"name":"Test","type":"feature","project":"Agent Work","idempotencyKey":"curl-create-task-001"}}}'
-```
-
-## Claude Code Integration
-
-```bash
-claude mcp add transit --transport http http://localhost:3141/mcp
-```
+Actual Codex/Claude installed-client compatibility is unverified and owner-approved deferred to post-merge MacBook validation. No client configuration or activation is performed by this branch's tests. Validate each intended surface against an isolated synthetic endpoint before relying on it.
 
 ## Task Resolution
 
@@ -173,7 +144,7 @@ MCPToolHandler, App Intents, and IntentHelpers all delegate to these methods rat
 ## Gotchas
 
 - `nonisolated` on struct/enum declarations is essential in this project due to `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Without it, all types inherit MainActor isolation, breaking Codable conformance on NIO threads.
-- `JSONRPCRequest` preserves the distinction between an omitted `id` member and an explicit JSON `null` using `isNotification`. MCP 2025-03-26 requires present IDs to be strings or integers, so `MCPToolHandler.handle(_:)` rejects the `id == nil && !isNotification` state with `-32600 Invalid Request`; omitted-id notifications still execute and return no response. T-847 established the presence flag, but its expectation that explicit null should be accepted is superseded by T-1863.
+- Modern request IDs are nonnull strings or signed64-bit integral numbers. Missing IDs/client notifications are rejected without dispatch; a tools/call notification cannot mutate data. Internal legacy decoder types do not define the exposed route.
 - `ByteBuffer(data:)` requires explicit `import NIOFoundationCompat` — not available from just `import Hummingbird`.
 - Don't reference `self` in `Task.detached` closures on `MCPServer` — causes "sending 'self' risks data races" error. Capture dependencies explicitly.
 - **Name-based filters must handle cross-project duplicates.** Milestone names (and potentially other name-resolved entities) can be duplicated across projects. When filtering by name without a project scope, use `Set<UUID>` to collect all matching IDs rather than taking just the first match (T-292).

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		964919FC2F4B2C8D002D5489 /* Hummingbird in Frameworks */ = {isa = PBXBuildFile; productRef = A1MCP00022F5A000000000002 /* Hummingbird */; };
+		DE710000000000000000000A /* Hummingbird in Frameworks */ = {isa = PBXBuildFile; productRef = A1MCP00022F5A000000000002 /* Hummingbird */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,12 +26,27 @@
 			remoteGlobalIDString = D48D3EA82F3A033000139F85;
 			remoteInfo = Transit;
 		};
+		DE720000000000000000000A /* Isolation smoke proxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D48D3EA12F3A033000139F85;
+			proxyType = 1;
+			remoteGlobalIDString = DE7100000000000000000001;
+			remoteInfo = TransitDevelopment;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		D48D3EA92F3A033000139F85 /* Transit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Transit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D48D3EBA2F3A033100139F85 /* TransitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TransitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D48D3EC42F3A033100139F85 /* TransitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TransitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DE7100000000000000000002 /* Transit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TransitDevelopment.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DE7200000000000000000002 /* Isolation smoke product */ = {
+			isa = PBXFileReference;
+			explicitFileType = wrapper.cfbundle;
+			includeInIndex = 0;
+			path = TransitIsolationSmokeTests.xctest;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -41,6 +57,13 @@
 			);
 			target = D48D3EA82F3A033000139F85 /* Transit */;
 		};
+		DE7100000000000000000009 /* Exceptions for "Transit" folder in "Transit" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DE7100000000000000000001 /* Transit */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -48,6 +71,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				D48D3ECC2F3A033100139F85 /* Exceptions for "Transit" folder in "Transit" target */,
+				DE7100000000000000000009 /* Development source exceptions */,
 			);
 			path = Transit;
 			sourceTree = "<group>";
@@ -60,6 +84,11 @@
 		D48D3EC72F3A033100139F85 /* TransitUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = TransitUITests;
+			sourceTree = "<group>";
+		};
+		DE7200000000000000000003 /* Isolation smoke group */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TransitIsolationSmokeTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -87,6 +116,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DE7100000000000000000004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DE710000000000000000000A /* Hummingbird in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE7200000000000000000005 /* Isolation smoke frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -95,6 +139,7 @@
 			children = (
 				D48D3EAB2F3A033000139F85 /* Transit */,
 				D48D3EBD2F3A033100139F85 /* TransitTests */,
+				DE7200000000000000000003 /* TransitIsolationSmokeTests */,
 				D48D3EC72F3A033100139F85 /* TransitUITests */,
 				D48D3EAA2F3A033000139F85 /* Products */,
 			);
@@ -104,7 +149,9 @@
 			isa = PBXGroup;
 			children = (
 				D48D3EA92F3A033000139F85 /* Transit.app */,
+				DE7100000000000000000002 /* TransitDevelopment.app */,
 				D48D3EBA2F3A033100139F85 /* TransitTests.xctest */,
+				DE7200000000000000000002 /* TransitIsolationSmokeTests.xctest */,
 				D48D3EC42F3A033100139F85 /* TransitUITests.xctest */,
 			);
 			name = Products;
@@ -182,6 +229,50 @@
 			productReference = D48D3EC42F3A033100139F85 /* TransitUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		DE7100000000000000000001 /* Transit */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DE7100000000000000000006 /* Build configuration list for PBXNativeTarget "Transit" */;
+			buildPhases = (
+				DE7100000000000000000003 /* Sources */,
+				DE7100000000000000000004 /* Frameworks */,
+				DE7100000000000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D48D3EAB2F3A033000139F85 /* Transit */,
+			);
+			name = TransitDevelopment;
+			packageProductDependencies = (
+				A1MCP00022F5A000000000002 /* Hummingbird */,
+			);
+			productName = TransitDevelopment;
+			productReference = DE7100000000000000000002 /* Transit.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DE7200000000000000000001 /* Isolation smoke target */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DE7200000000000000000007;
+			buildPhases = (
+				DE7200000000000000000004,
+				DE7200000000000000000005,
+				DE7200000000000000000006,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DE720000000000000000000B,
+			);
+			fileSystemSynchronizedGroups = (
+				DE7200000000000000000003,
+			);
+			name = TransitIsolationSmokeTests;
+			productName = TransitIsolationSmokeTests;
+			productReference = DE7200000000000000000002;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -222,7 +313,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				DE7200000000000000000001 /* TransitIsolationSmokeTests */,
 				D48D3EA82F3A033000139F85 /* Transit */,
+				DE7100000000000000000001 /* TransitDevelopment */,
 				D48D3EB92F3A033100139F85 /* TransitTests */,
 				D48D3EC32F3A033100139F85 /* TransitUITests */,
 			);
@@ -245,6 +338,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		D48D3EC22F3A033100139F85 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE7100000000000000000005 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE7200000000000000000006 /* Isolation smoke resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -275,6 +382,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DE7100000000000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE7200000000000000000004 /* Isolation smoke sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -288,6 +409,11 @@
 			target = D48D3EA82F3A033000139F85 /* Transit */;
 			targetProxy = D48D3EC52F3A033100139F85 /* PBXContainerItemProxy */;
 		};
+		DE720000000000000000000B /* Isolation smoke dependency */ = {
+			isa = PBXTargetDependency;
+			target = DE7100000000000000000001;
+			targetProxy = DE720000000000000000000A;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -296,7 +422,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Transit/Transit.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Configuration/Development.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -306,8 +432,8 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Transit/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Transit;
+				INFOPLIST_FILE = Configuration/DevelopmentInfo.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Transit Development";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -324,10 +450,10 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = me.nore.ig.Transit;
+				PRODUCT_BUNDLE_IDENTIFIER = me.nore.ig.Transit.development;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				REGISTER_APP_GROUPS = YES;
+				REGISTER_APP_GROUPS = NO;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -518,7 +644,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = me.nore.ig.TransitTests;
+				PRODUCT_BUNDLE_IDENTIFIER = me.nore.ig.Transit.development.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -569,7 +695,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = me.nore.ig.TransitUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = me.nore.ig.Transit.development.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -606,6 +732,162 @@
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				TEST_TARGET_NAME = Transit;
 				XROS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+		DE7100000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) TRANSIT_DEVELOPMENT";
+				PRODUCT_MODULE_NAME = Transit;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Configuration/Development.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V24684SCZN;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Configuration/DevelopmentInfo.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Transit Development";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = me.nore.ig.Transit.development;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				REGISTER_APP_GROUPS = NO;
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		DE7100000000000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) TRANSIT_DEVELOPMENT";
+				PRODUCT_MODULE_NAME = Transit;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Configuration/Development.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V24684SCZN;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Configuration/DevelopmentInfo.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Transit Development";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = me.nore.ig.Transit.development;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				REGISTER_APP_GROUPS = NO;
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		DE7200000000000000000008 /* Isolation smoke debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				MARKETING_VERSION = 1.0;
+				DEVELOPMENT_TEAM = V24684SCZN;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				PRODUCT_BUNDLE_IDENTIFIER = "me.nore.ig.Transit.development.smoke-tests";
+				CURRENT_PROJECT_VERSION = 1;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TransitDevelopment.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TransitDevelopment";
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				CODE_SIGN_STYLE = Automatic;
+				XROS_DEPLOYMENT_TARGET = 26.2;
+				SDKROOT = auto;
+				SWIFT_VERSION = 6.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+			};
+			name = Debug;
+		};
+		DE7200000000000000000009 /* Isolation smoke release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				MARKETING_VERSION = 1.0;
+				DEVELOPMENT_TEAM = V24684SCZN;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				PRODUCT_BUNDLE_IDENTIFIER = "me.nore.ig.Transit.development.smoke-tests";
+				CURRENT_PROJECT_VERSION = 1;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TransitDevelopment.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TransitDevelopment";
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				CODE_SIGN_STYLE = Automatic;
+				XROS_DEPLOYMENT_TARGET = 26.2;
+				SDKROOT = auto;
+				SWIFT_VERSION = 6.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				GENERATE_INFOPLIST_FILE = YES;
 			};
 			name = Release;
 		};
@@ -647,6 +929,24 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		DE7100000000000000000006 /* Build configuration list for PBXNativeTarget "Transit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DE7100000000000000000007 /* Debug */,
+				DE7100000000000000000008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DE7200000000000000000007 /* Isolation smoke configlist */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DE7200000000000000000008,
+				DE7200000000000000000009,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 

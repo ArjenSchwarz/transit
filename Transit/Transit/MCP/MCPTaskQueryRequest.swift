@@ -1,21 +1,22 @@
 #if os(macOS)
 import Foundation
 
-struct MCPTaskQueryError: Error {
+nonisolated struct MCPTaskQueryError: Error, Sendable {
     let code: String
     let message: String
 
     static func invalid(_ message: String) -> Self { Self(code: "INVALID_INPUT", message: message) }
 }
 
-struct MCPTaskQueryRequest {
-    enum Selector {
+struct MCPTaskQueryRequest: Sendable {
+    enum Selector: Sendable {
         case list
         case single(Int)
         case taskIDs([String])
         case displayIDs([Int])
     }
 
+    let readPolicy: MCPReadPolicy?
     let cursor: String?
     let detailLevel: String
     let includeComments: Bool
@@ -30,16 +31,18 @@ struct MCPTaskQueryRequest {
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     static func parse(_ args: [String: Any]) throws -> Self {
         if let raw = args["cursor"] {
-            guard args.count == 1 else {
+            let policy = try policy(args["readPolicy"])
+            guard Set(args.keys).isSubset(of: ["cursor", "readPolicy"]) else {
                 throw MCPTaskQueryError.invalid("Continuation requires only a cursor")
             }
             guard let cursor = raw as? String, UUID(uuidString: cursor) != nil else {
                 throw MCPTaskQueryError(code: "INVALID_CURSOR", message: "Invalid cursor; start a new query")
             }
-            return Self(cursor: cursor, detailLevel: "summary", includeComments: false, limit: 1, selector: .list)
+            return Self(readPolicy: policy, cursor: cursor, detailLevel: "summary",
+                        includeComments: false, limit: 1, selector: .list)
         }
         let allowed = filterKeys.union([
-            "detailLevel", "includeComments", "limit", "displayId", "taskIds", "displayIds"
+            "detailLevel", "includeComments", "limit", "displayId", "taskIds", "displayIds", "readPolicy"
         ])
         guard Set(args.keys).isSubset(of: allowed) else {
             throw MCPTaskQueryError.invalid("Unknown query field")
@@ -82,7 +85,16 @@ struct MCPTaskQueryRequest {
         } else {
             selector = .list
         }
-        return Self(cursor: nil, detailLevel: detail, includeComments: comments, limit: limit, selector: selector)
+        return Self(readPolicy: try policy(args["readPolicy"]), cursor: nil, detailLevel: detail,
+                    includeComments: comments, limit: limit, selector: selector)
+    }
+
+    private static func policy(_ raw: Any?) throws -> MCPReadPolicy? {
+        guard let raw else { return nil }
+        guard let value = MCPReadRefreshPolicy.parse(raw) else {
+            throw MCPTaskQueryError.invalid("readPolicy must be cached or refresh_if_needed")
+        }
+        return value
     }
 
     private static func batch(_ raw: Any, key: String) throws -> [Any] {

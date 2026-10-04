@@ -1,0 +1,28 @@
+# Shared fixture coordination after T2382 partial full run
+
+Read-only reviewed evidence: task-2/t2382-review-evidence/final-verification/green-6abe659f4ae2fdd9aa7ff95adb85667cfd9169fe/results.md and root-actual-partial-results.json. Actual build0,2248 compiled declarations, partial execution with90 assertion issue lines and176 NIO misuse lines. These are line counts, not complete failed-body counts; no finalized result or full PASS. Existing logs and limitations remain untouched.
+
+Common MCPHTTPTestHelpers.respond currently crosses async suspension with EmbeddedChannel and synchronous defer finish. Parent requested a separate narrow ownership repair: use supported owned async testing channel/loop and explicit success/error teardown; preserve every input/default/header duplicate/body/authority/signature and response collation. Do not automatically add modern metadata or mirrored headers, since that would conceal malformed/security negatives. No warning suppression or assertion removal. Subscription tests retain their explicit long-lived body ownership instead of collecting an infinite SSE body through this ordinary-response helper.
+
+T2382 owns its restored MCPPortfolioFoundationHarness migration. The first observed NIO warning cluster follows mixedFixtureWaitsForProtectedWriteAndPreservesSavedReceipt, which belongs to MCPPortfolioReadFoundationTests in that worktree. T63 owns the separate MCPReadCoordinatorTests EmbeddedChannel usages at29/170; preserve deadline, pre-admission, saved receipt, timeout/busy/invalid and physical-worker assertions when repairing their ownership. T2383 does not rewrite those retained fixtures.
+
+Legacy protocol/transport/null-ID/notification/batch fixtures and fixed tool/schema counts need explicit owner migration to approved latest-only behavior while preserving security and effect evidence. The stalled MCPWriteLifecycleTests request lacks required modern metadata and waits indefinitely for an allocator never admitted. Migrate the caller explicitly and bound its gate wait; preserve accepted cancellation, receipt transaction and exact-key replay assertions. Do not classify unexercised obligations as harmless or remove them. WriteCoordinator-specific sources remain T2384-owned.
+
+Task19 independently migrates the owned availability notification fixture and uses explicit async channels. Its static source review or later focused GREEN cannot establish closure of the full-run failures. Each exact owner patch and focused verification must be recorded separately before another broad run. No source change was made in other worktrees by this review.
+
+## Delivered T2383 source fixes
+
+Shared ordinary HTTP helper4ddbfc8 and five modern protocol fixture ports405ffc7 are independently reviewed and committed. The latter preserves47 declarations/62 expected cases; root verifies all5 committed bytes and original/current declaration counts. Producer source868ed04 remains separate. See modern-fixture-handoff.md for exact scope and focused proposals. No actual compilation, GREEN or full-unit acceptance was performed. Historical write lifecycle was subsequently assigned and delivered as recorded below.
+
+## Subsequent parent assignments
+
+The parent explicitly assigned historical MCPWriteLifecycleTests.swift solely to T2383 for transport fixtures, without write coordinator ownership. Its bounded acceptance/cancellation/receipt replay migration proceeds separately. The preserved duplicate-name rejection with distinct keys has two accepted receipts; a separate same-key/different-valid-arguments control proves IDEMPOTENCY_KEY_REUSED/accepted=false with one receipt. This preserves both domain and key-conflict coverage without changing coordinator logic; T2384 coordination is routed through the parent. Latest parent report identifies T1734 as active heavy-slot owner.
+
+The parent accepted T63's meaningful six-case catalog READ_FAILED RED with its unfinalized limitation and authorised exact source consumption. Owner d2648f6 was imported21356d5, both posthashes verified. Six fault cases and13 diagnostic bodies still await owner runtime GREEN.
+
+
+## Historical write lifecycle source delivery
+
+Parent-assigned transport-only migration committed e00e9a0e28ecfb5f40f9c140ae22d24840693f55. Five declarations/six expected cases retain first commit, distinct-key duplicate-name rejection (accepted=true/two receipts), same-key argument conflict (accepted=false/one receipt), revision and missing-safety controls. Cancellation waits for actual allocator entry after durable acceptance using a bounded rendezvous; release/drain covers every path. New-responder replay checks rejected/accepted=true/CANCELLED, no created task, one receipt and exact saved resultJSON UTF-8 bytes. Coordinator and production sources are unchanged. Final source SHA2561017a043d588081d5bb9381b8b51215b1ce7d3017093be41ffdc2734b18d5ec5; parse0/strict no-cache lint0/diff0/internal critic SOURCE CLEAR. Root matched source bytes and retained five declarations. Evidence: `.codex-cache/task19-write-lifecycle-port/` and `.codex-cache/task19-root-review/write-lifecycle-verification.json`. No compile/runtime GREEN.
+
+Historical focused selection is five declarations/six expected cases. Including it with the existing proposals yields ten suites/77 declarations/109 expected cases; actual compiled inventory must establish those counts. T63 Settings two-method owner cleanup remains missing, so guarded build preparation stays fail-closed. Parent schedules focused verification; latest reported heavy-slot owner is T1734. No new full run before focused cases pass.

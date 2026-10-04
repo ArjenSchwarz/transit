@@ -1,0 +1,155 @@
+{
+  "status": "accepted_sole_writer_for_named_production_files",
+  "authorization": "explicit parent delegation authorizing staged modern-file ownership transfer",
+  "manifest_commit": "557b4c2cbd91bcb82f61f91d16e4bf7297511e16",
+  "manifest_path": "/Users/arjen/Documents/Codex/2026-10-03/task/transit-t63/specs/bounded-read-freshness/modern-transfer-manifest.json",
+  "manifest_sha256": "989b69f969b2c35f75460f3740a5074813ac606a18b75bdef67677aef0822352",
+  "source_base": "b1f30256b4fb33270809188131d047a29807f162",
+  "accepted_production_files": [
+    {
+      "path": "Transit/Transit/MCP/MCPServer.swift",
+      "sha256": "204b78bc0d3d49a41b9b6ce422cd367b0e1b4d02f613cd7266946021c276ec11",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServer+Routing.swift",
+      "sha256": "a61923728971c1d1bf8c687884ea7e46213ad8d64e167c3ffb90f95ae00b2dde",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServer+Responses.swift",
+      "sha256": "c1da3a62420439cb6b7007a8871ff9ad2f45f4c06cabf4e7c7933a981b0e8bfb",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServer+ToolListNotifications.swift",
+      "sha256": "0a6ea616cb23d54f325f1ab82c7338ea46e8c6ae303dd5f7b65f1120ae25e3cc",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServerDecodeTypes.swift",
+      "sha256": "7d8243ee4e14ec1d4e8c4b7af5c29691ac3af9c592950fb43e696ba323d0edab",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServerLifecycleConfiguration.swift",
+      "sha256": "6cc4fddb83d78e9c6e86eb54ee074a7ba35f2473337212b7e017c50bb5057d86",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift",
+      "sha256": "8afa54367af4ded22a43acaca5f4692882d37511030a5d1430c4fe0c39dd4f66",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPTypes.swift",
+      "sha256": "ed9a44ffb38bcbe98a37cc742a52850ecab3ab9334f395e2a70a30a1423e7f06",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler.swift",
+      "sha256": "0749918c933b89f3e2aa4e1757bfd5243584ca1f559af54d7ac76cbc701581e2",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler+TaskQuery.swift",
+      "sha256": "f46e9ca6386c3d7740654ac7d38ddb82a33c8dcde4a17ec569727ad3413ceb16",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    }
+  ],
+  "optional_fixture_files": "recorded only; separately authorized optional transfer not assumed",
+  "optional_fixture_candidates": [
+    {
+      "path": "Transit/TransitTests/MCPServerRouteTests.swift",
+      "sha256": "dec881e0639a6aa982bcc2278af9b4d7fbaee32b42cd5d29f133b3be2ab1385b",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/TransitTests/MCPServerBatchRequestTests.swift",
+      "sha256": "7829d17fd5cc64847ad99bc35cf9c800311fa62bb433a1c77acddc8acc47c3b6",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/TransitTests/MCPNotificationDispatchTests.swift",
+      "sha256": "f76bf880acf144bbb72532640932d796ee8884f34bba5b808931073e74b3cb35",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/TransitTests/MCPToolListChangeNotificationTests.swift",
+      "sha256": "ad451dda60e897143490a180e29654b2f560b2c76895c7e7e929f1bd1b8e9ab6",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/TransitTests/MCPServerOriginValidationTests.swift",
+      "sha256": "bc6707ddde5869a796946e7703e4a30aee68239bc9aa034ae991876888202a89",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/TransitTests/MCPServerLifecycleTests.swift",
+      "sha256": "dd2930d0dd5957ea30d3a507283e9987e5560be9679b57c6119db8d99b9525c5",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    },
+    {
+      "path": "Transit/TransitTests/MCPServerStartFailureTests.swift",
+      "sha256": "19aaa3f72882cf85fadc2b33e70a1e7a6d559f5fea9fe2ca915eedd20abe39f8",
+      "current_owner": "T63",
+      "proposed_owner_after_explicit_parent_record": "T2383"
+    }
+  ],
+  "verified_source_and_current_hash_count": 17,
+  "retained_owners": {
+    "T63": [
+      "Transit/Transit/MCP/Reads/",
+      "Transit/Transit/MCP/MCPTaskQuerySnapshotStore.swift",
+      "Transit/Transit/MCP/MCPToolHandler+CapturedRead.swift",
+      "Transit/Transit/MCP/MCPToolHandler+PortfolioReadPreparation.swift",
+      "Transit/Transit/MCP/MCPToolDefinitions.swift",
+      "Transit/TransitTests/MCPHTTPTestHelpers.swift",
+      "Transit/TransitTests/MCPTestHelpers.swift",
+      "read-specific tests"
+    ],
+    "T2382": [
+      "portfolio/reusable source modules",
+      "portfolio-owned tests"
+    ],
+    "T2384": [
+      "MCP/Writes/MCPWriteCoordinator.swift",
+      "write-specific tests"
+    ],
+    "containment_build_owner": [
+      "App/project/signing/isolation/Makefile"
+    ]
+  },
+  "source_imported": false,
+  "production_files_edited": false,
+  "task10": "in progress; exact build and unchanged retry denied; awaiting direct user/tool-supported resolution",
+  "task11": "blocked by meaningful task10 RED",
+  "task14": "blocked by task11; ownership gate alone is now satisfied for named production files",
+  "api15_delivered": false,
+  "heavy_slot_held": false,
+  "verification_obligations": [
+    "real fragment/schema ABI and owner-applied read/ordinary/reusable bindings",
+    "complete actual-ID encoded bytes before publication; exact frozen metadata and retention accounting",
+    "modern single-object POST and wire-array rejection",
+    "portfolio request-header alignment and source/presentation/opaque-metadata assertions",
+    "current HTTP-helper focused router verification with modern adapter",
+    "include two verified owner router-expiry fixtures with current helper and modern adapter"
+  ],
+  "external_runtime_evidence": "manifest reports owner router4/4 atb4c104e7 and expiry2/2 atee053269 separately; no combined/local runtime proof claimed"
+}

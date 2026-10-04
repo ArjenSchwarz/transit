@@ -6,6 +6,21 @@ import NIOCore
 import NIOFoundationCompat
 
 extension MCPServer {
+    nonisolated static func encodedResponse(_ bytes: Data) -> Response {
+        Response(status: .ok, headers: [.contentType: "application/json"],
+            body: .init(byteBuffer: ByteBuffer(data: bytes)))
+    }
+
+    nonisolated static func modernRejection(_ rejection: MCPModernRejection) -> Response {
+        let status = HTTPResponse.Status(code: rejection.httpStatus)
+        guard rejection.rpcCode != nil else { return Response(status: status) }
+        guard let bytes = try? MCPModernWire.error(rejection) else {
+            return Response(status: .internalServerError)
+        }
+        return Response(status: status, headers: [.contentType: "application/json"],
+            body: .init(byteBuffer: ByteBuffer(data: bytes)))
+    }
+
     nonisolated static func jsonResponse(
         _ payload: some Encodable & Sendable,
         additionalHeaders: HTTPFields = [:]

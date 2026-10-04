@@ -39,7 +39,7 @@ struct MCPProtocolVersionTests {
     @Test func handlerRejectsJsonRpcVersion1() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let json = Data(#"{"jsonrpc":"1.0","id":1,"method":"ping"}"#.utf8)
+        let json = Data(#"{"jsonrpc":"1.0","id":1,"method":"tools/list"}"#.utf8)
         let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
 
         let response = try #require(await env.handler.handle(request))
@@ -61,7 +61,7 @@ struct MCPProtocolVersionTests {
     @Test func handlerRejectsEmptyJsonRpcVersion() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let json = Data(#"{"jsonrpc":"","id":1,"method":"ping"}"#.utf8)
+        let json = Data(#"{"jsonrpc":"","id":1,"method":"tools/list"}"#.utf8)
         let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
 
         let response = try #require(await env.handler.handle(request))
@@ -75,7 +75,7 @@ struct MCPProtocolVersionTests {
         // Some broken clients send a JSON number rather than the required string.
         // `decodeIfPresent(String.self, ...)` returns nil for a non-string, so it
         // surfaces as "" and must be rejected with -32600 like any other bad version.
-        let json = Data(#"{"jsonrpc":2,"id":1,"method":"ping"}"#.utf8)
+        let json = Data(#"{"jsonrpc":2,"id":1,"method":"tools/list"}"#.utf8)
         let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
 
         let response = try #require(await env.handler.handle(request))
@@ -90,7 +90,7 @@ struct MCPProtocolVersionTests {
 
         // No jsonrpc member at all — must still be parseable and rejected by the
         // handler with -32600 rather than silently dispatched.
-        let json = Data(#"{"id":1,"method":"ping"}"#.utf8)
+        let json = Data(#"{"id":1,"method":"tools/list"}"#.utf8)
         let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
 
         let response = try #require(await env.handler.handle(request))
@@ -103,7 +103,7 @@ struct MCPProtocolVersionTests {
     @Test func errorResponseEchoesRequestId() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let json = Data(#"{"jsonrpc":"1.0","id":42,"method":"ping"}"#.utf8)
+        let json = Data(#"{"jsonrpc":"1.0","id":42,"method":"tools/list"}"#.utf8)
         let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
 
         let response = try #require(await env.handler.handle(request))
@@ -114,17 +114,17 @@ struct MCPProtocolVersionTests {
         #expect(object["id"] as? Int == 42)
     }
 
-    @Test func errorResponseForMissingIdUsesNull() async throws {
+    @Test func errorResponseForMissingIdOmitsUnavailableIdentifier() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        // No id member and bad jsonrpc — JSON-RPC §5 requires id: null in errors.
-        let json = Data(#"{"jsonrpc":"1.0","method":"ping"}"#.utf8)
+        // No readable ID is fabricated for an invalid modern envelope.
+        let json = Data(#"{"jsonrpc":"1.0","method":"tools/list"}"#.utf8)
         let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
 
         let response = try #require(await env.handler.handle(request))
         let fields = try Self.errorFields(response)
-        #expect(fields.idKeyPresent)
-        #expect(fields.idIsNull)
+        #expect(!fields.idKeyPresent)
+        #expect(!fields.idIsNull)
     }
 
     // MARK: - Valid jsonrpc value still dispatches normally
@@ -132,7 +132,7 @@ struct MCPProtocolVersionTests {
     @Test func handlerAcceptsValidJsonRpcVersion() async throws {
         let env = try MCPTestHelpers.makeEnv()
 
-        let json = Data(#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#.utf8)
+        let json = Data(#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#.utf8)
         let request = try JSONDecoder().decode(JSONRPCRequest.self, from: json)
 
         let response = try #require(await env.handler.handle(request))

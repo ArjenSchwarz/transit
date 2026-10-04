@@ -6,6 +6,7 @@ import Testing
 /// Regression tests for T-1128: the MCP route handler must distinguish
 /// JSON-RPC parse errors (-32700) from invalid-request shape errors (-32600).
 ///
+/// Modern request validation retains the original parse-versus-shape regression.
 /// Per JSON-RPC 2.0 §5.1:
 /// - `-32700 Parse error` is for input that is not well-formed JSON.
 /// - `-32600 Invalid Request` is for valid JSON that is not a well-formed
@@ -23,22 +24,22 @@ struct MCPRequestDecodeErrorClassificationTests {
     @Test func malformedJSONReturnsParseError() throws {
         let data = Data("{not json".utf8)
         let response = try unwrapErrorResponse(for: data)
-        #expect(response.code == JSONRPCErrorCode.parseError)
-        #expect(response.message == "Parse error")
+        #expect(response.rpcCode == JSONRPCErrorCode.parseError)
+        #expect(response.httpStatus == 400)
     }
 
     @Test func emptyBodyReturnsParseError() throws {
         let data = Data()
         let response = try unwrapErrorResponse(for: data)
-        #expect(response.code == JSONRPCErrorCode.parseError)
-        #expect(response.message == "Parse error")
+        #expect(response.rpcCode == JSONRPCErrorCode.parseError)
+        #expect(response.httpStatus == 400)
     }
 
     @Test func unterminatedStringReturnsParseError() throws {
         // Lexically broken JSON: a quoted string that never closes.
         let data = Data(#"{"jsonrpc":"2.0,"method":"ping"}"#.utf8)
         let response = try unwrapErrorResponse(for: data)
-        #expect(response.code == JSONRPCErrorCode.parseError)
+        #expect(response.rpcCode == JSONRPCErrorCode.parseError)
     }
 
     // MARK: - Invalid request errors (-32600)
@@ -47,92 +48,79 @@ struct MCPRequestDecodeErrorClassificationTests {
         // Valid JSON, but missing the required `method` member.
         let data = Data(#"{"jsonrpc":"2.0","id":1}"#.utf8)
         let response = try unwrapErrorResponse(for: data)
-        #expect(response.code == JSONRPCErrorCode.invalidRequest)
-        #expect(response.message == "Invalid Request")
+        #expect(response.rpcCode == JSONRPCErrorCode.invalidRequest)
+        #expect(response.httpStatus == 400)
     }
 
     @Test func nonStringJSONRPCMemberReturnsInvalidRequest() throws {
         // `jsonrpc` must be a string per the spec; a number is structurally wrong.
         let data = Data(#"{"jsonrpc":2.0,"id":1,"method":"ping"}"#.utf8)
         let response = try unwrapErrorResponse(for: data)
-        #expect(response.code == JSONRPCErrorCode.invalidRequest)
+        #expect(response.rpcCode == JSONRPCErrorCode.invalidRequest)
     }
 
     @Test func booleanIdReturnsInvalidRequest() throws {
         // `id` must be string, number, or null. Boolean is not allowed.
         let data = Data(#"{"jsonrpc":"2.0","id":true,"method":"ping"}"#.utf8)
         let response = try unwrapErrorResponse(for: data)
-        #expect(response.code == JSONRPCErrorCode.invalidRequest)
+        #expect(response.rpcCode == JSONRPCErrorCode.invalidRequest)
     }
 
     @Test func objectIdReturnsInvalidRequest() throws {
         // `id` must be string, number, or null. Object is not allowed.
         let data = Data(#"{"jsonrpc":"2.0","id":{"x":1},"method":"ping"}"#.utf8)
         let response = try unwrapErrorResponse(for: data)
-        #expect(response.code == JSONRPCErrorCode.invalidRequest)
+        #expect(response.rpcCode == JSONRPCErrorCode.invalidRequest)
     }
 
     @Test func scalarRootReturnsInvalidRequest() throws {
         // Valid JSON, but the root is a scalar — not a Request object.
         let data = Data("42".utf8)
         let response = try unwrapErrorResponse(for: data)
-        #expect(response.code == JSONRPCErrorCode.invalidRequest)
+        #expect(response.rpcCode == JSONRPCErrorCode.invalidRequest)
     }
 
-    @Test func errorResponseIdIsNull() throws {
-        // For both error categories, `id` in the response must be null when it
-        // cannot be reliably extracted from the request.
-        let data = Data(#"{"jsonrpc":"2.0","id":true,"method":"ping"}"#.utf8)
-        let response = MCPServer.decodeIncomingRequest(data)
-        switch response {
-        case .success:
-            Issue.record("Expected error response for invalid id type")
-        case .batch:
-            Issue.record("Expected single-request decode failure, not a batch")
-        case .failure(let errorResponse):
-            let encoded = try JSONEncoder().encode(errorResponse)
-            let parsed = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
-            let dict = try #require(parsed)
-            #expect(dict.keys.contains("id"))
-            #expect(dict["id"] is NSNull)
+    @Test func invalidIDRemainsUnavailableForModernErrorCorrelation() throws {
+        for token in ["true", "null", "{}", "[]", "1.5"] {
+            let data = Data("{\"jsonrpc\":\"2.0\",\"id\":\(token),\"method\":\"server/discover\"}".utf8)
+            let rejection = try unwrapErrorResponse(for: data)
+            #expect(rejection.rpcCode == JSONRPCErrorCode.invalidRequest)
+            #expect(rejection.id == nil)
         }
     }
 
     // MARK: - Happy path (sanity)
 
     @Test func wellFormedRequestDecodes() throws {
-        let data = Data(#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#.utf8)
-        let result = MCPServer.decodeIncomingRequest(data)
-        switch result {
-        case .success(let req):
-            #expect(req.method == "ping")
-            #expect(req.jsonrpc == "2.0")
-            #expect(!req.isNotification)
-        case .batch:
-            Issue.record("Single request must not decode as a batch")
-        case .failure:
-            Issue.record("Well-formed request must decode successfully")
-        }
+        let body = Data("""
+            {"jsonrpc":"2.0","id":1,"method":"server/discover",
+            "params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities":{}}}}
+            """.utf8)
+        let result = try MCPModernValidator.validate(input(body), availability: MCPModernAvailability(tools: []))
+        if case .discover = result.method {} else { Issue.record("Expected discover classification") }
+        if case .integer(1) = result.id {} else { Issue.record("Expected original ID") }
     }
 
-    // MARK: - Helpers
+    private func input(_ body: Data) -> MCPModernRequestInput {
+        MCPModernRequestInput(httpMethod: "POST", headers: [
+            .init(name: "Content-Type", value: "application/json"),
+            .init(name: "Accept", value: "application/json, text/event-stream"),
+            .init(name: "MCP-Protocol-Version", value: "2026-07-28"),
+            .init(name: "Mcp-Method", value: "server/discover")
+        ], body: body)
+    }
 
-    private func unwrapErrorResponse(for data: Data) throws -> JSONRPCError {
-        let result = MCPServer.decodeIncomingRequest(data)
-        switch result {
-        case .success:
-            Issue.record("Expected decode failure but request decoded successfully")
+    private func unwrapErrorResponse(for data: Data) throws -> MCPModernRejection {
+        do {
+            _ = try MCPModernValidator.validate(input(data), availability: MCPModernAvailability(tools: []))
+            Issue.record("Expected modern rejection")
             throw DecodeUnwrapError.unexpectedSuccess
-        case .batch:
-            Issue.record("Expected single-request decode failure, not a batch")
-            throw DecodeUnwrapError.unexpectedSuccess
-        case .failure(let response):
-            let error = try #require(response.error, "Error response must carry a JSONRPCError")
-            return error
+        } catch let rejection as MCPModernRejection {
+            return rejection
         }
     }
 
     private enum DecodeUnwrapError: Error { case unexpectedSuccess }
 }
-
 #endif

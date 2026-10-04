@@ -82,15 +82,11 @@ nonisolated struct JSONRPCResponse: Encodable, Sendable {
     }
 
     func encode(to encoder: Encoder) throws {
-        // Per JSON-RPC 2.0 §5, the `id` member MUST always be present in a
-        // response. Use a nil-to-null encoding rather than synthesized
-        // `encodeIfPresent`, which would omit the key entirely.
+        // Modern request errors omit an unavailable identifier; never fabricate null.
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(jsonrpc, forKey: .jsonrpc)
         if let id {
             try container.encode(id, forKey: .id)
-        } else {
-            try container.encodeNil(forKey: .id)
         }
         try container.encodeIfPresent(result, forKey: .result)
         try container.encodeIfPresent(error, forKey: .error)
@@ -189,6 +185,22 @@ nonisolated struct MCPToolsListResult: Encodable, Sendable {
 nonisolated struct MCPToolResult: Encodable, Sendable {
     let content: [MCPContent]
     let isError: Bool?
+    let metadata: MCPToolResultMetadata?
+    /// Provider declarations are internal evidence, never persisted or added to logical JSON.
+    let providerEvidence: MCPResultProviderEvidence?
+
+    init(content: [MCPContent], isError: Bool?, metadata: MCPToolResultMetadata? = nil,
+         providerEvidence: MCPResultProviderEvidence? = nil) {
+        self.content = content
+        self.isError = isError
+        self.metadata = metadata
+        self.providerEvidence = providerEvidence
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case content, isError
+        case metadata = "_meta"
+    }
 }
 
 nonisolated struct MCPContent: Encodable, Sendable {
@@ -233,10 +245,15 @@ nonisolated struct JSONSchemaProperty: Encodable, Sendable {
     let enumValues: [String]?
     let items: JSONSchemaItems?
     var pattern: String?
+    var minimum: Int?
+    var maximum: Int?
+    var const: Bool?
+    var defaultValue: String?
 
     nonisolated enum CodingKeys: String, CodingKey {
-        case type, description, items, pattern
+        case type, description, items, pattern, minimum, maximum, const
         case enumValues = "enum"
+        case defaultValue = "default"
     }
 
     static func string(_ description: String) -> JSONSchemaProperty {

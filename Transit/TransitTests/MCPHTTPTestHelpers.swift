@@ -20,7 +20,7 @@ extension MCPTestHelpers {
         return try #require(try JSONSerialization.jsonObject(with: bytes) as? [String: Any])
     }
 
-    static func respond(
+    nonisolated static func respond(
         handler: MCPToolHandler,
         method: HTTPRequest.Method = .post,
         path: String = "/mcp",
@@ -29,10 +29,11 @@ extension MCPTestHelpers {
         contentType: String? = nil,
         accept: String? = nil,
         sessionID: String? = nil,
+        protocolVersion: String? = nil,
+        orderedHeaders: [HTTPField] = [],
         body: String = "",
         loggerLabel: String
     ) async throws -> MCPHTTPTestResponse {
-        let responder = MCPServer.makeRouter(handler: handler).buildResponder()
         var headers = HTTPFields()
         if let origin {
             headers[.origin] = origin
@@ -46,6 +47,12 @@ extension MCPTestHelpers {
         if let sessionID {
             headers[.mcpSessionID] = sessionID
         }
+        if let protocolVersion {
+            headers[HTTPField.Name("MCP-Protocol-Version")!] = protocolVersion
+        }
+        for field in orderedHeaders {
+            headers.append(field)
+        }
         let request = Request(
             head: HTTPRequest(
                 method: method,
@@ -57,28 +64,44 @@ extension MCPTestHelpers {
             body: RequestBody(buffer: ByteBuffer(string: body))
         )
 
-        let channel = EmbeddedChannel()
-        defer { _ = try? channel.finish() }
-        let context = MCPRequestContext(
-            source: ApplicationRequestContextSource(
-                channel: channel,
-                logger: Logger(label: loggerLabel)
-            )
-        )
+        return try await respondToRequest(request, handler: handler, loggerLabel: loggerLabel)
+    }
 
-        let response = try await responder.respond(to: request, context: context)
-        let writer = MCPHTTPTestResponseWriter()
-        try await response.body.write(writer)
-        let data = Data(buffer: writer.collated.withLockedValue { $0 })
-        return MCPHTTPTestResponse(
-            status: response.status,
-            headers: response.headers,
-            body: data
-        )
+    nonisolated private static func respondToRequest(
+        _ request: Request, handler: MCPToolHandler, loggerLabel: String
+    ) async throws -> MCPHTTPTestResponse {
+        let responder = MCPServer.makeRouter(handler: handler).buildResponder()
+        let loop = NIOAsyncTestingEventLoop()
+        var ownedChannel: NIOAsyncTestingChannel?
+        do {
+            let channel = try await NIOAsyncTestingChannel(loop: loop) { _ in }
+            ownedChannel = channel
+            let context = MCPRequestContext(source: ApplicationRequestContextSource(
+                channel: channel, logger: Logger(label: loggerLabel)))
+            let response = try await responder.respond(to: request, context: context)
+            let writer = MCPHTTPTestResponseWriter()
+            try await response.body.write(writer)
+            let data = Data(buffer: writer.collated.withLockedValue { $0 })
+            let leftovers = try await channel.finish(acceptAlreadyClosed: true)
+            #expect(leftovers.isClean)
+            await loop.shutdownGracefully()
+            return MCPHTTPTestResponse(status: response.status, headers: response.headers, body: data)
+        } catch {
+            if let channel = ownedChannel {
+                do {
+                    let leftovers = try await channel.finish(acceptAlreadyClosed: true)
+                    #expect(leftovers.isClean)
+                } catch {
+                    Issue.record("HTTP fixture channel cleanup failed: \(error)")
+                }
+            }
+            await loop.shutdownGracefully()
+            throw error
+        }
     }
 }
 
-nonisolated struct MCPHTTPTestResponse {
+nonisolated struct MCPHTTPTestResponse: Sendable {
     let status: HTTPResponse.Status
     let headers: HTTPFields
     let body: Data

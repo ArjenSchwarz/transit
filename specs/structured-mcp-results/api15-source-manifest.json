@@ -1,0 +1,147 @@
+{
+  "runeTask": "15/gpzncvz",
+  "sourceCheckpoint": "543c4a757e4cb7f9f73c973d7cb1be5725c8f342",
+  "repository": "/Users/arjen/Documents/Codex/2026-10-03/task-3/transit",
+  "branch": "T-2383/structured-mcp-results",
+  "pureConsumerSeam": [
+    {
+      "path": "Transit/Transit/MCP/Results/MCPJSONDocument.swift",
+      "sha256": "7efd3387f8b262d2a253343ce976f562dab830fe7aa2954832c6a11e1fae725c",
+      "lastSourceCommit": "31bc425ba3a066497c6a9dcdedb1ed9dcdffdf03"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultSource.swift",
+      "sha256": "524fe680c37db3670d283bb1e02d8a48a15195dc9ffc8aaa8ff5712e62337068",
+      "lastSourceCommit": "3ba1cfbc157a0682dbdec211b4cbcd9ac269aea1"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultInspection.swift",
+      "sha256": "5202d57c29a946a6e64ebb26ce5512f19aa1d5460a766141d30789af5c7fc2f1",
+      "lastSourceCommit": "1652913db72bd2a5bf00dd109fca547d8477db3a"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultAdapter.swift",
+      "sha256": "b27522345f88c6a28a2a5ccc5d339bb89859bcecf794ced5e7f20314d3802254",
+      "lastSourceCommit": "1652913db72bd2a5bf00dd109fca547d8477db3a"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultClassification.swift",
+      "sha256": "8d3664f62cce2e142174235e060a00bfb02d92cfc4b4f3b1b81c8b26968a7380",
+      "lastSourceCommit": "a8fcc71506ff61ee5b6f0e320ace5a064e30c915"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultLinks.swift",
+      "sha256": "c31ec2298e3d90d56f71ba79a430eec94184a71876350e4b4ed0a7d277cf0036",
+      "lastSourceCommit": "f4bd03a638dbdb0c56c04c4506a5aaaf864fb054"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultByteWriter.swift",
+      "sha256": "2aae6f485a5648c38bb83df76a2f7f5320d387d1e0b9ad66867c16020d6760c0",
+      "lastSourceCommit": "3ba1cfbc157a0682dbdec211b4cbcd9ac269aea1"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultEncoder.swift",
+      "sha256": "177abf4f9b5b6158047de2c0ff0ad179565d8a1d1c50027403a902d3aaa77127",
+      "lastSourceCommit": "3ba1cfbc157a0682dbdec211b4cbcd9ac269aea1"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultSchemas.swift",
+      "sha256": "ebb3af861af669af946f0b94eb3b3c68fd276e4be9416b180545ba383cf20338",
+      "lastSourceCommit": "a25bf996a8e73edb7972cc85780248df9c83e654"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultProviderSelection.swift",
+      "sha256": "49d54b6e3591c5e8eb37bb7c9d2779aa4d6309de055447a42ffb161e16dbdc62",
+      "lastSourceCommit": "fb776a03c366c7f1bed447eaeb98a8bfcaf06508"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultProviderAdapters.swift",
+      "sha256": "7e9028ea2c9e9195863c38493137bec56565de1471e8340596b511f68979d75c",
+      "lastSourceCommit": "fb776a03c366c7f1bed447eaeb98a8bfcaf06508"
+    }
+  ],
+  "integratedBinding": [
+    {
+      "path": "Transit/Transit/MCP/MCPTypes.swift",
+      "sha256": "e1246d36a5838369d9b98116f1779cb5705b0fe8c8a0bd19d4c5a5b6cf4c7793",
+      "lastSourceCommit": "a8fcc71506ff61ee5b6f0e320ace5a064e30c915"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler.swift",
+      "sha256": "bc486833e26a3913309650c9c81e78f980c02bef784bbd087f526a53dd9467eb",
+      "lastSourceCommit": "a8fcc71506ff61ee5b6f0e320ace5a064e30c915"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler+TaskQuery.swift",
+      "sha256": "e76888dd73a21d6ba4bed090347d90ee9e4a6cef20415b9e1b38698f11374681",
+      "lastSourceCommit": "a8fcc71506ff61ee5b6f0e320ace5a064e30c915"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServer+Routing.swift",
+      "sha256": "279dc9ebbdea1845acf7652ad7f4a86b8bc2c667668a343c382177aa788968a1",
+      "lastSourceCommit": "a8fcc71506ff61ee5b6f0e320ace5a064e30c915"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServer+Responses.swift",
+      "sha256": "fd3ba7a841bc04d46653f9ce598092c8082d13a4060506ad30f4100ff355a049",
+      "lastSourceCommit": "a8fcc71506ff61ee5b6f0e320ace5a064e30c915"
+    },
+    {
+      "path": "Transit/Transit/MCP/Protocol/MCPModernRequest.swift",
+      "sha256": "d6b0d60edddfcb1a2ae1dc33991f3d80e71b4c0f4ed87e550ebe64e1ab643b3d",
+      "lastSourceCommit": "8ea94ce0b3b9a3b73fcee330aed0c9883a08e92f"
+    },
+    {
+      "path": "Transit/Transit/MCP/Protocol/MCPModernValidator.swift",
+      "sha256": "b54268a66b12f03140bd9fb57fb072d214197db36d427eba90d48bc2f6a42bdb",
+      "lastSourceCommit": "a8fcc71506ff61ee5b6f0e320ace5a064e30c915"
+    },
+    {
+      "path": "Transit/Transit/MCP/Protocol/MCPModernDiscovery.swift",
+      "sha256": "a857a6ba430723053bb306ec70512e3841e081b58213a0ec75c6fc03b68d144e",
+      "lastSourceCommit": "3cfd28a8a8f7d707f9a03ca4bcdd0aed4e4f71b9"
+    },
+    {
+      "path": "Transit/Transit/MCP/Protocol/MCPModernWire.swift",
+      "sha256": "00cf6febe0dee3d7d04d6d2a714d3bcccfd47a1c17984ba901a084206a1c630a",
+      "lastSourceCommit": "a8fcc71506ff61ee5b6f0e320ace5a064e30c915"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPModernProviderBinding.swift",
+      "sha256": "f79ccb4b623dc573732b96786c463605634701fcf8386fc893dfc10b7dfd2a01",
+      "lastSourceCommit": "a8fcc71506ff61ee5b6f0e320ace5a064e30c915"
+    }
+  ],
+  "retainedOwnerDependencies": [
+    {
+      "path": "Transit/Transit/MCP/MCPToolDefinitions.swift",
+      "sha256": "879d1094658ad9840a86ce20839bbae048a4936540c169fa985a1d1df7c132dd",
+      "lastSourceCommit": "8be5d55579a703b4e64eac46f4e528ea191bf61d",
+      "owner": "T63",
+      "localImportCommit": "8be5d55",
+      "ownerCommit": "6a748928ccb6b91e6cebaf1538997e50d664b9da"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPSettings.swift",
+      "sha256": "c2fe9f43e2283c792a98691d349da34ff7fe5dcb3545e5fb23e2c5a40d1cf062",
+      "lastSourceCommit": "b51ab962018f34d12fda220a1b115af384526de9",
+      "owner": "T63",
+      "localImportCommit": "b51ab96",
+      "ownerCommit": "105ba8fdfc9323d08248d615b1620232ae6bc687"
+    },
+    {
+      "path": "Transit/Transit/MCP/Reads/MCPBoundedReadDispatcher.swift",
+      "sha256": "7ccc496f65c99db34c4ae913bdfab96380a6b67ad55f76c98dfc36c32e6cab25",
+      "lastSourceCommit": "6a39611292aba4646f23d32fae574ddffdea2bd7",
+      "owner": "T63",
+      "localImportCommit": "6a39611",
+      "ownerCommit": "5a57896422e9aee4e31c0530e86f09fc9bc1fd83"
+    }
+  ],
+  "baselineDependencyManifest": "specs/structured-mcp-results/task14-baseline-import.json",
+  "coordination": "Hashes identify source; do not overwrite T2384-owned write coordinator or T63-retained modules. Transfer these owner dependencies through coordinated imports, not a wholesale checkout.",
+  "verification": [
+    ".codex-cache/task15-binding-green-import-fixed/results.md",
+    ".codex-cache/task15-binding-green-limit-fixed/xcresult-summary.json"
+  ]
+}

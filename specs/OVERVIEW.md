@@ -36,6 +36,8 @@
 | [MCP Project Creation](#mcp-project-creation) | 2026-10-02 | Ready for Review | Create projects through MCP with validation and reusable project metadata |
 | [Batch Task Queries](#batch-task-queries) | 2026-10-03 | Done | MCP task detail selection, batch lookup, and frozen cursor pagination |
 | [MCP Write Safety](#mcp-write-safety) | 2026-10-03 | Done | Add retry-safe MCP writes, local revision preconditions, and structured saved outcomes |
+| [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | Ready for Review | Structured/text results and latest-only transport locally verified; client compatibility explicitly deferred post-merge |
+| [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | In Progress | Bound MCP read completion and report immutable saved capture/import evidence |
 
 ---
 
@@ -351,3 +353,51 @@ All 18 coding tasks are implemented and review findings are resolved. Verificati
 - [tasks.md](mcp-write-safety/tasks.md)
 - [prerequisites.md](mcp-write-safety/prerequisites.md)
 - [implementation.md](mcp-write-safety/implementation.md)
+
+
+## Structured MCP Results
+
+Immutable source/presentation results, supported-link availability and modern-only MCP2026-07-28 lifecycle, with unchanged protected replay and frozen read evidence.
+
+**Status:** In Progress
+
+- [Scope](structured-mcp-results/scope.md)
+- [Requirements](structured-mcp-results/requirements.md)
+- [Requirements review](structured-mcp-results/requirements-review.md)
+- [Design](structured-mcp-results/design.md)
+- [Design review](structured-mcp-results/design-review.md)
+- [Tasks](structured-mcp-results/tasks.md)
+- [Task review](structured-mcp-results/tasks-review.md)
+- [Prerequisites](structured-mcp-results/prerequisites.md)
+- [Decision log](structured-mcp-results/decision_log.md)
+- [Implementation evidence](structured-mcp-results/implementation.md)
+- [Local verification handoff](structured-mcp-results/local-verification-handoff.md)
+- [Bounded client approval request](structured-mcp-results/client-readiness-next-approval.md)
+- [Source RED evidence](structured-mcp-results/source-red.md)
+- [Source cap RED evidence](structured-mcp-results/source-cap-red.md)
+- [Source GREEN evidence](structured-mcp-results/source-green.md)
+- [Presentation GREEN evidence](structured-mcp-results/presentation-green.md)
+- [Protocol GREEN evidence](structured-mcp-results/protocol-green.md)
+- [Encoder implementation draft](structured-mcp-results/encoder-green.md)
+- [Encoder RED preparation](structured-mcp-results/encoder-red.md)
+- [Encoder fixture review](structured-mcp-results/encoder-review.md)
+- [Schema RED preparation](structured-mcp-results/schema-red.md)
+- [Schema implementation readiness](structured-mcp-results/schema-green.md)
+- [Isolation integration](structured-mcp-results/isolation-integration-plan.md)
+- [Presentation RED evidence](structured-mcp-results/presentation-red.md)
+- [Presentation supplemental RED evidence](structured-mcp-results/presentation-supplemental-red.md)
+- [Pending common interface coordination](structured-mcp-results/interface-coordination.md)
+- [Protocol RED evidence](structured-mcp-results/protocol-red.md)
+
+## Bounded Read Freshness
+
+**Created:** 2026-10-03 · **Status:** In Progress
+
+T-63 bounds MCP reads with saved-only coherent capture, explicit import evidence, independent deadlines and frozen pagination metadata. Shared capture/publication contracts support T2382 reusable portfolio views.
+
+- [Requirements](bounded-read-freshness/requirements.md)
+- [Design](bounded-read-freshness/design.md)
+- [Tasks](bounded-read-freshness/tasks.md)
+- [Decisions](bounded-read-freshness/decision_log.md)
+- [Task review](bounded-read-freshness/tasks-review.md)
+- [Foundation handoff](bounded-read-freshness/foundation-handoff.md)
