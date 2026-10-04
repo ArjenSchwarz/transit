@@ -29,6 +29,25 @@ nonisolated struct CapturedReadView: Sendable {
     let tasks: [ReadTask]
     let milestones: [ReadMilestone]
     let comments: [ReadCommentEvidence]
+    /// Nil is explicit missing coverage for legacy/provider fixtures, never empty incidence.
+    let taskLinkGraph: TaskLinkGraphView?
+
+    // A capture retains one declared scope and its complete immutable value payload.
+    init(completeness: CaptureCompleteness, captureScope: ReadCaptureScope, metadata: ReadCaptureMetadata,
+         createdAt: ContinuousClock.Instant, retentionDeadline: ContinuousClock.Instant,
+         projects: [ReadProject], tasks: [ReadTask], milestones: [ReadMilestone], comments: [ReadCommentEvidence],
+         taskLinkGraph: TaskLinkGraphView? = nil) {
+        self.completeness = completeness
+        self.captureScope = captureScope
+        self.metadata = metadata
+        self.createdAt = createdAt
+        self.retentionDeadline = retentionDeadline
+        self.projects = projects
+        self.tasks = tasks
+        self.milestones = milestones
+        self.comments = comments
+        self.taskLinkGraph = taskLinkGraph
+    }
 }
 
 nonisolated struct ReadProject: Sendable {
@@ -175,6 +194,7 @@ nonisolated struct ReadCaptureRequest: Sendable {
     let completeness: CaptureCompleteness
     /// Output preference only; fullRecord/portfolio still capture canonical comment coverage.
     let includeComments: Bool
+    let taskLinkBudget: TaskLinkGraphBudget?
     /// Runs inside the fence before dependent entity fetches; no relationship values escape.
     let validateProjects: (@MainActor @Sendable ([ReadProjectIdentity]) throws -> Void)?
 
@@ -190,11 +210,13 @@ nonisolated struct ReadCaptureRequest: Sendable {
          validateProjects: (@MainActor @Sendable ([ReadProjectIdentity]) throws -> Void)? = nil,
          validateMilestones: (@MainActor @Sendable ([ReadMilestoneIdentity]) throws -> Bool)? = nil,
          selectTaskBodies: ReadTaskBodySelection? = nil,
-         selectMilestoneBodies: ReadMilestoneBodySelection? = nil) {
+         selectMilestoneBodies: ReadMilestoneBodySelection? = nil,
+         taskLinkBudget: TaskLinkGraphBudget? = nil) {
         self.projectSelectors = projectSelectors
         self.selection = selection
         self.completeness = completeness
         self.includeComments = includeComments
+        self.taskLinkBudget = taskLinkBudget
         self.validateProjects = validateProjects
         self.validateMilestones = validateMilestones
         self.selectTaskBodies = selectTaskBodies

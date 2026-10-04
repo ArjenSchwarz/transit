@@ -53,7 +53,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [4.2](requirements.md#4.2), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 6. Green: implement normalized graph projection and exact change planning <!-- id:ev1ktl1 -->
+- [x] 6. Green: implement normalized graph projection and exact change planning <!-- id:ev1ktl1 -->
   - Implement value-only TaskLinkGraph/TaskLinkPlan and Services/TaskLinkService normalization/indexing. Preserve all physical matches and malformed evidence; iterative SCC uses every structurally resolvable dependency row without dedup hiding cycle evidence.
   - Project with frozen removal evidence/evaluation instant; distinguish unblocked/blocked/invalid/unavailable. Validate complete proposed results, exact incidence/fingerprint removal and cardinality/cycles; no automatic canonical redirect, flattening, status changes or consolidation.
   - Blocked-by: ev1ktl0 (Red: test normalized graph projection and exact change planning), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment)
@@ -61,7 +61,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [4.2](requirements.md#4.2), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 7. Red: test bounded saved capture and graph-closure capacity <!-- id:ev1ktl2 -->
+- [-] 7. Red: test bounded saved capture and graph-closure capacity <!-- id:ev1ktl2 -->
   - Add TaskLinkReadCaptureTests with pending insert/edit/delete in source/endpoint/occurrence/evidence/comments and independent saved contexts, failures/repeated identities and link-only history fence changes.
   - Write early scaling/deadline/retained-byte fixtures under unchanged five-second/eight unfinished-read and five-minute/eight-view/16-MiB limits. Cover cross-project closure not selected/countable, complete cycle evidence, timed-out lingering physical slots, frozen expiry instant and no late publication.
   - Blocked-by: ev1ktl1 (Green: implement normalized graph projection and exact change planning), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment)
