@@ -1,6 +1,14 @@
 # Charged result preparation GREEN readiness
 
-Task11/gpzncvv is in progress at source commit `1135a88b75e8170506ca465db9b1d0c4e2f13ab4`, after meaningful task10 RED. The value-only implementation and lightweight observations below prepare an actual isolated GREEN run; no app verification, store integration or DELIVERED15 completion is claimed.
+Task11/gpzncvv is complete at source commit `1135a88b75e8170506ca465db9b1d0c4e2f13ab4`, after meaningful task10 RED. The value-only implementation and lightweight observations below prepare an actual isolated GREEN run; no app verification, store integration or DELIVERED15 completion is claimed.
+
+## Actual guarded GREEN complete
+
+Task11/gpzncvv is complete after actual isolated verification of source1135a88 at readiness66e39d7. Normal per-command review accepted the exact reviewed build/test sequence. Build, signed-host/xctestrun preflight and serial test exited0. Finalized PreparationGreen.xcresult confirms eleven passed, zero failed/skipped/expected failures and no runtime warnings/test failures. The original fixture assertions ran and passed; direct lightweight body completion is no longer the sole evidence.
+
+Owned runner/host drained normally and the slot was released immediately before extraction/bookkeeping. No finalization hang, samples, cleanup signals or replay. Initial read-only summary extraction encountered a TestReport cache-write sandbox error/exit64; the same extraction through normal per-command escalation succeeded/exit0. The failed extraction is preserved separately and is not a test failure. Incidental autoShortcut/linkd4097 startup console messages are preserved separately; finalized runtime warnings remain empty.
+
+Actual evidence: .codex-cache/preparation-green-source/results.md, app-actual-results.json, app-actual-commands.json, app-xcresult-summary.json, app-actual-artifact-sha256.json and app-final-hash-verification.json. Sixty-nine new actual artifacts are hashed; forty original sampled RED artifacts, thirteen prior source/isolation files and current source/fixtures remain unchanged. Internal runtime critic clear. API15 is not delivered, and actual store binding/publication remains later16/17. Task14 is the next ready DAG task, subject to exact retained-owner integration boundaries.
 
 ## Immutable preparation and logical charging
 
@@ -12,7 +20,7 @@ Checked arithmetic rejects negative values and overflow. The original capture/in
 
 This helper performs capacity preflight without reservation/publication. T63/T2382 actual store owners must revalidate races and apply the correct charge delta during task17. Actual frozen read bindings and full publication proof follow tasks16/17; they do not create a reverse dependency on API15.
 
-## Lightweight observations and pending app proof
+## Historical lightweight observations and pending app proof
 
 The original eleven fixture methods and generator remain unchanged. Pure module compilation, actual Testing-macro fixture compilation, parse and strict no-cache lint passed. A direct driver completed eleven fixture bodies without issue diagnostics. This is not a finalized Swift Testing run or proof that all #expect assertions passed; actual eleven-method app GREEN remains required.
 
