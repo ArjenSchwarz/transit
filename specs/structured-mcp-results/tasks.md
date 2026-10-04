@@ -169,7 +169,7 @@ metadata:
   - Requirements: [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [5.6](requirements.md#5.6), [6.1](requirements.md#6.1)
   - References: design.md, Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift, Transit/Transit/MCP/MCPServer+ToolListNotifications.swift, Transit/Transit/MCP/MCPServer.swift
 
-- [-] 20. RED: specify isolated client-readiness fixture and negotiation evidence checks <!-- id:gpzncw4 -->
+- [x] 20. RED: specify isolated client-readiness fixture and negotiation evidence checks <!-- id:gpzncw4 -->
   - Add automated fixture/harness tests with synthetic data: modern discovery/list/call/structured consumption, conforming subscription filter/first-ack/correlation, wrong/legacy protocol negatives, and no real writes or production endpoint replacement.
   - Write negotiation-evidence checks that reject binary symbols/version-only/legacy success, missing intended surfaces and missing structured consumption. Require concrete actual intended Codex surfaces, Claude Code and Desktop discovery/list/call traces; subscription only for opted-in installed surfaces plus conforming fixture. Actual runtime connection/settings prerequisites remain separate from coding.
   - Blocked-by: gpzncw3 (GREEN: implement POST subscription broadcaster and lifecycle wiring)
@@ -177,7 +177,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.3](requirements.md#1.3), [3.2](requirements.md#3.2), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [6.3](requirements.md#6.3)
   - References: design.md, scripts/mcp-modern-readiness, prerequisites.md
 
-- [ ] 21. GREEN: implement isolated loopback fixture and readiness trace verifier <!-- id:gpzncw5 -->
+- [-] 21. GREEN: implement isolated loopback fixture and readiness trace verifier <!-- id:gpzncw5 -->
   - Implement scripts/mcp-modern-readiness test launcher/verifier using approved app encoder/validator test hooks on a separate loopback port and synthetic read-only records. Verify headers/meta/discovery/list/call/structured response and subscription evidence; verify fixture cannot address real store or replace production listener.
   - Pass task20. Produce machine-checkable evidence for each approved installed-client probe without installing clients, changing flags/connectors/settings, starting external-model agents or activating Transit. Unsupported modern runtime is an explicit blocker, not a fallback to legacy.
   - Blocked-by: gpzncw4 (RED: specify isolated client-readiness fixture and negotiation evidence checks)
