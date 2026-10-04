@@ -479,3 +479,27 @@ At68ba166, fresh launcher session9893 actual0 and all stages0; exact2 compiled d
 Signed/private serial integrated regression onHEAD91248e8 reused identical pinned68ba166 Swift products after hash/preflight gates. Corrected81 declarations/116 expanded cases across10 suites finalized PASS, all stages0,0failed/skipped/global issues/NIO/runtimeWarnings; normal runner/host drain and heavy slot release. Pretest mismatches from initial80 selector extraction remained fail-closed with no bodies. Existing make lint0/527 retained, offline actual schema exports12/36/37 passed876 assertions plus3 recovery descriptors, readiness self-tests5PASS. Root independently rehashed366 final artifacts zero mismatch. No code changes in this verification. See local-verification-handoff.md and `.codex-cache/task22-local-integrated-validation/actual-results.json`.
 
 All independent local implementation/tests are complete; Rune22 remains In Progress/AC6.3 open for actual installed-client evidence. No activation/config/modelturn/push/mainmerge/deploy. Read-only installed Codex schema metadata exposed a prospective native direct-tool API that may avoid a model turn; no runtime proof or desktop equivalence is inferred. One bounded standalone CLI action is proposed in client-readiness-next-approval.md; other client surfaces remain parked pending supported exact setup.
+
+## Owner-approved post-merge client compatibility deferral
+
+On 2026-10-04 the owner explicitly accepted that T2383 actual client compatibility tests may take place after merge, when they pull and deploy Transit on the MacBook (parent-verified Sentinel_c0dbfe3212888191bc01744c855f67bb). AC6.3 remains unverified and is deferred to that post-merge validation; it no longer blocks this authorised merge. Synthetic fixture checks do not establish installed-client compatibility. This amendment does not authorise client setup, persistent settings/feature changes, model turns, MacBook work or deployment here. Local checks, pre-push review and PR Pilot readiness criteria remain required.
+
+Post-merge checklist: verify modern discovery and tool list/call with parsed structuredContent for each intended Codex surface, Claude Code and Claude Desktop against an isolated latest-only endpoint; validate subscriptions for installed clients that opt into them; record unsupported modes and exact negotiation evidence. Preserve original text/replay/cursor evidence during checks.
+
+## Pre-push explanation and completeness assessment
+
+### Beginner
+
+Agents can consume the same task and outcome information directly as structured data while the existing text remains available. Transit keeps the original saved response separate from added explanations, so replay does not quietly change what happened. Links say unavailable until Transit has an actual entity-opening feature.
+
+### Intermediate
+
+Providers supply immutable original text, optional error presence and typed recovery context. The source parser preserves JSON token identity; the presentation adapter derives separate classifications and UUID-associated link availability. A common byte encoder emits modern complete responses and preencodes mutation fallbacks before effects. Covered reads prepare frozen fragments and reserve charged retention before atomic publication. The latest-only router validates request metadata and matching headers before dispatch; subscriptions use request-scoped POST/SSE rather than sessions.
+
+### Expert
+
+Retention owns logical source, frozen tool fragments and capture metadata separately from per-request IDs. Cancellation suppresses delivery and late publication while unfinished physical reads retain admission charge. Historical malformed/deep/contradictory evidence preserves raw text and cannot establish no effect. Full fallback bytes are selected without reentering a failed encoder after mutation acceptance. Canonical comment-covered r1 and original protected keys remain authoritative; structured wrappers cannot extend receipt/cursor expiry or introduce a second normalizer. Supplemental categories are typed provider evidence and never rewrite outcome/retryAction.
+
+### Completeness assessment
+
+Local source/presentation/schema/protocol/provider/read/subscription code and synthetic readiness fixture are delivered and locally verified. Caller contract documentation is now supplied and legacy transport instructions corrected. Actual installed-client compatibility remains unverified and is explicitly deferred to post-merge MacBook validation by the owner's amendment. T572 navigation and T2384 production batch integration remain independently scoped. Pre-push full iOS/UI checks and PR review remain completion-workflow gates until actual results are recorded.

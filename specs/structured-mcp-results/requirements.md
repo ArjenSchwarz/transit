@@ -90,3 +90,9 @@ The modern request-ID numeric domain uses the existing signed64-bit Swift Int ra
 ## Approval
 
 Approved by the owner on 2026-10-03 at 09:51:37.926279Z: “Structured MCP results requirements also approved” (parent-verified Sentinel_39b0ca45b1b8819180ac6d9600578f0b). This authorises design; design and task approvals remain separate gates. No implementation is authorised.
+
+## Owner-approved post-merge client compatibility deferral
+
+On 2026-10-04 the owner explicitly accepted that T2383 actual client compatibility tests may take place after merge, when they pull and deploy Transit on the MacBook (parent-verified Sentinel_c0dbfe3212888191bc01744c855f67bb). AC6.3 remains unverified and is deferred to that post-merge validation; it no longer blocks this authorised merge. Synthetic fixture checks do not establish installed-client compatibility. This amendment does not authorise client setup, persistent settings/feature changes, model turns, MacBook work or deployment here. Local checks, pre-push review and PR Pilot readiness criteria remain required.
+
+Post-merge checklist: verify modern discovery and tool list/call with parsed structuredContent for each intended Codex surface, Claude Code and Claude Desktop against an isolated latest-only endpoint; validate subscriptions for installed clients that opt into them; record unsupported modes and exact negotiation evidence. Preserve original text/replay/cursor evidence during checks.

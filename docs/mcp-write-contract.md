@@ -8,7 +8,7 @@ Intents retain their existing input contracts.
 
 Keys are case-sensitive and match `[A-Za-z0-9._:-]{1,128}`. Generate a fresh UUID for each logical write.
 The namespace is one local store plus tool name, independent of JSON-RPC request ID, connection and
-MCP session. Request identity includes every argument except the key, including the original revision.
+protocol session (the modern endpoint uses none). Request identity includes every argument except the key, including the original revision.
 Object order is ignored; array order, Boolean versus number, absence versus null and explicit versus
 omitted defaults remain significant. JSON numbers are compared by value.
 
@@ -28,7 +28,7 @@ If the response is lost, repeat those exact arguments with that same key. A reta
 replays the original saved record, revision and metadata even after editing or deleting the target.
 Reusing a retained key with different arguments returns `IDEMPOTENCY_KEY_REUSED` without mutation.
 
-Protected responses are JSON in MCP `content[0].text`. Committed responses include `contractVersion:1`,
+Protected responses retain JSON in MCP `content[0].text` and expose the same complete logical JSON, when interpretable, at `structuredContent.source.payload`. Retained malformed or over-limit JSON preserves raw text with unreadable structured evidence. Supplemental presentation lives separately; see the [versioned result contract](mcp-result-contract.md). Committed responses include `contractVersion:1`,
 `tool`, `idempotencyKey`, `outcome:"committed"`, `accepted:true`, `entityId`, the full saved `record`,
 `completedAt` and `replayExpiresAt`. The record contains its `revision`. Status with a comment also
 returns the full saved `comment`; both persist together. Milestone deletion returns `deleted:true`
@@ -62,7 +62,7 @@ the same token. Tokens are neither timestamps nor monotonic counters. Edits not 
 CloudKit cannot be detected, and later sync merges can still conflict.
 
 These outcome and revision semantics are shared vocabulary for T-2384. They introduce no batch
-mutation application or dry-run behavior; existing ordered JSON-RPC batches remain non-atomic.
+mutation application or dry-run behavior. Wire-level JSON-RPC arrays are rejected. A T-2384 application batch, when delivered by its owner, is one tools/call with its separate per-item effect policy.
 
 
 ## Recovery when local retry storage is unreadable

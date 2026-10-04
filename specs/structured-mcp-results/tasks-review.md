@@ -46,8 +46,8 @@ The only design measurement risk maps to automated volume/budget RED10/GREEN11 b
 
 Documentation remains outside the coding-only Rune list. The T2383 implementation owner tracks these approved-design deliverables separately; common API15 delivery does not wait for final prose, but feature completion/final22 sign-off does:
 
-- [ ] Owner: T2383 implementation owner. After integrated seam15, create `docs/mcp-result-contract.md` from the approved design and delivered schema/fixtures: wrapper version/source/text/error presence, historic replay and frozen cursors, error/retry/reconciliation rules, path-specific saved normalization, UUID-associated unavailable links, latest-only lifecycle and client readiness. Completion evidence is the exact committed document matched to current descriptor/examples.
-- [ ] Owner: T2383 implementation owner. Correct obsolete initialization/session/GET/wire-array statements and examples in `docs/mcp-write-contract.md` and affected repository MCP documentation after modern wiring15–19; preserve application key/receipt/r1 semantics and distinguish the T2384 application batch. Completion evidence is the recorded documentation commit and a read-through against the final wire/receipt fixtures.
+- [x] Owner: T2383 implementation owner. After integrated seam15, create `docs/mcp-result-contract.md` from the approved design and delivered schema/fixtures: wrapper version/source/text/error presence, historic replay and frozen cursors, error/retry/reconciliation rules, path-specific saved normalization, UUID-associated unavailable links, latest-only lifecycle and client readiness. Completion evidence is the exact committed document matched to current descriptor/examples.
+- [x] Owner: T2383 implementation owner. Correct obsolete initialization/session/GET/wire-array statements and examples in `docs/mcp-write-contract.md` and affected repository MCP documentation after modern wiring15–19; preserve application key/receipt/r1 semantics and distinguish the T2384 application batch. Completion evidence is the recorded documentation commit and a read-through against the final wire/receipt fixtures.
 
 These are required deliverables for AC1.3/3.5/4.1 and the approved parity audit, not added production scope or main-list noncoding tasks. If missing, report feature completion blocked even if coding checks pass. T2384 owns its additional batch-specific caller documentation.
 
@@ -68,3 +68,7 @@ Minor API clarification adopted in interface1: provide compiler-valid protocols/
 ## Implementation authorisation and ownership
 
 Parent verified owner “Approved” at Sentinel_ba4c6123288881918042d6aeb8ba6dc5 in direct response to task-plan/implementation question. Proceed independent modules/interfaces; T63 common-file handoff and T2382 current heavy-test slot remain external gates. T2384 now owns MCPWriteCoordinator.swift/coordinator-specific tests until coordinated integration. No client configuration/activation or merge/deploy permission is added. Test-only schema tooling needs task/tool-policy authorisation in isolated environment; request routed through parent.
+
+## Pre-push documentation completion
+
+The versioned result contract and legacy caller-document corrections are supplied following source review fix9c41be6. Internal documentation re-review checked actual schema, classifier, normalization authority, protocol headers/statuses, frozen capture and listener/physical-worker distinctions. Both JSON examples parse. AC6.3 remains unverified and is owner-approved deferred post-merge (Sentinel_c0dbfe3212888191bc01744c855f67bb), not a compatibility pass. The exact documentation commit is recorded in the pre-push handoff.

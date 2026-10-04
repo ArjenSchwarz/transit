@@ -21,3 +21,9 @@ Read-only installed CLI help/schema generation succeeded without starting app-se
 MCP payloads are synthetic UUIDs/records/revisions/read metadata plus request IDs, client identity/capabilities and the explicit read arguments. Capture no credentials, repository content, arbitrary files or unrelated logs. Ordinary installed-client authentication/feature fetching may contact its service and create normal auth/cache/history files; no model inference is authorised, and temporary invocation configuration does not promise zero ordinary client persistence.
 
 Claude Code and both native desktop hosts remain parked until their supported modern runtime/setup and exact scoped actions are established. This single CLI approval would not close all of AC6.3, authorise another client or permit a production cutover. No external peer-review disclosure is requested.
+
+## Owner-approved post-merge client compatibility deferral
+
+On 2026-10-04 the owner explicitly accepted that T2383 actual client compatibility tests may take place after merge, when they pull and deploy Transit on the MacBook (parent-verified Sentinel_c0dbfe3212888191bc01744c855f67bb). AC6.3 remains unverified and is deferred to that post-merge validation; it no longer blocks this authorised merge. Synthetic fixture checks do not establish installed-client compatibility. This amendment does not authorise client setup, persistent settings/feature changes, model turns, MacBook work or deployment here. Local checks, pre-push review and PR Pilot readiness criteria remain required.
+
+Post-merge checklist: verify modern discovery and tool list/call with parsed structuredContent for each intended Codex surface, Claude Code and Claude Desktop against an isolated latest-only endpoint; validate subscriptions for installed clients that opt into them; record unsupported modes and exact negotiation evidence. Preserve original text/replay/cursor evidence during checks.
