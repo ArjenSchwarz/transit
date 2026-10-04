@@ -8,14 +8,7 @@ import Testing
 @MainActor @Suite(.serialized)
 struct MCPModernReadBoundaryTests {
     @Test func actualPagedServiceCallsPrivatePreparerBeforeAnyReservation() async throws {
-        let models = try TestModelContainer()
-        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "blue")
-        models.context.insert(project)
-        for index in 1...2 {
-            models.context.insert(TransitTask(name: "Saved \(index)", type: .feature, project: project,
-                displayID: .permanent(index)))
-        }
-        try models.context.save()
+        let models = try makeModelsWithTwoTasks()
         let snapshots = MCPTaskQuerySnapshotStore()
         let count = NIOLockedValueBox(0)
         let service = MCPReadService(source: MCPReadCaptureBuilder(container: models.container,
@@ -42,7 +35,13 @@ struct MCPModernReadBoundaryTests {
                         return Self.response(Data("failed".utf8))
                     }
                     #expect(failure.category == .serializationFailure)
-                    #expect(try snapshots.domain.accounting(for: snapshots.publicationStoreID).pendingBytes == 0)
+                    do {
+                        let accounting = try snapshots.domain.accounting(for: snapshots.publicationStoreID)
+                        #expect(accounting.pendingBytes == 0)
+                    } catch {
+                        Issue.record("Private-page accounting failed: \(error)")
+                        return Self.response(Data("failed".utf8))
+                    }
                     return Self.response(Data("failed-whole".utf8))
                 }
             } catch {
@@ -159,6 +158,18 @@ struct MCPModernReadBoundaryTests {
             mutationRecovery: nil, entityPositions: [])
         return try MCPResultEncoder.encode(source: source, presentation: MCPResultAdapter.present(source,
             context: context), id: .integer(16), metadata: nil)
+    }
+
+    private func makeModelsWithTwoTasks() throws -> TestModelContainer {
+        let models = try TestModelContainer()
+        let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "blue")
+        models.context.insert(project)
+        for index in 1...2 {
+            models.context.insert(TransitTask(name: "Saved \(index)", type: .feature, project: project,
+                displayID: .permanent(index)))
+        }
+        try models.context.save()
+        return models
     }
 
     private enum StorageFault: Error { case unavailable }
