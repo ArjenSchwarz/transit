@@ -117,7 +117,7 @@ metadata:
   - Requirements: [3.2](requirements.md#3.2), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.6](requirements.md#5.6)
   - References: design.md, Transit/Transit/MCP/Protocol/MCPModernValidator.swift
 
-- [ ] 14. RED: exercise shared provider, replay and effect-aware failure integration <!-- id:gpzncvy -->
+- [-] 14. RED: exercise shared provider, replay and effect-aware failure integration <!-- id:gpzncvy -->
   - External gate: T63 shared-file ownership handoff at recorded base commit and heavy-test slot release, including its provider regression fix. Do not edit shared tests/helpers/sources before coordinated ownership; isolated tasks above do not wait for production T2384.
   - Extend MCPToolHandler/WriteCoordinator/HTTP fixture suites and add result-provider integration fixtures: every enabled current tool/maintenance result, plain/JSON errors, historic replay after edits/deletion with new RPC ID/same key, no receipt/expiry changes, unsupported evidence.
   - Assert actual protected-path name/comment/description trim-clear/newline parity from saved snapshots at same covered r1; parent labels excluded. Dirty UI/captured saved evidence must not cause adapter model reads, saves or rollback. Batch-specific clean-phase safeguards stay in T2384.
