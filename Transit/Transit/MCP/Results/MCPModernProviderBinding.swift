@@ -9,6 +9,13 @@ nonisolated enum MCPModernProviderPreflight: Sendable {
 
 /// Common value-only binding; providers continue to own storage, receipts and publication.
 nonisolated enum MCPModernProviderBinding {
+    /// Owner callbacks supply every private page before reserving publication.
+    /// Deliberate task16 RED boundary; task17 supplies immutable value preparation.
+    static func prepareReadPages(_ pages: [MCPPreparedToolRead], tool: String,
+                                 operation: MCPReadOperation) throws -> [MCPResultPreparedPage] {
+        throw MCPResultPreparationError.notImplemented
+    }
+
     static func availability(maintenanceEnabled: Bool) -> MCPModernAvailability {
         let covered: Set<String> = ["query_tasks", "query_milestones", "get_projects", "query_project_summaries"]
         return MCPModernAvailability(tools: MCPToolDefinitions.tools(includingMaintenance: maintenanceEnabled).map {
