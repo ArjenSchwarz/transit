@@ -105,18 +105,4 @@ struct MCPModernReadinessTests {
     }
 }
 
-private enum MCPReadinessFixtureError: Error { case notImplemented, unsafeEndpoint }
-@MainActor private enum MCPModernReadinessFixture {
-    static func validateEndpoint(_ endpoint: URL) throws {
-        guard endpoint.scheme == "http", endpoint.host == "127.0.0.1", let port = endpoint.port,
-              port > 1024, port != MCPSettings.defaultPort, endpoint.path == "/mcp",
-              endpoint.user == nil, endpoint.password == nil, endpoint.query == nil, endpoint.fragment == nil else {
-            throw MCPReadinessFixtureError.unsafeEndpoint
-        }
-    }
-
-    static func capture() async throws -> [String: Any] {
-        throw MCPReadinessFixtureError.notImplemented
-    }
-}
 #endif

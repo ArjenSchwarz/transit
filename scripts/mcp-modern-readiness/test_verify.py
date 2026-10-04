@@ -26,6 +26,10 @@ def specimen():
         exchanges.append({"kind": kind, "request": {"jsonrpc": "2.0", "id": index,
                           "method": method, "params": params}, "headers": headers, "status": 200,
                           "response": {"jsonrpc": "2.0", "id": index, "result": results[index]}})
+    exchanges.extend([
+        {"kind": "wrong-version", "status": 400, "response": {"error": {"code": -32022}}},
+        {"kind": "legacy-method", "status": 404, "response": {"error": {"code": -32601}}},
+        {"kind": "notification", "status": 400, "response": None}])
     return {"formatVersion": 1, "synthetic": True, "persistentStore": False,
             "endpoint": "http://127.0.0.1:9876/mcp", "exchanges": exchanges,
             "structuredConsumption": {"contractVersion": 1, "source": source},
@@ -44,7 +48,7 @@ class EvidenceTests(unittest.TestCase):
         verify(specimen())
 
     def test_single_field_negotiation_mutations_reject(self):
-        for field in ("protocol", "metadata", "discovery", "schema", "consumption", "correlation", "ack"):
+        for field in ("protocol", "metadata", "discovery", "schema", "consumption", "correlation", "ack", "wrong-version", "legacy-method", "notification", "method", "producer", "read-error", "text"):
             trace = specimen()
             if field == "protocol": trace["exchanges"][0]["headers"]["MCP-Protocol-Version"] = "legacy"
             if field == "metadata": trace["exchanges"][0]["request"]["params"]["_meta"] = {}
@@ -53,6 +57,13 @@ class EvidenceTests(unittest.TestCase):
             if field == "consumption": del trace["structuredConsumption"]
             if field == "correlation": trace["exchanges"][2]["response"]["id"] = "different"
             if field == "ack": trace["subscriptionFrames"].reverse()
+            if field == "wrong-version": trace["exchanges"][3]["status"] = 200
+            if field == "legacy-method": trace["exchanges"][4]["status"] = 200
+            if field == "notification": trace["exchanges"][5]["response"] = {"id": None}
+            if field == "method": trace["exchanges"][0]["request"]["method"] = "initialize"
+            if field == "producer": trace["provenance"]["producer"] = "installed-client-runtime"
+            if field == "read-error": trace["exchanges"][2]["response"]["result"]["isError"] = True
+            if field == "text": trace["exchanges"][2]["response"]["result"]["content"] = []
             with self.subTest(field=field), self.assertRaises(ValueError): verify(trace)
 
     def test_binary_version_or_legacy_success_is_not_negotiation(self):
