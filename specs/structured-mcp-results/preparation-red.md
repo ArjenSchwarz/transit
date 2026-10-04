@@ -2,6 +2,12 @@
 
 Task10/gpzncvu is in progress at reviewed fixture commit `70d103a05ae68334cc6f6c65ff919187a00ffb6f`. Task11/gpzncvv remains blocked until meaningful app RED. This checkpoint prepares value-only fixtures and an immutable Results-module boundary; it does not reserve capacity, publish a cursor, integrate transport, or deliver DELIVERED15/gpzncvz.
 
+## Attempt blocked before execution
+
+Parent granted the exclusive heavy slot after T2382 drained, for the reviewed fixture70d103a/documentation3f7f835 sequence. Automatic approval review rejected the exact build command before any process started: “This is a resource-intensive build/test preparation command, while the user’s explicit scope prohibited heavy builds/tests; parent-agent approval does not override that user restriction.” The review also prohibited workaround or indirect execution. No retry or alternate route was attempted. The unused slot was immediately released.
+
+Build exit is absent because the build did not start. Preflight and tests did not run; fresh result bundles remain absent. Task10 is still in progress and task11 blocked. The recorded earlier owner all-testing approval and this newer delegated slot grant did not satisfy this review; the parent must resolve the authorization provenance before another attempt. Evidence: .codex-cache/preparation-red-readiness/app-attempt.json, app-source-verification.json and app-attempt-artifact-sha256.json. Source readiness remains valid; no meaningful app RED is claimed.
+
 ## Ownership and retention metric
 
 MCPResultPreparation owns sealed immutable page and metadata reference wrappers. Its metadata, page and full-bundle factories deliberately throw typed notImplemented during RED. Returned values will contain original source text/document/value, presentation, a frozen request-ID-independent fragment and original metadata. No callbacks survive preparation. T63/T2382 retain domain reservation/publication ownership and must revalidate observed capacity at actual admission.
