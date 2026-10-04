@@ -1,0 +1,349 @@
+{
+  "sourceCommit": "543c4a757e4cb7f9f73c973d7cb1be5725c8f342",
+  "componentHistory": {
+    "ownedBinding": "a8fcc71506ff61ee5b6f0e320ace5a064e30c915",
+    "firstSelectionAdaptersTypes": "fb776a03c366c7f1bed447eaeb98a8bfcaf06508",
+    "fixtureImport": "d29fdaa7bb5f60830674cb32df39903b06f487d3",
+    "twoMandatoryLimits": "543c4a757e4cb7f9f73c973d7cb1be5725c8f342",
+    "baselineImport": "1a19dfd",
+    "ownerReadHooks": "6a39611",
+    "ownerDefinitionsFactory": "8be5d55",
+    "ownerSettingsSnapshot": "b51ab96"
+  },
+  "ownedCommonResultsProtocolAndAcceptedTen": [
+    {
+      "path": "Transit/Transit/MCP/MCPServer+Responses.swift",
+      "sha256": "fd3ba7a841bc04d46653f9ce598092c8082d13a4060506ad30f4100ff355a049"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServer+Routing.swift",
+      "sha256": "279dc9ebbdea1845acf7652ad7f4a86b8bc2c667668a343c382177aa788968a1"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServer+ToolListNotifications.swift",
+      "sha256": "0a6ea616cb23d54f325f1ab82c7338ea46e8c6ae303dd5f7b65f1120ae25e3cc"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServer.swift",
+      "sha256": "204b78bc0d3d49a41b9b6ce422cd367b0e1b4d02f613cd7266946021c276ec11"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServerDecodeTypes.swift",
+      "sha256": "7d8243ee4e14ec1d4e8c4b7af5c29691ac3af9c592950fb43e696ba323d0edab"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPServerLifecycleConfiguration.swift",
+      "sha256": "6cc4fddb83d78e9c6e86eb54ee074a7ba35f2473337212b7e017c50bb5057d86"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler+TaskQuery.swift",
+      "sha256": "e76888dd73a21d6ba4bed090347d90ee9e4a6cef20415b9e1b38698f11374681"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler.swift",
+      "sha256": "bc486833e26a3913309650c9c81e78f980c02bef784bbd087f526a53dd9467eb"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolListChangeBroadcaster.swift",
+      "sha256": "8afa54367af4ded22a43acaca5f4692882d37511030a5d1430c4fe0c39dd4f66"
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPTypes.swift",
+      "sha256": "e1246d36a5838369d9b98116f1779cb5705b0fe8c8a0bd19d4c5a5b6cf4c7793"
+    },
+    {
+      "path": "Transit/Transit/MCP/Protocol/MCPModernDiscovery.swift",
+      "sha256": "a857a6ba430723053bb306ec70512e3841e081b58213a0ec75c6fc03b68d144e"
+    },
+    {
+      "path": "Transit/Transit/MCP/Protocol/MCPModernRequest.swift",
+      "sha256": "d6b0d60edddfcb1a2ae1dc33991f3d80e71b4c0f4ed87e550ebe64e1ab643b3d"
+    },
+    {
+      "path": "Transit/Transit/MCP/Protocol/MCPModernValidator.swift",
+      "sha256": "b54268a66b12f03140bd9fb57fb072d214197db36d427eba90d48bc2f6a42bdb"
+    },
+    {
+      "path": "Transit/Transit/MCP/Protocol/MCPModernWire.swift",
+      "sha256": "00cf6febe0dee3d7d04d6d2a714d3bcccfd47a1c17984ba901a084206a1c630a"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPJSONDocument.swift",
+      "sha256": "7efd3387f8b262d2a253343ce976f562dab830fe7aa2954832c6a11e1fae725c"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPModernProviderBinding.swift",
+      "sha256": "f79ccb4b623dc573732b96786c463605634701fcf8386fc893dfc10b7dfd2a01"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultAdapter.swift",
+      "sha256": "b27522345f88c6a28a2a5ccc5d339bb89859bcecf794ced5e7f20314d3802254"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultByteWriter.swift",
+      "sha256": "2aae6f485a5648c38bb83df76a2f7f5320d387d1e0b9ad66867c16020d6760c0"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultClassification.swift",
+      "sha256": "8d3664f62cce2e142174235e060a00bfb02d92cfc4b4f3b1b81c8b26968a7380"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultEncoder.swift",
+      "sha256": "177abf4f9b5b6158047de2c0ff0ad179565d8a1d1c50027403a902d3aaa77127"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultInspection.swift",
+      "sha256": "5202d57c29a946a6e64ebb26ce5512f19aa1d5460a766141d30789af5c7fc2f1"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultLinks.swift",
+      "sha256": "c31ec2298e3d90d56f71ba79a430eec94184a71876350e4b4ed0a7d277cf0036"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultPreparation.swift",
+      "sha256": "f3f1fcc0f4b836e254498c53fc117a5d8757fcb61ddb4d36cf5aba9bf3d12112"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultProviderAdapters.swift",
+      "sha256": "7e9028ea2c9e9195863c38493137bec56565de1471e8340596b511f68979d75c"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultProviderSelection.swift",
+      "sha256": "49d54b6e3591c5e8eb37bb7c9d2779aa4d6309de055447a42ffb161e16dbdc62"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultRetentionAccounting.swift",
+      "sha256": "b76ea01a468d590160ff4b2d6391752f3754482ea0394d7fa2d720cf7b4f8a34"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultSchemas.swift",
+      "sha256": "ebb3af861af669af946f0b94eb3b3c68fd276e4be9416b180545ba383cf20338"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultSource.swift",
+      "sha256": "524fe680c37db3670d283bb1e02d8a48a15195dc9ffc8aaa8ff5712e62337068"
+    }
+  ],
+  "retainedOwnerDependencies": [
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioCaptureCharge.swift",
+      "sha256": "ee800ad9c30d71473648c91f76c381c65fa0ac19b5c51aacf24919711bf7e9df",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "ee800ad9c30d71473648c91f76c381c65fa0ac19b5c51aacf24919711bf7e9df",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioProjection.swift",
+      "sha256": "c0dd664e0b6165d4d28716e0e456d9688888c1ef8d3972b16ba9bb859f5e31a1",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "c0dd664e0b6165d4d28716e0e456d9688888c1ef8d3972b16ba9bb859f5e31a1",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioReadEncoding.swift",
+      "sha256": "45117778c9b1f1b9bca13cde8fafec19e37456a8f50baa34c2576bc25e664f0c",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "45117778c9b1f1b9bca13cde8fafec19e37456a8f50baa34c2576bc25e664f0c",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioSummaryRequest.swift",
+      "sha256": "1a2b3ef24f059ec9852018ae03bf16d66a4e5313a53007baf1346aff5f880320",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "1a2b3ef24f059ec9852018ae03bf16d66a4e5313a53007baf1346aff5f880320",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioSummaryTypes.swift",
+      "sha256": "8fca6b967a8bf4fa8fe70492e0e27e52eae66e04f50c6608561fd79cc603371c",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "8fca6b967a8bf4fa8fe70492e0e27e52eae66e04f50c6608561fd79cc603371c",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPPortfolioToolDefinitions.swift",
+      "sha256": "80b942df914211b7229576b2334efd1026924bf4be681e460fcf60253290d1e9",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "80b942df914211b7229576b2334efd1026924bf4be681e460fcf60253290d1e9",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPReusableSnapshotIndex.swift",
+      "sha256": "3ece2a9a32de2d6b6032568fff472db1d4980a4c86f8442492d27c1e2ddaceca",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "3ece2a9a32de2d6b6032568fff472db1d4980a4c86f8442492d27c1e2ddaceca",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPReusableSnapshotReadPin.swift",
+      "sha256": "180e0cc690db0a453ece931825eb07a5d64d6c308a11a7388f59eb57dd2c82d2",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "180e0cc690db0a453ece931825eb07a5d64d6c308a11a7388f59eb57dd2c82d2",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPReusableSnapshotStore.swift",
+      "sha256": "43cb4128af0fdf73ceca6ae69a0415e924d7365e733277e3316ce37611a85d87",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "43cb4128af0fdf73ceca6ae69a0415e924d7365e733277e3316ce37611a85d87",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPSnapshotTaskQueryRequest.swift",
+      "sha256": "e809a8c97808807476df24522b0961be7b7427ed6af600034181a5fa7dbdb890",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "e809a8c97808807476df24522b0961be7b7427ed6af600034181a5fa7dbdb890",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolDefinitions.swift",
+      "sha256": "879d1094658ad9840a86ce20839bbae048a4936540c169fa985a1d1df7c132dd",
+      "owner": "T63",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "decfde58b4728ace41b4c83f5b32f24a46ef397a001927843d90e279ab53d45a",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler+CapturedRead.swift",
+      "sha256": "e57963b7384f3baca19b0d0b46fcc377dab584016fb8b45efd5cd4fa6b6a0d7e",
+      "owner": "T63",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "e57963b7384f3baca19b0d0b46fcc377dab584016fb8b45efd5cd4fa6b6a0d7e",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler+PortfolioReadPreparation.swift",
+      "sha256": "e714aef4acd3eff8cbc9f143d4edad80136b2e7c8242823ba58c44c4cf7a513e",
+      "owner": "T63",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "e714aef4acd3eff8cbc9f143d4edad80136b2e7c8242823ba58c44c4cf7a513e",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler+PortfolioSummary.swift",
+      "sha256": "c2d2ceeddc8daeabea4fc1e4db07a119d9f4509841f3055bf362d8e10b696da2",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "c2d2ceeddc8daeabea4fc1e4db07a119d9f4509841f3055bf362d8e10b696da2",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPToolHandler+SnapshotTaskQuery.swift",
+      "sha256": "78d8c5ae99676e5778354ea3a0fc103cedd20747c51c6f629a1a05855205a4a9",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "78d8c5ae99676e5778354ea3a0fc103cedd20747c51c6f629a1a05855205a4a9",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/Reads/MCPBoundedReadDispatcher.swift",
+      "sha256": "7ccc496f65c99db34c4ae913bdfab96380a6b67ad55f76c98dfc36c32e6cab25",
+      "owner": "T63",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "0df7cbeb9ae535b16499257814225cebb3fc0643021eab2614fa01232eb4f506",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/Reads/MCPReadService.swift",
+      "sha256": "2cbebce6a0107b2b3532c639b08fb40471c18060e686f354192108bf6e21a87d",
+      "owner": "T63",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "2cbebce6a0107b2b3532c639b08fb40471c18060e686f354192108bf6e21a87d",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/Services/PortfolioSummaryService.swift",
+      "sha256": "0f5ecc8d5601d7b7669610f442650f3a0de69fd9e545d4524e59367b9c0f5945",
+      "owner": "T2382",
+      "originalBaseline": "b1f30256b4fb33270809188131d047a29807f162",
+      "originalBaselineSHA256": "0f5ecc8d5601d7b7669610f442650f3a0de69fd9e545d4524e59367b9c0f5945",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/MCPSettings.swift",
+      "sha256": "c2fe9f43e2283c792a98691d349da34ff7fe5dcb3545e5fb23e2c5a40d1cf062",
+      "owner": "T63",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/Reads/MCPPreparedToolRead.swift",
+      "sha256": "ecc1c541dec9d1fa4059de556deeb163687b80de7b41b6effd4e5648fc39ca69",
+      "owner": "T63",
+      "editOwnershipRetained": true
+    },
+    {
+      "path": "Transit/Transit/MCP/Reads/MCPReadCoordinator.swift",
+      "sha256": "34bbb3710f8ba9d665eb5259f4b6443e63140794c7d21b51f87097077b8b7fb8",
+      "owner": "T63",
+      "editOwnershipRetained": true
+    }
+  ],
+  "ownerHooks": {
+    "T63Definitions": "MCPToolDefinitions.modernTools(includingMaintenance: Bool) throws -> [MCPModernToolDescriptor]",
+    "T63Settings": "nonisolated var maintenanceToolsEnabledSnapshot: Bool",
+    "T63ReadNormal": "encodeWithOperation: (@Sendable (MCPPreparedToolRead, JSONRPCId, MCPReadOperation) throws -> Data)?",
+    "T63ReadConstants": "encodeConstantToolFailure: (@Sendable (MCPPreparedToolRead, JSONRPCId) throws -> Data)?",
+    "readPolicy": "Original operation/checkpoint/admittedAt and independent constant failure encoder; no clock/reset/admission/publication engine added"
+  },
+  "commonAPI": {
+    "source": "MCPResultAdapter.source(text:isError:origin:evidence:checkpoint:) throws -> MCPResultSource (original text/optional flag/owned JSON unchanged)",
+    "context": "MCPResultContext(tool:semanticFailure:mutationRecovery:entityPositions:) immutable Sendable; protected originalkey, ordered applicationBatch original itemkeys/indices/optionalitemIds/UUIDs, or no-key maintenance",
+    "provider": "MCPResultProviderAdapters.outcome(result:context:origin:checkpoint:) throws -> MCPResultProviderOutcome; optional MCPToolResult.providerEvidence excluded wire CodingKeys",
+    "metadata": "MCPResultProviderAdapters.metadata(result:frozenReadBytes:checkpoint:) throws -> MCPResultMetadata?; exact frozen namespace bytes, separate from original source",
+    "normalEncoder": "MCPResultEncoder.encode(source:presentation:id:metadata:checkpoint:) throws -> Data; or freeze then encode(fragment:id:checkpoint:)",
+    "preparedFallback": "MCPResultEncoder.prepareMutationFallback(id:source:context:metadata:checkpoint:) throws -> Data; complete request-correlated response before effects; no links/unbounded batch itemId presentation, original indexes/tool/keys/UUIDs retained; provider owns compact logical fallback source",
+    "selector": "MCPResultProviderSelection.mutation(id:context:metadata:fallbackSource:prepareFallback:encodeOutcome:shouldDeliver:dispatch:) async throws -> MCPResultResponseSelection; normal/reconciliation prepared Data or suppressed, no retry encoder/receipt rewrite",
+    "schema": "MCPResultSchemas.descriptor(tool:description:) throws -> MCPResultSchemaDescriptor with immutable owned outputSchema Draft2020-12; logical source payload unrestricted",
+    "valuePreparation": "MCPResultPreparation.metadata/page/prepare and sealed immutable owners; checked logical charge/capacity preflight only, originalcapturebase, independent16MiB perstore; real reserve/publication binding task17"
+  },
+  "consumerConstraints": [
+    "No live reread/result reconstruction or receipt rewrite; original text/isError/unknown fields/numeric lexemes/missing-null preserved.",
+    "Batch provider owns logical aggregate and compact serialization_failed source; prepare complete fallback before first effect, select stored bytes after failure; cancellation only suppresses delivery.",
+    "No provider callback retained; original read checkpoint forwarded during source/links/meta/encoding.",
+    "DELIVERED15 synthetic/common consumer is independent of real batch registration and later store17/subscription19 integration."
+  ],
+  "verification": {
+    "sourceCommit": "543c4a757e4cb7f9f73c973d7cb1be5725c8f342",
+    "productionBindingCommit": "a8fcc71506ff61ee5b6f0e320ace5a064e30c915",
+    "fixtureImportCommit": "d29fdaa7bb5f60830674cb32df39903b06f487d3",
+    "head": "160181e0259d67333693e8cfc237ba58dd324539",
+    "buildExit": 0,
+    "preflightExit": 0,
+    "enumerationExit": 0,
+    "inventoryExit": 0,
+    "testExit": 0,
+    "summaryExtractionExit": 0,
+    "expectedEnabledMethods": 2,
+    "actualEnabledMethods": 2,
+    "actualExecutedMethods": [
+      "everyEnabledCurrentToolReturnsDeclaredCompleteSource()",
+      "actualProtectedUpdateTrimClearAndCommentRevisionRemainSavedEvidence()"
+    ],
+    "finalizedResult": "Passed",
+    "passedTests": 2,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "issues": 0,
+    "runtimeWarnings": [],
+    "NIOMisuseWarnings": 0,
+    "runnerPID": 49902,
+    "host": "Exact guarded private development host; no matching owned process after normal finish",
+    "ownedDrained": true,
+    "releaseBeforeExtraction": true,
+    "cleanup": "None required; no signals/samples/replay",
+    "combinedEvidence": "98 PASS in preserved100-declaration run plus corrected2 PASS; full100 earlier test143/unfinalizedsummary64 remains explicit. No full100 repeat.",
+    "staticAndRuntimeCritic": "CLEAR approved15 source, source-only fixture corrections, actual finalized2 and preserved98",
+    "API15": "Ready for root DELIVERED15 review/bookkeeping; no later17/19/batch production gate."
+  },
+  "ownership": "Baseline imports and owner seams do not transfer retained T63/T2382/T2384 editing ownership; coordinator/App/project unchanged."
+}
