@@ -1,6 +1,6 @@
 # T-2382 integration acceptance
 
-## Verified source and scope
+## Prior sequential acceptance: verified source and scope
 
 Native build/test source: `33972bde496bccee5a764a17b0bed84003f827a8`, branch `T-2382/final-verification`. The cumulative T63 integration base is `ff6286a162d9ffb0b16a0aa07d5c5d5b6195b842`. Subsequent delivery changes are documentation/task bookkeeping only. Xcode 27.0 (27A266a) was used with a guarded two-phase native macOS runner, not an unmodified Makefile full test invocation.
 
@@ -26,4 +26,18 @@ Four local pre-push reviewers assessed reuse, quality, efficiency and approved-s
 
 Native evidence is under the task-2 `t2382-review-evidence/sequential-completion` directory: `attempt2-independent-acceptance-v4.json`, `root-native-coverage-union-33972bd.json`, source-equivalence records, preserved job/native trees and finalized `.xcresult` bundle. The generic ecosystem renderer has no detected JUnit runner for this Xcode repository; no JUnit or coverage result was fabricated. Native evidence is reported explicitly in the review instead.
 
-Final lint, review publication and remote push are recorded in the delivery handoff. PR creation and external Claude review remain paused pending disclosure approval. No merge, deployment, live write, settings change, CloudKit action or production activation was performed.
+Final lint, review publication and remote push are recorded in the delivery handoff. The user approved GitHub pushes, external Claude review and overnight merges; PR Pilot proceeds under that approval. No merge, deployment, live write, settings change, CloudKit action or production activation was performed.
+
+## Main reconciliation acceptance
+
+T2383 PR250 and T63 PR251 were squash merged before reconciliation onto main `747983a7009d0015280f6e88ec811d933f4ef449`. Remaining T2382 changes are owned regression tests/fixtures, specifications and caller documentation, plus removal of the unused scaffold enum. The original reviewed branch is preserved at `T-2382/reviewed-a4a60de`; foreign documentation and the original worktree's unstaged assertion remain untouched.
+
+Four scoped pre-push reviewers found one fixture failure-path defect: a nonfatal duplicate-cursor assertion could loop indefinitely on a pagination regression. Commit `a60e12af4b0b9f4e013b5d702c97be6f34882eba` makes it throwing. Current approval summaries were also corrected; earlier dated pauses remain historical. Optional test-decoder consolidation was deferred without assertion churn. No unresolved must-fix finding remains.
+
+A fresh guarded Xcode27 build and focused native test run passed at that source. The finalized bundle has 149 declarations / 221 expanded bodies (19 parameterized declarations / 91 Argument bodies), including all three seeded reconciliation cases. Native issues, runtime warnings and NIO diagnostics are zero; exit0 and normal physical drain require no termination. The full compiled inventory is still 2,277 declarations. Build warnings are the exact known 82 entries / 41 signatures, with zero unmatched signatures. `make lint` passed all guards and reports zero violations in 546 Swift files.
+
+Compiled-input comparison records 589 inputs: 588 match prior tested source33972bd, and the sole difference is the approved throwing assertion. This fresh build did not reuse the old compiled host after changing the assertion. Root independently queried the finalized bundle and reconciled 149 current declarations / 221 bodies plus 2,128 qualified common-source declarations / 2,360 bodies: exact union 2,277 / 2,581, each declaration once. This still is not a new full-suite run; all T63 overlap and iOS/UI reuse qualifications above remain binding. No new iOS/UI run or actual installed-client validation is claimed.
+
+Evidence is retained under task-2 `t2382-review-evidence/main-reconciliation/review-fix-a60e12a`: `independent-native-acceptance.json`, `root-native-coverage-union.json`, `compiled-input-comparison.json`, inventory attestations, lint log and finalized `green-a60e12af4b0b9f4e013b5d702c97be6f34882eba/handler-tests-attempt1.xcresult`. Subsequent delivery documentation changes do not alter compiled inputs. The generic review renderer still has no detected JUnit runner; native results remain separately and explicitly reported.
+
+Explicit user approval permits destination push, Claude disclosure and overnight merge after review/checks. PR Pilot status, review publication, PR URL and merge SHA are recorded in the delivery handoff. Installed-client compatibility remains deferred to post-merge MacBook validation before production activation. No live updates, settings changes, CloudKit action, deployment or activation occur here.

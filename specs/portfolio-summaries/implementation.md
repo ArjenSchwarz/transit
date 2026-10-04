@@ -50,4 +50,4 @@ The five-second checks measure encoded response availability in the tested runti
 
 Implementation and tests cover all approved portfolio, status, window, activity, identity, snapshot and bounded-outcome criteria. Final native acceptance and exact evidence qualifications are recorded in `integration-acceptance.md`. Temporary interface scaffolding was removed. Runtime verification, local review, publication and push status must be read from that acceptance/handoff rather than inferred from historical prototype or partial console results.
 
-PR creation and external Claude review remain paused pending the user's disclosure approval. No client settings, live writes, CloudKit action or deployment were performed.
+The user approved pushes to the private GitHub destination, external Claude review and overnight merges. PR Pilot proceeds under that approval; earlier paused-gate records remain historical. No client settings, live writes, CloudKit action or deployment were performed.
