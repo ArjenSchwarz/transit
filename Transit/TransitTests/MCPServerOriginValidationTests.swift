@@ -55,6 +55,7 @@ struct MCPServerOriginValidationTests {
         // The state-changing tool must never have run.
         let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
         #expect(tasks.isEmpty)
+        #expect(try env.context.fetchCount(FetchDescriptor<MCPWriteReceipt>()) == 0)
     }
 
     @Test func httpAttackerOriginIsRejected() async throws {
@@ -131,6 +132,7 @@ struct MCPServerOriginValidationTests {
         let tasks = try env.context.fetch(FetchDescriptor<TransitTask>())
         #expect(tasks.count == 1)
         #expect(tasks.first?.name == "Origin test task")
+        #expect(try env.context.fetchCount(FetchDescriptor<MCPWriteReceipt>()) == 1)
     }
 
     @Test func loopbackIPOriginIsAccepted() async throws {
@@ -214,10 +216,16 @@ struct MCPServerOriginValidationTests {
 
     // MARK: - Helpers
 
-    private static let toolsListBody = #"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#
+    private static let toolsListBody = """
+    {"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"_meta":{
+    "io.modelcontextprotocol/protocolVersion":"2026-07-28",
+    "io.modelcontextprotocol/clientCapabilities":{}}}}
+    """
 
     private static let createTaskBody = """
-    {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"create_task",\
+    {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"_meta":{\
+    "io.modelcontextprotocol/protocolVersion":"2026-07-28",\
+    "io.modelcontextprotocol/clientCapabilities":{}},"name":"create_task",\
     "arguments":{"project":"Transit","name":"Origin test task","type":"bug",\
     "idempotencyKey":"origin-test"}}}
     """
@@ -232,6 +240,10 @@ struct MCPServerOriginValidationTests {
 
         var headerFields = HTTPFields()
         headerFields[.contentType] = "application/json"
+        headerFields[.accept] = "application/json, text/event-stream"
+        headerFields[HTTPField.Name("MCP-Protocol-Version")!] = "2026-07-28"
+        headerFields[HTTPField.Name("Mcp-Method")!] = body == Self.createTaskBody ? "tools/call" : "tools/list"
+        if body == Self.createTaskBody { headerFields[HTTPField.Name("Mcp-Name")!] = "create_task" }
         if let origin {
             headerFields[.origin] = origin
         }
@@ -259,7 +271,10 @@ struct MCPServerOriginValidationTests {
             version: .http1_1,
             method: .POST,
             uri: "/mcp",
-            headers: HTTPHeaders(headers)
+            headers: HTTPHeaders(headers + [
+                ("Accept", "application/json, text/event-stream"),
+                ("MCP-Protocol-Version", "2026-07-28"), ("Mcp-Method", "tools/list")
+            ])
         )
         let head = try HTTPRequest(http1Head, secure: false, splitCookie: false)
         return try await dispatch(responder: responder, head: head, body: body)
@@ -272,16 +287,28 @@ struct MCPServerOriginValidationTests {
     ) async throws -> HTTPResponse.Status {
         let request = Request(head: head, body: RequestBody(buffer: ByteBuffer(string: body)))
 
-        let channel = EmbeddedChannel()
-        defer { _ = try? channel.finish() }
-        let context = MCPRequestContext(
-            source: ApplicationRequestContextSource(
-                channel: channel, logger: Logger(label: "mcp-origin-tests")
-            )
-        )
-
-        let response = try await responder.respond(to: request, context: context)
-        return response.status
+        let loop = NIOAsyncTestingEventLoop()
+        var ownedChannel: NIOAsyncTestingChannel?
+        do {
+            let channel = try await NIOAsyncTestingChannel(loop: loop) { _ in }
+            ownedChannel = channel
+            let context = MCPRequestContext(source: ApplicationRequestContextSource(
+                channel: channel, logger: Logger(label: "mcp-origin-tests")))
+            let response = try await responder.respond(to: request, context: context)
+            let leftovers = try await channel.finish(acceptAlreadyClosed: true)
+            #expect(leftovers.isClean)
+            await loop.shutdownGracefully()
+            return response.status
+        } catch {
+            if let channel = ownedChannel {
+                do {
+                    let leftovers = try await channel.finish(acceptAlreadyClosed: true)
+                    #expect(leftovers.isClean)
+                } catch { Issue.record("Origin fixture channel cleanup failed: \(error)") }
+            }
+            await loop.shutdownGracefully()
+            throw error
+        }
     }
 }
 
