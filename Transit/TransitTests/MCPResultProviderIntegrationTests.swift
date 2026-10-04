@@ -279,7 +279,7 @@ extension MCPResultProviderIntegrationTests {
         for includeComments in [false, true] {
             let read = try await MCPModernResultFixture.call(env, tool: "query_tasks", arguments: [
                 "taskIds": [task.id.uuidString], "detailLevel": "full", "includeComments": includeComments,
-                "readPolicy": "cached"
+                "readPolicy": "cached", "limit": 100
             ], id: includeComments ? "with-comments" : "without-comments")
             let text = try MCPModernResultFixture.text(read)
             let payload = try MCPJSONDocument.parse(text).value

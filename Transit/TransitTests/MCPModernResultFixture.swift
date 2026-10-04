@@ -48,7 +48,8 @@ import Testing
         case "add_comment": args = ["taskId": task.id.uuidString, "content": "Saved Comment", "authorName": "Fixture"]
         case "update_milestone": args = ["milestoneId": milestone.id.uuidString, "name": "Updated Milestone"]
         case "delete_milestone": args = ["milestoneId": milestone.id.uuidString]
-        case "query_tasks": args = ["detailLevel": "full", "includeComments": false, "readPolicy": "cached"]
+        case "query_tasks":
+            args = ["detailLevel": "full", "includeComments": false, "readPolicy": "cached", "limit": 100]
         case "query_milestones", "get_projects": args = ["readPolicy": "cached"]
         case "query_project_summaries": args = [
             "start": "2026-01-01T00:00:00Z", "end": "2026-12-31T00:00:00Z",
