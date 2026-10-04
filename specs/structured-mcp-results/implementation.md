@@ -210,3 +210,8 @@ The parent granted an exclusive slot for the reviewed task10 sequence at70d103a/
 ## Task10 single unchanged retry rejected
 
 Parent provided the complete later owner-testing approval and authorized one identical-call retry. The worker forwarded it unchanged and retried the same tool call without modifying action/arguments. Review explicitly considered the later reply but rejected it as untrusted forwarded assistant context, retaining the initial heavy-test restriction. No process started; unused slot released immediately. No further retry/alternate route or task11 drafting. Task10 stays inprogress and task11 blocked; no runtime RED counts. See preparation-red.md and locally preserved second-denial evidence.
+
+
+## Staged modern ownership acceptance
+
+Accepted sole-writer ownership of the ten production paths from exact T63 manifest557b4c2/sourceb1f3025. Verified manifest/current bytes and all17 listed hashes; optional fixture candidates remain separately authorized. No import/source edits, heavy run or API delivery. Retained owner boundaries and current-helper router/expiry verification obligations are recorded in modern-transfer-acceptance.json/interface-coordination.md. Task10 remains denied,11/14 blocked by the approved DAG; no slot held.
