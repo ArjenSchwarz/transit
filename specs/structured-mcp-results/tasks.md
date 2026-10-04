@@ -117,7 +117,7 @@ metadata:
   - Requirements: [3.2](requirements.md#3.2), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.6](requirements.md#5.6)
   - References: design.md, Transit/Transit/MCP/Protocol/MCPModernValidator.swift
 
-- [-] 14. RED: exercise shared provider, replay and effect-aware failure integration <!-- id:gpzncvy -->
+- [x] 14. RED: exercise shared provider, replay and effect-aware failure integration <!-- id:gpzncvy -->
   - External gate: T63 shared-file ownership handoff at recorded base commit and heavy-test slot release, including its provider regression fix. Do not edit shared tests/helpers/sources before coordinated ownership; isolated tasks above do not wait for production T2384.
   - Extend MCPToolHandler/WriteCoordinator/HTTP fixture suites and add result-provider integration fixtures: every enabled current tool/maintenance result, plain/JSON errors, historic replay after edits/deletion with new RPC ID/same key, no receipt/expiry changes, unsupported evidence.
   - Assert actual protected-path name/comment/description trim-clear/newline parity from saved snapshots at same covered r1; parent labels excluded. Dirty UI/captured saved evidence must not cause adapter model reads, saves or rollback. Batch-specific clean-phase safeguards stay in T2384.
@@ -127,7 +127,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.4](requirements.md#2.4), [2.5](requirements.md#2.5), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.6](requirements.md#5.6)
   - References: design.md, Transit/Transit/MCP/MCPToolHandler.swift, Transit/Transit/MCP/MCPTypes.swift, Transit/Transit/MCP/MCPServer.swift, Transit/Transit/MCP/Writes/MCPWriteCoordinator.swift
 
-- [ ] 15. GREEN: integrate common source/schema/fallback and modern dispatch at handoff <!-- id:gpzncvz -->
+- [-] 15. GREEN: integrate common source/schema/fallback and modern dispatch at handoff <!-- id:gpzncvz -->
   - Under T63 coordinated ownership, wire source origins/error phases in textResult/errorResult/protected outcomes/maintenance/persistence failures; install output-schema descriptors and resultType/structured/_meta support once in MCPTypes/definitions/handler.
   - Adapt terminal/replay output downstream without changing receipt JSON/format/r1/retention or service normalization. Route maintenance inner encoding failures to effect-aware ready-byte selection. Wire modern POST/header/Origin/format validation plus immutable availability classification ahead of read admission; remove legacy wire-array/init/session/GET pathways and update their tests.
   - Pass task14 and deliver a recorded common seam commit to T2384: source/JSON representation/schema descriptors/complete fallback/normal selection. T2384 owns its consumer/real mutate_tasks registration and safety policy; this task and T2383 final validation never block on production batch completion.
