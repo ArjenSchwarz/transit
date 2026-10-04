@@ -30,6 +30,7 @@ extension MCPTestHelpers {
         accept: String? = nil,
         sessionID: String? = nil,
         protocolVersion: String? = nil,
+        orderedHeaders: [HTTPField] = [],
         body: String = "",
         loggerLabel: String
     ) async throws -> MCPHTTPTestResponse {
@@ -49,6 +50,9 @@ extension MCPTestHelpers {
         }
         if let protocolVersion {
             headers[HTTPField.Name("MCP-Protocol-Version")!] = protocolVersion
+        }
+        for field in orderedHeaders {
+            headers.append(field)
         }
         let request = Request(
             head: HTTPRequest(
