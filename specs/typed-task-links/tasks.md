@@ -45,7 +45,7 @@ metadata:
   - Requirements: [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [4.6](requirements.md#4.6), [5.5](requirements.md#5.5), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 5. Red: test normalized graph projection and exact change planning <!-- id:ev1ktl0 -->
+- [x] 5. Red: test normalized graph projection and exact change planning <!-- id:ev1ktl0 -->
   - Write TaskLinkGraphTests/TaskLinkPlanTests with seeded Swift Testing generated small graphs and an independent reference for inverse/reversed normalization, permutation invariance, SCC membership, direct blockers and duplicate paths.
   - Cover cross-project/missing/colliding identities, imported repeated occurrences, Done/Abandoned/unknown, valid Done ancestry exceptions, duplicate cardinality/chains/cycles/retarget and removal-only incremental repair. Seed outside-writer race faults into actual projection expectations for updated endpoint assessments and cycle/cardinality/identity/removal diagnostics, preserving the original committed receipt. Exact selector collisions fail closed; same-logical remove/add rejects; missing endpoint needs no invented revision.
   - Blocked-by: ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment), ev1ktkx (Green: implement pre-feature store migration and schema parity)
@@ -53,7 +53,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [4.2](requirements.md#4.2), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 6. Green: implement normalized graph projection and exact change planning <!-- id:ev1ktl1 -->
+- [-] 6. Green: implement normalized graph projection and exact change planning <!-- id:ev1ktl1 -->
   - Implement value-only TaskLinkGraph/TaskLinkPlan and Services/TaskLinkService normalization/indexing. Preserve all physical matches and malformed evidence; iterative SCC uses every structurally resolvable dependency row without dedup hiding cycle evidence.
   - Project with frozen removal evidence/evaluation instant; distinguish unblocked/blocked/invalid/unavailable. Validate complete proposed results, exact incidence/fingerprint removal and cardinality/cycles; no automatic canonical redirect, flattening, status changes or consolidation.
   - Blocked-by: ev1ktl0 (Red: test normalized graph projection and exact change planning), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment)

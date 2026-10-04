@@ -19,7 +19,7 @@ def main():
     for output in (derived, result, preflight):
         require(not output.exists() and not output.is_symlink(), f"Fresh output required: {output}")
     configuration, unit, host, info, entitlements, source = validated_unit_run(products)
-    suites = ["TaskLinkGraphTests", "TaskLinkGraphGeneratedTests", "TaskLinkPlanTests"]
+    suites = ["TaskLinkGraphTests", "TaskLinkGraphGeneratedTests", "TaskLinkPlanTests", "TaskLinkGraphServiceTests"]
     unit["OnlyTestIdentifiers"] = suites
     environment = unit["EnvironmentVariables"]
     for flag in ("T1734_TRANSACTION_DIAGNOSTIC", "T1734_TRANSACTION_ABORT_DIAGNOSTIC",
@@ -31,7 +31,7 @@ def main():
                *[f"-only-testing:TransitTests/{suite}" for suite in suites],
                "-resultBundlePath", str(result)]
     evidence = dict(host=str(host), bundleID=info["CFBundleIdentifier"], entitlements=entitlements,
-                    sourceXctestrun=str(source), suites=suites, expectedExpandedCases=29,
+                    sourceXctestrun=str(source), suites=suites, expectedExpandedCases=43,
                     expectedSkips=0, launched=False, outsideWriterExclusion=False,
                     primitiveDiagnosticsExcluded=True, derivedXctestrun=str(derived),
                     resultBundlePath=str(result), expectedCommand=command)

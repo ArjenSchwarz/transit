@@ -38,16 +38,25 @@ enum TaskLinkGraph {
             state.diagnostics.append(TaskLinkDiagnostic(code: "dependency_cycle", taskIds: [id],
                                                         edgeId: nil, physicalKey: Data()))
         }
+        let duplicateCycles = try cycleMembers(tasks: state.tasksById, occurrences: occurrences,
+                                               kind: "duplicate", budget: budget)
+        for id in duplicateCycles {
+            try budget.check()
+            state.diagnostics.append(TaskLinkDiagnostic(code: "duplicate_cycle", taskIds: [id],
+                                                        edgeId: nil, physicalKey: Data()))
+        }
         var blockers: [UUID: TaskLinkBlockerAssessment] = [:]
         for (id, matches) in state.tasksById {
             try budget.check()
-            blockers[id] = state.assessment(id: id, matches: matches, cyclic: cyclic)
+            blockers[id] = try state.assessment(id: id, matches: matches, cyclic: cyclic, budget: budget)
         }
-        state.diagnostics.sort {
+        try state.diagnostics.sort {
+            try budget.check()
             let left = ($0.code, $0.taskIds.map(\.uuidString).joined(), $0.edgeId?.uuidString ?? "")
             let right = ($1.code, $1.taskIds.map(\.uuidString).joined(), $1.edgeId?.uuidString ?? "")
             return left == right ? $0.physicalKey.lexicographicallyPrecedes($1.physicalKey) : left < right
         }
+        try budget.check()
         return TaskLinkGraphView(tasks: tasks, occurrences: occurrences, removalEvidence: removalEvidence,
             evaluationInstant: evaluationInstant, tasksById: state.tasksById, occurrencesById: state.edgesById,
             incidence: state.incidence, diagnostics: state.diagnostics, cyclicTasks: cyclic, blockers: blockers,
@@ -59,12 +68,13 @@ enum TaskLinkGraph {
     // Both traversals are iterative to bound stack use on large imported graphs.
     // swiftlint:disable:next cyclomatic_complexity
     static func cycleMembers(
-        tasks: [UUID: [TaskLinkTaskValue]], occurrences: [TaskLinkOccurrenceValue], budget: TaskLinkGraphBudget
+        tasks: [UUID: [TaskLinkTaskValue]], occurrences: [TaskLinkOccurrenceValue],
+        kind: String = "dependency", budget: TaskLinkGraphBudget
     ) throws -> Set<UUID> {
         var adjacency: [UUID: [UUID]] = [:], reverse: [UUID: [UUID]] = [:]
         for edge in occurrences {
             try budget.check()
-            guard edge.kind == "dependency", tasks[edge.source]?.count == 1, tasks[edge.target]?.count == 1 else {
+            guard edge.kind == kind, tasks[edge.source]?.count == 1, tasks[edge.target]?.count == 1 else {
                 continue
             }
             adjacency[edge.source, default: []].append(edge.target)
@@ -118,7 +128,9 @@ enum TaskLinkGraph {
                 return TaskLinkDuplicateResolution(path: path, canonical: nil,
                     diagnostic: view.tasksById[current] == nil ? "missing_endpoint" : "ambiguous_endpoint")
             }
-            let edges = view.incidence[current, default: []].filter { $0.kind == "duplicate" && $0.source == current }
+            let edges = try view.incidence[current, default: []].filter {
+                try budget.check(); return $0.kind == "duplicate" && $0.source == current
+            }
             guard edges.count <= 1 else {
                 return TaskLinkDuplicateResolution(path: path, canonical: nil, diagnostic: "duplicate_cardinality")
             }

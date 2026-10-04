@@ -54,6 +54,32 @@ struct TaskLinkGraphTests {
         #expect(view.assessment(for: source.id) == .invalid)
     }
 
+    @Test(arguments: [false, true])
+    func candidateUnknownStatusUsesOnlyItsDirectBlockerEvidence(hasDoneBlocker: Bool) throws {
+        let candidate = task(1, status: "future-status"), blocker = task(2, status: "done")
+        let view = try project([candidate, blocker], hasDoneBlocker ? [edge(1, blocker.id, candidate.id)] : [])
+        #expect(view.assessment(for: candidate.id) == .unblocked)
+    }
+
+    @Test(arguments: ["collision", "future"])
+    func matchingInvalidRemovalEvidenceCannotCertifyActiveRelation(shape: String) throws {
+        let source = task(1, status: "done"), target = task(2), active = edge(1, source.id, target.id)
+        let row = TaskLinkRemovalValue(physicalKey: Data([10]), id: UUID(), edgeId: active.id,
+            kind: active.kind, source: active.source, target: active.target, createdAt: active.createdAt,
+            occurrenceRevision: try TaskLinkGraph.occurrenceRevision(active),
+            removedAt: Date(timeIntervalSince1970: shape == "future" ? 300 : 150))
+        let copy = TaskLinkRemovalValue(physicalKey: Data([11]), id: row.id, edgeId: row.edgeId,
+            kind: row.kind, source: row.source, target: row.target, createdAt: row.createdAt,
+            occurrenceRevision: row.occurrenceRevision, removedAt: row.removedAt)
+        let view = try TaskLinkGraph.project(tasks: [source, target], occurrences: [active],
+            removalEvidence: shape == "collision" ? [row, copy] : [row],
+            evaluationInstant: Date(timeIntervalSince1970: 200))
+        #expect(view.assessment(for: target.id) == .invalid)
+        #expect(view.recognizedRemovals.isEmpty)
+        #expect(view.diagnostics.contains { $0.code == "active_removal_conflict" })
+        #expect(view.diagnostics.contains { $0.code == "invalid_removal_evidence" })
+    }
+
     private func task(_ number: UInt8, status: String = "idea") -> TaskLinkTaskValue {
         TaskLinkTaskValue(physicalKey: Data([number]), id: UUID(), name: "task", status: status)
     }

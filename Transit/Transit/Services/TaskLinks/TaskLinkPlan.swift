@@ -31,6 +31,7 @@ extension TaskLinkPlan {
         guard savedGraph.tasksById[source]?.count == 1 else { throw TaskLinkGraphError.missingSource }
         var removals: [TaskLinkOccurrenceValue] = [], additions: [TaskLinkPlannedAddition] = []
         var affected: Set<UUID> = [], selected: Set<UUID> = []
+        var removedRelations: Set<TaskLinkRelation> = []
         for change in delta {
             try budget.check()
             switch change {
@@ -42,18 +43,23 @@ extension TaskLinkPlan {
                         throw TaskLinkGraphError.invalidOccurrence
                     }
                     removals.append(row)
+                    removedRelations.insert(TaskLinkGraph.relation(row))
                     try registerEndpoint(row.source == source ? row.target : row.source,
                                          graph: savedGraph, affected: &affected, requireExisting: false)
                 } else {
                     guard let rows = savedGraph.recognizedRemovals[edgeId], rows.count == 1,
                           let row = rows.first, row.source == source || row.target == source,
                           row.occurrenceRevision == revision else { throw TaskLinkGraphError.repairUnavailable }
+                    removedRelations.insert(TaskLinkGraph.relation(TaskLinkOccurrenceValue(
+                        physicalKey: row.physicalKey, id: row.edgeId, kind: row.kind, source: row.source,
+                        target: row.target, createdAt: row.createdAt)))
                 }
             case let .add(type, target):
                 guard target != source else { throw TaskLinkGraphError.invalidGraph }
                 let relation = type.normalized(source: source, target: target)
-                let existing = savedGraph.incidence[source, default: []].filter {
-                    TaskLinkGraph.relation($0) == relation
+                let existing = try savedGraph.incidence[source, default: []].filter {
+                    try budget.check()
+                    return TaskLinkGraph.relation($0) == relation
                 }
                 if !existing.isEmpty {
                     guard existing.count == 1, let row = existing.first,
@@ -69,7 +75,6 @@ extension TaskLinkPlan {
                 additions.append(TaskLinkPlannedAddition(relation: relation))
             }
         }
-        let removedRelations = Set(removals.map(TaskLinkGraph.relation))
         for change in delta {
             try budget.check()
             if case let .add(type, target) = change,
@@ -84,7 +89,44 @@ extension TaskLinkPlan {
                 throw TaskLinkGraphError.revisionConflict
             }
         }
-        return TaskLinkPlan(removals: removals, additions: additions, affectedEndpoints: affected)
+        let plan = TaskLinkPlan(removals: removals, additions: additions, affectedEndpoints: affected)
+        if delta.contains(where: { if case .add = $0 { true } else { false } }) {
+            try validateProposed(plan, source: source, graph: savedGraph, budget: budget)
+        }
+        return plan
+    }
+
+    @MainActor
+    private static func validateProposed(
+        _ plan: TaskLinkPlan, source: UUID, graph: TaskLinkGraphView, budget: TaskLinkGraphBudget
+    ) throws {
+        let removed = Set(plan.removals.map(\.physicalKey))
+        var rows = try graph.occurrences.filter { try budget.check(); return !removed.contains($0.physicalKey) }
+        for addition in plan.additions {
+            try budget.check()
+            // Ephemeral validation identities never leave this pure proposed graph or enter the store.
+            let id = UUID(), relation = addition.relation
+            rows.append(TaskLinkOccurrenceValue(physicalKey: Data(id.uuidString.utf8), id: id,
+                kind: relation.kind, source: relation.source, target: relation.target,
+                createdAt: graph.evaluationInstant))
+        }
+        let proposed = try TaskLinkGraph.project(tasks: graph.tasks, occurrences: rows,
+            removalEvidence: graph.removalEvidence, evaluationInstant: graph.evaluationInstant, budget: budget)
+        let touched = plan.affectedEndpoints.union([source])
+        for id in touched {
+            try budget.check()
+            guard proposed.assessment(for: id) != .invalid,
+                  try TaskLinkGraph.duplicateResolution(for: id, in: proposed, budget: budget).diagnostic == nil else {
+                throw TaskLinkGraphError.invalidGraph
+            }
+        }
+        for diagnostic in proposed.diagnostics {
+            try budget.check()
+            // Unmatched malformed removal rows cannot authorize a retry; unrelated active incidence stays valid.
+            if diagnostic.code != "invalid_removal_evidence", !Set(diagnostic.taskIds).isDisjoint(with: touched) {
+                throw TaskLinkGraphError.invalidGraph
+            }
+        }
     }
 
     @MainActor

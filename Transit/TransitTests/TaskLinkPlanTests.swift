@@ -73,6 +73,84 @@ struct TaskLinkPlanTests {
         }
     }
 
+    @Test func duplicateCardinalityIsValidatedOnCompleteProposedResult() throws {
+        let source = task(1), old = task(2), new = task(3)
+        let original = TaskLinkOccurrenceValue(physicalKey: Data([1]), id: UUID(), kind: "duplicate",
+                                              source: source.id, target: old.id,
+                                              createdAt: Date(timeIntervalSince1970: 100))
+        let graph = try project([source, old, new], [original])
+        #expect(throws: TaskLinkGraphError.self) {
+            try TaskLinkPlan.validate(delta: [.add(type: .duplicateOf, target: new.id)], source: source.id,
+                preconditions: [new.id: "current"], revisions: [new.id: "current"], savedGraph: graph)
+        }
+    }
+
+    @Test func duplicateRetargetRemovesOnlyExactOldOccurrence() throws {
+        let source = task(1), old = task(2), new = task(3)
+        let original = TaskLinkOccurrenceValue(physicalKey: Data([1]), id: UUID(), kind: "duplicate",
+                                              source: source.id, target: old.id,
+                                              createdAt: Date(timeIntervalSince1970: 100))
+        let graph = try project([source, old, new], [original])
+        let guards = [old.id: "old", new.id: "new"]
+        let plan = try TaskLinkPlan.validate(delta: [
+            .remove(edgeId: original.id, occurrenceRevision: TaskLinkGraph.occurrenceRevision(original)),
+            .add(type: .duplicateOf, target: new.id)
+        ], source: source.id, preconditions: guards, revisions: guards, savedGraph: graph)
+        #expect(plan.removals == [original])
+        let newRelation = TaskLinkType.duplicateOf.normalized(source: source.id, target: new.id)
+        #expect(plan.additions.map(\.relation) == [newRelation])
+        #expect(plan.affectedEndpoints == Set([old.id, new.id]))
+    }
+
+    @Test(arguments: [false, true])
+    func exactRemovedSelectorNoOpRequiresUnexpiredEvidence(expired: Bool) throws {
+        let source = task(1), row = edge(1, source.id, UUID())
+        let revision = try TaskLinkGraph.occurrenceRevision(row)
+        let evidence = TaskLinkRemovalValue(physicalKey: Data([9]), id: UUID(), edgeId: row.id,
+            kind: row.kind, source: row.source, target: row.target, createdAt: row.createdAt,
+            occurrenceRevision: revision, removedAt: Date(timeIntervalSince1970: 150))
+        let graph = try TaskLinkGraph.project(tasks: [source], occurrences: [], removalEvidence: [evidence],
+            evaluationInstant: Date(timeIntervalSince1970: expired ? 150 + TaskLinkGraph.evidenceLifetime : 200))
+        if expired {
+            #expect(throws: TaskLinkGraphError.self) {
+                try TaskLinkPlan.validate(delta: [.remove(edgeId: row.id, occurrenceRevision: revision)],
+                    source: source.id, preconditions: [:], revisions: [:], savedGraph: graph)
+            }
+        } else {
+            let plan = try TaskLinkPlan.validate(delta: [.remove(edgeId: row.id, occurrenceRevision: revision)],
+                source: source.id, preconditions: [:], revisions: [:], savedGraph: graph)
+            #expect(plan.isNoOp)
+            #expect(plan.affectedEndpoints.isEmpty)
+        }
+    }
+
+    @Test func removedEvidenceAndSameLogicalReAddRejectsInOneRequest() throws {
+        let source = task(1), target = task(2), row = edge(1, source.id, target.id)
+        let revision = try TaskLinkGraph.occurrenceRevision(row)
+        let evidence = TaskLinkRemovalValue(physicalKey: Data([9]), id: UUID(), edgeId: row.id,
+            kind: row.kind, source: row.source, target: row.target, createdAt: row.createdAt,
+            occurrenceRevision: revision, removedAt: Date(timeIntervalSince1970: 150))
+        let graph = try TaskLinkGraph.project(tasks: [source, target], occurrences: [], removalEvidence: [evidence],
+                                             evaluationInstant: Date(timeIntervalSince1970: 200))
+        #expect(throws: TaskLinkGraphError.self) {
+            try TaskLinkPlan.validate(delta: [.remove(edgeId: row.id, occurrenceRevision: revision),
+                                             .add(type: .blocks, target: target.id)], source: source.id,
+                preconditions: [target.id: "current"], revisions: [target.id: "current"], savedGraph: graph)
+        }
+    }
+
+    @Test(arguments: ["missing", "stale", "extra"])
+    func endpointGuardsMustExactlyMatchAffectedSavedEndpoints(shape: String) throws {
+        let source = task(1), target = task(2), extra = task(3)
+        let graph = try project([source, target, extra], [])
+        var guards: [UUID: String] = shape == "missing" ? [:] : [target.id: "stale"]
+        if shape == "extra" { guards = [target.id: "current", extra.id: "extra"] }
+        #expect(throws: TaskLinkGraphError.self) {
+            try TaskLinkPlan.validate(delta: [.add(type: .blocks, target: target.id)], source: source.id,
+                preconditions: guards, revisions: [target.id: "current", extra.id: "extra"], savedGraph: graph)
+        }
+    }
+
     private func task(_ number: UInt8) -> TaskLinkTaskValue {
         TaskLinkTaskValue(physicalKey: Data([number]), id: UUID(), name: "task", status: "idea")
     }
