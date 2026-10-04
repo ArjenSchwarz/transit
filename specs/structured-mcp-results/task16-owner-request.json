@@ -1,0 +1,161 @@
+{
+  "phase": "Task16 owner coordination; source-only RED preparation, no runtime readiness claim",
+  "recipientHead": "18a3483",
+  "paths": [
+    {
+      "owner": "T63",
+      "path": "Transit/Transit/MCP/Reads/MCPPreparedToolRead.swift",
+      "sha256": "1394537f348260d9022c5c2defa8fbaab744c06cf4cef4446b3e3cab9e5ff462"
+    },
+    {
+      "owner": "T63",
+      "path": "Transit/Transit/MCP/Reads/MCPReadService.swift",
+      "sha256": "2cbebce6a0107b2b3532c639b08fb40471c18060e686f354192108bf6e21a87d"
+    },
+    {
+      "owner": "T63",
+      "path": "Transit/Transit/MCP/MCPTaskQuerySnapshotStore.swift",
+      "sha256": "7095df9b81b3b4db8e468d405454478a4b640058ff9b0a0c05fa370b2f2657eb"
+    },
+    {
+      "owner": "T63",
+      "path": "Transit/Transit/MCP/MCPToolHandler+CapturedRead.swift",
+      "sha256": "e57963b7384f3baca19b0d0b46fcc377dab584016fb8b45efd5cd4fa6b6a0d7e"
+    },
+    {
+      "owner": "T63",
+      "path": "Transit/Transit/MCP/MCPToolHandler+PortfolioReadPreparation.swift",
+      "sha256": "e714aef4acd3eff8cbc9f143d4edad80136b2e7c8242823ba58c44c4cf7a513e"
+    },
+    {
+      "owner": "T2382",
+      "path": "Transit/Transit/MCP/MCPReusableSnapshotStore.swift",
+      "sha256": "43cb4128af0fdf73ceca6ae69a0415e924d7365e733277e3316ce37611a85d87"
+    },
+    {
+      "owner": "T2382",
+      "path": "Transit/Transit/MCP/MCPReusableSnapshotIndex.swift",
+      "sha256": "3ece2a9a32de2d6b6032568fff472db1d4980a4c86f8442492d27c1e2ddaceca"
+    },
+    {
+      "owner": "T2382",
+      "path": "Transit/Transit/MCP/MCPReusableSnapshotReadPin.swift",
+      "sha256": "180e0cc690db0a453ece931825eb07a5d64d6c308a11a7388f59eb57dd2c82d2"
+    },
+    {
+      "owner": "T2383 reference only",
+      "path": "Transit/Transit/MCP/Results/MCPResultPreparation.swift",
+      "sha256": "f3f1fcc0f4b836e254498c53fc117a5d8757fcb61ddb4d36cf5aba9bf3d12112"
+    },
+    {
+      "owner": "T2383 reference only",
+      "path": "Transit/Transit/MCP/Results/MCPModernProviderBinding.swift",
+      "sha256": "f79ccb4b623dc573732b96786c463605634701fcf8386fc893dfc10b7dfd2a01"
+    },
+    {
+      "owner": "T63 unchanged gate reference",
+      "path": "Transit/Transit/MCP/Reads/MCPReadCoordinator.swift",
+      "sha256": "34bbb3710f8ba9d665eb5259f4b6443e63140794c7d21b51f87097077b8b7fb8"
+    },
+    {
+      "owner": "T63 unchanged gate reference",
+      "path": "Transit/Transit/MCP/Reads/MCPReadPublicationDomain.swift",
+      "sha256": "5862e034aa120d99beb0c11a6ad28bd4fff90019f3b52284e09e4b66939901a0"
+    },
+    {
+      "owner": "T63 unchanged gate reference",
+      "path": "Transit/Transit/MCP/Reads/MCPReadPublicationDomain+Preparation.swift",
+      "sha256": "c97b489b274220bd9090c9e91c31a099b2be1ff1c0cdd777bb229f1a418f1942"
+    }
+  ],
+  "existingDeliveredTypes": [
+    "MCPResultPreparedPage",
+    "MCPResultPreparedMetadata",
+    "MCPResultRetainedBundle",
+    "MCPResultRetentionBudget",
+    "MCPResultPagePreparationRequest"
+  ],
+  "ownerRequests": [
+    {
+      "owner": "T63",
+      "scope": "Ordinary prepared read and snapshot retention",
+      "current": "Supplied ce4d0af prepared-read carrier consumed exactly as18a3483. Ordinary retained pages/store and all-private-page hook still lack modern owners/expanded accounting.",
+      "change": "Preserve supplied preparedResultPage carrier through ordinary retained-page lookup. Before reservation, prepare ALL private pages including first with the original operation and retain existing MCPResultPreparedPage/MCPResultRetainedBundle owners. Charge measured expanded owners plus all remaining original capture/index or compatibility backing; avoid unmeasured retained legacy copies and double charging actual shared owners. Expose exact owner-selected all-page hook and store declaration for task16 fixtures; original domain reserve remains authoritative.",
+      "paths": [
+        "Transit/Transit/MCP/Reads/MCPPreparedToolRead.swift",
+        "Transit/Transit/MCP/Reads/MCPReadService.swift",
+        "Transit/Transit/MCP/MCPTaskQuerySnapshotStore.swift",
+        "Transit/Transit/MCP/MCPToolHandler+CapturedRead.swift",
+        "Transit/Transit/MCP/MCPToolHandler+PortfolioReadPreparation.swift"
+      ]
+    },
+    {
+      "owner": "T2382",
+      "scope": "Reusable portfolio retention",
+      "current": "RetainedView/EncodedViewBundle/RetainedPage retain Data/capture; index charge uses capture byte count and page Data only.",
+      "change": "Carry existing immutable prepared page/bundle owners through root, create, append, and pinned lookups. Prepare every private page before reservation using the original operation. Integrate expanded measured charges preserving original capture/index cost and shared owner identity, original root expiry, pins, and atomic publication. Append accounting must avoid charging shared owners twice or subtracting unchecked estimates; real domain reserve revalidates races.",
+      "paths": [
+        "Transit/Transit/MCP/MCPReusableSnapshotStore.swift",
+        "Transit/Transit/MCP/MCPReusableSnapshotIndex.swift",
+        "Transit/Transit/MCP/MCPReusableSnapshotReadPin.swift"
+      ]
+    },
+    {
+      "owner": "T63",
+      "scope": "Explicit prepared-read source origin",
+      "current": "CapturedRead no-readService branch emits actual plain text; current modern read adapter defaults fresh prepared reads to generated JSON.",
+      "change": "Add optional providerEvidence/source-origin declaration to existing MCPPreparedToolRead initializer/result sidecar, with compatibility default for generated JSON. Explicitly declare no-service plainText and audit other plain read failure producers. Preserve wire CodingKeys/text/isError and attaching. Do not infer origin from parse failure or localized message."
+    }
+  ],
+  "preparerSemanticSketch": {
+    "notLockedProductionSignature": true,
+    "inputs": [
+      "all MCPResultPagePreparationRequest values",
+      "MCPResultRetentionBudget for the specific store",
+      "the SAME MCPReadOperation"
+    ],
+    "output": "Common factory returns frozen page owners. Existing MCPResultPreparation.prepare(pages:budget:checkpoint:) measures retained bundle/charge for store reservation; original capture/index and compatibility backing must remain accounted.",
+    "implementation": "Consume MCPResultPreparation.metadata/page/prepare with original operation checkpoint; one actual immutable metadata owner shared across pages. Owner chooses callback names and final signatures; no parallel carrier/descriptor type.",
+    "budget": "Fixed independent 16MiB per store; checked logical retained charge, not RSS. Original capture/index base excludes page text/document/tree/fragment/meta measured by new ledger. Visible and pending observations come from existing domain. Preflight does not reserve.",
+    "lookup": "Stored page.fragment plus frozen original metadata/source/presentation; no live reread/reparse/reclassification or regenerated links/policy/expiry.",
+    "suppliedCommonSignature": "T63 requested common MCPModernProviderBinding.prepareReadPages(_ pages: [MCPPreparedToolRead], tool: String, operation: MCPReadOperation) throws -> [MCPResultPreparedPage]; T2383 delivers through tasks16/17, with no new deadline/guard/retention engine."
+  },
+  "unchangedInvariants": [
+    "Original five-second operation and eight physical unfinished workers across stop/start",
+    "Existing shared domain reserve/validate-all-before-commit and discard semantics",
+    "Independent ordinary/reusable five-minute/eight-snapshot/16MiB limits",
+    "Canonical comment-covered r1 even when comments omitted",
+    "Frozen text/payload/metadata/presentation/policy/expiry with new request IDs",
+    "No encoding under publication gate; large destruction remains outside lock"
+  ],
+  "fixturePreparation": {
+    "status": "Read-only seam inventory completed; no new Task16 fixture file or owner declaration added yet.",
+    "existingSeamsSufficient": [
+      "coordinator fake clock/cutoff/maxOperations and stop/start",
+      "domain accounting/reserve/atomic publication tests",
+      "builder capture/fence/source faults",
+      "reusable pins/testingAfterPin/lifetimeProbe"
+    ],
+    "plannedOwnedTests": [
+      "ordinary and reusable frozen continuation after saved record/comment edits, new IDs and includeComments false canonical r1",
+      "whole capture/parser/selector/storage failure and no private partial publication",
+      "expanded budget boundary using actual modern private-page preparation, independent store caps and pending costs",
+      "original deadline/cancellation through preparation/offer; stale/expired publication and physical workers across restart"
+    ],
+    "blockingExactBindings": "Common factory signature and prepared-read carrier are supplied. Ordinary/reusable all-private-page create/append/lookup and charge declarations remain owner-selected; new owned RED fixtures will consume those declared seams, not guess names.",
+    "runtime": "No heavy command, app run, publication guarantee or Task16 RED/GREEN claim at this checkpoint."
+  },
+  "nextSafeAction": "Parent forwards bundled request to retained owners. Worker resumes owned fixtures using existing fakes and supplied declarations, then prepares reviewed focused RED command for a separately coordinated heavy slot.",
+  "suppliedABI": {
+    "owner": "T63",
+    "ownerCommit": "ce4d0af",
+    "localImportCommit": "18a3483",
+    "patchSHA256": "22fec83828cbaa7e415c786e675186b52943324bf74d607fc7cca3ffa8a3b726",
+    "fileSHA256": "1394537f348260d9022c5c2defa8fbaab744c06cf4cef4446b3e3cab9e5ff462",
+    "symbols": [
+      "MCPPreparedToolRead.preparedResultPage: MCPResultPreparedPage?",
+      "MCPPreparedToolRead.attachingPreparedResultPage(_:) -> Self"
+    ],
+    "ownership": "T63 retained; exact byte-matching owner import, no runtime proof."
+  }
+}
