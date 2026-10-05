@@ -80,17 +80,19 @@ enum UITestScenario: String {
     }
 
     private func seedTaskLinks(into context: ModelContext, ambiguous: Bool) {
-        let source = TransitTask(name: "Linked Source", type: .feature, project: nil, displayID: .permanent(1))
+        let project = Project(name: "Relationships", description: nil, gitRepo: nil, colorHex: "#0A84FF")
+        context.insert(project)
+        let source = TransitTask(name: "Linked Source", type: .feature, project: project, displayID: .permanent(1))
         source.id = UUID(uuidString: "00000000-0000-0000-0000-000000173401")!
         source.statusRawValue = TaskStatus.inProgress.rawValue
-        let target = TransitTask(name: "Linked Target", type: .feature, project: nil, displayID: .permanent(2))
+        let target = TransitTask(name: "Linked Target", type: .feature, project: project, displayID: .permanent(2))
         target.id = UUID(uuidString: "00000000-0000-0000-0000-000000173402")!
         context.insert(source)
         context.insert(target)
         context.insert(TaskLinkOccurrence(id: UUID(), kindRawValue: "association", sourceTaskID: source.id,
                                           targetTaskID: target.id, createdAt: Date()))
         if ambiguous {
-            let collision = TransitTask(name: "Collision", type: .feature, project: nil, displayID: .permanent(3))
+            let collision = TransitTask(name: "Collision", type: .feature, project: project, displayID: .permanent(3))
             collision.id = target.id
             context.insert(collision)
         }
