@@ -12,7 +12,8 @@ import Observation
         sourceID = source
         detail = nil
         problem = nil
-        do { detail = try await provider(source) }
-        catch { problem = "Saved relationships are unavailable until this task can be uniquely resolved." }
+        do { detail = try await provider(source) } catch {
+            problem = "Saved relationships are unavailable until this task can be uniquely resolved."
+        }
     }
 }

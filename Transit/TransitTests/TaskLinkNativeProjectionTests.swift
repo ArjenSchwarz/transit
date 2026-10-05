@@ -39,7 +39,8 @@ struct TaskLinkNativeProjectionTests {
 
     @Test func uniqueDestinationKeepsExactUUIDAndUnsavedSourceIsUnavailable() throws {
         let fixture = try Fixture()
-        let resolved = try #require(TaskLinkNavigationResolver.resolve(fixture.target.id, in: fixture.owner.context))
+        let destination = try TaskLinkNavigationResolver.resolve(fixture.target.id, in: fixture.owner.context)
+        let resolved = try #require(destination)
         #expect(resolved.id == fixture.target.id && resolved.id != fixture.source.id)
         let pending = TransitTask(name: "not saved", type: .feature, project: fixture.project,
                                   displayID: .permanent(3))
@@ -60,8 +61,7 @@ struct TaskLinkNativeProjectionTests {
         let old = Task { await state.refresh(source: fixture.source.id) { _ in try await gate.wait() } }
         for _ in 0..<100 where gate.continuation == nil { await Task.yield() }
         try #require(gate.continuation != nil)
-        if cancel { old.cancel() }
-        else { await state.refresh(source: fixture.target.id) { _ in newDetail } }
+        if cancel { old.cancel() } else { await state.refresh(source: fixture.target.id) { _ in newDetail } }
         gate.continuation?.resume(returning: oldDetail)
         await old.value
         #expect(state.detail?.source.id == (cancel ? nil : fixture.target.id))
