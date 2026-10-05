@@ -161,6 +161,25 @@ struct TaskLinkPlanTests {
         #expect(plan.affectedEndpoints.isEmpty)
     }
 
+    @Test(arguments: ["self", "unknown"])
+    func exactImportedRepairEvidenceRemainsRecognizable(shape: String) throws {
+        let source = task(1)
+        let row = TaskLinkOccurrenceValue(physicalKey: Data([1]), id: UUID(),
+            kind: shape == "unknown" ? "future-kind" : "dependency", source: source.id,
+            target: shape == "self" ? source.id : UUID(), createdAt: Date(timeIntervalSince1970: 100))
+        let revision = try TaskLinkGraph.occurrenceRevision(row)
+        let evidence = TaskLinkRemovalValue(physicalKey: Data([9]), id: UUID(), edgeId: row.id,
+            kind: row.kind, source: row.source, target: row.target, createdAt: row.createdAt,
+            occurrenceRevision: revision, removedAt: Date(timeIntervalSince1970: 150))
+        let graph = try TaskLinkGraph.project(tasks: [source], occurrences: [], removalEvidence: [evidence],
+                                             evaluationInstant: Date(timeIntervalSince1970: 200))
+        let plan = try TaskLinkPlan.validate(delta: [.remove(edgeId: row.id, occurrenceRevision: revision)],
+            source: source.id, preconditions: [:], revisions: [:], savedGraph: graph)
+        #expect(plan.isNoOp)
+        #expect(graph.recognizedRemovals[row.id]?.count == 1)
+        #expect(graph.diagnostics.isEmpty)
+    }
+
     private func task(_ number: UInt8) -> TaskLinkTaskValue {
         TaskLinkTaskValue(physicalKey: Data([number]), id: UUID(), name: "task", status: "idea")
     }

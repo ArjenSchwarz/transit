@@ -45,14 +45,13 @@ struct TaskLinkGraphIndex {
             guard retainedBytes <= budget.maximumBytes else { throw TaskLinkGraphError.capacityExceeded }
             let elapsed = instant.timeIntervalSince(row.removedAt)
             let datesValid = elapsed.isFinite && elapsed >= 0
-                && row.createdAt.timeIntervalSinceReferenceDate.isFinite && row.removedAt >= row.createdAt
+                && row.createdAt.timeIntervalSinceReferenceDate.isFinite
             if datesValid, elapsed >= TaskLinkGraph.evidenceLifetime { continue }
             availableRemovals[row.edgeId, default: []].append(row)
             let original = TaskLinkOccurrenceValue(physicalKey: row.physicalKey, id: row.edgeId,
                 kind: row.kind, source: row.source, target: row.target, createdAt: row.createdAt)
             let valid = ids[row.id] == 1 && elapsed.isFinite && elapsed >= 0
-                && row.createdAt.timeIntervalSinceReferenceDate.isFinite && row.removedAt >= row.createdAt
-                && row.source != row.target && TaskLinkGraph.storedKinds.contains(row.kind)
+                && row.createdAt.timeIntervalSinceReferenceDate.isFinite
                 && (try? TaskLinkGraph.occurrenceRevision(original)) == row.occurrenceRevision
             if valid { recognizedRemovals[row.edgeId, default: []].append(row) } else {
                 diagnostics.append(TaskLinkDiagnostic(code: "invalid_removal_evidence",
@@ -66,7 +65,7 @@ struct TaskLinkGraphIndex {
         for edges in edgesById.values {
             for edge in edges {
                 try budget.check()
-                diagnose(edge)
+                try diagnose(edge, budget: budget)
             }
         }
         for (id, matches) in tasksById where matches.count != 1 {
@@ -83,7 +82,7 @@ struct TaskLinkGraphIndex {
         }
     }
 
-    private mutating func diagnose(_ edge: TaskLinkOccurrenceValue) {
+    private mutating func diagnose(_ edge: TaskLinkOccurrenceValue, budget: TaskLinkGraphBudget) throws {
         for id in [edge.source, edge.target] {
             if tasksById[id] == nil { add("missing_endpoint", edge: edge) } else if tasksById[id]?.count != 1 {
                 add("ambiguous_endpoint", edge: edge)
@@ -96,8 +95,9 @@ struct TaskLinkGraphIndex {
         if equivalents[TaskLinkGraph.relation(edge)]?.count != 1 {
             add("equivalent_occurrences", edge: edge)
         }
-        if let removed = availableRemovals[edge.id], removed.contains(where: {
-            $0.kind == edge.kind && $0.source == edge.source && $0.target == edge.target
+        if let removed = availableRemovals[edge.id], try removed.contains(where: {
+            try budget.check()
+            return $0.kind == edge.kind && $0.source == edge.source && $0.target == edge.target
                 && $0.createdAt == edge.createdAt
         }) { add("active_removal_conflict", edge: edge) }
     }

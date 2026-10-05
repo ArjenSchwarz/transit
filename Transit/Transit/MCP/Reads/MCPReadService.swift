@@ -170,7 +170,11 @@ final class MCPReadService: MCPReadCapturedPreparing {
         guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
         let captureStarted = ContinuousClock.now
         let view: CapturedReadView
-        do { view = try source.capture(request) } catch {
+        let cutoff = try MCPPortfolioReadEncoding.publicationDeadline(operation)
+        let coveredRequest = request.withTaskLinkBudget(TaskLinkGraphBudget(deadline: cutoff, checkpoint: {
+            try MCPPortfolioReadEncoding.check(operation)
+        }))
+        do { view = try source.capture(coveredRequest) } catch {
             operation.recordDiagnostic(.capture, startedAt: captureStarted, outcome: .failure)
             throw error
         }
@@ -187,7 +191,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
             freshness: freshness, read: ReadExecutionMetadata(policy: policy, refreshOutcome: outcome, budgetMs: 5_000))
         return CapturedReadView(completeness: view.completeness, captureScope: view.captureScope, metadata: metadata,
             createdAt: view.createdAt, retentionDeadline: view.retentionDeadline, projects: view.projects,
-            tasks: view.tasks, milestones: view.milestones, comments: view.comments)
+            tasks: view.tasks, milestones: view.milestones, comments: view.comments, taskLinkGraph: view.taskLinkGraph)
     }
 
     func jsonText(_ value: Any) throws -> String {
@@ -212,12 +216,12 @@ final class MCPReadService: MCPReadCapturedPreparing {
             category = .incoherentCapture; code = failureCode; message = "Saved capture could not be proved coherent"
         case MCPReadCaptureError.serializationFailure:
             category = .serializationFailure; code = failureCode; message = "Read serialization failed"
-        case MCPResultPreparationError.retentionCapacity:
+        case MCPResultPreparationError.retentionCapacity, TaskLinkGraphError.capacityExceeded:
             category = nil; code = "QUERY_CAPACITY_EXCEEDED"
             message = "Query capacity exceeded; reduce scope/comments or retry after expiry"
         case PublicationRejection.busy:
             category = .busy; code = "READ_BUSY"; message = "Read publication changed; retry the request"
-        case ReadExecutionError.timeout:
+        case ReadExecutionError.timeout, TaskLinkGraphError.deadlineExceeded:
             category = .timeout; code = "READ_TIMEOUT"; message = "Read exceeded its original admission budget"
         default:
             category = .storageFailure; code = failureCode; message = "Saved read storage failed"

@@ -222,6 +222,13 @@ nonisolated struct ReadCaptureRequest: Sendable {
         self.selectTaskBodies = selectTaskBodies
         self.selectMilestoneBodies = selectMilestoneBodies
     }
+
+    func withTaskLinkBudget(_ budget: TaskLinkGraphBudget) -> ReadCaptureRequest {
+        ReadCaptureRequest(projectSelectors: projectSelectors, selection: selection, completeness: completeness,
+            includeComments: includeComments, validateProjects: validateProjects,
+            validateMilestones: validateMilestones,
+            selectTaskBodies: selectTaskBodies, selectMilestoneBodies: selectMilestoneBodies, taskLinkBudget: budget)
+    }
 }
 
 /// Local fence evidence only. This is not proof that a particular CloudKit import became visible.

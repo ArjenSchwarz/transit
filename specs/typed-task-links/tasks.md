@@ -61,7 +61,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [4.2](requirements.md#4.2), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 7. Red: test bounded saved capture and graph-closure capacity <!-- id:ev1ktl2 -->
+- [x] 7. Red: test bounded saved capture and graph-closure capacity <!-- id:ev1ktl2 -->
   - Add TaskLinkReadCaptureTests with pending insert/edit/delete in source/endpoint/occurrence/evidence/comments and independent saved contexts, failures/repeated identities and link-only history fence changes.
   - Write early scaling/deadline/retained-byte fixtures under unchanged five-second/eight unfinished-read and five-minute/eight-view/16-MiB limits. Cover cross-project closure not selected/countable, complete cycle evidence, timed-out lingering physical slots, frozen expiry instant and no late publication.
   - Blocked-by: ev1ktl1 (Green: implement normalized graph projection and exact change planning), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment)
@@ -69,7 +69,7 @@ metadata:
   - Requirements: [2.4](requirements.md#2.4), [5.4](requirements.md#5.4), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [6.5](requirements.md#6.5), [6.6](requirements.md#6.6), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 8. Green: implement bounded saved capture and graph-closure capacity <!-- id:ev1ktl3 -->
+- [-] 8. Green: implement bounded saved capture and graph-closure capacity <!-- id:ev1ktl3 -->
   - Extend T-63 CapturedReadView/ReadTask/MCPReadCaptureBuilder DTOs, fence and prepared capture path with occurrence/removal-evidence/endpoint closure. Use fresh autosave-disabled saved contexts and immutable Sendable values; no @Model return from child tasks.
   - Gate downstream capture/query work on passing bounded capacity fixtures. On excess return existing typed failure and optimize within budgets; no larger cap/partial unblocked result. Freeze graph/evaluation time and charge all retained evidence/index/result bytes; defer current task revision wiring to the next pair, never falsely mark absent evidence empty.
   - Blocked-by: ev1ktl2 (Red: test bounded saved capture and graph-closure capacity), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment)

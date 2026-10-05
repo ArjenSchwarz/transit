@@ -19,6 +19,10 @@ nonisolated enum MCPPortfolioCaptureCharge {
         try records(view.tasks, operation: operation, count: &count, encode: task)
         try records(view.milestones, operation: operation, count: &count, encode: milestone)
         try records(view.comments, operation: operation, count: &count, encode: comment)
+        if let graph = view.taskLinkGraph {
+            try MCPPortfolioReadEncoding.check(operation)
+            try add(graph.retainedBytes, to: &count)
+        }
         return count
     }
 

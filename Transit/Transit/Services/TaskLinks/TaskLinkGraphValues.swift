@@ -73,14 +73,18 @@ nonisolated struct TaskLinkDuplicateResolution: Equatable, Sendable {
 nonisolated struct TaskLinkGraphBudget: Sendable {
     let deadline: ContinuousClock.Instant
     let maximumBytes: Int
+    let checkpoint: (@Sendable () throws -> Void)?
 
-    init(deadline: ContinuousClock.Instant = .now.advanced(by: .seconds(5)), maximumBytes: Int = 16 * 1_024 * 1_024) {
+    init(deadline: ContinuousClock.Instant = .now.advanced(by: .seconds(5)),
+         maximumBytes: Int = 16 * 1_024 * 1_024, checkpoint: (@Sendable () throws -> Void)? = nil) {
         self.deadline = deadline
         self.maximumBytes = maximumBytes
+        self.checkpoint = checkpoint
     }
 
     func check() throws {
         guard ContinuousClock.now < deadline else { throw TaskLinkGraphError.deadlineExceeded }
+        try checkpoint?()
     }
 }
 
@@ -103,6 +107,13 @@ nonisolated struct TaskLinkGraphView: Sendable {
     let retainedBytes: Int
     let invalidOccurrences: Set<Data>
     let recognizedRemovals: [UUID: [TaskLinkRemovalValue]]
+
+    func withRetainedBytes(_ bytes: Int) -> TaskLinkGraphView {
+        TaskLinkGraphView(tasks: tasks, occurrences: occurrences, removalEvidence: removalEvidence,
+            evaluationInstant: evaluationInstant, tasksById: tasksById, occurrencesById: occurrencesById,
+            incidence: incidence, diagnostics: diagnostics, cyclicTasks: cyclicTasks, blockers: blockers,
+            retainedBytes: bytes, invalidOccurrences: invalidOccurrences, recognizedRemovals: recognizedRemovals)
+    }
 
     func assessment(for id: UUID) -> TaskLinkBlockerAssessment { blockers[id] ?? .unavailable }
 }

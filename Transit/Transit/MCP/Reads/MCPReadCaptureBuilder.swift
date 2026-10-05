@@ -71,11 +71,13 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
         }
         isCapturing = true
         defer { isCapturing = false; keyCache.removeAll(keepingCapacity: false) }
+        try request.taskLinkBudget?.check()
         let initialGeneration = generation()
         let before = try watermark()
         let context = ModelContext(container)
         context.autosaveEnabled = false
-        let copied = try copy(request, in: context)
+        let evaluationInstant = Date()
+        let copied = try copy(request, in: context, evaluationInstant: evaluationInstant)
         let after = try watermark()
         guard initialGeneration == generation(), before?.token == after?.token,
               before?.storeIdentifier == after?.storeIdentifier else {
@@ -84,12 +86,14 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
         let instant = ContinuousClock.now
         let view = CapturedReadView(
             completeness: request.completeness, captureScope: copied.scope,
-            metadata: metadata(Date(), MCPReadCaptureBoundary(
+            metadata: metadata(evaluationInstant, MCPReadCaptureBoundary(
                 historyStoreIdentifier: after?.storeIdentifier, generation: initialGeneration,
                 stablePersistentHistory: fence == .persistentHistory)), createdAt: instant,
             retentionDeadline: instant + .seconds(300), projects: copied.projects,
-            tasks: copied.tasks, milestones: copied.milestones, comments: copied.comments)
+            tasks: copied.tasks, milestones: copied.milestones, comments: copied.comments,
+            taskLinkGraph: copied.taskLinkGraph)
         if view.completeness == .completePortfolio { try MCPReadCaptureValidation.validateReusableCapture(view) }
+        try request.taskLinkBudget?.check()
         return view
     }
 
@@ -112,7 +116,9 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                   try context.fetchCount(FetchDescriptor<Milestone>()) == 0,
                   try context.fetchCount(FetchDescriptor<Comment>()) == 0,
                   try context.fetchCount(FetchDescriptor<SyncHeartbeat>()) == 0,
-                  try context.fetchCount(FetchDescriptor<MCPWriteReceipt>()) == 0 else {
+                  try context.fetchCount(FetchDescriptor<MCPWriteReceipt>()) == 0,
+                  try context.fetchCount(FetchDescriptor<TaskLinkOccurrence>()) == 0,
+                  try context.fetchCount(FetchDescriptor<TaskLinkRemovalEvidence>()) == 0 else {
                 throw MCPReadCaptureError.incoherentCapture
             }
             return nil
@@ -127,9 +133,12 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
         let tasks: [ReadTask]
         let milestones: [ReadMilestone]
         let comments: [ReadCommentEvidence]
+        let taskLinkGraph: TaskLinkGraphView?
     }
 
-    private func copy(_ request: ReadCaptureRequest, in context: ModelContext) throws -> Copied {
+    private func copy(
+        _ request: ReadCaptureRequest, in context: ModelContext, evaluationInstant: Date
+    ) throws -> Copied {
         do {
             let projects = try context.fetch(FetchDescriptor<Project>())
             try request.validateProjects?(projects.map { ReadProjectIdentity(id: $0.id, name: $0.name) })
@@ -138,6 +147,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             try afterProjects()
             let (allTasks, allMilestones) = try fetchEntities(request, in: context)
             let needsTasks = neededEntities(request.selection).0
+            let graph = try TaskLinkCaptureIntegration.graph(request, context: context, instant: evaluationInstant)
             let tasks = try allTasks.filter { task in
                 guard request.projectSelectors != nil else { return true }
                 return try task.project.map { selectedKeys.contains(try key($0)) } ?? false
@@ -169,10 +179,10 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                                   ? allMilestones : milestones).map {
                                       try milestoneValue($0, canonical: milestoneBodyKeys.contains(try key($0)))
                                   },
-                              comments: includedComments.map(commentValue))
+                              comments: includedComments.map(commentValue), taskLinkGraph: graph)
         } catch let error as MCPTaskQueryError {
             throw error
-        } catch let error as MCPReadCaptureError {
+        } catch let error where error is TaskLinkGraphError || error is MCPReadCaptureError {
             throw error
         } catch is MCPCanonicalJSON.Error {
             throw MCPReadCaptureError.serializationFailure

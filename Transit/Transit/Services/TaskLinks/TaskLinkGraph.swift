@@ -57,11 +57,12 @@ enum TaskLinkGraph {
             return left == right ? $0.physicalKey.lexicographicallyPrecedes($1.physicalKey) : left < right
         }
         try budget.check()
-        return TaskLinkGraphView(tasks: tasks, occurrences: occurrences, removalEvidence: removalEvidence,
+        let view = TaskLinkGraphView(tasks: tasks, occurrences: occurrences, removalEvidence: removalEvidence,
             evaluationInstant: evaluationInstant, tasksById: state.tasksById, occurrencesById: state.edgesById,
             incidence: state.incidence, diagnostics: state.diagnostics, cyclicTasks: cyclic, blockers: blockers,
             retainedBytes: state.retainedBytes, invalidOccurrences: state.invalidOccurrences,
             recognizedRemovals: state.recognizedRemovals)
+        return try view.withRetainedBytes(TaskLinkGraphCharge.bytes(view, budget: budget))
     }
 
     // Iterative Kosaraju. Every structurally resolvable physical dependency is retained.
