@@ -121,7 +121,7 @@ struct TaskLinkQueryTests {
         try JSONSerialization.data(withJSONObject: value, options: [.sortedKeys])
     }
 
-    private struct Fixture {
+    @MainActor private struct Fixture {
         let base: TaskLinkCommitDiskFixture
         let unlinked: TransitTask
         let arguments: [String: Any] = ["detailLevel": "full", "includeComments": false, "limit": 100]
