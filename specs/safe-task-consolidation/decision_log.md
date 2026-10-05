@@ -6,7 +6,7 @@
 | --- | --- |
 | Resume planning | Owner `Sentinel_c4dd914497c08191bc5612ccddd5449c`: “While Asterism is ongoing, start on the spec for 2381 and start planning the work for Meddy”. This branch owns T-2381 only. |
 | Scope, route and name | Approved by owner Sentinel_330b41f7115481918e53c2e1480c5dbc, replying “Approved” to Sentinel_efafa185b128819198b0fb0f045ba886; exact reviewed checkpoint 2bc58bbd. This approval permits requirements only. |
-| Requirements / design / tasks | Requirements approved by Sentinel_1e5655b5fba48191b5a5be8602d0cf1b against b1d02591dd214f1d2ca6cf3f196b52b01058076a and Library packet libfile_25ec8d9d5da48191875d258b9c419406. Design draft under review; tasks not started. |
+| Requirements / design / tasks | Requirements approved by Sentinel_1e5655b5fba48191b5a5be8602d0cf1b against b1d02591dd214f1d2ca6cf3f196b52b01058076a and Library packet libfile_25ec8d9d5da48191875d258b9c419406. Design approved by Sentinel_21b7c9588ec88191b7d78732649d99a9 against 7714e30121baf55f51086924269bd253dc8bfd9b and Library packet libfile_31bf6900be6481919971a2a80d72763c. Task plan reviewed and awaiting owner approval; implementation not authorised. |
 | Implementation | Not authorised by this planning instruction. |
 | Live bookkeeping | Paused with live MCP mutations; local records only. |
 
@@ -63,7 +63,7 @@ Design research reads actual merged coordinator/owned scope/typed occurrence, re
 
 ### ADR 1 — Immutable same-store operation and reversal evidence
 
-Status: design proposal pending approval.
+Status: approved at 7714e301 by Sentinel_21b7c9588ec88191b7d78732649d99a9.
 
 Context: approved whole undo and permanent inspectable history need durable attributable before/after evidence beyond seven-day receipts, while CloudKit can import physical collisions and partially available history.
 
@@ -73,7 +73,7 @@ Alternatives: an expiring receipt alone loses long-lived undo/history; mutable t
 
 ### ADR 2 — Existing retained publication for exact reviewed proposals
 
-Status: design proposal pending approval.
+Status: approved at 7714e301 by Sentinel_21b7c9588ec88191b7d78732649d99a9.
 
 Decision: immutable preview values occupy one ordinary retention root for five minutes, using the existing eight-root/16-MiB publication path and exact reviewId/p1 comparison. Apply/undo load the server-held plan and revalidate saved task/link/operation evidence. Exact receipt replay precedes review/current-state checks.
 
@@ -112,3 +112,19 @@ Self-validation used explain-like at beginner/intermediate/expert levels and an 
 Consensus: no requirement/scope/concurrency boundary blocker remains; narrow existing coordinator, retained publication, typed graph and owned save are appropriate. Peer review did not justify a second snapshot engine, persistence redesign, distributed fence or partial compensation. The 256-KiB event cap and retained-review/additive event decisions remain explicit design choices in the parent gate. The design has two runtime-dependent risks, each with early verification and stop/revise outcomes; no runtime proof or production promotion is implied.
 
 Next gate is design approval only, then task planning. Requirements remain approved at the exact b1d02591 checkpoint; implementation/live bookkeeping/heavy runtime commands remain held.
+
+## Design approval and task planning — 2026-10-05
+
+Assistant Sentinel_ab83d2faaf308191a6733c2b51319d28 presented retained reviews, immutable same-store history, 256-KiB saved payload cap and guarded whole undo, explicitly saying approval moves to task planning and durability/budget behavior require implementation tests. Owner Sentinel_21b7c9588ec88191b7d78732649d99a9 replied “Approved”. Parent records exact design checkpoint 7714e30121baf55f51086924269bd253dc8bfd9b and Library packet libfile_31bf6900be6481919971a2a80d72763c. Both design ADRs and the payload limit are approved.
+
+Task planning uses Starwave Tasks and Rune only. One implementation stream is required by shared coordinator/read/capture/schema/native integration and real dependency order. Heavy runtime work remains reserved to Meddy; task creation/parsing and internal document reviews do not run any implementation tests. No new human prerequisites, distributed fence, deployment or live bookkeeping task is introduced.
+
+## Task review synthesis — 2026-10-05
+
+Starwave Tasks and Rune produced twenty pending tasks in ten adjacent Red/Green pairs, all in stream 1. The first four tasks verify additive closed-store migration and the real owned group/history/receipt save before dependent integration. Tasks 7–10 verify complete evidence, shared lifecycle and full-envelope retention budgets before reviewed execution. Tasks 19–20 require real application construction and advertised registration, preventing fixture-only success or orphan components.
+
+Design-critic reviewed first, followed by independent correctness and integration peers. All three found no blockers or required changes. Root independently validated Rune parsing/table rendering, twenty unique stable IDs, all twenty-eight acceptance criteria, adjacent pairs, one stream, connected valid dependencies and no cycles. Both approved design risks map to early paired tests with stop/revise outcomes. No source implementation or runtime validation was performed; future migration, durability and budget proof remains in the implementation tasks.
+
+No new prerequisites or scope/design choices were introduced. Task approval completes planning only and does not authorize implementation or release heavy work reserved to Meddy. Live bookkeeping remains paused.
+
+Next owner gate: “Do the tasks look good?” Separate implementation authorization is still required after task approval.
