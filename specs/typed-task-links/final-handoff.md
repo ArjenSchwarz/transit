@@ -1,5 +1,7 @@
 # T-1734 local implementation handoff
 
+Historical handoff for application/test source 81f78e7. Post-PR native corrections and fresh source bbe3a25 verification are recorded separately in [pr254-native-corrections.md](pr254-native-corrections.md): 4,694 passing platform case executions and five intentional macOS skips. The original outcomes below remain unchanged evidence.
+
 All 22 approved Rune tasks are locally complete. `rune next specs/typed-task-links/tasks.md --format json` reports all tasks complete. Application/test source verified by the final platform runs is `81f78e7687029895faef4e0d914882f403962f26`; subsequent changes only record completion/evidence. Publication and main integration remain with the parent, outside this local implementation handoff.
 
 ## Final base and preservation

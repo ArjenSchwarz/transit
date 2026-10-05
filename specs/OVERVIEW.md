@@ -360,7 +360,7 @@ All 18 coding tasks are implemented and review findings are resolved. Verificati
 
 ## Typed Task Links
 
-Saved typed task relationships with guarded edits, graph-covered revisions and frozen queries. All 22 approved tasks and 39 local-scope acceptance criteria are complete. Final runs passed 3,253 macOS unit, 1,391 iOS unit and 26 iOS UI case executions; five macOS opt-in stages remain explicitly disabled. Four independent review roles found no outstanding mandatory fix. T-2402 live CloudKit verification and T-2381 consolidation remain separate work.
+Saved typed task relationships with guarded edits, graph-covered revisions and frozen queries. All 22 approved tasks and 39 local-scope acceptance criteria are complete. Final runs passed 3,265 macOS unit, 1,403 iOS unit and 26 iOS UI case executions; five macOS opt-in stages remain explicitly disabled. Four independent review roles found no outstanding mandatory fix. T-2402 live CloudKit verification and T-2381 consolidation remain separate work.
 
 - [decision_log.md](typed-task-links/decision_log.md)
 - [design-review.md](typed-task-links/design-review.md)
@@ -370,6 +370,7 @@ Saved typed task relationships with guarded edits, graph-covered revisions and f
 - [implementation.md](typed-task-links/implementation.md)
 - [isolation-integration-plan.md](typed-task-links/isolation-integration-plan.md)
 - [local-review.md](typed-task-links/local-review.md)
+- [pr254-native-corrections.md](typed-task-links/pr254-native-corrections.md)
 - [migration-next-tests.md](typed-task-links/migration-next-tests.md)
 - [prerequisites.md](typed-task-links/prerequisites.md)
 - [red-boundary-review.md](typed-task-links/red-boundary-review.md)
@@ -383,6 +384,8 @@ Saved typed task relationships with guarded edits, graph-covered revisions and f
 - [tasks.md](typed-task-links/tasks.md)
 - [verification-readiness.md](typed-task-links/verification-readiness.md)
 
+
+PR #254 native corrections at bbe3a25 passed fresh 20-case focused and full platform verification; four independent delta reviewers found no mandatory issue. See [PR correction handoff](typed-task-links/pr254-native-corrections.md).
 
 ## Structured MCP Results
 

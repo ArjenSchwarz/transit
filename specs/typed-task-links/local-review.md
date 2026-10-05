@@ -2,9 +2,9 @@
 
 ## Verdict and provenance
 
-Ready for publication review. All 22 tasks and all 39 acceptance criteria in the approved local scope are implemented; no mandatory fix remains. Application/test source is `81f78e7687029895faef4e0d914882f403962f26`, based on freshly verified `origin/main` `e04c1268ee37bd4ae925d4d686954cf2121005c7`. Review covered the full branch at cf33cb25 plus corrective deltas through 81f78e7. Later documentation commits do not change the tested application/test/Makefile content.
+Ready for publication review. All 22 tasks and all 39 acceptance criteria in the approved local scope are implemented; no mandatory fix remains. Final application/test source is `bbe3a2560584f7fb822aa8006b20f08d22284ce4`, based on freshly verified `origin/main` `e04c1268ee37bd4ae925d4d686954cf2121005c7`. Review covered the full branch at cf33cb25 plus corrective deltas through 81f78e7 and the five-file native delta at bbe3a25. Later documentation commits do not change the tested application/test/Makefile content.
 
-The pre-push-review skill supplied four independent read-only perspectives: reuse, code quality, efficiency, and specification/documentation. Root also reviewed the actual runtime failures, corrections and final native result trees. All source review was internal; no external source disclosure or publication occurred. The original worktrees, historical evidence and canonical `.kiro` remain preserved.
+The pre-push-review skill supplied four independent read-only perspectives: reuse, code quality, efficiency, and specification/documentation. Root also reviewed the actual runtime failures, corrections and final native result trees. The pre-push peer reviews were internal. The subsequent PR Pilot workflow publishes this branch diff to GitHub and its configured Claude action under owner approval. The original worktrees, historical evidence and canonical `.kiro` remain preserved.
 
 ## Findings and resolutions
 
@@ -16,7 +16,8 @@ The pre-push-review skill supplied four independent read-only perspectives: reus
 | Eight old read fixtures seeded only pending/mock values | Explicitly inserted/saved only intended read seeds; every original assertion, cursor/fetch-count check and dirty-write helper remains intact. |
 | Project shape validation could lose precedence to a storage hook | Fixed using the existing extracted selector parser before the hook, with newline normalization. Three actual handler controls assert zero hook calls and exact expected outcomes. |
 | Duplicate status catalog, unused apply parameter, repeated preparation scaffolding | Optional low-severity maintenance suggestions; current behavior agrees and cleanup is not required for this feature. |
-| Global diagnostic scans and broad native refresh notifications | Optional bounded optimization opportunities; existing deadlines/caps and freshness behavior remain intact. |
+| Global diagnostic scans | Optional bounded optimization opportunity; existing deadlines/caps remain intact. |
+| Native refresh bursts and incoming attribution/duplicate wording | Fixed at bbe3a25: invalidation precedes cancellable 100-ms notification wait; provider/publication guards preserve full saved graph freshness. Incoming labels are Introduces / Duplicated by; association and unknown raw kinds retain their meaning. |
 
 The initial full macOS run's 14 failures and all compile/invocation-only attempts remain preserved. Focused corrective verification passed 170 cases before the final full runs. No test expectation, capacity cap, retry guarantee or unsaved-data policy was relaxed.
 
@@ -24,20 +25,20 @@ The initial full macOS run's 14 failures and all compile/invocation-only attempt
 
 | Platform | Expanded case executions | Native declarations | Outcome |
 | --- | --- | --- | --- |
-| macOS units | 3,253 passed; five intentional skips | 2,527 passed; five skipped | build/run 0; no timeout; host drained |
-| iOS units | 1,391 passed | 1,323 passed | build/run 0; no timeout; host drained |
+| macOS units | 3,265 passed; five intentional skips | 2,530 passed; five skipped | build/run 0; no timeout; host drained |
+| iOS units | 1,403 passed | 1,326 passed | build/run 0; no timeout; host drained |
 | iOS UI | 26 passed | 23 passed | unchanged signed products; run 0; no timeout; all hosts drained |
 
-Aggregate: 4,670 passing case executions across final platform runs, zero failures. Runtime warning arrays are empty. Root independently parsed summary/tree leaf outcomes and exit/drain records. Full lint passed 649 files with zero violations; ownership, create-schema, development configuration and final registration guards passed. Build warnings are pre-existing and retained in the handoff.
+Aggregate: 4,694 passing case executions across final platform runs at bbe3a25, zero failures. Runtime warning arrays are empty. Root independently parsed summary/tree leaf outcomes and exit/drain records. Full lint passed 652 files with zero violations; ownership, create-schema, development configuration and final registration guards passed. Build warnings are pre-existing and retained in the handoff.
 
-The five macOS skips are the two opt-in primitive diagnostics, process-separated closed-store stage, development schema precheck and outside-writer observation. Their earlier targeted evidence or explicit deferral remains separately recorded. The final UI run recovered four first-attempt census timeouts with bounded diagnostic retries, retaining the original absolute deadline, ownership checks and fail-closed non-timeout errors. All owned simulators were shut down/deleted. See [final-handoff.md](final-handoff.md) for exact artifact roots, pins and counts.
+The five macOS skips are the two opt-in primitive diagnostics, process-separated closed-store stage, development schema precheck and outside-writer observation. Their earlier targeted evidence or explicit deferral remains separately recorded. The current final iOS run recovered two first-attempt census timeouts with bounded diagnostic retries, retaining the original absolute deadline, ownership checks and fail-closed non-timeout errors. All owned simulators were shut down/deleted. See [pr254-native-corrections.md](pr254-native-corrections.md) for current artifact roots, pins and counts; [final-handoff.md](final-handoff.md) preserves the earlier source separately.
 
 Generic JUnit/coverage data is unavailable: the review ecosystem only detects SwiftPM through a root Package.swift, while this is an Xcode project. No unrelated SwiftPM recipe was executed and no coverage or JUnit was fabricated. Actual native xcresult evidence establishes the platform outcomes above.
 
 ## Final critic questions — closed
 
 1. Is published caller guidance accurate? Yes: `mutate_tasks` is the batch tool; link directives remain standalone-only and batches reject them before item/key acceptance.
-2. Are final gates evidenced at the actual source? Yes: final builds, focused compatibility, lint/guards, full macOS, iOS units and iOS UI passed at 81f78e7; later changes are documentation only.
+2. Are final gates evidenced at the actual source? Yes: the original focused compatibility checks passed at 81f78e7, and fresh native focused/build/lint/guard/full-platform checks passed at bbe3a25; later changes are documentation only.
 3. Are concurrency and native observation claims truthful? Yes: participating owned local saving is implemented; independent containers/imports can race. Native saved value projection/cancellation is distinct from a fenced retained MCP capture. There is no certified inter-fetch native coherence claim or global CloudKit atomicity claim.
 4. Are deferred product boundaries preserved? Yes: live CloudKit verification remains T-2402 and consolidation remains T-2381. Installed-client activation/production promotion is not performed by this local implementation.
 
@@ -79,7 +80,7 @@ The independent specification review mapped all 39 criteria to production symbol
 | 6.4 | Frozen retained graph and fixed selected membership; cross-project closure excluded from selectable scope/totals; reusable rejection and retained byte/index accounting fixtures | Implemented |
 | 6.5 | Original operation deadline threaded through graph/capture/body picker/filter/encoding; repeated-identity stop; deadline/capacity/publication and existing read-service limit tests | Implemented; final platform checks passed |
 | 6.6 | Original retained metadata and modern frozen payload parity; no guessed navigation URLs; modern actual cursor test | Implemented |
-| 7.1 | Saved native DTO, TaskLinksSection in existing native detail patterns; source/endpoint draft exclusion and actual UI diagnostic fixtures | Implemented |
+| 7.1 | Saved native DTO, TaskLinksSection and source-relative TaskLinkNativeLabels in existing native detail patterns; source/endpoint draft exclusion and actual UI diagnostic fixtures | Implemented |
 | 7.2 | Saved unique destination at click and TaskDetailWindowView resolver; nil for missing/ambiguous/unsaved/pending-delete; actual iOS UUID navigation UI test | Implemented |
 | 7.3 | Existing field/status/comment paths use new current coverage; batch parser removes/rejects link fields before keys; real foundation batch/portfolio integration | Implemented |
 | 7.4 | Write/result contracts and input schema describe normalizations/guards/no-op/expiry/coverage/history/local boundary | Implemented; tool-name correction verified |
@@ -91,3 +92,9 @@ The independent specification review mapped all 39 criteria to production symbol
 ## Local review artifact
 
 The standard review renderer generated the complete branch diff and blast-radius artifact from landed base e04. `pulsar publish` validated its metadata and archived the HTML locally at `/Users/arjen/CodeReviews/2026-10/2026-10-05-github-transit-branch-t-1734-typed-task-links-final.html` (exit 0). This operation moved a local file; it did not push source, publish a PR or contact an external reviewer. Review inputs and four peer reports remain at `/tmp/t1734-final-review.qjczlb7m`.
+
+## PR #254 corrective review and verification
+
+Configured Claude reviews posted at remote heads 452e3d3 and 0714ce01; both explicitly disclosed limited inspection and no independent execution. Root validated every suggestion through the PR Review Fixer overview comments. The second review's merge recommendations led to the native five-file correction at bbe3a25. All four internal reviewers independently inspected that exact delta with no mandatory finding; prior native assertions remain unchanged. Ten label contracts and two burst/cancelled-start controls join the existing eight focused native cases, all 20 passing. Complete macOS, iOS unit and iOS UI suites were rerun at the revised source; root independently parsed trees, exit and cleanup records into `/tmp/t1734-final-review.qjczlb7m/root-audit-bbe3a25.json`.
+
+CLAUDE.md's directory map and the CHANGELOG's MCP-only authoring statement are corrected. The entity count was already eight; all schema registrations remain verified. Literal centralisation, encoder reuse, narrower/off-actor pure-value projection and display polish are optional follow-ups, without relaxing full graph closure or unknown-kind diagnostics. Production CloudKit promotion remains blocked on T-2402's deferred live verification; this PR workflow authorises repository merge only. There are no live task-record, CloudKit or client-setting changes.
