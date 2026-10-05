@@ -1,97 +1,68 @@
-# T-2381 — Safe task consolidation: initial scope assessment
+# T-2381 — Safe task consolidation: scope and name gate
 
-Status: **proposed; awaiting scope and name approval**. This is the initial routing and ownership review, not approved requirements, design, tasks, or implementation. All approval questions go through the parent conversation.
+Status: **proposed; awaiting scope, route and name approval**. Requirements, design, tasks and implementation have not begun. Approval requests go through the parent conversation; live MCP mutations remain paused.
 
-## Recommendation and approval requested
+## Recommendation
 
-Use the **full spec workflow**, named **`safe-task-consolidation`**, for explicit duplicate relationships and a caller-reviewed preview/apply/undo workflow. A caller chooses semantic equivalence and the survivor. Transit preserves original tasks and history, exposes canonical linkage, and refuses unsafe or unverifiable changes.
+Use the **full spec workflow**, named **`safe-task-consolidation`**, for an explicit, bounded consolidation group with saved-only **preview → apply → undo preview → undo**. The caller chooses semantic equivalence and a canonical survivor. Transit preserves originals and their history, makes preservation and status choices visible, and refuses stale or unverifiable changes.
 
-Approve this scope, the full-spec route, the name, and the proposed ownership boundary with T-1734 before requirements begin. Product choices below are recommendations for requirements discussion, not implied approvals. Requirements, design, and tasks each require their own explicit approval. Implementation waits for those gates, separate implementation authorization, and compatible merged foundations.
+T-1734 already supplies `duplicate-of`, the common relationship store, graph validation, exact repair and canonical-chain resolution. **T-2381 owns the consolidation operation, its preservation plan, durable provenance and guarded reversal.** It does not introduce another relationship store or a persistence redesign.
 
-## Verified inputs and isolated checkout
+This gate approves requirements work only. Product defaults below are proposals to settle during requirements, not silently approved requirements. Requirements, design, tasks and implementation each retain their own approval gate.
 
-- Canonical checkout: `/Users/arjen/projects/personal/transit`, on `main`. Local `main`, `origin/main`, and a live `git ls-remote origin refs/heads/main` all matched **`201205bd4e786c7f152d8f99006b37da7da888c7`** on 2026-10-03. This includes T-2379 bounded/full-detail queries and T-2380 retry-safe writes. The live lookup succeeded with per-command escalation after sandbox DNS failed.
-- Dedicated checkout: `/Users/arjen/Documents/Codex/2026-10-03/task-6/transit`, branch **`T-2381/safe-task-consolidation`**, created from that explicit SHA. The name is provisional until this gate. Canonical `main` and its untracked `.kiro/` are untouched; no existing worktree was removed or changed.
-- Read local Transit router, Starwave creating-spec/requirements/design/tasks skills, repository `CLAUDE.md`, SwiftData/JSON rules, `docs/mcp-write-contract.md`, and approved foundation contracts/ownership handoffs. These are inputs; their worktrees are not edited.
-- Fetched live full T-2381, T-1734, T-63, T-2382, T-2383, T-2384, T-649, T-1732, T-1733, T-2379, and T-2380, including comments and revisions. T-2381 and T-1734 are both **Idea**, with no comments or approved implementation. No ticket has been mutated by this work.
-- T-2381 revision: `r1:ebd80bc9a55f82f56175f5723ad2b611ac196920bb616e41124e990b7d827a21`; T-1734 revision: `r1:452d046508550ff12315735ba31cde3115827e1bcf9561a747fccbab23d249c4`. Re-read before any later authorized workflow transition.
+## Verified ticket and planning state
 
-The connected endpoint exposes the current query tool schema, which has fewer selectors than the verified repository's T-2379 contract. Live reads establish ticket content; they do not prove that the running app or client schema has adopted the merged sources. Refresh tool discovery and verify the actual endpoint before implementation acceptance.
+- Actual ticket: **T-2381 — “Add explicit duplicate links and safe task consolidation”**, Transit / Feature / Medium, UUID `F5CED508-F7C5-4AC0-B804-8945DF9B9B65`.
+- A freshly advertised `query_tasks` schema and one cached, full saved read with comments verified the ticket at `2026-10-05T07:24:38.542Z`. It is Idea, has no comments, and retains revision `r1:ebd80bc9a55f82f56175f5723ad2b611ac196920bb616e41124e990b7d827a21`. Read freshness is unknown and import waiting was not requested; this is local saved evidence, not a claim about remote convergence. No task record was mutated.
+- The source description motivates a **Prism cleanup**, where Abandoned status and prose comments carried duplicate mappings manually. Its acceptance calls for a six-ticket review before apply, no unique detail silently discarded, original history retained, explicit canonical readback, clear reasons/undo, and safe invalid/conflict outcomes. It explicitly builds on T-1734 and distinguishes T-649 task copying. This ticket is not a catch-all for unrelated duplicate-record incidents.
+- The preserved initial scope at `bf4f40a9b758a6d4c71b4aadccb4409ff20538aa` says approval pending. T-1734's decision record verifies that the owner deferred T-2381 behind the relationship foundation; its scope/requirements approvals apply to T-1734, not this consolidation feature. The current instruction to resume spec work is not evidence of approval of unseen T-2381 documents.
+- Freshly fetched `origin/main` is **`169ac244a11ebfbdacce3d4a25fcddfe395ac6d2`**, the verified T-1734 PR #254 squash merge. T-63/T-2382/T-2383/T-2384 are also in this base. Planning branch **`T-2381/safe-task-consolidation-spec`** uses that explicit base in `/Users/arjen/Documents/Codex/2026-10-03/task-6/transit`; the original `T-2381/safe-task-consolidation` branch remains at bf4f40a9. Other worktrees, canonical main and canonical `.kiro` are preserved.
+- Read local Starwave scope/requirements guidance, repository `CLAUDE.md` and SwiftData/JSON rules, the merged typed-link requirements/ADR 4 and MCP write/read/result/batch contracts. No builds, tests, lint, review CLI, settings changes, deployment or implementation are part of this planning turn.
 
-## Why this needs a full spec
+## Why full spec
 
-All three routing triggers fire:
+Three triggers remain: survivor/content/status/undo choices are user-owned; the operation adds a public MCP contract and durable provenance; and an all-or-none local group differs materially from generic ordered per-item batches. A source revert cannot safely undo stored consolidation effects. The merged relationship foundation settles the common graph architecture, so the full spec should resolve only consolidation decisions.
 
-1. **User-owned behavior:** choosing a survivor, preserving unique detail, closing duplicates, cross-project handling, later edits and undo have several materially different acceptable behaviors. Code does not choose them.
-2. **Persisted and public contracts:** typed relationships, canonical resolution, revision coverage, consolidation provenance and recovery evidence affect SwiftData/CloudKit data and MCP consumers. A source revert alone cannot erase the resulting stored links or safely reverse applied consolidations.
-3. **Central architectural tradeoff:** an atomic local group transaction versus a resumable sequence has different failure, undo and receipt boundaries. T-2384's existing contract settles only its generic per-item batch semantics.
+## Included behavior
 
-The user also expressly requests the full gated process. Existing code has no `duplicateOf` or typed task-link model. `TransitTask` stores task fields, assignments and comments; generic metadata is not an approved substitute for a relationship contract. Existing UUID lookup in `TaskService.findByID` takes the first match, so it cannot certify an unambiguous survivor. Existing `restore` moves an abandoned task to Idea; that does not restore a consolidation's prior state.
+1. **Explicit selection.** Supply survivor and candidate UUIDs with a caller's reason. Search/full-detail reads can help review candidates, but the caller decides equivalence. Title similarity does not select a survivor or apply changes.
+2. **Saved-only preview.** Show selected originals, covered revisions, direct/canonical mappings, exact proposed task/status/link changes and each preservation disposition. Exclude pending inserts/edits/deletions. Missing comments or unreadable/ambiguous evidence are errors, not empty history. Preview reserves no retry key and changes no domain record, receipt, guard, timestamp or allocation.
+3. **Preservation.** Original UUIDs, original descriptions/metadata, comments with original authors/dates, and project/milestone associations remain inspectable. Caller-authored survivor edits explicitly account for transferred detail; remaining detail stays visibly attached to linked originals. Transit does not synthesise semantic summaries, move original comments or silently resolve conflicting fields.
+4. **Protected application.** Revalidate the reviewed proposal, uniquely resolved originals and all affected saved task/link evidence. Preserve the existing dirty-context, exact-key replay, conflict and uncertain-outcome rules. The proposed group commits task/link changes, consolidation provenance and its terminal result together in the originating local store through the existing participating writer boundary.
+5. **Explicit readback.** Return original-to-survivor mappings, actual saved changes, reason, operation identity and undo availability. Ordinary writes continue to address the selected original UUID. Retained snapshots and earlier receipts keep their original bytes and meanings; new reads reflect the new saved statuses/links.
+6. **Guarded reversal.** Preview reversal against the applied operation's recorded evidence. Reverse only attributable effects that still match, preserve the original operation/history and record the reversal. A conflict rejects the whole proposed undo without overwriting later edits. Undo does not erase originals, receipts or durable retry guards, or use the existing abandoned-to-Idea shortcut.
 
-## T-1734 overlap and proposed ownership
+Initial surface: MCP-first operation and structured readback, plus the read-only native reason/history presentation needed to understand consolidation alongside existing relationship navigation. Native consolidation editing, App Intent parity, unsupported navigation URLs, copying, semantic matching and regression/workflow features stay outside this proposal.
 
-T-2381 explicitly says to build on T-1734 and says that T-1734 owns relationship infrastructure. T-1734 presently requests `blocks`/`blocked-by`, `relates-to`, and `introduced-by`, link-aware create/update/detail queries and filters, and exclusion of tasks whose blockers are unfinished. It does not currently request `duplicateOf`, consolidation, or undo.
+## Practical starting defaults for requirements
 
-| Owner | Proposed responsibility |
+| Product choice | Recommendation to discuss |
 | --- | --- |
-| T-1734 | One reusable typed-link representation and identity rules; generic relationship service, persistence/schema integration and read/write/filter plumbing; dependency and attribution behavior already requested by that ticket. |
-| T-2381 | Duplicate-specific constraints and canonical resolution; explicit survivor/duplicate selection; preservation plan; preview, application, audit/provenance, readback and safe undo/recovery. It adds the duplicate type through the agreed T-1734 extension point. |
-| T-1732 / T-1733 | Regression classification, non-task PR attribution fallback, workflow/eval adoption. No regression tracking or skill changes in T-2381. |
-| T-649 | Copying a task from its detail sheet. No task-copy feature in T-2381. |
+| Group size and scope | One survivor plus up to five candidates, six total, in one project initially. Confirm whether six is the intended initial ceiling or only an acceptance example; do not invent unlimited groups. Keep project/milestone assignments unchanged. |
+| Survivor and existing chains | Choose a uniquely resolved terminal canonical survivor. Preserve existing incoming links/chains; no automatic flattening or unrelated retargeting. Reject a candidate resolving to a different canonical target until the caller separately reviews/repairs that link through T-1734. |
+| Closure | Preview an explicit move of unfinished duplicates to Abandoned; keep already Done/Abandoned statuses and survivor status unchanged by default. Confirm terminal-candidate participation and any optional survivor status edit in requirements. |
+| Detail handling | Caller-provided survivor field edits with explicit source accounting; originals/comments stay in place. Preserve conflicts for caller decisions rather than choose longest text or last writer. |
+| Commit boundary | One locally all-or-none group using the existing coordinator/owned save. Do not emulate it with `mutate_tasks` or post-commit compensating rollback. If this cannot meet the approved scope, reopen the relevant requirement before implementation. |
+| Undo | Whole operation, conservatively rejected after covered edits to changed records. No selective/force-undo engine initially. Keep operation evidence with history; settle any undo time window explicitly. Seven-day receipt/removal-evidence retention does not itself define undo availability. |
 
-**Recommendation:** retain two tickets and two owned implementations. T-2381 depends on a reviewed, merged T-1734 contract and compatible relationship infrastructure. Request an explicit parent decision to start/spec T-1734 separately or approve an expressly bounded foundation split; do not silently absorb its dependency filters, regression attribution, or general link editor into T-2381. T-2381 spec work can proceed on declared interfaces after scope approval, with design blocked where that contract is unresolved. If the owner chooses a joint delivery, record ownership and gated scope changes for both tickets before implementation; never build two relationship stores.
+The scope/name gate does not require every default to be chosen now. After it is approved, requirements should ask the few material product questions together and turn answers into observable acceptance criteria.
 
-## Proposed consolidation boundary
+## Foundation boundaries
 
-1. **Explicit semantic decision.** The caller supplies a survivor and duplicate candidates by stable UUID. Existing text search/full-detail queries support reviewing candidates. Title similarity may suggest candidates but never changes records, chooses a survivor or declares equivalence. A new similarity engine is not required by the initial scope.
-2. **Saved-only review.** Preview describes the actual saved originals, their revisions, proposed canonical mappings, changed fields/statuses, preservation dispositions and reason. Unsaved inserts, edits and deletions are not returned or saved as review evidence. Storage/comment failures are explicit unavailable/error outcomes, never empty history. Preview has no domain, receipt, guard, timestamp or allocation effect.
-3. **Preserve originals and unique details.** Keep original UUIDs, descriptions, metadata, comments and source associations available. The plan identifies how each unique actionable detail reaches the survivor or remains explicitly linked and visible. Conflicting field values require caller decisions; no automatic last-writer, longest-description or title-only merge. Do not move historical comments in a way that loses original ownership, authorship or dates.
-4. **Explicit canonical semantics.** Readback returns direct duplicate linkage plus resolvable canonical identity. Reject self-links, cycles, missing/ambiguous targets and invalid terminal resolutions; imported corrupt/dangling graphs return diagnostics without inventing a canonical task. Decide chain flattening, relinking and incoming-edge behavior in requirements. Duplicate relationships do not silently turn arbitrary writes to an original task into writes to its survivor.
-5. **Protected application.** Revalidate locally saved identities, every relevant task/link precondition and the exact reviewed preservation proposal before new effects. Dirty shared-context state must never be flushed or rolled back incidentally. Preserve T-2380 retry/reconciliation guarantees. Responses distinguish commitment, rejection, in-progress and uncertainty, with saved mappings and recovery evidence.
-6. **Safe undo.** Preview the reversal, reference the original operation/provenance, and check current covered state. Restore only attributable effects that remain safe to reverse; reject conflicts rather than overwrite intervening edits. Undo is not permanent deletion, receipt erasure, a new-key retry of an uncertain effect, or the existing abandoned-to-Idea shortcut. Preserve original history and the explanation of consolidation/reversal.
-7. **Motivating acceptance scenario.** Six tickets can be reviewed together before any apply; all unique detail is accounted for; original records remain inspectable; readback exposes mappings directly; failures and later edits have defined outcomes; a safe reversal is reviewable. The six-ticket example does not yet settle the maximum supported group size.
+- **T-1734:** reuse its single typed occurrence/removal model, physical multiplicity/UUID ambiguity diagnostics, maximum 50 standalone link directives, exact occurrence fingerprints, current incidence-covered revisions and canonical resolution. A duplicate link alone never consolidates content or closes a task.
+- **T-2380 / shared write coordinator:** maintain local store/tool/key/payload scope, source/affected endpoint guards, complete comment-covered revisions, read-only historical replay and original-key reconciliation after uncertainty. Dirty UI state must not be returned, saved or rolled back incidentally.
+- **Participating guarantee:** coordinated MCP writers cannot interleave the synchronous final phase. Independent containers, App Intents/native paths outside that phase and imports may race; available saved faults are reported without reminting the original result or promising global CloudKit atomicity. Consolidation does not restart an all-writer persistence project.
+- **T-2384:** `mutate_tasks` is ordered per-item work, stops after an unsuccessful item and provides no group transaction or durable batch receipt. It rejects link directives. A dedicated consolidation operation must define its own bounded group/result contract while reusing protected infrastructure.
+- **T-63/T-2382/T-2383:** reuse saved capture, frozen evidence, original read/retention budgets, modern protocol and structured/text result parity. Classify and bound the new preview/history surface during requirements/design; do not assume it automatically inherits a covered-read budget or build a second snapshot engine.
 
-Initial surface recommendation: MCP-first workflow and structured readback, with only the native presentation needed to make linkage/original history understandable. A full native consolidation editor, App Intent parity and new navigation URLs need explicit scope approval; T-2383 correctly reports unavailable links until a supported URL feature exists.
+Merged code does not establish installed endpoint/client readiness or live CloudKit verification. Those existing release prerequisites remain separately owned. No T-2401/T-2402 investigation is started or expanded by this spec.
 
-## Foundation contracts and merge prerequisites
+## Risks to resolve in the gated documents
 
-| Foundation | Contract T-2381 must respect | Prerequisite |
-| --- | --- | --- |
-| T-2379 / T-2380, merged in base | Full comment-covered task revisions; saved receipt replay for seven days; local-store/tool key scope; uncertain outcomes require reconciliation. Revisions are content tokens, not monotonic versions. | Re-audit relationship/provenance revision coverage and historic receipt compatibility after schema changes. No claim of CloudKit-wide atomicity, cross-device deduplication or remote freshness. |
-| T-63 | Saved-only immutable local capture, five-second covered-read deadline, eight physical read permits, explicit import/freshness evidence, frozen pagination and coordinated publication. | Wait for compatible merged capture/handler foundation. New consolidation preview needs an explicit deadline/classification decision; it does not automatically become a T-63 covered read. T-63 currently owns common read/server/types. |
-| T-2382 | Reusable captured views and project summaries; status counts reconcile with snapshot queries and retain originals/identity diagnostics. | Consume its merged types rather than duplicate snapshots. Adding links does not imply new summary counts or retroactively alter retained captures. New captures reflect approved status effects. |
-| T-2383 | Latest-only MCP `2026-07-28`, one RPC request per POST, structured/text semantic parity, frozen historical receipt presentation. | Wait for modern adapter handoff and verified client readiness; no legacy adapter fork or guessed navigation links. |
-| T-2384 | `mutate_tasks`: 1–50 UUID-only distinct targets, supported update/status/comment operations, advisory dry run, ordered per-item commits, stop on first unsuccessful item, no whole-batch rollback or durable batch key. | Wait for merged write-coordinator changes and parent ownership transfer. T-2384 owns that coordinator now. Generic batches cannot currently create typed links or atomically update survivor plus duplicates. |
-| T-1734 | Proposed typed-link foundation above; still Idea, no approved contract found in this base. | Explicit owner decision and separately approved/merged foundation or authorized split, plus compatible persisted-schema migration and CloudKit release prerequisites. |
-
-Implementation starts only after relevant foundations are merged, the ticket branch is aligned with the newly verified base, conflicts and schema/revision effects are re-reviewed, live discovery is refreshed, and this ticket's own gates and implementation authorization are complete. A types-only scaffold or other ticket's component test is not delivery evidence. Do not change their approved specs to accommodate this ticket.
-
-## Decisions to resolve in requirements
-
-| Decision | Recommended starting point |
-| --- | --- |
-| Relationship ownership | Separate T-1734 foundation; T-2381 owns duplicate extension/workflow. Confirm sequencing now. |
-| Duplicate status | Explicit reviewed move to Abandoned, with duplicate reason/link visible and survivor status unchanged unless requested. Decide whether Done/Abandoned candidates may be consolidated. |
-| Field/detail preservation | Caller-provided survivor edits plus a disposition for each source detail/conflict; originals retained. Do not auto-synthesize or claim semantic preservation from a diff alone. |
-| Cross-project/milestone groups | Same-project initial scope; do not move originals or invent a valid milestone assignment. Cross-project equivalence needs an explicit decision. |
-| Commit boundary | Prefer one locally atomic consolidation group if durability/schema feasibility supports it; otherwise reopen the requirement and specify resumable partial progress before implementation. No whole-cloud guarantee. |
-| Chains and relinking | Resolve a chosen target to an unambiguous canonical survivor; preview chain effects; reject cycles and unsafe implicit rewrites. Settle flattening and later survivor consolidation explicitly. |
-| Undo conflicts/retention | Conflict-checked reversal of attributable changes with preserved audit history; decide group versus item undo, later added comments/links, provenance lifetime and relationship repair rights. Seven-day retry receipt expiry must not silently define undo availability. |
-| Surfaces/limits | MCP-first, six-ticket acceptance fixture, bounded group size to decide; settle minimal native linkage/history presentation and whether standalone duplicate linking is needed. |
-
-## Principal risks and verification direction
-
-- **Lost actionable detail:** require explicit source accounting and tests with conflicting descriptions, metadata, comments, assignments and statuses. Originals must survive every failure and undo.
-- **Schema/sync graph corruption:** verify additive SwiftData/CloudKit-safe link/provenance storage, duplicate UUID/display-ID collisions, dangling links, cycles, delayed imports and concurrent canonical changes. Fail closed locally without promising distributed locks.
-- **Stale preview or unsafe undo:** verify source/survivor/link preconditions, comment-covered revisions, later local/imported edits and unsaved UI drafts. A retained snapshot is review evidence, not authority to apply stale state.
-- **Partial commitment and retry expiry:** verify crash/save/result-encoding failure boundaries, exact-key replay, uncertain acceptance and replay after later edits. Never clear guards or permanently delete originals to recover.
-- **Historic compatibility:** adding revision-covered fields cannot invalidate the meaning of frozen pages or saved receipt payloads. Design must define version/projection behavior without rewriting old receipts.
-- **Scope collision:** keep general dependency/regression features in their owners, schema foundation singular, and shared-file changes coordinated after merges.
-
-No heavy build/test, settings change, deployment, push, PR/main merge or implementation has occurred. Local spec commits are authorized. After scope/name approval, transition T-2381 to Spec using a fresh live revision and an approval comment, then draft and review requirements. The local peer-review-validator instructions provide internal independent peer fallback when external agents are unavailable; future gated reviews will use that documented fallback without disclosing source to unapproved external systems.
+The requirements must make preservation review observable without pretending to judge semantic equivalence; define status, group and undo choices; and distinguish no-effect rejection, committed, active and uncertain outcomes. Design must account for additive same-store provenance, stale preview/undo, physical UUID collisions, missing/cyclic chains, encoding/save/crash failures, exact replay and historic compatibility. It must retain outside-writer/import qualifications and original data through failures and reversals. These are future design/verification topics, not permission for a build, fixture or persistence investigation now.
 
 ## Exact next gate for the parent
 
-**“Approve the full-spec scope and name `safe-task-consolidation`, with T-1734 owning the typed-link foundation and T-2381 owning duplicate semantics plus preview/apply/undo? Should T-1734 be spec'd separately first, or should we propose an explicitly bounded foundation split for approval?”**
+**Approve the full-spec route and name `safe-task-consolidation`, with T-1734 owning the merged duplicate-link/canonical foundation and T-2381 owning bounded caller-reviewed preservation, preview/apply/undo and durable operation history?**
 
-This gate authorizes requirements work only. Requirements approval, design approval, task approval and implementation authorization remain separate.
+Approval starts requirements discussion and drafting only. No T-2381 scope approval was found to reuse. Live ticket bookkeeping stays local while the MCP mutation pause is in force; no automatic status transition is performed even after this gate.
