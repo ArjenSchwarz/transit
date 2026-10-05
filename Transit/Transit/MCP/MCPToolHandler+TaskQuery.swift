@@ -1,5 +1,6 @@
 #if os(macOS)
 import Foundation
+import SwiftData
 
 extension MCPToolHandler {
     func handleQueryTasks(_ args: [String: Any]) -> MCPToolResult {
