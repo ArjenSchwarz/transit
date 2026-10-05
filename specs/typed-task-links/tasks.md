@@ -69,7 +69,7 @@ metadata:
   - Requirements: [2.4](requirements.md#2.4), [5.4](requirements.md#5.4), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [6.5](requirements.md#6.5), [6.6](requirements.md#6.6), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 8. Green: implement bounded saved capture and graph-closure capacity <!-- id:ev1ktl3 -->
+- [x] 8. Green: implement bounded saved capture and graph-closure capacity <!-- id:ev1ktl3 -->
   - Extend T-63 CapturedReadView/ReadTask/MCPReadCaptureBuilder DTOs, fence and prepared capture path with occurrence/removal-evidence/endpoint closure. Use fresh autosave-disabled saved contexts and immutable Sendable values; no @Model return from child tasks.
   - Gate downstream capture/query work on passing bounded capacity fixtures. On excess return existing typed failure and optimize within budgets; no larger cap/partial unblocked result. Freeze graph/evaluation time and charge all retained evidence/index/result bytes; defer current task revision wiring to the next pair, never falsely mark absent evidence empty.
   - Blocked-by: ev1ktl2 (Red: test bounded saved capture and graph-closure capacity), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment)
@@ -77,7 +77,7 @@ metadata:
   - Requirements: [2.4](requirements.md#2.4), [5.4](requirements.md#5.4), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [6.5](requirements.md#6.5), [6.6](requirements.md#6.6), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 9. Red: test graph-covered current task revision and historic result compatibility <!-- id:ev1ktl4 -->
+- [-] 9. Red: test graph-covered current task revision and historic result compatibility <!-- id:ev1ktl4 -->
   - Add TaskLinkRevisionTests covering explicit empty incidence transition, incoming endpoint tokens, physical multiplicity/raw corrupt tuples, changed labels/status/evidence expiry exclusion and hidden link/comment bodies.
   - Exercise every MCPRecordSnapshot.task callsite: ordinary/full/reusable detail, create/update/status/add_comment and probes. Old tokens must conflict on fresh task status/property edits even no-link tasks; exact historic receipt replay stays byte-identical before current lookup.
   - Blocked-by: ev1ktl3 (Green: implement bounded saved capture and graph-closure capacity), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment)
