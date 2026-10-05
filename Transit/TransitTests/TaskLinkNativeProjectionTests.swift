@@ -15,7 +15,7 @@ struct TaskLinkNativeProjectionTests {
         #expect(fixture.owner.context.hasChanges)
     }
 
-    @Test(arguments: ["missing", "ambiguous", "unsaved"])
+    @Test(arguments: ["missing", "ambiguous", "unsaved", "pending-delete"])
     func navigationRequiresExactlyOneSavedDestination(fault: String) throws {
         let fixture = try Fixture()
         let id: UUID
@@ -28,6 +28,9 @@ struct TaskLinkNativeProjectionTests {
             duplicate.id = id
             fixture.owner.context.insert(duplicate)
             try fixture.owner.context.save()
+        case "pending-delete":
+            id = fixture.target.id
+            fixture.owner.context.delete(fixture.target)
         default:
             let pending = TransitTask(name: "not saved", type: .feature, project: fixture.project,
                                       displayID: .permanent(3))

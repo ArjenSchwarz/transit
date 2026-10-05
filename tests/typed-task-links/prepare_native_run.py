@@ -31,7 +31,7 @@ def main():
                *[f"-only-testing:TransitTests/{suite}" for suite in suites],
                "-resultBundlePath", str(result)]
     evidence = dict(host=str(host), bundleID=info["CFBundleIdentifier"], entitlements=entitlements,
-                    sourceXctestrun=str(source), suites=suites, expectedExpandedCases=7,
+                    sourceXctestrun=str(source), suites=suites, expectedExpandedCases=8,
                     expectedSkips=0, launched=False, outsideWriterExclusion=False,
                     primitiveDiagnosticsExcluded=True, derivedXctestrun=str(derived),
                     resultBundlePath=str(result), expectedCommand=command)

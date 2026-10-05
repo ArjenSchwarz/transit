@@ -162,7 +162,7 @@ metadata:
   - Requirements: [1.3](requirements.md#1.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [6.4](requirements.md#6.4), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 19. Red: test saved native relationship visibility and unique navigation <!-- id:ev1ktle -->
+- [x] 19. Red: test saved native relationship visibility and unique navigation <!-- id:ev1ktle -->
   - Write TaskLinkNativeProjectionTests and focused automated UI/navigation tests for saved endpoint labels under unsaved drafts, unsaved source unavailable, missing/colliding destination UUIDs, saved import refresh and cancellation of stale task/generation completions.
   - Assert no first-match navigation at click or TaskDetailWindowView resolution; read-only incident direction/canonical diagnostics use the existing iOS/macOS detail patterns.
   - Blocked-by: ev1ktld (Green: implement seven-day repair evidence expiry and clean maintenance), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment), ev1ktl3 (Green: implement bounded saved capture and graph-closure capacity)
@@ -170,7 +170,7 @@ metadata:
   - Requirements: [1.2](requirements.md#1.2), [1.5](requirements.md#1.5), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [5.3](requirements.md#5.3), [6.3](requirements.md#6.3), [7.1](requirements.md#7.1), [7.2](requirements.md#7.2), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 20. Green: implement saved native relationship visibility and unique navigation <!-- id:ev1ktlf -->
+- [-] 20. Green: implement saved native relationship visibility and unique navigation <!-- id:ev1ktlf -->
   - Wire TaskLinkService.savedDetail and Views/TaskDetail/TaskLinksSection into TaskDetailView Form/LiquidGlassSection, using saved value DTOs and existing exact UUID window/iOS detail navigation.
   - Revalidate unique saved destination at selection and macOS window resolver; unresolved targets remain diagnostics. Cancel stale refresh output; no link editor, merge/closure/undo, guessed URLs or App Intent parity.
   - Blocked-by: ev1ktle (Red: test saved native relationship visibility and unique navigation), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment), ev1ktl3 (Green: implement bounded saved capture and graph-closure capacity)
