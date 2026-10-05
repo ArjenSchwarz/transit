@@ -21,6 +21,38 @@ struct TaskLinkRevisionTests {
         #expect(current.record["graphCoverage"] as? String == "available")
     }
 
+    @Test(arguments: ["update_task", "update_task_status"])
+    func preFeatureTokenIsRejectedWithoutChangingNoLinkTask(tool: String) async throws {
+        let fixture = try TaskLinkCommitDiskFixture()
+        fixture.owner.context.delete(fixture.edge)
+        try fixture.owner.context.save()
+        let snapshot = try MCPRecordSnapshot.task(fixture.source, in: fixture.owner.context)
+        let legacy = try MCPRecordRevision.token(entity: "task", fields: snapshot.coveredFields.filter {
+            $0.key != "linkContract" && $0.key != "incidentLinks"
+        })
+        var arguments: [String: Any] = ["taskId": fixture.source.id.uuidString,
+                                      "expectedRevision": legacy, "idempotencyKey": "legacy-" + tool]
+        if tool == "update_task" { arguments["name"] = "must not save" }
+        else { arguments["status"] = "abandoned" }
+        let coordinator = fixture.coordinator(save: { context, _ in try context.save() })
+        let result = try fixture.decode(await coordinator.execute(tool: tool, arguments: arguments))
+        #expect(result["outcome"] as? String == "rejected")
+        let error = try #require(result["error"] as? [String: Any])
+        #expect(error["code"] as? String == "REVISION_CONFLICT")
+        let current = try #require(result["currentRecord"] as? [String: Any])
+        #expect(current["revisionCoverage"] as? String == "task-fields-comments-links-v1")
+        let observer = try fixture.observer()
+        let saved = try fixture.task(fixture.source.id, in: observer.context)
+        #expect(saved.name == "source" && saved.statusRawValue == fixture.source.statusRawValue)
+    }
+
+    @Test func legacyCommentOnlyOverloadReportsMissingGraphCoverage() throws {
+        let fixture = try TaskLinkCommitDiskFixture()
+        let snapshot = try MCPRecordSnapshot.task(fixture.source) { _ in [] }
+        #expect(snapshot.record["graphCoverage"] as? String == "unavailable")
+        #expect(snapshot.record["revisionCoverage"] as? String == "task-fields-comments-v1")
+    }
+
     @Test(arguments: ["incoming", "outgoing"])
     func incidenceAloneChangesBothEndpointTokens(direction: String) throws {
         let fixture = try TaskLinkCommitDiskFixture()
