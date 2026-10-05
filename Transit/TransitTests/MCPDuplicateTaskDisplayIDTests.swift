@@ -109,6 +109,7 @@ struct MCPDuplicateTaskDisplayIDTests {
     @Test func queryTasksReportsDuplicateDisplayID() async throws {
         let env = try MCPTestHelpers.makeEnv()
         makeDuplicatePair(in: env.context, displayId: 42)
+        try env.context.save()
 
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks",

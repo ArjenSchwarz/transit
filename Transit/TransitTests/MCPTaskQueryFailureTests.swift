@@ -41,6 +41,10 @@ struct MCPTaskQueryFailureTests {
         first.id = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
         second.id = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
         comments.values = [second, first]
+        env.context.insert(task)
+        env.context.insert(first)
+        env.context.insert(second)
+        try env.context.save()
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks", arguments: [
                 "displayIds": [42, 42, -1], "detailLevel": "summary", "includeComments": true, "limit": 1
@@ -84,6 +88,8 @@ struct MCPTaskQueryFailureTests {
         tasks.values = (0..<2).map {
             TransitTask(name: "Task \($0)", type: .chore, project: project, displayID: .provisional)
         }
+        for task in tasks.values { env.context.insert(task) }
+        try env.context.save()
         comments.shouldFail = true
         let noComments = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks", arguments: ["detailLevel": "summary", "includeComments": false, "limit": 1]
@@ -114,6 +120,8 @@ struct MCPTaskQueryFailureTests {
             TransitTask(name: "B", type: .bug, project: project, displayID: .permanent(42)),
             TransitTask(name: "C", type: .bug, project: project, displayID: .permanent(43))
         ]
+        for task in tasks.values { env.context.insert(task) }
+        try env.context.save()
         let response = await env.handler.handle(MCPTestHelpers.toolCallRequest(
             tool: "query_tasks", arguments: [
                 "displayIds": [42, 43, 999], "detailLevel": "summary", "includeComments": false, "limit": 100

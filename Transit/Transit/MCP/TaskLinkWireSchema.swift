@@ -13,7 +13,7 @@ nonisolated enum TaskLinkWireSchema {
         may remove the old target and add a different target. Directions: blocks is outgoing dependency; blocked-by \
         incoming; relates-to symmetric; introduced-by and duplicate-of point from source to target. No redirection, \
         merge, status change or imported-writer fence. Only participating local coordinator writes share the owned \
-        save; CloudKit imports and independent writers can later invalidate graph evidence. batch_task_mutations \
+        save; CloudKit imports and independent writers can later invalidate graph evidence. mutate_tasks \
         rejects linkChanges and endpointPreconditions before item acceptance.
         """
 

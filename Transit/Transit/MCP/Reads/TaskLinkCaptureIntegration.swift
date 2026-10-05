@@ -2,14 +2,22 @@
 import Foundation
 import SwiftData
 
+@MainActor struct ReadCaptureFetchedEntities {
+    let tasks: [TransitTask]
+    let milestones: [Milestone]
+    let tasksCaptured: Bool
+}
+
 @MainActor
 enum TaskLinkCaptureIntegration {
     static func graph(
-        _ request: ReadCaptureRequest, context: ModelContext, instant: Date
+        _ request: ReadCaptureRequest, in context: ModelContext,
+        _ entities: ReadCaptureFetchedEntities, at instant: Date
     ) throws -> TaskLinkGraphView? {
         switch request.selection {
         case .tasks, .portfolio:
-            return try TaskLinkService.graph(in: context, evaluationInstant: instant,
+            guard entities.tasksCaptured else { return nil }
+            return try TaskLinkService.graph(in: context, capturedTasks: entities.tasks, evaluationInstant: instant,
                                              budget: request.taskLinkBudget ?? TaskLinkGraphBudget())
         case .projects, .projectCatalog, .milestones: return nil
         }

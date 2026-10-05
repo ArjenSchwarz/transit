@@ -142,9 +142,9 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             let selected = try resolve(request.projectSelectors, projects: projects)
             let selectedKeys = try Set(selected.map(key))
             try afterProjects()
-            let (allTasks, allMilestones) = try fetchEntities(request, in: context)
-            let needsTasks = neededEntities(request.selection).0
-            let graph = try TaskLinkCaptureIntegration.graph(request, context: context, instant: evaluationInstant)
+            let entities = try fetchEntities(request, in: context)
+            let (allTasks, allMilestones) = (entities.tasks, entities.milestones)
+            let graph = try TaskLinkCaptureIntegration.graph(request, in: context, entities, at: evaluationInstant)
             let tasks = try allTasks.filter { task in
                 guard request.projectSelectors != nil else { return true }
                 return try task.project.map { selectedKeys.contains(try key($0)) } ?? false
@@ -161,7 +161,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                 throw MCPReadCaptureError.incoherentCapture
             }
             let comments = try commentEvidence(request, context: context, bodyTasks: bodyTasks,
-                                               needed: needsTasks && (full || request.includeComments))
+                                               needed: full || request.includeComments)
             let includedComments = commentsForScope(comments, request: request, tasks: bodyTasks)
             let commentIndex = try indexComments(includedComments)
             // Freeze identity closure separately; it never changes the declared selected scope.
@@ -188,14 +188,6 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             throw MCPReadCaptureError.storageFailure
         }
     }
-    private func neededEntities(_ selection: ReadCaptureSelection) -> (Bool, Bool) {
-        switch selection {
-        case .projects: (false, false)
-        case .milestones: (false, true)
-        case .projectCatalog: (true, true)
-        case .tasks, .portfolio: (true, true)
-        }
-    }
     private func resolve(_ selectors: [ReadProjectSelector]?, projects: [Project]) throws -> [Project] {
         guard let selectors else { return projects }
         return try selectors.map { selector in
@@ -210,7 +202,6 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             return match
         }
     }
-
     private func keyOrder(_ lhs: LocalRecordKey, _ rhs: LocalRecordKey) -> Bool {
         lhs.encodedIdentifier.lexicographicallyPrecedes(rhs.encodedIdentifier)
     }
@@ -311,7 +302,8 @@ private extension MCPReadCaptureBuilder {
                                  bodyTasks: [TransitTask], needed: Bool) throws -> [Comment] {
         // A selected empty result needs no comments. Complete portfolio still requires
         // the full orphan/comment diagnostic domain, including an empty task domain.
-        guard needed, request.completeness == .completePortfolio || !bodyTasks.isEmpty else { return [] }
+        guard request.selection.requiredEntities.0 && needed,
+              request.completeness == .completePortfolio || !bodyTasks.isEmpty else { return [] }
         return try fetchComments(context)
     }
 
@@ -343,14 +335,15 @@ private extension MCPReadCaptureBuilder {
     }
 
     func fetchEntities(_ request: ReadCaptureRequest, in context: ModelContext)
-        throws -> ([TransitTask], [Milestone]) {
-        let (needsTasks, needsMilestones) = neededEntities(request.selection)
+        throws -> ReadCaptureFetchedEntities {
+        let (needsTasks, needsMilestones) = request.selection.requiredEntities
         let allMilestones = needsMilestones ? try fetchMilestones(context) : []
         let needsTaskValues = try request.validateMilestones?(allMilestones.map {
             milestoneIdentity($0)
         }) ?? needsTasks
         let allTasks = needsTasks && needsTaskValues ? try fetchTasks(context) : []
-        return (allTasks, allMilestones)
+        return ReadCaptureFetchedEntities(tasks: allTasks, milestones: allMilestones,
+                                          tasksCaptured: needsTasks && needsTaskValues)
     }
     func commentsForScope(_ comments: [Comment], request: ReadCaptureRequest, tasks: [TransitTask]) -> [Comment] {
         if request.completeness == .completePortfolio && request.projectSelectors == nil { return comments }

@@ -41,7 +41,7 @@ final class TaskLinkService {
     /// The caller supplies a clean, fresh owned context for write validation.
     /// Capture uses the same context as the existing read fence when integrated there.
     static func graph(
-        in context: ModelContext, evaluationInstant: Date = Date(),
+        in context: ModelContext, capturedTasks: [TransitTask]? = nil, evaluationInstant: Date = Date(),
         budget: TaskLinkGraphBudget = TaskLinkGraphBudget()
     ) throws -> TaskLinkGraphView {
         try budget.check()
@@ -51,7 +51,8 @@ final class TaskLinkService {
         edgeFetch.includePendingChanges = false
         var removalFetch = FetchDescriptor<TaskLinkRemovalEvidence>()
         removalFetch.includePendingChanges = false
-        let tasks = try context.fetch(taskFetch).map { task in
+        let population = try capturedTasks ?? context.fetch(taskFetch)
+        let tasks = try population.map { task in
             try budget.check()
             return try TaskLinkTaskValue(physicalKey: key(task), id: task.id, name: task.name,
                                          status: task.statusRawValue)

@@ -50,6 +50,7 @@ struct MCPTaskQueryTests {
         let task = TransitTask(name: "Unallocated", type: .bug, project: project, displayID: .provisional)
         task.metadata = ["branch": "test"]
         env.context.insert(task)
+        try env.context.save()
         let rawID = task.id.uuidString.lowercased()
         let page = try MCPTestHelpers.decodeResult(await call(env, [
             "taskIds": [rawID, UUID().uuidString, rawID], "detailLevel": "full",

@@ -148,6 +148,14 @@ nonisolated enum ReadCaptureSelection: Sendable {
     case tasks(detail: ReadTaskCaptureDetail)
     /// Requires completePortfolio and full revision/comment identity evidence.
     case portfolio
+
+    var requiredEntities: (Bool, Bool) {
+        switch self {
+        case .projects: (false, false)
+        case .milestones: (false, true)
+        case .projectCatalog, .tasks, .portfolio: (true, true)
+        }
+    }
 }
 
 nonisolated struct ReadProjectIdentity: Sendable {

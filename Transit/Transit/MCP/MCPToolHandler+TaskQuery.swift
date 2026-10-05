@@ -30,14 +30,8 @@ extension MCPToolHandler {
     }
 
     private func queryResults(_ request: MCPTaskQueryRequest, args: [String: Any]) throws -> [[String: Any]] {
-        // Preserve injected fetch failure behavior without returning borrowed UI values.
-        do { _ = try taskFetcher.fetchAllTasks() } catch {
-            throw MCPTaskQueryError(code: "QUERY_FAILED", message: "Failed to fetch tasks: \(error)")
-        }
         let budget = TaskLinkGraphBudget()
-        let capture = ReadCaptureRequest(projectSelectors: nil,
-            selection: .tasks(detail: request.detailLevel == "full" ? .fullRecord : .summary),
-            completeness: .selectedRead, includeComments: request.includeComments, taskLinkBudget: budget)
+        let capture = fallbackTaskCapture(request, args: args, budget: budget)
         let view = try MCPReadCaptureBuilder(container: taskService.savedReadContainer).capture(capture)
         let records = try MCPReadProjection.tasks(view, request: request, arguments: args, budget: budget)
         if request.detailLevel == "full" || request.includeComments {
@@ -53,6 +47,33 @@ extension MCPToolHandler {
             }
         }
         return records
+    }
+
+    private func fallbackTaskCapture(_ request: MCPTaskQueryRequest, args: [String: Any],
+                                     budget: TaskLinkGraphBudget) -> ReadCaptureRequest {
+        let state = LegacyTaskQueryValidation()
+        let fields = args.mapValues(AnyCodable.init)
+        return ReadCaptureRequest(projectSelectors: nil,
+            selection: .tasks(detail: request.detailLevel == "full" ? .fullRecord : .summary),
+            completeness: .selectedRead, includeComments: request.includeComments,
+            taskLinkBudget: budget, taskLinkOptions: request.graphOptions,
+            validateProjects: { [self] projects in
+                let args = fields.mapValues(\.value)
+                try checkTaskQueryProjectStorage(args)
+                state.project = try MCPReadProjection.projectIdentity(args, projects: projects)
+                try MCPReadProjection.validateTaskScalars(args)
+            }, validateMilestones: { [self] milestones in
+                let args = fields.mapValues(\.value)
+                try checkTaskQueryMilestoneStorage(args, project: state.project)
+                state.filters = try MCPReadProjection.taskFilters(args, project: state.project, milestones: milestones)
+                guard state.filters != nil else { return false }
+                do { _ = try taskFetcher.fetchAllTasks() } catch {
+                    throw MCPTaskQueryError(code: "QUERY_FAILED", message: "Failed to fetch tasks: \(error)")
+                }
+                return true
+            }, selectTaskBodies: { values in
+                try MCPReadProjection.taskBodyKeys(values, request: request, filters: state.filters)
+            })
     }
 
     func encodeQueryPages(
@@ -81,5 +102,10 @@ extension MCPToolHandler {
         return pages[0]
     }
 
+}
+
+@MainActor private final class LegacyTaskQueryValidation {
+    var project: ReadProjectIdentity?
+    var filters: MCPQueryFilters?
 }
 #endif
