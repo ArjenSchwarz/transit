@@ -85,7 +85,7 @@ metadata:
   - Requirements: [1.5](requirements.md#1.5), [4.2](requirements.md#4.2), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [5.6](requirements.md#5.6), [6.2](requirements.md#6.2), [6.4](requirements.md#6.4), [6.6](requirements.md#6.6), [7.3](requirements.md#7.3), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 10. Green: implement graph-covered current task revision and historic result compatibility <!-- id:ev1ktl5 -->
+- [x] 10. Green: implement graph-covered current task revision and historic result compatibility <!-- id:ev1ktl5 -->
   - Require incidence coverage in MCPRecordSnapshot.task overloads; add linkContract and sorted incident tuples to canonical covered fields and revisionCoverage/graphCoverage to current task results while retaining r1 syntax.
   - Wire the completed saved capture and all write/result callsites to the authoritative builder. Preserve T-2383 historical raw fragments and explicit missing coverage; never remint old receipts/pages or fabricate graph coverage for legacy fixtures.
   - Blocked-by: ev1ktl4 (Red: test graph-covered current task revision and historic result compatibility), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment), ev1ktl3 (Green: implement bounded saved capture and graph-closure capacity)
@@ -93,7 +93,7 @@ metadata:
   - Requirements: [1.5](requirements.md#1.5), [4.2](requirements.md#4.2), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [5.6](requirements.md#5.6), [6.2](requirements.md#6.2), [6.4](requirements.md#6.4), [6.6](requirements.md#6.6), [7.3](requirements.md#7.3), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 11. Red: test standalone wire deltas and accepted domain plan validation <!-- id:ev1ktl6 -->
+- [-] 11. Red: test standalone wire deltas and accepted domain plan validation <!-- id:ev1ktl6 -->
   - Write TaskLinkWireTests for exact kebab-case types, UUID/l1/r1 shapes, 50 directives, create-additions-only, omitted fields, unique endpoint preconditions and inverses.
   - Separate pre-acceptance shape errors from saved-edge/semantic conflict validation after retained replay. Cover precise affected endpoints, source no-op guard, unknown/expired selector, retained no-op source incidence, physical UUID collisions, and duplicate retarget versus same-logical remove/add. Batch link fields reject before any item/key acceptance.
   - Add negative enablement tests: before protected task14 wiring succeeds, fresh link-bearing requests are unavailable rather than accepted/ignored. Assert schema descriptions cover directions, affected endpoint guards, no-op/repair/removal expiry, local-only guarantees and unsupported batches.
