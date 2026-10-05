@@ -1,5 +1,6 @@
 #if os(macOS)
 import Foundation
+import SwiftData
 import Testing
 @testable import Transit
 
@@ -85,7 +86,7 @@ struct TaskLinkWireTests {
     func batchRejectsGraphFieldsBeforeAnyItemAcceptance(field: String) throws {
         var args: [String: Any] = ["taskId": source.uuidString, "expectedRevision": revision, "idempotencyKey": "wire"]
         args[field] = [] as [String]
-        let request = MCPBatchTaskRequestFixtures.document(mode: "execute", items: [
+        let request = try MCPBatchTaskRequestFixtures.document(mode: "execute", items: [
             ["itemId": "one", "operation": "update_task", "arguments": args]
         ])
         #expect(throws: (any Error).self) { try MCPBatchTaskRequestFixtures.valid(request) }
