@@ -15,9 +15,10 @@ import Testing
          save: @escaping @MainActor (ModelContext, MCPWriteCoordinator.SaveStage) throws -> Void =
             { context, _ in try context.save() },
          encode: @escaping @MainActor ([String: Any]) throws -> String = MCPWriteOutcome.encode,
-         preparation: @escaping @MainActor (MCPWriteCommand) async throws -> Void = { _ in }) {
+         preparation: @escaping @MainActor (MCPWriteCommand) async throws -> Void = { _ in },
+         newTaskID: @escaping @MainActor () -> UUID = UUID.init) {
         self.base = base
-        coordinator = base.coordinator(save: save, encode: encode, preparation: preparation)
+        coordinator = base.coordinator(save: save, encode: encode, preparation: preparation, newTaskID: newTaskID)
         let context = base.owner.context
         let tasks = TaskService(modelContext: context, displayIDAllocator: base.allocator)
         let projects = ProjectService(modelContext: context)

@@ -253,7 +253,8 @@ struct TaskLinkCommitDiskFixture {
         save: @escaping @MainActor (ModelContext, MCPWriteCoordinator.SaveStage) throws -> Void,
         encode: @escaping @MainActor ([String: Any]) throws -> String = MCPWriteOutcome.encode,
         preparation: @escaping @MainActor (MCPWriteCommand) async throws -> Void = { _ in },
-        recovery: @escaping @MainActor () throws -> Void = {}
+        recovery: @escaping @MainActor () throws -> Void = {},
+        newTaskID: @escaping @MainActor () -> UUID = UUID.init
     ) -> MCPWriteCoordinator {
         let context = owner.context
         let services = MCPWriteCommandServices(
@@ -262,7 +263,8 @@ struct TaskLinkCommitDiskFixture {
             milestones: MilestoneService(modelContext: context, displayIDAllocator: allocator), context: context)
         return MCPWriteCoordinator(services: services, sidecarDirectory: directory.appendingPathComponent("guards"),
                                    persistence: PersistenceAvailability(isFallbackStorageActive: false),
-                                   save: save, encode: encode, preparationHook: preparation, recoveryHook: recovery)
+                                   save: save, encode: encode, newTaskID: newTaskID,
+                                   preparationHook: preparation, recoveryHook: recovery)
     }
 
     func commitServices(in context: ModelContext) -> MCPWriteCommitServices {

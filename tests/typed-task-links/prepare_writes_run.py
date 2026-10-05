@@ -11,7 +11,7 @@ from prepare_unit_run import require, validated_unit_run
 def main():
     require(len(sys.argv) == 3, "Build-products path and RED/GREEN run tag required")
     tag = sys.argv[2]
-    require(tag in ("red", "green", "green-keyfix"), "Exact RED/GREEN run tag required")
+    require(tag in ("red", "green", "green-keyfix", "green-repair"), "Exact RED/GREEN run tag required")
     products = pathlib.Path(sys.argv[1]).resolve()
     derived = products / f"T1734Writes-{tag}.xctestrun"
     result = products / f"T1734Writes-{tag}.xcresult"
@@ -20,6 +20,10 @@ def main():
         require(not output.exists() and not output.is_symlink(), f"Fresh output required: {output}")
     configuration, unit, host, info, entitlements, source = validated_unit_run(products)
     suites = ["TaskLinkWriteIntegrationTests"]
+    expected = 15
+    if tag == "green-repair":
+        suites += ["TaskLinkWriteRepairTests", "TaskLinkWireTests"]
+        expected = 49
     unit["OnlyTestIdentifiers"] = suites
     environment = unit["EnvironmentVariables"]
     for flag in ("T1734_TRANSACTION_DIAGNOSTIC", "T1734_TRANSACTION_ABORT_DIAGNOSTIC",
@@ -31,7 +35,7 @@ def main():
                *[f"-only-testing:TransitTests/{suite}" for suite in suites],
                "-resultBundlePath", str(result)]
     evidence = dict(host=str(host), bundleID=info["CFBundleIdentifier"], entitlements=entitlements,
-                    sourceXctestrun=str(source), suites=suites, expectedExpandedCases=15,
+                    sourceXctestrun=str(source), suites=suites, expectedExpandedCases=expected,
                     expectedSkips=0, launched=False, outsideWriterExclusion=False,
                     primitiveDiagnosticsExcluded=True, derivedXctestrun=str(derived),
                     resultBundlePath=str(result), expectedCommand=command)
