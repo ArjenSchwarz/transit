@@ -87,3 +87,7 @@ The independent specification review mapped all 39 criteria to production symbol
 | 8.2 | Participating/Protected/OwnedScope/OwnedPhase suites exercise dirty contexts, source/endpoint races, all-or-none domain/receipt, replay binding, uncertainty; historical independent-writer counterexamples retained | Appropriate behavioral tests present |
 | 8.3 | Migration/ReadCaptureBoundary/QueryBoundary/RemovalEvidence/Native/Foundation suites cover lifecycle integration; actual UI source pins and lost-exit limitation documented honestly | Appropriate tests present; final platform evidence passed |
 
+
+## Local review artifact
+
+The standard review renderer generated the complete branch diff and blast-radius artifact from landed base e04. `pulsar publish` validated its metadata and archived the HTML locally at `/Users/arjen/CodeReviews/2026-10/2026-10-05-github-transit-branch-t-1734-typed-task-links-final.html` (exit 0). This operation moved a local file; it did not push source, publish a PR or contact an external reviewer. Review inputs and four peer reports remain at `/tmp/t1734-final-review.qjczlb7m`.
