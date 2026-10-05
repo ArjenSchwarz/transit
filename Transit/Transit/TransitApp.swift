@@ -5,7 +5,6 @@ import SwiftUI
 #if os(iOS)
 import UIKit
 #endif
-
 @main
 struct TransitApp: App {
 
@@ -50,7 +49,8 @@ struct TransitApp: App {
         self.syncManager = syncManager
 
         let schema = Schema([
-            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
+            Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self,
+            TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self
         ])
         let config: ModelConfiguration
         if mode != .production {
@@ -89,6 +89,7 @@ struct TransitApp: App {
         }
 
         let context = container.mainContext
+        TaskLinkEvidenceMaintenance.atStartup(container: container, mode: mode, persistence: persistence)
         let allocators = AppDisplayIDAllocators.make(mode: mode, syncActive: cloudSyncActive)
         let allocator = allocators.tasks
         self.displayIDAllocator = allocator
@@ -169,7 +170,8 @@ struct TransitApp: App {
             commentService: commentService, milestoneService: milestoneService,
             maintenanceService: maintenanceService, settings: mcpSettings,
             persistence: persistence, taskQuerySnapshots: reads.snapshots, writeCoordinator: writeCoordinator,
-            readService: reads, readCoordinator: readCoordinator, batchContainer: container
+            readService: reads, readCoordinator: readCoordinator, batchContainer: container,
+            taskLinkWriteAdapter: TaskLinkWriteAdapter(taskAllocator: allocator, milestoneAllocator: milestoneAllocator)
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler, readCoordinator: readCoordinator)
         #endif
@@ -288,6 +290,9 @@ struct TransitApp: App {
         #endif
     }
 
+}
+
+extension TransitApp {
     // MARK: - Shared Environment
 
     private func withCoreEnvironments<V: View>(_ view: V) -> some View {

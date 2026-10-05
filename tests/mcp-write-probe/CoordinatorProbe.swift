@@ -10,7 +10,8 @@ struct MCPWriteCoordinatorProbe {
         defer { try? FileManager.default.removeItem(at: directory) }
         let schema = Schema([
             Project.self, TransitTask.self, Comment.self, Milestone.self,
-            SyncHeartbeat.self, MCPWriteReceipt.self
+            SyncHeartbeat.self, MCPWriteReceipt.self,
+            TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self
         ])
         let configuration = ModelConfiguration(
             schema: schema, url: directory.appendingPathComponent("probe.store"),

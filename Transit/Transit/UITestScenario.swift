@@ -5,6 +5,8 @@ enum UITestScenario: String {
     case empty
     case board
     case duplicateDisplayIds
+    case taskLinks
+    case taskLinksAmbiguous
 
     // swiftlint:disable:next function_body_length
     func seed(into ctx: ModelContext) {
@@ -13,6 +15,9 @@ enum UITestScenario: String {
             return
         case .duplicateDisplayIds:
             seedDuplicateDisplayIds(into: ctx)
+            return
+        case .taskLinks, .taskLinksAmbiguous:
+            seedTaskLinks(into: ctx, ambiguous: self == .taskLinksAmbiguous)
             return
         case .board:
             break
@@ -72,6 +77,30 @@ enum UITestScenario: String {
         let betaV1 = Milestone(name: "Beta v1", description: nil, project: beta, displayID: .permanent(2))
         ctx.insert(betaV1)
         betaReview.milestone = betaV1
+    }
+
+    private func seedTaskLinks(into context: ModelContext, ambiguous: Bool) {
+        let project = Project(name: "Relationships", description: "Synthetic relationship UI fixture",
+                              gitRepo: nil, colorHex: "#0A84FF")
+        context.insert(project)
+        let source = TransitTask(name: "Linked Source", type: .feature, project: project, displayID: .permanent(1))
+        source.id = UUID(uuidString: "00000000-0000-0000-0000-000000173401")!
+        source.statusRawValue = TaskStatus.inProgress.rawValue
+        let target = TransitTask(name: "Linked Target", type: .feature, project: project, displayID: .permanent(2))
+        target.id = UUID(uuidString: "00000000-0000-0000-0000-000000173402")!
+        context.insert(source)
+        context.insert(target)
+        context.insert(TaskLinkOccurrence(id: UUID(), kindRawValue: "association", sourceTaskID: source.id,
+                                          targetTaskID: target.id, createdAt: Date()))
+        if ambiguous {
+            let collision = TransitTask(name: "Collision", type: .feature, project: project, displayID: .permanent(3))
+            collision.id = target.id
+            collision.statusRawValue = TaskStatus.abandoned.rawValue
+            context.insert(collision)
+        }
+        do { try context.save() } catch {
+            preconditionFailure("Could not save synthetic relationship UI fixture: \(error)")
+        }
     }
 
     /// Seeds duplicate-displayId data exercised by `DataMaintenanceUITests`.

@@ -224,7 +224,8 @@ struct MCPBatchTaskCoordinatorDurabilityTests {
         if stage == "commentCapture" {
             fixture.preparation = { [unowned fixture] command in
                 if command.arguments["taskId"] as? String == fixture.tasks[1].id.uuidString {
-                    _ = try MCPRecordSnapshot.task(fixture.tasks[1]) { _ in throw Fixture.Fault.injected }
+                    _ = try MCPRecordSnapshot.task(fixture.tasks[1], incidence: []) { _ in
+                        throw Fixture.Fault.injected }
                 }
             }
         }

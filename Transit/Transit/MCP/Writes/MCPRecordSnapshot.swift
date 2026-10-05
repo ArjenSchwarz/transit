@@ -73,14 +73,17 @@ struct MCPRecordSnapshot {
     }
 
     static func task(_ task: TransitTask, in context: ModelContext) throws -> Self {
-        try Self.task(task) { try context.fetch(CommentService.descriptor(for: $0)) }
+        try Self.task(task, incidence: TaskLinkIncidence.capture(task.id, in: context)) {
+            try context.fetch(CommentService.descriptor(for: $0))
+        }
     }
 
-    static func task(_ task: TransitTask, fetchComments: (UUID) throws -> [Comment]) throws -> Self {
+    static func task(_ task: TransitTask, incidence: [TaskLinkOccurrenceValue]?,
+                     budget: TaskLinkGraphBudget? = nil, fetchComments: (UUID) throws -> [Comment]) throws -> Self {
         let comments = try fetchComments(task.id).sorted {
             ($0.creationDate, $0.id.uuidString) < ($1.creationDate, $1.id.uuidString)
         }.map { try Self.comment($0) }
-        let fields: [String: Any] = [
+        var fields: [String: Any] = [
             "id": MCPRecordRevision.uuid(task.id), "name": task.name,
             "taskDescription": task.taskDescription as Any? ?? NSNull(),
             "permanentDisplayId": task.permanentDisplayId as Any? ?? NSNull(),
@@ -94,6 +97,10 @@ struct MCPRecordSnapshot {
             "milestoneId": MCPRecordRevision.uuid(task.milestone?.id),
             "comments": comments.sorted { $0.entityID.uuidString < $1.entityID.uuidString }.map(\.coveredFields)
         ]
+        if let incidence {
+            fields["linkContract"] = "task-links-v1"
+            fields["incidentLinks"] = try TaskLinkIncidence.canonical(incidence, incidentTo: task.id, budget: budget)
+        }
         var record: [String: Any] = [
             "taskId": task.id.uuidString, "name": task.name, "status": task.statusRawValue,
             "type": task.typeRawValue, "priority": task.priority.rawValue,
@@ -102,6 +109,8 @@ struct MCPRecordSnapshot {
             "description": task.taskDescription as Any? ?? NSNull(), "metadata": task.metadata,
             "comments": comments.map(\.record)
         ]
+        record["graphCoverage"] = incidence == nil ? "unavailable" : "available"
+        record["revisionCoverage"] = incidence == nil ? "task-fields-comments-v1" : "task-fields-comments-links-v1"
         record["displayId"] = task.permanentDisplayId
         record["projectId"] = task.project?.id.uuidString
         record["projectName"] = task.project?.name

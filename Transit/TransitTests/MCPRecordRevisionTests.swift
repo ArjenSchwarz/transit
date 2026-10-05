@@ -28,7 +28,7 @@ struct MCPRecordRevisionTests {
             copy.creationDate = task.creationDate
             copy.lastStatusChangeDate = task.lastStatusChangeDate
             change(copy)
-            let changed = try MCPRecordSnapshot.task(copy) { _ in [] }
+            let changed = try MCPRecordSnapshot.task(copy, incidence: []) { _ in [] }
             #expect(changed.revision != baseline.revision)
         }
         task.name = "changed"
@@ -46,12 +46,14 @@ struct MCPRecordRevisionTests {
         let task = TransitTask(name: "Task", type: .feature, project: project, displayID: .provisional)
         let first = Transit.Comment(content: "one", authorName: "A", isAgent: true, task: task)
         let second = Transit.Comment(content: "two", authorName: "B", isAgent: false, task: task)
-        let snapshot = try MCPRecordSnapshot.task(task) { _ in [first, second] }
-        #expect(snapshot.revision == (try MCPRecordSnapshot.task(task) { _ in [second, first] }.revision))
+        let snapshot = try MCPRecordSnapshot.task(task, incidence: []) { _ in [first, second] }
+        let reordered = try MCPRecordSnapshot.task(task, incidence: []) { _ in [second, first] }
+        #expect(snapshot.revision == reordered.revision)
         first.content = "changed"
-        #expect(snapshot.revision != (try MCPRecordSnapshot.task(task) { _ in [first, second] }.revision))
+        let changed = try MCPRecordSnapshot.task(task, incidence: []) { _ in [first, second] }
+        #expect(snapshot.revision != changed.revision)
         #expect(throws: CocoaError.self) {
-            try MCPRecordSnapshot.task(task) { _ in throw CocoaError(.fileReadUnknown) }
+            try MCPRecordSnapshot.task(task, incidence: []) { _ in throw CocoaError(.fileReadUnknown) }
         }
         #expect((snapshot.record["revision"] as? String) == snapshot.revision)
     }

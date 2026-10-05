@@ -38,7 +38,9 @@ Parser inputs allow at most 32 nested object/array containers (root container co
 
 [Protected writes](mcp-write-contract.md) replay stored T2380 result JSON, original error state, revisions, acceptance and retry information without rewriting receipts, rereading current entities or extending expiry. A new JSON-RPC request ID changes only response correlation. Cursor continuations similarly reuse frozen text, logical pages, revisions and capture metadata; wrappers cannot remint revisions or extend retention.
 
-Task `r1` includes canonical comment content/membership even when `includeComments:false` omits bodies. Parent project/milestone display labels are associated data outside task revision coverage. Compare saved mutation-owned fields to a full read at the same covered revision, not to later live labels.
+Current task `r1` covers canonical task fields, comment content/membership and every incoming/outgoing physical active link tuple, including repeated and malformed imported tuples. `linkContract:task-links-v1` explicitly covers empty incidence too; tokens from the pre-link contract therefore conflict on fresh task writes even when no links exist. `includeComments:false` and omitted link bodies do not remove that evidence from revision coverage. Current results advertise `revisionCoverage:task-fields-comments-links-v1` and `graphCoverage:available` when captured evidence exists. Historical results retain their original token and bytes; explicit legacy results with absent graph evidence report missing coverage, never an invented empty graph.
+
+Opposite endpoint labels/status, duplicate resolution, blocker assessment and seven-day removal-evidence expiry are observations outside the task content token. Full relationship observations come from the same frozen saved capture; cursor replay does not refresh them. Parent project/milestone display labels are also associated data outside task revision coverage. Compare saved mutation-owned fields to a full read at the same covered revision, not to later live labels.
 
 | Protected path | Existing normalization authority |
 | --- | --- |

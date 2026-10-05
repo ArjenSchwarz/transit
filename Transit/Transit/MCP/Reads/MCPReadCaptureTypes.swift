@@ -29,6 +29,25 @@ nonisolated struct CapturedReadView: Sendable {
     let tasks: [ReadTask]
     let milestones: [ReadMilestone]
     let comments: [ReadCommentEvidence]
+    /// Nil is explicit missing coverage for legacy/provider fixtures, never empty incidence.
+    let taskLinkGraph: TaskLinkGraphView?
+
+    // A capture retains one declared scope and its complete immutable value payload.
+    init(completeness: CaptureCompleteness, captureScope: ReadCaptureScope, metadata: ReadCaptureMetadata,
+         createdAt: ContinuousClock.Instant, retentionDeadline: ContinuousClock.Instant,
+         projects: [ReadProject], tasks: [ReadTask], milestones: [ReadMilestone], comments: [ReadCommentEvidence],
+         taskLinkGraph: TaskLinkGraphView? = nil) {
+        self.completeness = completeness
+        self.captureScope = captureScope
+        self.metadata = metadata
+        self.createdAt = createdAt
+        self.retentionDeadline = retentionDeadline
+        self.projects = projects
+        self.tasks = tasks
+        self.milestones = milestones
+        self.comments = comments
+        self.taskLinkGraph = taskLinkGraph
+    }
 }
 
 nonisolated struct ReadProject: Sendable {
@@ -129,6 +148,14 @@ nonisolated enum ReadCaptureSelection: Sendable {
     case tasks(detail: ReadTaskCaptureDetail)
     /// Requires completePortfolio and full revision/comment identity evidence.
     case portfolio
+
+    var requiredEntities: (Bool, Bool) {
+        switch self {
+        case .projects: (false, false)
+        case .milestones: (false, true)
+        case .projectCatalog, .tasks, .portfolio: (true, true)
+        }
+    }
 }
 
 nonisolated struct ReadProjectIdentity: Sendable {
@@ -175,6 +202,8 @@ nonisolated struct ReadCaptureRequest: Sendable {
     let completeness: CaptureCompleteness
     /// Output preference only; fullRecord/portfolio still capture canonical comment coverage.
     let includeComments: Bool
+    let taskLinkBudget: TaskLinkGraphBudget?
+    let taskLinkOptions: TaskLinkQueryOptions?
     /// Runs inside the fence before dependent entity fetches; no relationship values escape.
     let validateProjects: (@MainActor @Sendable ([ReadProjectIdentity]) throws -> Void)?
 
@@ -190,15 +219,26 @@ nonisolated struct ReadCaptureRequest: Sendable {
          validateProjects: (@MainActor @Sendable ([ReadProjectIdentity]) throws -> Void)? = nil,
          validateMilestones: (@MainActor @Sendable ([ReadMilestoneIdentity]) throws -> Bool)? = nil,
          selectTaskBodies: ReadTaskBodySelection? = nil,
-         selectMilestoneBodies: ReadMilestoneBodySelection? = nil) {
+         selectMilestoneBodies: ReadMilestoneBodySelection? = nil,
+         taskLinkBudget: TaskLinkGraphBudget? = nil, taskLinkOptions: TaskLinkQueryOptions? = nil) {
         self.projectSelectors = projectSelectors
         self.selection = selection
         self.completeness = completeness
         self.includeComments = includeComments
+        self.taskLinkBudget = taskLinkBudget
+        self.taskLinkOptions = taskLinkOptions
         self.validateProjects = validateProjects
         self.validateMilestones = validateMilestones
         self.selectTaskBodies = selectTaskBodies
         self.selectMilestoneBodies = selectMilestoneBodies
+    }
+
+    func withTaskLinkBudget(_ budget: TaskLinkGraphBudget) -> ReadCaptureRequest {
+        ReadCaptureRequest(projectSelectors: projectSelectors, selection: selection, completeness: completeness,
+            includeComments: includeComments, validateProjects: validateProjects,
+            validateMilestones: validateMilestones,
+            selectTaskBodies: selectTaskBodies, selectMilestoneBodies: selectMilestoneBodies, taskLinkBudget: budget,
+            taskLinkOptions: taskLinkOptions)
     }
 }
 

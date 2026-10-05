@@ -164,6 +164,7 @@ struct NumericDisplayIdMCPTests {
         )
         StatusEngine.initializeNewTask(task)
         env.context.insert(task)
+        try env.context.save()
 
         let response = await env.handler.handle(
             MCPTestHelpers.toolCallRequest(
@@ -261,6 +262,7 @@ struct NumericDisplayIdMCPTests {
         StatusEngine.initializeNewTask(task)
         task.milestone = milestone
         env.context.insert(task)
+        try env.context.save()
 
         let response = await env.handler.handle(
             MCPTestHelpers.toolCallRequest(

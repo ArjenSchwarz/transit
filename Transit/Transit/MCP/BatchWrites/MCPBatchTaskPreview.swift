@@ -84,7 +84,8 @@ import SwiftData
                     code: tasks.isEmpty ? "TASK_NOT_FOUND" : "DUPLICATE_TASK_IDENTIFIER")
             }
             task = resolved
-            snapshot = try MCPRecordSnapshot.task(task) { id in
+            snapshot = try MCPRecordSnapshot.task(task, incidence: TaskLinkIncidence.capture(task.id, in: context,
+                includePendingChanges: false)) { id in
                 var comments = CommentService.descriptor(for: id)
                 comments.includePendingChanges = false
                 return try reads.comments(comments, context)

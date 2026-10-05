@@ -7,7 +7,8 @@ import Testing
 struct MCPWritePersistenceProbeTests {
     private var schema: Schema {
         Schema([Project.self, TransitTask.self, Comment.self, Milestone.self,
-                SyncHeartbeat.self, MCPWriteReceipt.self])
+                SyncHeartbeat.self, MCPWriteReceipt.self,
+                TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self])
     }
 
     private func diskFixture(at url: URL, writable: Bool = true) throws -> TestModelContainer {

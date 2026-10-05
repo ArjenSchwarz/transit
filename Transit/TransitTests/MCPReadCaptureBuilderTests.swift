@@ -190,7 +190,8 @@ struct MCPReadCaptureBuilderTests {
 
     private func diskFixture() throws -> TestModelContainer {
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self,
-                             SyncHeartbeat.self, MCPWriteReceipt.self])
+                             SyncHeartbeat.self, MCPWriteReceipt.self,
+                             TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self])
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let config = ModelConfiguration(schema: schema, url: directory.appendingPathComponent("fixture.store"),

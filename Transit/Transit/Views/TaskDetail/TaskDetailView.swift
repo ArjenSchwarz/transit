@@ -5,6 +5,9 @@ struct TaskDetailView: View {
     let task: TransitTask
     var dismissAll: () -> Void
     var onEdit: (() -> Void)?
+    var embeddedNavigation: Bool
+    @Environment(\.openWindow) private var openWindow
+    @State private var linkedTask: TransitTask?
     @Environment(TaskService.self) private var taskService
     @Environment(\.dismiss) private var dismiss
     @Environment(\.resolvedTheme) private var resolvedTheme
@@ -15,21 +18,19 @@ struct TaskDetailView: View {
     init(
         task: TransitTask,
         dismissAll: @escaping () -> Void,
-        onEdit: (() -> Void)? = nil
+        onEdit: (() -> Void)? = nil,
+        embeddedNavigation: Bool = false
     ) {
         self.task = task
         self.dismissAll = dismissAll
         self.onEdit = onEdit
+        self.embeddedNavigation = embeddedNavigation
         _comments = Query(CommentService.descriptor(for: task.id))
     }
 
     var body: some View {
-        NavigationStack {
-            #if os(macOS)
-            macOSDetail
-            #else
-            iOSDetail
-            #endif
+        Group {
+            if embeddedNavigation { detailContent } else { NavigationStack { detailContent } }
         }
         #if os(iOS)
         .presentationDetents([.medium, .large])
@@ -41,6 +42,24 @@ struct TaskDetailView: View {
         }
     }
 
+    @ViewBuilder private var detailContent: some View {
+        #if os(macOS)
+        macOSDetail
+        #else
+        iOSDetail
+        #endif
+    }
+
+    private var relationships: some View {
+        TaskLinksSection(taskID: task.id) { destination in
+            #if os(macOS)
+            openWindow(id: "task-detail", value: destination.id)
+            #else
+            linkedTask = destination
+            #endif
+        }
+    }
+
     // MARK: - iOS Layout
 
     #if os(iOS)
@@ -49,8 +68,12 @@ struct TaskDetailView: View {
             iOSDetailSection
             iOSDescriptionSection
             MetadataSection(metadata: .constant(task.metadata), isEditing: false)
+            Section("Relationships") { relationships }
             CommentsSection(task: task, comments: comments)
             iOSActionSection
+        }
+        .navigationDestination(item: $linkedTask) { destination in
+            TaskDetailView(task: destination, dismissAll: dismissAll, embeddedNavigation: true)
         }
         .navigationTitle(task.displayID.formatted)
         .navigationBarTitleDisplayMode(.inline)
@@ -169,6 +192,8 @@ struct TaskDetailView: View {
                 LiquidGlassSection(title: "Metadata") {
                     MetadataSection(metadata: .constant(task.metadata), isEditing: false)
                 }
+
+                LiquidGlassSection(title: "Relationships") { relationships }
 
                 CommentsSection(task: task, comments: comments)
 

@@ -36,6 +36,7 @@
 | [MCP Project Creation](#mcp-project-creation) | 2026-10-02 | Ready for Review | Create projects through MCP with validation and reusable project metadata |
 | [Batch Task Queries](#batch-task-queries) | 2026-10-03 | Done | MCP task detail selection, batch lookup, and frozen cursor pagination |
 | [MCP Write Safety](#mcp-write-safety) | 2026-10-03 | Done | Add retry-safe MCP writes, local revision preconditions, and structured saved outcomes |
+| [Typed Task Links](#typed-task-links) | 2026-10-03 | Done | Saved typed task relationships with guarded edits, graph-covered revisions and frozen queries |
 | [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | Ready for Review | Structured/text results and latest-only transport locally verified; client compatibility explicitly deferred post-merge |
 | [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | Done | Bound MCP read completion and report immutable saved capture/import evidence |
 | [Portfolio Summaries](#portfolio-summaries) | 2026-10-04 | Done | Saved portfolio counts and reusable frozen task views; qualified native verification complete |
@@ -356,6 +357,35 @@ All 18 coding tasks are implemented and review findings are resolved. Verificati
 - [prerequisites.md](mcp-write-safety/prerequisites.md)
 - [implementation.md](mcp-write-safety/implementation.md)
 
+
+## Typed Task Links
+
+Saved typed task relationships with guarded edits, graph-covered revisions and frozen queries. All 22 approved tasks and 39 local-scope acceptance criteria are complete. Final runs passed 3,265 macOS unit, 1,403 iOS unit and 26 iOS UI case executions; five macOS opt-in stages remain explicitly disabled. Four independent review roles found no outstanding mandatory fix. T-2402 live CloudKit verification and T-2381 consolidation remain separate work.
+
+- [decision_log.md](typed-task-links/decision_log.md)
+- [design-review.md](typed-task-links/design-review.md)
+- [design.md](typed-task-links/design.md)
+- [explanation.md](typed-task-links/explanation.md)
+- [final-handoff.md](typed-task-links/final-handoff.md)
+- [implementation.md](typed-task-links/implementation.md)
+- [isolation-integration-plan.md](typed-task-links/isolation-integration-plan.md)
+- [local-review.md](typed-task-links/local-review.md)
+- [pr254-native-corrections.md](typed-task-links/pr254-native-corrections.md)
+- [migration-next-tests.md](typed-task-links/migration-next-tests.md)
+- [prerequisites.md](typed-task-links/prerequisites.md)
+- [red-boundary-review.md](typed-task-links/red-boundary-review.md)
+- [requirements-review.md](typed-task-links/requirements-review.md)
+- [requirements.md](typed-task-links/requirements.md)
+- [scope-assessment.md](typed-task-links/scope-assessment.md)
+- [task14-checkpoint.md](typed-task-links/task14-checkpoint.md)
+- [task20-checkpoint.md](typed-task-links/task20-checkpoint.md)
+- [task4-checkpoint.md](typed-task-links/task4-checkpoint.md)
+- [tasks-review.md](typed-task-links/tasks-review.md)
+- [tasks.md](typed-task-links/tasks.md)
+- [verification-readiness.md](typed-task-links/verification-readiness.md)
+
+
+PR #254 native corrections at bbe3a25 passed fresh 20-case focused and full platform verification; four independent delta reviewers found no mandatory issue. See [PR correction handoff](typed-task-links/pr254-native-corrections.md).
 
 ## Structured MCP Results
 

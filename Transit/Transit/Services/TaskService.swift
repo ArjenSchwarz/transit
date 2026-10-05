@@ -1,12 +1,12 @@
 import Foundation
 import SwiftData
-
 /// Coordinates task creation, status changes, and lookups. Uses StatusEngine
 /// for all status transitions and DisplayIDAllocator for display ID assignment.
 @MainActor @Observable
 final class TaskService {
-
     private let modelContext: ModelContext
+    /// Read adapters create their own saved-only context; UI models never escape this seam.
+    var savedReadContainer: ModelContainer { modelContext.container }
     private let displayIDAllocator: DisplayIDAllocator
     private let createSave: (ModelContext) throws -> Void
     private let statusSave: (ModelContext) throws -> Void
@@ -371,7 +371,7 @@ extension TaskService {
     /// Re-resolves pinned UUIDs and validates immediately before inserting. No suspension or save by default.
     @discardableResult
     func applyTaskCreation(
-        _ prepared: PreparedCreation,
+        _ prepared: PreparedCreation, taskID: UUID? = nil,
         save: ((ModelContext) throws -> Void)? = nil
     ) throws -> TransitTask {
         try Task.checkCancellation()
@@ -391,6 +391,7 @@ extension TaskService {
             name: prepared.name, description: prepared.description, type: prepared.type,
             project: project, displayID: prepared.displayID, metadata: prepared.metadata, priority: prepared.priority
         )
+        if let taskID { task.id = taskID }
         StatusEngine.initializeNewTask(task)
         task.milestone = milestone
         try modelContext.insertOrDelete(task, save: save ?? { _ in })

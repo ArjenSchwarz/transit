@@ -12,15 +12,36 @@ import SwiftData
     }
 
     let onPendingEditsStop: @MainActor () -> Void
+    let makeCommitServices: (@MainActor (ModelContext) throws -> MCPWriteCommitServices)?
+    let taskLinkCapability: TaskLinkWriteCapability?
+    let afterTaskApply: MCPWriteCommand.AfterTaskApply?
     let validateBeforeApply: @MainActor (MCPWriteCommand, ModelContext) throws -> Void
 
+    /// Swift's forward matching can bind an unlabelled trailing closure to the
+    /// optional factory. Preserve the existing two-argument validation API.
+    init(validateBeforeApply: @escaping @MainActor (MCPWriteCommand, ModelContext) throws -> Void) {
+        self.init(makeCommitServices: nil, onPendingEditsStop: {}, validateBeforeApply: validateBeforeApply)
+    }
+
+    init(makeCommitServices: @escaping @MainActor (ModelContext) throws -> MCPWriteCommitServices,
+         validateBeforeApply: @escaping @MainActor (MCPWriteCommand, ModelContext) throws -> Void) {
+        self.init(makeCommitServices: makeCommitServices, onPendingEditsStop: {},
+                  validateBeforeApply: validateBeforeApply)
+    }
+
     init(
+        makeCommitServices: (@MainActor (ModelContext) throws -> MCPWriteCommitServices)? = nil,
+        onPendingEditsStop: @escaping @MainActor () -> Void = {},
+        afterTaskApply: MCPWriteCommand.AfterTaskApply? = nil,
+        taskLinkCapability: TaskLinkWriteCapability? = nil,
         validateBeforeApply: @escaping @MainActor (MCPWriteCommand, ModelContext) throws -> Void =
-            MCPBatchWritePolicy.validateTaskIdentity,
-        onPendingEditsStop: @escaping @MainActor () -> Void = {}
+            MCPBatchWritePolicy.validateTaskIdentity
     ) {
+        self.taskLinkCapability = taskLinkCapability
+        self.afterTaskApply = afterTaskApply
         self.validateBeforeApply = validateBeforeApply
         self.onPendingEditsStop = onPendingEditsStop
+        self.makeCommitServices = makeCommitServices
     }
 
     private static func validateTaskIdentity(_ command: MCPWriteCommand, context: ModelContext) throws {

@@ -19,15 +19,15 @@ struct MCPWriteFoundationProbe {
         let project = Project(name: "P", description: "", gitRepo: nil, colorHex: "red")
         let task = TransitTask(name: "T", type: .feature, project: project, displayID: .permanent(1))
         let comment = Comment(content: "C", authorName: "A", isAgent: false, task: task)
-        let original = try MCPRecordSnapshot.task(task) { _ in [comment] }
+        let original = try MCPRecordSnapshot.task(task, incidence: []) { _ in [comment] }
         project.name = "excluded"
-        let excluded = try MCPRecordSnapshot.task(task) { _ in [comment] }
+        let excluded = try MCPRecordSnapshot.task(task, incidence: []) { _ in [comment] }
         precondition(original.revision == excluded.revision)
         comment.content = "changed"
-        let changed = try MCPRecordSnapshot.task(task) { _ in [comment] }
+        let changed = try MCPRecordSnapshot.task(task, incidence: []) { _ in [comment] }
         precondition(original.revision != changed.revision)
         comment.content = "C"
-        let restored = try MCPRecordSnapshot.task(task) { _ in [comment] }
+        let restored = try MCPRecordSnapshot.task(task, incidence: []) { _ in [comment] }
         precondition(original.revision == restored.revision)
         print("PASS canonical roundtrip and content revisions")
         try receiptStorage()
@@ -52,7 +52,8 @@ struct MCPWriteFoundationProbe {
 
     @MainActor static func receiptStorage() throws {
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self,
-                             SyncHeartbeat.self, MCPWriteReceipt.self])
+                             SyncHeartbeat.self, MCPWriteReceipt.self,
+                             TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self])
         let configuration = ModelConfiguration("receipt-probe", schema: schema,
                                                isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         let container = try ModelContainer(for: schema, configurations: configuration)

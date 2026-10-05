@@ -6,7 +6,8 @@ struct MCPWriteServiceProbe {
     // swiftlint:disable:next function_body_length
     @MainActor static func main() async throws {
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self,
-                             SyncHeartbeat.self, MCPWriteReceipt.self])
+                             SyncHeartbeat.self, MCPWriteReceipt.self,
+                             TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self])
         let config = ModelConfiguration("service-probe", schema: schema,
                                         isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         let container = try ModelContainer(for: schema, configurations: config)

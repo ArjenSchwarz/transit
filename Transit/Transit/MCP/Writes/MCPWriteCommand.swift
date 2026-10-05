@@ -12,7 +12,7 @@ struct MCPWriteCommandServices {
 }
 
 enum PreparedMCPWrite {
-    case taskCreation(TaskService.PreparedCreation)
+    case taskCreation(TaskService.PreparedCreation, UUID)
     case milestoneCreation(MilestoneService.PreparedCreation)
     case task(UUID)
     case milestone(UUID)
@@ -20,6 +20,8 @@ enum PreparedMCPWrite {
 }
 
 struct MCPWriteCommand {
+    typealias AfterTaskApply = @MainActor (MCPWriteCommand, TransitTask, MCPWriteCommandServices) throws -> Void
+
     static let protectedTools: Set<String> = [
         "create_task", "create_project", "create_milestone", "add_comment",
         "update_task", "update_task_status", "update_milestone", "delete_milestone"
@@ -30,6 +32,7 @@ struct MCPWriteCommand {
     let tool: String
     let key: String
     let arguments: [String: Any]
+    var hasLinkInput: Bool { arguments["linkChanges"] != nil || arguments["endpointPreconditions"] != nil }
     var expectedRevision: String? { arguments["expectedRevision"] as? String }
 
     static func validate(tool: String, arguments: [String: Any]) throws -> Self {
@@ -50,7 +53,7 @@ struct MCPWriteCommand {
         }
         let usesProjectID = ["create_task", "create_milestone"].contains(tool)
             && (arguments["projectId"] as? String).flatMap(UUID.init(uuidString:)) != nil
-        for (field, value) in arguments where !safetyFields.contains(field) {
+        for (field, value) in arguments where !safetyFields.union(TaskLinkWireRequest.fields).contains(field) {
             if field == "project", usesProjectID { continue }
             try validateValue(value, field: field, schema: properties[field]!)
         }
@@ -72,6 +75,7 @@ struct MCPWriteCommand {
                 throw MCPWriteFailure("INVALID_INPUT", "\(field) must be a valid UUID string")
             }
         }
+        _ = try TaskLinkWireRequest.parse(tool: tool, arguments: arguments)
         return Self(tool: tool, key: key, arguments: arguments)
     }
 
@@ -93,7 +97,8 @@ struct MCPWriteCommand {
         }
     }
 
-    func prepare(using services: MCPWriteCommandServices) async throws -> PreparedMCPWrite {
+    func prepare(using services: MCPWriteCommandServices,
+                 newTaskID: @MainActor () -> UUID = UUID.init) async throws -> PreparedMCPWrite {
         try Task.checkCancellation()
         switch tool {
         case "create_task":
@@ -103,12 +108,12 @@ struct MCPWriteCommand {
             }
             let priority = try taskPriority()
             let milestone = try assignedMilestone(project: project, using: services)
-            return .taskCreation(
-                try await services.tasks.prepareTaskCreation(
+            let creation = try await services.tasks.prepareTaskCreation(
                     name: try string("name"), description: arguments["description"] as? String,
                     type: type, project: project, metadata: IntentHelpers.stringMetadata(from: arguments["metadata"]),
                     priority: priority, milestone: milestone
-                ))
+                )
+            return .taskCreation(creation, newTaskID())
         case "create_milestone":
             return .milestoneCreation(
                 try await services.milestones.prepareMilestoneCreation(
@@ -128,11 +133,13 @@ struct MCPWriteCommand {
         }
     }
 
-    func apply(_ prepared: PreparedMCPWrite, using services: MCPWriteCommandServices) throws -> [String: Any] {
+    func apply(_ prepared: PreparedMCPWrite, using services: MCPWriteCommandServices,
+               afterTaskApply: AfterTaskApply? = nil) throws -> [String: Any] {
         try Task.checkCancellation()
         switch prepared {
-        case .taskCreation(let creation):
-            let task = try services.tasks.applyTaskCreation(creation)
+        case .taskCreation(let creation, let id):
+            let task = try services.tasks.applyTaskCreation(creation, taskID: id)
+            try afterTaskApply?(self, task, services)
             return try saved(MCPRecordSnapshot.task(task, in: services.context))
         case .milestoneCreation(let creation):
             let milestone = try services.milestones.applyMilestoneCreation(creation)
@@ -149,12 +156,13 @@ struct MCPWriteCommand {
                 gitRepo: arguments["gitRepo"] as? String, colorHex: raw, save: false
             )
             return try saved(MCPRecordSnapshot.project(project))
-        case .task(let id): return try applyTask(id, using: services)
+        case .task(let id): return try applyTask(id, using: services, afterTaskApply: afterTaskApply)
         case .milestone(let id): return try applyMilestone(id, using: services)
         }
     }
 
-    private func applyTask(_ id: UUID, using services: MCPWriteCommandServices) throws -> [String: Any] {
+    private func applyTask(_ id: UUID, using services: MCPWriteCommandServices,
+                           afterTaskApply: AfterTaskApply?) throws -> [String: Any] {
         let task = try services.tasks.findByID(id)
         if expectedRevision != nil { try check(MCPRecordSnapshot.task(task, in: services.context)) }
         if tool == "add_comment" {
@@ -162,6 +170,7 @@ struct MCPWriteCommand {
                 to: task, content: try string("content"),
                 authorName: try string("authorName"),
                 isAgent: true, save: nil)
+            try afterTaskApply?(self, task, services)
             return try saved(MCPRecordSnapshot.comment(comment))
         }
         if tool == "update_task" {
@@ -171,6 +180,7 @@ struct MCPWriteCommand {
             try TaskUpdateValidator.apply(
                 update, to: task, taskService: services.tasks,
                 milestoneService: services.milestones)
+            try afterTaskApply?(self, task, services)
             return try saved(MCPRecordSnapshot.task(task, in: services.context))
         }
         let validation = try MCPTaskMutationValidation.status(
@@ -184,6 +194,7 @@ struct MCPWriteCommand {
             comment: arguments["comment"] as? String,
             commentAuthor: arguments["authorName"] as? String,
             commentService: services.comments, save: false)
+        try afterTaskApply?(self, task, services)
         var result = try saved(MCPRecordSnapshot.task(task, in: services.context))
         result["comment"] = try comment.map { try MCPRecordSnapshot.comment($0).record } as Any? ?? NSNull()
         return result

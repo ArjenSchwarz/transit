@@ -54,7 +54,8 @@ import Testing
 
     static func owner(_ url: URL) throws -> TestModelContainer {
         let schema = Schema([Project.self, TransitTask.self, Transit.Comment.self, Milestone.self,
-                             SyncHeartbeat.self, MCPWriteReceipt.self])
+                             SyncHeartbeat.self, MCPWriteReceipt.self,
+                             TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self])
         return try TestModelContainer(schema: schema, configurations: [ModelConfiguration(
             "Task9", schema: schema, url: url, cloudKitDatabase: .none)])
     }

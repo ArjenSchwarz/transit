@@ -1,4 +1,6 @@
 #if os(macOS)
+// Private retry state and its synchronous commit/recovery phases stay together.
+// swiftlint:disable file_length
 import Foundation
 import SwiftData
 
@@ -12,6 +14,7 @@ import SwiftData
     private let clock: @MainActor () -> Date
     private let save: @MainActor (ModelContext, SaveStage) throws -> Void
     private let encode: @MainActor ([String: Any]) throws -> String
+    private let newTaskID: @MainActor () -> UUID
     private let preparationHook: @MainActor (MCPWriteCommand) async throws -> Void
     private let recoveryHook: @MainActor () throws -> Void
     private let persistence: PersistenceAvailability
@@ -25,6 +28,7 @@ import SwiftData
         clock: @escaping @MainActor () -> Date = Date.init,
         save: @escaping @MainActor (ModelContext, SaveStage) throws -> Void = { context, _ in try context.save() },
         encode: @escaping @MainActor ([String: Any]) throws -> String = MCPWriteOutcome.encode,
+        newTaskID: @escaping @MainActor () -> UUID = UUID.init,
         preparationHook: @escaping @MainActor (MCPWriteCommand) async throws -> Void = { _ in },
         recoveryHook: @escaping @MainActor () throws -> Void = {}
     ) {
@@ -34,6 +38,7 @@ import SwiftData
         self.clock = clock
         self.save = save
         self.encode = encode
+        self.newTaskID = newTaskID
         self.preparationHook = preparationHook
         self.recoveryHook = recoveryHook
         if persistence.isFallbackStorageActive {
@@ -103,7 +108,7 @@ import SwiftData
                 command, .init("OPERATION_IN_PROGRESS", "Retry the same request after completion"),
                 accepted: true, outcome: "in_progress", retry: "retry_same_request")
         }
-        if batchPolicy != nil && services.context.hasChanges {
+        if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
             return inspectRetainedWhileDirty(
                 command, payload: payload, reservations: reservations, receipts: receipts,
                 now: clock(), batchPolicy: batchPolicy)
@@ -117,14 +122,15 @@ import SwiftData
 extension MCPWriteCoordinator {
     fileprivate func existingOutcome(
         _ command: MCPWriteCommand, payload: String,
-        reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore
+        reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore,
+        batchPolicy: MCPBatchWritePolicy?
     ) -> MCPToolResult? {
         let tool = command.tool
         do {
             if let guardRecord = try reservations.lookup(tool: tool, key: command.key) {
                 if guardRecord.expiresAt.map({ $0 <= clock() }) != true {
                     guard guardRecord.requestJSON == payload else { return reused(command) }
-                    return recover(command, guardRecord: guardRecord)
+                    return recover(command, guardRecord: guardRecord, batchPolicy: batchPolicy)
                 }
             }
             if let receipt = try receipts.lookup(tool: tool, key: command.key, durable: true) {
@@ -133,7 +139,7 @@ extension MCPWriteCoordinator {
                     let repaired = try reservations.reserve(
                         tool: tool, key: command.key, requestJSON: payload,
                         formatVersion: receipt.formatVersion, receiptID: receipt.id)
-                    return recover(command, guardRecord: repaired)
+                    return recover(command, guardRecord: repaired, batchPolicy: batchPolicy)
                 }
             }
         } catch {
@@ -180,14 +186,20 @@ extension MCPWriteCoordinator {
         reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore,
         batchPolicy: MCPBatchWritePolicy?
     ) -> Acceptance {
-        if batchPolicy != nil && services.context.hasChanges {
+        if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
             return .result(inspectRetainedWhileDirty(
                 command, payload: payload, reservations: reservations, receipts: receipts,
                 now: clock(), batchPolicy: batchPolicy))
         }
         let tool = command.tool
-        if let existing = existingOutcome(command, payload: payload, reservations: reservations, receipts: receipts) {
+        if let existing = existingOutcome(command, payload: payload, reservations: reservations, receipts: receipts,
+                                          batchPolicy: batchPolicy) {
             return .result(existing)
+        }
+        if command.hasLinkInput && batchPolicy?.taskLinkCapability == nil {
+            return .result(transient(command,
+                .init("PERSISTENCE_UNAVAILABLE", "Typed-link owned plan/apply policy is not installed"),
+                accepted: false))
         }
         do {
             if services.context.hasChanges { try save(services.context, .baseline) }
@@ -223,7 +235,7 @@ extension MCPWriteCoordinator {
             services.context.safeRollback()
             return .result(rejectBeforeDomain(
                     command, guardRecord: guardRecord,
-                    failure: .init("INTERNAL_ERROR", "Unable to save request acceptance")))
+                    failure: .init("INTERNAL_ERROR", "Unable to save request acceptance"), batchPolicy: batchPolicy))
         }
         return .ready(guardRecord, receipt)
     }
@@ -236,14 +248,14 @@ extension MCPWriteCoordinator {
         let prepared: PreparedMCPWrite
         do {
             try await preparationHook(command)
-            if batchPolicy != nil && services.context.hasChanges {
+            if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
                 return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
             }
-            prepared = try await command.prepare(using: services)
+            prepared = try await command.prepare(using: services, newTaskID: newTaskID)
             try Task.checkCancellation()
         } catch {
             // Return before a rejection phase can save or roll back UI edits.
-            if batchPolicy != nil && services.context.hasChanges {
+            if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
                 return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
             }
             // Validate a fresh scope after suspension, before retaining rejection.
@@ -251,11 +263,16 @@ extension MCPWriteCoordinator {
                 return try reservations.withValidatedBindings {
                     try reservations.validateBinding(guardRecord)
                     if services.context.hasChanges { try save(services.context, .baseline) }
-                    return completeRejection(command, receipt: receipt, failure: MCPWriteFailure.from(error))
+                    if batchPolicy?.makeCommitServices != nil {
+                        return rejectInOwnedScope(command, guardRecord: guardRecord,
+                                                  failure: MCPWriteFailure.from(error), batchPolicy: batchPolicy)
+                    }
+                    return completeRejection(command, receipt: receipt, failure: MCPWriteFailure.from(error),
+                                             guardRecord: guardRecord)
                 }
             } catch { return uncertain(command) }
         }
-        if batchPolicy != nil && services.context.hasChanges {
+        if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
             return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
         }
         do {
@@ -274,22 +291,31 @@ extension MCPWriteCoordinator {
         _ command: MCPWriteCommand, prepared: PreparedMCPWrite,
         receipt: MCPWriteReceipt, guardRecord: MCPLocalReservation, batchPolicy: MCPBatchWritePolicy?
     ) -> MCPToolResult {
-        let context = services.context
+        let scope: MCPWriteCommitScope
+        let scopedReceipt: MCPWriteReceipt
+        do {
+            scope = try MCPWriteCommitScope(shared: services, scopeID: guardRecord.scopeID, policy: batchPolicy)
+            scopedReceipt = batchPolicy?.makeCommitServices == nil ? receipt : try scope.receipt(for: guardRecord)
+            if let retained = replay(scopedReceipt) { return retained }
+        } catch { return uncertain(command) }
+        let context = scope.context
         let autosave = context.autosaveEnabled
         context.autosaveEnabled = false
         defer { context.autosaveEnabled = autosave }
         do {
             try batchPolicy?.validateBeforeApply(command, context)
-            var envelope = try command.apply(prepared, using: services)
+            try batchPolicy?.taskLinkCapability?.validatePrepared(command, prepared, scope.services)
+            var envelope = try command.apply(
+                prepared, using: scope.services, afterTaskApply: batchPolicy?.afterTaskApply)
             envelope["contractVersion"] = 1
             envelope["tool"] = command.tool
             envelope["idempotencyKey"] = command.key
             envelope["outcome"] = "committed"
             envelope["accepted"] = true
-            let result = try stageTerminal(receipt, envelope: envelope, rejected: false)
+            let result = try stageTerminal(scopedReceipt, envelope: envelope, rejected: false)
             try save(context, .commit)
             // Failed expiry repair never downgrades a committed domain/result.
-            try? reservations?.recordExpiry(guardRecord, expiresAt: receipt.expiresAt!)
+            try? reservations?.recordExpiry(guardRecord, expiresAt: scopedReceipt.expiresAt!)
             return result
         } catch {
             let failure = MCPWriteFailure.from(error)
@@ -298,24 +324,24 @@ extension MCPWriteCoordinator {
             do {
                 try recoveryHook()
                 guard let durable = try receipts?.lookup(tool: command.tool, key: command.key, durable: true),
-                    durable.id == guardRecord.receiptID
+                    MCPWriteCommitScope.matches(durable, guardRecord: guardRecord)
                 else { return uncertain(command) }
                 if let result = replay(durable) { return result }
                 // The disk probe establishes that durable accepted means the
                 // domain/result transaction did not commit.
-                guard let live = try receipts?.lookup(tool: command.tool, key: command.key) else {
-                    return uncertain(command)
-                }
-                return completeRejection(command, receipt: live, failure: failure)
+                let live = try scope.receipt(for: guardRecord)
+                return completeRejection(command, receipt: live, failure: failure,
+                                         guardRecord: guardRecord, scope: scope)
             } catch { return uncertain(command) }
         }
     }
 
-    fileprivate func recover(_ command: MCPWriteCommand, guardRecord: MCPLocalReservation) -> MCPToolResult {
+    fileprivate func recover(_ command: MCPWriteCommand, guardRecord: MCPLocalReservation,
+                             batchPolicy: MCPBatchWritePolicy?) -> MCPToolResult {
         do {
             try recoveryHook()
             guard let receipt = try receipts?.lookup(tool: command.tool, key: command.key, durable: true),
-                receipt.id == guardRecord.receiptID, receipt.requestJSON == guardRecord.requestJSON
+                MCPWriteCommitScope.matches(receipt, guardRecord: guardRecord)
             else {
                 return uncertain(command)
             }
@@ -325,60 +351,93 @@ extension MCPWriteCoordinator {
                 }
                 return result
             }
+            if batchPolicy?.makeCommitServices != nil {
+                return rejectInOwnedScope(command, guardRecord: guardRecord,
+                    failure: .init("INTERRUPTED_BEFORE_COMMIT", "Accepted operation did not commit"),
+                    batchPolicy: batchPolicy)
+            }
             guard let live = try receipts?.lookup(tool: command.tool, key: command.key) else {
                 return uncertain(command)
             }
             if services.context.hasChanges { try save(services.context, .baseline) }
             return completeRejection(
                 command, receipt: live,
-                failure: .init("INTERRUPTED_BEFORE_COMMIT", "Accepted operation did not commit"))
+                failure: .init("INTERRUPTED_BEFORE_COMMIT", "Accepted operation did not commit"),
+                guardRecord: guardRecord)
         } catch { return uncertain(command) }
     }
 
     fileprivate func rejectBeforeDomain(
         _ command: MCPWriteCommand, guardRecord: MCPLocalReservation,
-        failure: MCPWriteFailure
+        failure: MCPWriteFailure, batchPolicy: MCPBatchWritePolicy?
     ) -> MCPToolResult {
         do {
             try recoveryHook()
-            if let durable = try receipts?.lookup(tool: command.tool, key: command.key, durable: true),
-                let result = replay(durable) {
-                return result
+            if let durable = try receipts?.lookup(tool: command.tool, key: command.key, durable: true) {
+                guard MCPWriteCommitScope.matches(durable, guardRecord: guardRecord) else { return uncertain(command) }
+                if let result = replay(durable) { return result }
+            }
+            if batchPolicy?.makeCommitServices != nil {
+                let scope = try MCPWriteCommitScope(shared: services, scopeID: guardRecord.scopeID, policy: batchPolicy)
+                let live: MCPWriteReceipt
+                if try scope.receipts.lookup(tool: command.tool, key: command.key) != nil {
+                    live = try scope.receipt(for: guardRecord)
+                } else {
+                    // This branch is reached only after acceptance save failed,
+                    // before preparation/domain apply; genuine absence is proven.
+                    live = try scope.receipts.insert(guardRecord, acceptedAt: clock())
+                }
+                return completeRejection(command, receipt: live, failure: failure,
+                                         guardRecord: guardRecord, scope: scope)
             }
             guard let receipts else { return uncertain(command) }
             let live =
                 try receipts.lookup(tool: command.tool, key: command.key)
                 ?? receipts.insert(guardRecord, acceptedAt: clock())
-            return completeRejection(command, receipt: live, failure: failure)
+            return completeRejection(command, receipt: live, failure: failure, guardRecord: guardRecord)
         } catch { return uncertain(command) }
     }
 
     fileprivate func completeRejection(
         _ command: MCPWriteCommand, receipt: MCPWriteReceipt,
-        failure: MCPWriteFailure
+        failure: MCPWriteFailure, guardRecord: MCPLocalReservation, scope: MCPWriteCommitScope? = nil
     ) -> MCPToolResult {
+        guard MCPWriteCommitScope.matches(receipt, guardRecord: guardRecord) else { return uncertain(command) }
         let envelope = MCPWriteOutcome.failure(
             tool: command.tool, key: command.key, failure: failure, accepted: true)
+        let context = scope?.context ?? services.context
         do {
             let result = try stageTerminal(receipt, envelope: envelope, rejected: true)
-            try save(services.context, .rejection)
+            try save(context, .rejection)
             if let binding = try? reservations?.lookup(tool: command.tool, key: command.key),
                 let expiry = receipt.expiresAt {
                 try? reservations?.recordExpiry(binding, expiresAt: expiry)
             }
             return result
         } catch {
-            for model in services.context.insertedModelsArray { services.context.delete(model) }
-            services.context.safeRollback()
+            for model in context.insertedModelsArray { context.delete(model) }
+            context.safeRollback()
             do {
                 try recoveryHook()
                 if let durable = try receipts?.lookup(tool: command.tool, key: command.key, durable: true),
+                    MCPWriteCommitScope.matches(durable, guardRecord: guardRecord),
                     let result = replay(durable) {
                     return result
                 }
             } catch {}
             return uncertain(command)
         }
+    }
+
+    private func rejectInOwnedScope(_ command: MCPWriteCommand, guardRecord: MCPLocalReservation,
+                                    failure: MCPWriteFailure, batchPolicy: MCPBatchWritePolicy?) -> MCPToolResult {
+        do {
+            let scope = try MCPWriteCommitScope(shared: services, scopeID: guardRecord.scopeID, policy: batchPolicy)
+            let receipt = try scope.receipt(for: guardRecord)
+            if let retained = replay(receipt) { return retained }
+            return completeRejection(command, receipt: receipt, failure: failure,
+                                     guardRecord: guardRecord, scope: scope)
+        } catch { return uncertain(command) }
     }
 
     fileprivate func stageTerminal(_ receipt: MCPWriteReceipt, envelope: [String: Any], rejected: Bool) throws

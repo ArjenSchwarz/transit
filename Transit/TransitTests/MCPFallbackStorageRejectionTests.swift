@@ -116,6 +116,7 @@ struct MCPFallbackStorageRejectionTests {
     func readToolsStillWork() async throws {
         let env = try makeEnv()
         seedProjectAndTask(in: env.context)
+        try env.context.save()
 
         let tasks = await env.handler.handle(
             MCPTestHelpers.toolCallRequest(

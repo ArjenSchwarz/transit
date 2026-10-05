@@ -55,11 +55,23 @@ key may be accepted as new work. Unresolved bindings never expire under this pol
 deduplication is not provided, even when CloudKit synchronizes receipt records.
 
 Revisions match `r1:[0-9a-f]{64}` and compare exact locally observed entity content. Task revisions
-cover its own stored fields, assignments and comment content/membership; parent project/milestone
-renames do not invalidate the task. Milestone revisions exclude its task collection; project revisions
+cover its own stored fields, assignments, comment content/membership and every physical active
+incident link tuple under task-links-v1, including empty incidence. Opposite endpoint labels/status
+and removal-evidence expiry do not invalidate that content token; parent project/milestone renames
+also remain outside coverage. Historic retained tokens/results are never reminted. Milestone revisions exclude its task collection; project revisions
 exclude child collections. No-ops keep their revision; restoring identical covered content restores
 the same token. Tokens are neither timestamps nor monotonic counters. Edits not yet imported from
 CloudKit cannot be detected, and later sync merges can still conflict.
+
+## Standalone typed task links
+
+`create_task` accepts optional addition-only `linkChanges`; `update_task` accepts up to50 explicit add/remove directives and exact `endpointPreconditions`. Public types are `blocks`, `blocked-by`, `relates-to`, `introduced-by` and `duplicate-of`. Direction matters for dependencies, attribution and duplicates; associations are symmetric. UUID endpoints remain canonical identities; duplicate links do not redirect writes or consolidate records.
+
+An addition supplies `action:add`, `type` and `targetTaskId`. A removal supplies `action:remove`, exact `edgeId` and its `l1` occurrence fingerprint, never a replacement relationship set. The source uses its current graph-covered `r1`; guards for uniquely affected existing opposite endpoints use their current `r1`. Exact no-ops require the source guard but no unnecessary opposite guard. An exact malformed/dangling occurrence may be removed as repair without absorbing unrelated corruption. Separate immutable removal evidence recognizes an identical fresh-key removal no-op for seven days; expired/unavailable evidence fails closed. Re-additions receive new occurrence identities. No-op retries preserve timestamps and original evidence.
+
+Whole input shape is validated before key acceptance. Saved reference/precondition/cycle/selector failures are accepted domain outcomes after exact retained replay lookup. The final phase resolves fresh saved state and applies task fields, physical link changes, separate removal evidence and terminal receipt in one owned local-context save. Participating MCP operations cannot interleave that synchronous phase; independent containers or sync/import writers may race, and projections diagnose available conflicts. This provides no global CloudKit atomicity or all-writer fence. UI drafts are neither returned by saved reads nor included in owned writes. Retained replay remains byte-identical and performs no repair or save.
+
+`mutate_tasks` rejects `linkChanges` and `endpointPreconditions` throughout its whole-shape preflight, before any item is accepted. Existing non-link items still use graph-covered revisions and the participating owned-save policy. There is no link editor, automatic duplicate merge, relationship closure operation or deletion shortcut.
 
 ## Application batch task mutations
 

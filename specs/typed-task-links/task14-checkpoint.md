@@ -1,0 +1,9 @@
+# Owned link-write integration checkpoint
+
+The foundation reconciliation preserved old typed checkpoint `7d7271f0c86ed337ae52b0cb49fc152fea8f6a47` on local branch `T-1734/pre-landed-foundation-20261005`. Exactly 21 unique typed commits were rebased from the reviewed T-2384 foundation `fe76adae712045d770b902c02b6f86c8e4980f9e` onto landed `origin/main` `e04c1268ee37bd4ae925d4d686954cf2121005c7`, producing `9c8695e0070666b0902434c26b449881ba8d3023`. Code, tests and Makefile were identical before and after reconciliation. Only three already-landed batch review documents differed (17 additions, two deletions). The old worktree and canonical main were preserved; no ancestry-only verification rerun was required.
+
+Task 13's actual protected-handler RED run at `9c8695e` is retained at `/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t1734-writes-red.hxgi38zq`: build exit 0, run exit 65, 15 expanded failures, zero passes/skips/runtime warnings, host PID 16289 drained. The missing adapter rejected link-bearing operations before acceptance; these were behavioral capability failures rather than compilation or discovery failures.
+
+The task 14 candidate installs the feature adapter in the production handler and each participating batch item. Each operation receives a fresh sealed service scope and plan holder. Saved source and endpoint preconditions and the complete proposed graph are validated synchronously; command-owned task application precedes exact physical graph deletion/addition, and the final covered record and receipt share the existing sole domain save. Creation chooses its final UUID after allocation and uses it in the proposed graph and insertion. No independent-writer/import exclusion or remote atomicity is claimed.
+
+Focused strict SwiftLint and whitespace checks passed before pinning this candidate. Runtime GREEN remains pending; this note does not mark task 14 complete.

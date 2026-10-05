@@ -57,13 +57,15 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
 
 ### Data Model
 
-Six SwiftData entities:
+Eight SwiftData entities:
 - **Project** → has many **Tasks** and many **Milestones**
 - **TransitTask** → belongs to one Project, optionally belongs to one Milestone, has many Comments
 - **Milestone** → belongs to one Project, has many Tasks. Statuses: open / done / abandoned
 - **Comment** → belongs to one Task. Has `authorName`, `isAgent` flag, and `content`
 - **SyncHeartbeat** → singleton record whose `lastBeat` timestamp triggers CloudKit sync cycles
 - **MCPWriteReceipt** → same-store accepted/terminal write state and saved replay result, scoped to the originating local store even when synced
+- **TaskLinkOccurrence** → immutable scalar UUID/kind/endpoints/time for each physical active relationship; no task relationships or delete cascades
+- **TaskLinkRemovalEvidence** → separate immutable occurrence fingerprint and removal time, recognized for seven days; no automatic task consolidation
 
 Both tasks and milestones have a UUID and a separate `permanentDisplayId` integer for human-facing use (T-1, M-3), allocated via CloudKit counter records with optimistic locking and provisional fallback when offline.
 
@@ -107,6 +109,7 @@ All business logic lives in `Services/`, not in views:
 - **ContainerFactory** — creates ModelContainer with graceful fallback to in-memory on error
 - **ConnectivityMonitor** — NWPathMonitor wrapper, triggers display ID promotion for both tasks and milestones on connectivity restore
 - **QuickActionService** — home screen quick action handling
+- **Task links** (`Services/TaskLinks/`) — saved value graph projection, direct blocker/duplicate assessments, proposed delta validation, exact repair evidence and bounded cleanup. Physical UUID collisions and dangling occurrences remain visible; task deletion does not silently cascade links.
 - **EditMerge** (`EditMerge.swift`, plus `TaskEditMerge`/`ProjectEditMerge`/`MilestoneEditMerge`) — three-way merge (load-time baseline vs. form vs. live model) used by the task, project, and milestone editors so a save writes only the fields the user changed and same-field conflicts are surfaced instead of silently resolved. The merge retains the original, edited, and live snapshots so conflict consent is scoped to the exact values the alert showed and is re-validated when the button is pressed. Each editor supplies a field enum, a snapshot (including per-field `replacing(_:withValueFrom:)`), an applier, and load-once draft state (a value-type form where appropriate).
 
 ### Navigation
@@ -148,6 +151,7 @@ Key implementation files:
 - `MCP/MCPToolDefinitions.swift` — tool schemas with input validation
 - `MCP/MCPTypes.swift` — shared JSON-RPC types; exposed transport is latest-only `2026-07-28` via `MCP/Protocol` and `MCPServer+Routing.swift`
 - `MCP/BatchWrites/` — saved-only mutation previews and ordered per-item protected writes; no whole-batch receipt or transaction
+- `MCP/Links/` — typed relationship query options and saved graph result projection; protected standalone wire/owned-apply adapters live in `MCP/Writes/TaskLink*`.
 - `MCP/Results/` — immutable source/presentation, output schemas and complete response/fallback encoding
 - `MCP/Reads/` — bounded capture/admission/deadline/publication services
 - `MCP/MCPHelperTypes.swift` — query filter logic (`MCPQueryFilters`)
@@ -208,11 +212,11 @@ Services follow a consistent pattern: mutate in memory, then `save()`, rolling b
 ## Test Infrastructure
 
 - **Swift Testing** framework (not XCTest) for unit tests
-- **TestModelContainer** fixture (`TransitTests/TestModelContainer.swift`) — creates an isolated in-memory container with `cloudKitDatabase: .none` and an explicit `Schema` including all five models. All three properties (schema, in-memory, no CloudKit) are required to avoid conflicts.
+- **TestModelContainer** fixture (`TransitTests/TestModelContainer.swift`) — creates an isolated in-memory container with `cloudKitDatabase: .none` and an explicit `Schema` including all eight current entities (Project, TransitTask, Comment, Milestone, SyncHeartbeat, MCPWriteReceipt, TaskLinkOccurrence and TaskLinkRemovalEvidence). All three properties (schema, in-memory, no CloudKit) are required to avoid conflicts.
 - Each test constructs `let testContainer = try TestModelContainer()` and derives `testContainer.context`; helpers that create SwiftData storage should return or store the owning fixture rather than only a context/service
 - Custom-schema and multi-context tests use `TestModelContainer(schema:configurations:)`; direct `ModelContainer` construction and raw container/context factories in test sources are rejected by the ownership guard run from `make lint`
 - SwiftData test suites must use `@Suite(.serialized)` to prevent concurrent access issues
-- UI tests use `TRANSIT_UI_TEST_SCENARIO` environment variable (`empty` or `board`) for deterministic seeded data
+- UI tests use `TRANSIT_UI_TEST_SCENARIO` environment variable (`empty`, `board`, `duplicateDisplayIds`, `taskLinks` or `taskLinksAmbiguous`) for deterministic seeded data
 - MCP tool handler tests use `MCPTestHelpers.swift` for common setup patterns
 
 ## Key Design Decisions
