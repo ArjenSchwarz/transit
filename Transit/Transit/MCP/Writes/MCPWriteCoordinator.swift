@@ -296,7 +296,8 @@ extension MCPWriteCoordinator {
         defer { context.autosaveEnabled = autosave }
         do {
             try batchPolicy?.validateBeforeApply(command, context)
-            var envelope = try command.apply(prepared, using: scope.services)
+            var envelope = try command.apply(
+                prepared, using: scope.services, afterTaskApply: batchPolicy?.afterTaskApply)
             envelope["contractVersion"] = 1
             envelope["tool"] = command.tool
             envelope["idempotencyKey"] = command.key

@@ -145,7 +145,7 @@ build: build-ios build-macos
 # Nested macro sandboxing is unavailable in some already-sandboxed runners.
 # Set MCP_PROBE_SWIFT_FLAGS=-disable-sandbox there; the outer runner policy stays active.
 MCP_PROBE_SWIFT_FLAGS ?=
-MCP_PROBE_MODELS = Transit/Transit/Models/{Project,TransitTask,Comment,Milestone,SyncHeartbeat,DisplayID,TaskPriority,TaskStatus,TaskType,MilestoneStatus,MCPWriteReceipt,TaskLinkOccurrence,TaskLinkRemovalEvidence}.swift
+MCP_PROBE_MODELS = Transit/Transit/Models/{Project,TransitTask,Comment,Milestone,SyncHeartbeat,DisplayID,TaskPriority,TaskStatus,TaskType,MilestoneStatus,MCPWriteReceipt,TaskLinkOccurrence,TaskLinkRemovalEvidence}.swift Transit/Transit/Services/TaskLinks/TaskLinkGraphValues.swift
 
 # These standalone executables never launch Transit. Runtime children use a
 # network-denying sandbox and synthetic stores confined to DerivedData/tmp.
@@ -200,7 +200,7 @@ test-mcp-write-guards: prepare-cache-dirs
 .PHONY: test-mcp-write-foundation
 test-mcp-write-foundation: prepare-cache-dirs
 	xcrun swiftc $(MCP_PROBE_SWIFT_FLAGS) -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
-		$(MCP_PROBE_MODELS) Transit/Transit/MCP/Writes/{MCPCanonicalJSON,MCPRecordSnapshot,MCPRecordRevision,MCPLocalReservationStore,MCPWriteReceiptStore}.swift \
+		$(MCP_PROBE_MODELS) Transit/Transit/MCP/Writes/{MCPCanonicalJSON,MCPRecordSnapshot,MCPRecordRevision,TaskLinkIncidence,MCPLocalReservationStore,MCPWriteReceiptStore}.swift \
 		Transit/Transit/Services/CommentInputValidation.swift Transit/Transit/Services/CommentService.swift Transit/Transit/Extensions/ModelContext+{Save,SafeRollback}.swift \
 		tests/mcp-write-probe/FoundationProbe.swift -o $(DERIVED_DATA)/mcp-write-foundation-probe
 	$(DERIVED_DATA)/mcp-write-foundation-probe

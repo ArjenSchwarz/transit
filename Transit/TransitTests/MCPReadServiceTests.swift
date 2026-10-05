@@ -292,7 +292,7 @@ extension MCPReadServiceTests {
                 let values = try context.fetch(FetchDescriptor<TransitTask>())
                 let corrupt = try #require(values.first { $0.permanentDisplayId == 2 })
                 corrupt.creationDate = Date(timeIntervalSinceReferenceDate: .nan)
-                #expect(throws: (any Error).self) { try MCPRecordSnapshot.task(corrupt) { _ in [] } }
+                #expect(throws: (any Error).self) { try MCPRecordSnapshot.task(corrupt, incidence: []) { _ in [] } }
                 return values
             })
         let service = MCPReadService(source: Source(fixture, builder: builder), monitor: MCPImportEvidenceMonitor(

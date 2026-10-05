@@ -32,8 +32,7 @@ struct TaskLinkRevisionTests {
         })
         var arguments: [String: Any] = ["taskId": fixture.source.id.uuidString,
                                       "expectedRevision": legacy, "idempotencyKey": "legacy-" + tool]
-        if tool == "update_task" { arguments["name"] = "must not save" }
-        else { arguments["status"] = "abandoned" }
+        if tool == "update_task" { arguments["name"] = "must not save" } else { arguments["status"] = "abandoned" }
         let coordinator = fixture.coordinator(save: { context, _ in try context.save() })
         let result = try fixture.decode(await coordinator.execute(tool: tool, arguments: arguments))
         #expect(result["outcome"] as? String == "rejected")
@@ -48,7 +47,7 @@ struct TaskLinkRevisionTests {
 
     @Test func legacyCommentOnlyOverloadReportsMissingGraphCoverage() throws {
         let fixture = try TaskLinkCommitDiskFixture()
-        let snapshot = try MCPRecordSnapshot.task(fixture.source) { _ in [] }
+        let snapshot = try MCPRecordSnapshot.task(fixture.source, incidence: nil) { _ in [] }
         #expect(snapshot.record["graphCoverage"] as? String == "unavailable")
         #expect(snapshot.record["revisionCoverage"] as? String == "task-fields-comments-v1")
     }
@@ -115,6 +114,35 @@ struct TaskLinkRevisionTests {
         #expect(record["graphCoverage"] as? String == "available")
         #expect(record["comments"] == nil)
         #expect(task.revision == (try MCPRecordSnapshot.task(fixture.source, in: fixture.owner.context).revision))
+    }
+
+    @Test func directIncidencePermutationPreservesRepeatedRawTuples() throws {
+        let fixture = try TaskLinkCommitDiskFixture()
+        let rows = try TaskLinkIncidence.capture(fixture.source.id, in: fixture.owner.context)
+        let row = try #require(rows.first)
+        let other = TaskLinkOccurrenceValue(physicalKey: Data(), id: UUID(), kind: "future-kind",
+                                           source: row.target, target: row.source, createdAt: fixture.instant)
+        let left = try MCPRecordSnapshot.task(fixture.source, incidence: [row, other, row]) { _ in [] }
+        let right = try MCPRecordSnapshot.task(fixture.source, incidence: [row, row, other]) { _ in [] }
+        #expect(left.revision == right.revision)
+        let fewer = try MCPRecordSnapshot.task(fixture.source, incidence: [row, other]) { _ in [] }
+        #expect(left.revision != fewer.revision)
+    }
+
+    @Test func actualBatchPreviewRejectsTokenAfterSavedLinkOnlyChange() throws {
+        let fixture = try MCPBatchTaskPreviewFixture()
+        let request = try fixture.request([fixture.item()])
+        fixture.owner.context.insert(TaskLinkOccurrence(id: UUID(), kindRawValue: "attribution",
+            sourceTaskID: fixture.targets[0].id, targetTaskID: fixture.targets[1].id, createdAt: Date()))
+        try fixture.owner.context.save()
+        let report = try MCPBatchTaskPreview.evaluate(request, container: fixture.owner.container,
+            persistence: PersistenceAvailability(isFallbackStorageActive: false), includeComments: false)
+        let entry = try #require(report.entries.first)
+        #expect(entry.state == .invalid && entry.code == "REVISION_CONFLICT")
+        let coverage = MCPBatchTaskPreviewFixture.field("revisionCoverage", entry.current)
+        #expect(coverage == .string("task-fields-comments-links-v1"))
+        #expect(MCPBatchTaskPreviewFixture.field("graphCoverage", entry.current) == .string("available"))
+        #expect(MCPBatchTaskPreviewFixture.field("comments", entry.current) == nil)
     }
 
     @Test func retainedReceiptReplayStaysByteIdenticalAfterIncidenceChanges() async throws {

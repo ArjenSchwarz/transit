@@ -110,7 +110,11 @@ extension MCPToolHandler {
             }
         }
         if full {
-            let snapshot = try MCPRecordSnapshot.task(task) { _ in comments }
+            guard let context = task.modelContext else {
+                throw MCPTaskQueryError(code: "QUERY_FAILED", message: "Saved graph context is unavailable")
+            }
+            let snapshot = try MCPRecordSnapshot.task(task, incidence: TaskLinkIncidence.capture(task.id, in: context,
+                includePendingChanges: false)) { _ in comments }
             var record = snapshot.record
             if !request.includeComments { record.removeValue(forKey: "comments") }
             if let metadata = record["metadata"] as? [String: String], metadata.isEmpty {

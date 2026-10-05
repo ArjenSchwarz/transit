@@ -11,11 +11,12 @@ struct TaskLinkOwnedScopeTests {
         let inserted = UUID(), removed = UUID()
         var validatedContext: ModelContext?
         var savedContext: ModelContext?
-        let policy = MCPBatchWritePolicy(makeCommitServices: fixture.commitServices) { _, context in
+        let policy = MCPBatchWritePolicy(makeCommitServices: fixture.commitServices, afterTaskApply: { _, _, services in
+            try fixture.stageGraph(context: services.context, insertedID: inserted, evidenceID: removed)
+        }, validateBeforeApply: { _, context in
             #expect(context !== fixture.owner.context && !context.autosaveEnabled && !context.hasChanges)
             validatedContext = context
-            try fixture.stageGraph(context: context, insertedID: inserted, evidenceID: removed)
-        }
+        })
         let coordinator = fixture.coordinator(save: { context, stage in
             if case .commit = stage { savedContext = context }
             try context.save()
@@ -40,9 +41,9 @@ struct TaskLinkOwnedScopeTests {
     func scopedFailureRollsBackOnlyOwnedGraphAndRetainsOutcomeEvidence(failure: String) async throws {
         let fixture = try TaskLinkCommitDiskFixture()
         let inserted = UUID(), removed = UUID()
-        let policy = MCPBatchWritePolicy(makeCommitServices: fixture.commitServices) { _, context in
-            try fixture.stageGraph(context: context, insertedID: inserted, evidenceID: removed)
-        }
+        let policy = MCPBatchWritePolicy(makeCommitServices: fixture.commitServices, afterTaskApply: { _, _, services in
+            try fixture.stageGraph(context: services.context, insertedID: inserted, evidenceID: removed)
+        })
         let coordinator = fixture.coordinator(save: { context, stage in
             if case .commit = stage, failure != "encode" { throw TaskLinkCommitDiskFixture.Failure.injected }
             try context.save()

@@ -70,14 +70,15 @@ struct TaskLinkParticipatingBoundaryTests {
                 sourceTaskID: fixture.source.id, targetTaskID: fixture.target.id, createdAt: fixture.instant))
             try peer.context.save()
         })
-        let policy = MCPBatchWritePolicy { _, context in
+        let policy = MCPBatchWritePolicy(afterTaskApply: { _, _, services in
+            try fixture.stageGraph(context: services.context, insertedID: proposedID, evidenceID: removalID)
+        }, validateBeforeApply: { _, _ in
             let fresh = try fixture.observer()
             let edges = try fresh.context.fetch(FetchDescriptor<TaskLinkOccurrence>())
             guard !fixture.hasCycle(edges.filter { $0.kindRawValue == "dependency" }) else {
                 throw MCPWriteFailure("GRAPH_CONFLICT", "Saved cycle before apply")
             }
-            try fixture.stageGraph(context: context, insertedID: proposedID, evidenceID: removalID)
-        }
+        })
         let result = await coordinator.execute(tool: "update_task", arguments: try fixture.updateArguments(),
                                                batchPolicy: policy)
         #expect(try fixture.decode(result)["outcome"] as? String == "rejected")
@@ -94,9 +95,9 @@ struct TaskLinkParticipatingBoundaryTests {
         let fixture = try TaskLinkCommitDiskFixture()
         let insertedID = UUID(), evidenceID = UUID()
         let coordinator = fixture.coordinator(save: { context, _ in try context.save() })
-        let policy = MCPBatchWritePolicy { _, context in
-            try fixture.stageGraph(context: context, insertedID: insertedID, evidenceID: evidenceID)
-        }
+        let policy = MCPBatchWritePolicy(afterTaskApply: { _, _, services in
+            try fixture.stageGraph(context: services.context, insertedID: insertedID, evidenceID: evidenceID)
+        })
         let result = await coordinator.execute(tool: "update_task", arguments: try fixture.updateArguments(),
                                                batchPolicy: policy)
         #expect(try fixture.decode(result)["outcome"] as? String == "committed")

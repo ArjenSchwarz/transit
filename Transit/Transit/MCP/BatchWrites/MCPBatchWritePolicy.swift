@@ -13,6 +13,7 @@ import SwiftData
 
     let onPendingEditsStop: @MainActor () -> Void
     let makeCommitServices: (@MainActor (ModelContext) throws -> MCPWriteCommitServices)?
+    let afterTaskApply: MCPWriteCommand.AfterTaskApply?
     let validateBeforeApply: @MainActor (MCPWriteCommand, ModelContext) throws -> Void
 
     /// Swift's forward matching can bind an unlabelled trailing closure to the
@@ -30,9 +31,11 @@ import SwiftData
     init(
         makeCommitServices: (@MainActor (ModelContext) throws -> MCPWriteCommitServices)? = nil,
         onPendingEditsStop: @escaping @MainActor () -> Void = {},
+        afterTaskApply: MCPWriteCommand.AfterTaskApply? = nil,
         validateBeforeApply: @escaping @MainActor (MCPWriteCommand, ModelContext) throws -> Void =
             MCPBatchWritePolicy.validateTaskIdentity
     ) {
+        self.afterTaskApply = afterTaskApply
         self.validateBeforeApply = validateBeforeApply
         self.onPendingEditsStop = onPendingEditsStop
         self.makeCommitServices = makeCommitServices

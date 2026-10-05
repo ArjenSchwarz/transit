@@ -119,9 +119,9 @@ struct TaskLinkProtectedBoundaryTests {
         }, recovery: {
             if failure == "uncertain" { throw TaskLinkCommitDiskFixture.Failure.injected }
         })
-        let policy = MCPBatchWritePolicy { _, context in
-            try fixture.stageGraph(context: context, insertedID: insertedID, evidenceID: evidenceID)
-        }
+        let policy = MCPBatchWritePolicy(afterTaskApply: { _, _, services in
+            try fixture.stageGraph(context: services.context, insertedID: insertedID, evidenceID: evidenceID)
+        })
         let result = await coordinator.execute(tool: "update_task", arguments: try fixture.updateArguments(),
                                                batchPolicy: policy)
         #expect(try fixture.decode(result)["outcome"] as? String == (failure == "uncertain" ? "uncertain" : "rejected"))
@@ -153,13 +153,17 @@ struct TaskLinkProtectedBoundaryTests {
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["T1734_OUTSIDE_WRITER_OBSERVATIONS"] == "1"),
           arguments: ["endpoint", "cycle"])
+    // This single control retains both the outside-writer interleaving and original byte replay assertions.
+    // swiftlint:disable:next function_body_length
     func outsideWriterAfterValidationRemainsSavedAndRetainedReplayIsUnchanged(race: String) async throws {
         let fixture = try TaskLinkCommitDiskFixture()
         let arguments = try fixture.updateArguments()
         let peer = try fixture.observer()
         let insertedID = UUID(), evidenceID = UUID()
         var validated = false
-        let policy = MCPBatchWritePolicy { _, context in
+        let policy = MCPBatchWritePolicy(afterTaskApply: { _, _, services in
+            try fixture.stageGraph(context: services.context, insertedID: insertedID, evidenceID: evidenceID)
+        }, validateBeforeApply: { _, _ in
             let fresh = try fixture.observer()
             let target = try fixture.task(fixture.target.id, in: fresh.context)
             guard target.statusRawValue == "done" else { throw MCPWriteFailure("GRAPH_CONFLICT", "Endpoint changed") }
@@ -167,8 +171,7 @@ struct TaskLinkProtectedBoundaryTests {
                 .filter { $0.kindRawValue == "dependency" && $0.id != fixture.edge.id }
             guard !fixture.hasCycle(dependencies) else { throw MCPWriteFailure("GRAPH_CONFLICT", "Dependency cycle") }
             validated = true
-            try fixture.stageGraph(context: context, insertedID: insertedID, evidenceID: evidenceID)
-        }
+        })
         let coordinator = fixture.coordinator(save: { context, stage in
             if case .commit = stage {
                 if race == "endpoint" {

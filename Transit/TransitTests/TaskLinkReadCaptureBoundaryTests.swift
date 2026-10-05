@@ -24,6 +24,18 @@ struct TaskLinkReadCaptureBoundaryTests {
         #expect(try owner.context.fetchCount(FetchDescriptor<TaskLinkOccurrence>()) == 1)
     }
 
+    @Test func retentionClockStartsBeforeCopyResumes() throws {
+        let owner = try TestModelContainer()
+        var resumedAt: ContinuousClock.Instant?
+        let builder = MCPReadCaptureBuilder(container: owner.container, fence: .actorOnlyTestFixture,
+            afterProjects: { resumedAt = ContinuousClock.now })
+        let view = try builder.capture(request())
+        let resumed = try #require(resumedAt)
+        #expect(view.createdAt <= resumed)
+        #expect(view.createdAt.duration(to: view.retentionDeadline) == .seconds(300))
+        #expect(view.taskLinkGraph?.evaluationInstant == view.metadata.asOf)
+    }
+
     @Test func capturedEndpointMultiplicityRemainsInvalid() throws {
         let owner = try TestModelContainer()
         let project = Project(name: "collision", description: "", gitRepo: nil, colorHex: "blue")

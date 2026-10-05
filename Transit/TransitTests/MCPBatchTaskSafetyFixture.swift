@@ -51,7 +51,8 @@ import Testing
 
     static func diskOwner(at url: URL) throws -> TestModelContainer {
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self,
-                             SyncHeartbeat.self, MCPWriteReceipt.self])
+                             SyncHeartbeat.self, MCPWriteReceipt.self,
+                             TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self])
         let configuration = ModelConfiguration(schema: schema, url: url, cloudKitDatabase: .none)
         let result = try TestModelContainer(schema: schema, configurations: [configuration])
         result.context.autosaveEnabled = false
