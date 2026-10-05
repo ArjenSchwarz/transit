@@ -30,7 +30,7 @@ The original worktree's task14 evidence remains historical, including early qual
 
 ## Publication and downstream boundaries
 
-The actual push attempt was rejected by automatic approval review before execution. Its stated reason was sensitive private-source/documentation egress to GitHub and lack of explicit destination/payload approval in the trusted messages it recognised. Recorded owner approval exists in prior handoff context, but this rejection was not bypassed. No push, PR, external Claude review or merge occurred. Parent action is required to establish recognised approval for publishing this exact reviewed branch to `git@github.com:ArjenSchwarz/transit.git` before resuming PRPilot. Local archive bookkeeping was committed separately without network access.
+Earlier push attempts were rejected before execution by automatic approval review. The owner subsequently gave explicit trusted approval for this repository destination and source/documentation payload, with branch pushes approved and direct pushes to main excluded. The same normal push route then succeeded, and [PR253](https://github.com/ArjenSchwarz/transit/pull/253) was opened. Claude's first actual review and check passed; its suggestions were validated with no unresolved blocker/critical/major issue. Fresh final review and PR merge remain pending. The rejected checkpoints are historical; no workaround bypassed them.
 
 The owner explicitly approved GitHub pushes, disclosure to the configured Claude reviewer, and eligible overnight merges. Earlier automatic approval denials are historical and have been resolved by that approval. PRPilot will record actual external review/check/merge outcomes on the PR and in the final parent report; this document does not preclaim them.
 

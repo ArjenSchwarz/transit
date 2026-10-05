@@ -142,6 +142,16 @@
     "PRCreated": false,
     "externalClaudeReviewPerformed": false,
     "mergePerformed": false,
-    "parentAction": "Provide recognised destination/payload authority through normal approval route"
+    "parentAction": "Provide recognised destination/payload authority through normal approval route",
+    "resolution": "Owner explicit trusted destination/payload approval; normal branch push succeeded and PR253 opened. Initial denial fields describe the rejected attempt only."
+  },
+  "publicationStatus": {
+    "pushedHead": "fe76adae712045d770b902c02b6f86c8e4980f9e",
+    "PR": 253,
+    "url": "https://github.com/ArjenSchwarz/transit/pull/253",
+    "firstClaudeReview": "Posted; suggestions validated, no unresolved major issue",
+    "firstClaudeCheck": "success",
+    "merge": "Pending final review/checks",
+    "directMainPushPerformed": false
   }
 }
