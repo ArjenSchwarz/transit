@@ -1,12 +1,12 @@
 import Foundation
 import SwiftData
-
 /// Coordinates task creation, status changes, and lookups. Uses StatusEngine
 /// for all status transitions and DisplayIDAllocator for display ID assignment.
 @MainActor @Observable
 final class TaskService {
-
     private let modelContext: ModelContext
+    /// Read adapters create their own saved-only context; UI models never escape this seam.
+    var savedReadContainer: ModelContainer { modelContext.container }
     private let displayIDAllocator: DisplayIDAllocator
     private let createSave: (ModelContext) throws -> Void
     private let statusSave: (ModelContext) throws -> Void

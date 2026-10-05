@@ -195,6 +195,7 @@ nonisolated struct ReadCaptureRequest: Sendable {
     /// Output preference only; fullRecord/portfolio still capture canonical comment coverage.
     let includeComments: Bool
     let taskLinkBudget: TaskLinkGraphBudget?
+    let taskLinkOptions: TaskLinkQueryOptions?
     /// Runs inside the fence before dependent entity fetches; no relationship values escape.
     let validateProjects: (@MainActor @Sendable ([ReadProjectIdentity]) throws -> Void)?
 
@@ -211,12 +212,13 @@ nonisolated struct ReadCaptureRequest: Sendable {
          validateMilestones: (@MainActor @Sendable ([ReadMilestoneIdentity]) throws -> Bool)? = nil,
          selectTaskBodies: ReadTaskBodySelection? = nil,
          selectMilestoneBodies: ReadMilestoneBodySelection? = nil,
-         taskLinkBudget: TaskLinkGraphBudget? = nil) {
+         taskLinkBudget: TaskLinkGraphBudget? = nil, taskLinkOptions: TaskLinkQueryOptions? = nil) {
         self.projectSelectors = projectSelectors
         self.selection = selection
         self.completeness = completeness
         self.includeComments = includeComments
         self.taskLinkBudget = taskLinkBudget
+        self.taskLinkOptions = taskLinkOptions
         self.validateProjects = validateProjects
         self.validateMilestones = validateMilestones
         self.selectTaskBodies = selectTaskBodies
@@ -227,7 +229,8 @@ nonisolated struct ReadCaptureRequest: Sendable {
         ReadCaptureRequest(projectSelectors: projectSelectors, selection: selection, completeness: completeness,
             includeComments: includeComments, validateProjects: validateProjects,
             validateMilestones: validateMilestones,
-            selectTaskBodies: selectTaskBodies, selectMilestoneBodies: selectMilestoneBodies, taskLinkBudget: budget)
+            selectTaskBodies: selectTaskBodies, selectMilestoneBodies: selectMilestoneBodies, taskLinkBudget: budget,
+            taskLinkOptions: taskLinkOptions)
     }
 }
 

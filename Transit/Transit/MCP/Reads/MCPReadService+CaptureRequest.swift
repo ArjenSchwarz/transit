@@ -47,7 +47,7 @@ extension MCPReadService {
                     guard tool == "query_milestones" else { return [] }
                     return try MCPReadProjection.milestoneBodyKeys(values, arguments: fields.mapValues(\.value),
                         projectID: state.project?.id)
-                })
+                }, taskLinkOptions: query?.graphOptions)
     }
 
     private final class ValidationState {

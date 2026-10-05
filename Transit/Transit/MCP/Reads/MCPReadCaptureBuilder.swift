@@ -153,7 +153,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                 guard request.projectSelectors != nil else { return true }
                 return try milestone.project.map { selectedKeys.contains(try key($0)) } ?? false
             }
-            let bodyKeys = try request.selectTaskBodies?(tasks.map(taskSelectionValue)) ?? Set(tasks.map(key))
+            let bodyKeys = try request.taskBodyKeys(tasks.map(taskSelectionValue), graph: graph)
             let milestoneBodyKeys = try milestoneBodyKeys(request, all: allMilestones, scoped: milestones)
             let bodyTasks = try tasks.filter { bodyKeys.contains(try key($0)) }
             let full = fullRecordSelection(request.selection)

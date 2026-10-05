@@ -105,7 +105,9 @@ final class MCPReadService: MCPReadCapturedPreparing {
         let captured = capsule.view
         let results: [[String: Any]]
         if let query {
-            results = try MCPReadProjection.tasks(captured, request: query, arguments: arguments)
+            results = try MCPReadProjection.tasks(captured, request: query, arguments: arguments,
+                budget: TaskLinkGraphBudget(deadline: try MCPPortfolioReadEncoding.publicationDeadline(operation),
+                    checkpoint: { try MCPPortfolioReadEncoding.check(operation) }))
         } else {
             let checkpoint = {
                 guard operation.shouldContinue() else { throw ReadExecutionError.timeout }

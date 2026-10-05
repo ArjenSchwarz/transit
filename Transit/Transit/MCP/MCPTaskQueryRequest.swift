@@ -22,6 +22,7 @@ struct MCPTaskQueryRequest: Sendable {
     let includeComments: Bool
     let limit: Int
     let selector: Selector
+    var graphOptions: TaskLinkQueryOptions?
 
     static let filterKeys: Set<String> = [
         "project", "projectId", "status", "not_status", "unfinished", "type", "priority",
@@ -39,9 +40,9 @@ struct MCPTaskQueryRequest: Sendable {
                 throw MCPTaskQueryError(code: "INVALID_CURSOR", message: "Invalid cursor; start a new query")
             }
             return Self(readPolicy: policy, cursor: cursor, detailLevel: "summary",
-                        includeComments: false, limit: 1, selector: .list)
+                        includeComments: false, limit: 1, selector: .list, graphOptions: nil)
         }
-        let allowed = filterKeys.union([
+        let allowed = filterKeys.union(TaskLinkQueryOptions.keys).union([
             "detailLevel", "includeComments", "limit", "displayId", "taskIds", "displayIds", "readPolicy"
         ])
         guard Set(args.keys).isSubset(of: allowed) else {
@@ -59,7 +60,7 @@ struct MCPTaskQueryRequest: Sendable {
         let selectors = ["displayId", "taskIds", "displayIds"].filter { args[$0] != nil }
         guard selectors.count <= 1 else { throw MCPTaskQueryError.invalid("Use only one task selector") }
         if args["taskIds"] != nil || args["displayIds"] != nil {
-            guard filterKeys.isDisjoint(with: args.keys) else {
+            guard filterKeys.union(TaskLinkQueryOptions.keys).isDisjoint(with: args.keys) else {
                 throw MCPTaskQueryError.invalid("Batch selectors cannot be combined with filters")
             }
         }
@@ -86,7 +87,8 @@ struct MCPTaskQueryRequest: Sendable {
             selector = .list
         }
         return Self(readPolicy: try policy(args["readPolicy"]), cursor: nil, detailLevel: detail,
-                    includeComments: comments, limit: limit, selector: selector)
+                    includeComments: comments, limit: limit, selector: selector,
+                    graphOptions: try TaskLinkQueryOptions.parse(args))
     }
 
     private static func policy(_ raw: Any?) throws -> MCPReadPolicy? {

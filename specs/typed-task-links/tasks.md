@@ -128,7 +128,7 @@ metadata:
   - Requirements: [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [4.6](requirements.md#4.6), [1.3](requirements.md#1.3), [3.2](requirements.md#3.2), [3.5](requirements.md#3.5), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [7.3](requirements.md#7.3), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 15. Red: test ordinary query filters, frozen detail and modern result parity <!-- id:ev1ktla -->
+- [x] 15. Red: test ordinary query filters, frozen detail and modern result parity <!-- id:ev1ktla -->
   - Write TaskLinkQueryTests for hasLinks/type/opposite UUID/direction/unblocked plus existing selectors, incoming duplicate direct targets, complete blocker assessments and unsupported/conflicting options.
   - Test certified blocked-only unblocked:false, invalid matching neither value, scoped closure/count/order compatibility, frozen pages across edits/imports/expiry, missing graph coverage, reused graph options rejected before publication, and semantic text/structured parity.
   - Assert query/output descriptions cover saved-only scope, blockers/canonical resolution, body omission versus empty incidence, new r1 coverage/old-token conflicts, immutable historic receipts and explicit missing historic graph coverage.
@@ -137,7 +137,7 @@ metadata:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [6.5](requirements.md#6.5), [6.6](requirements.md#6.6), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 16. Green: implement ordinary query filters, frozen detail and modern result parity <!-- id:ev1ktlb -->
+- [-] 16. Green: implement ordinary query filters, frozen detail and modern result parity <!-- id:ev1ktlb -->
   - Wire MCPToolHandler+TaskQuery/definitions to the saved frozen graph and prepared tool result; add links/diagnostics/duplicateResolution/blockerAssessment while preserving authoritative tokens when bodies omitted.
   - Integrate T-2383 frozen encoder fragment and existing T-63 publication gates. T-2382 reusable project/status queries stay unchanged and reject graph options; no live enrichment, broadened selection/counts or guessed navigation URLs.
   - Describe saved-only scope, revision coverage transition, blocker/canonical rules, missing historic graph coverage and supported navigation directly in published tool/output contract guidance.

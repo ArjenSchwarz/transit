@@ -182,10 +182,11 @@ extension MCPToolDefinitions {
 
     nonisolated static let queryTasks = MCPToolDefinition(
         name: "query_tasks",
-        description: queryTasksDescription + "\n\n" + readExecutionDescription
+        description: queryTasksDescription + "\n\n" + TaskLinkQuerySchema.guidance + "\n\n" + readExecutionDescription
             + "\n\n" + MCPPortfolioToolDefinitions.snapshotTaskQueryDescription,
         inputSchema: JSONSchema(type: "object", properties: nil, required: nil, oneOf: [
-            JSONSchema(type: "object", properties: queryTaskProperties,
+            JSONSchema(type: "object",
+                       properties: queryTaskProperties.merging(TaskLinkQuerySchema.properties) { _, new in new },
                        required: ["detailLevel", "includeComments", "limit"], additionalProperties: false),
             MCPPortfolioToolDefinitions.reusableContinuationSchema,
             MCPPortfolioToolDefinitions.snapshotTaskQueryInitialSchema

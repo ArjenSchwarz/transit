@@ -4,24 +4,31 @@ import Foundation
 /// Pure projection of a saved value capture. No service lookup, fetch, save or publication.
 enum MCPReadProjection {
     static func tasks(_ view: CapturedReadView, request: MCPTaskQueryRequest,
-                      arguments: [String: Any]) throws -> [[String: Any]] {
+                      arguments: [String: Any],
+                      budget: TaskLinkGraphBudget = TaskLinkGraphBudget()) throws -> [[String: Any]] {
         let available = scopedTasks(view)
         switch request.selector {
         case .taskIDs(let ids):
             return try batch(view, request: request, inputs: ids.map {
                 (["taskId": $0], UUID(uuidString: $0)!.uuidString)
             },
-                             index: Dictionary(grouping: available) { $0.id.uuidString })
+                             index: Dictionary(grouping: available) { $0.id.uuidString }, budget: budget)
         case .displayIDs(let ids):
             return try batch(view, request: request, inputs: ids.map { (["displayId": $0], String($0)) },
                 index: Dictionary(grouping: available.filter { $0.permanentDisplayId != nil }) {
                     String($0.permanentDisplayId!)
-                })
+                }, budget: budget)
         case .list, .single:
             guard let filters = try filters(arguments, view: view) else { return [] }
-            let keys = try taskBodyKeys(available.map(selectionValue), request: request, filters: filters)
+            let selected = try taskBodyKeys(available.map(selectionValue), request: request, filters: filters)
+            let keys = try Set(available.filter { task in
+                try budget.check()
+                guard selected.contains(task.physicalKey) else { return false }
+                return try request.graphOptions?.matches(task.id, graph: view.taskLinkGraph, budget: budget) ?? true
+            }.map(\.physicalKey))
             return try available.filter { keys.contains($0.physicalKey) }
-                .sorted { $0.id.uuidString < $1.id.uuidString }.map { try task($0, view: view, request: request) }
+                .sorted { $0.id.uuidString < $1.id.uuidString }
+                .map { try task($0, view: view, request: request, budget: budget) }
         }
     }
 
@@ -33,14 +40,15 @@ enum MCPReadProjection {
 
     private static func batch(_ view: CapturedReadView, request: MCPTaskQueryRequest,
                               inputs: [(requested: [String: Any], key: String)],
-                              index: [String: [ReadTask]]) throws -> [[String: Any]] {
+                              index: [String: [ReadTask]], budget: TaskLinkGraphBudget) throws -> [[String: Any]] {
         var serialized: [LocalRecordKey: [String: Any]] = [:]
         return try inputs.enumerated().map { position, input in
+            try budget.check()
             var outcome: [String: Any] = ["index": position, "requested": input.requested]
             let matches = index[input.key] ?? []
             if matches.count == 1, let record = matches.first {
                 if serialized[record.physicalKey] == nil {
-                    serialized[record.physicalKey] = try task(record, view: view, request: request)
+                    serialized[record.physicalKey] = try task(record, view: view, request: request, budget: budget)
                 }
                 outcome["task"] = serialized[record.physicalKey]
             } else {
@@ -55,7 +63,8 @@ enum MCPReadProjection {
     }
 
     static func task(_ task: ReadTask, view: CapturedReadView,
-                     request: MCPTaskQueryRequest) throws -> [String: Any] {
+                     request: MCPTaskQueryRequest,
+                     budget: TaskLinkGraphBudget = TaskLinkGraphBudget()) throws -> [String: Any] {
         if request.detailLevel == "full" {
             guard task.revision != nil, let bytes = task.fullRecordWithoutCommentsJSON else {
                 throw MCPReadCaptureError.incoherentCapture
@@ -68,6 +77,8 @@ enum MCPReadProjection {
                 }
                 record["comments"] = try JSONSerialization.jsonObject(with: comments)
             }
+            let detail = try TaskLinkQueryProjection.detail(task.id, graph: view.taskLinkGraph, budget: budget)
+            record.merge(detail) { _, new in new }
             if (record["metadata"] as? [String: String])?.isEmpty == true { record.removeValue(forKey: "metadata") }
             return record
         }
