@@ -4,9 +4,9 @@ references:
     - specs/safe-task-consolidation/design.md
     - specs/safe-task-consolidation/decision_log.md
 metadata:
-    approval: pending
+    approval: approved-5921d795
     design: approved-7714e301
-    execution: planning-only
+    execution: queued-until-parent-confirms-Meddy-resource-release
 ---
 # Safe task consolidation implementation tasks
 

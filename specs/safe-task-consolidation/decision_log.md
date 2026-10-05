@@ -6,8 +6,8 @@
 | --- | --- |
 | Resume planning | Owner `Sentinel_c4dd914497c08191bc5612ccddd5449c`: “While Asterism is ongoing, start on the spec for 2381 and start planning the work for Meddy”. This branch owns T-2381 only. |
 | Scope, route and name | Approved by owner Sentinel_330b41f7115481918e53c2e1480c5dbc, replying “Approved” to Sentinel_efafa185b128819198b0fb0f045ba886; exact reviewed checkpoint 2bc58bbd. This approval permits requirements only. |
-| Requirements / design / tasks | Requirements approved by Sentinel_1e5655b5fba48191b5a5be8602d0cf1b against b1d02591dd214f1d2ca6cf3f196b52b01058076a and Library packet libfile_25ec8d9d5da48191875d258b9c419406. Design approved by Sentinel_21b7c9588ec88191b7d78732649d99a9 against 7714e30121baf55f51086924269bd253dc8bfd9b and Library packet libfile_31bf6900be6481919971a2a80d72763c. Task plan reviewed and awaiting owner approval; implementation not authorised. |
-| Implementation | Not authorised by this planning instruction. |
+| Requirements / design / tasks | Requirements approved by Sentinel_1e5655b5fba48191b5a5be8602d0cf1b against b1d02591dd214f1d2ca6cf3f196b52b01058076a and Library packet libfile_25ec8d9d5da48191875d258b9c419406. Design approved by Sentinel_21b7c9588ec88191b7d78732649d99a9 against 7714e30121baf55f51086924269bd253dc8bfd9b and Library packet libfile_31bf6900be6481919971a2a80d72763c. Task plan approved by Sentinel_30bf9cc075e48191997f3eaee84ba68d against 5921d7954304e4c5df34eca686f15fd7d89acb14 and Library packet libfile_fbcfd24510a88191b3fecffe6e61a9f3; conditional implementation authorisation recorded below. |
+| Implementation | Authorised conditionally by Sentinel_30bf9cc075e48191997f3eaee84ba68d; queued until the parent explicitly confirms Meddy has released shared build/test resources. No launch yet; no additional approval gate after resource release. |
 | Live bookkeeping | Paused with live MCP mutations; local records only. |
 
 ## Quick Decisions
@@ -128,3 +128,11 @@ Design-critic reviewed first, followed by independent correctness and integratio
 No new prerequisites or scope/design choices were introduced. Task approval completes planning only and does not authorize implementation or release heavy work reserved to Meddy. Live bookkeeping remains paused.
 
 Next owner gate: “Do the tasks look good?” Separate implementation authorization is still required after task approval.
+
+## Task approval and conditional implementation queue — 2026-10-05
+
+Assistant Sentinel_08ad6eb332088191a0d9f0651b46f17e presented the twenty-task, one-stream plan covering all twenty-eight criteria with reviews clean, and asked: “Do you approve the tasks and authorise implementation when Meddy has released the test resources?” Owner Sentinel_30bf9cc075e48191997f3eaee84ba68d replied: “Approved. How is Meddy progressing?” This approval applies to task checkpoint 5921d7954304e4c5df34eca686f15fd7d89acb14 and Library packet libfile_fbcfd24510a88191b3fecffe6e61a9f3.
+
+Parent instruction is to record this approval locally and remain queued until the parent confirms Meddy has released shared build/test resources. Implementation is authorised conditionally, with no further approval gate once that explicit resource-release confirmation arrives. Elapsed time, an idle worker, or an inferred resource state does not satisfy the condition. All twenty Rune tasks remain pending; no source changes, implementation launch or heavy checks have occurred. Live Transit bookkeeping remains paused.
+
+Planning approval is complete. Current state: queued, awaiting parent resource-release confirmation.
