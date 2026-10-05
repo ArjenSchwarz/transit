@@ -11,7 +11,7 @@ from prepare_unit_run import require, validated_unit_run
 def main():
     require(len(sys.argv) == 3, "Build-products path and RED/GREEN run tag required")
     tag = sys.argv[2]
-    require(tag in ("red", "green"), "Exact RED/GREEN run tag required")
+    require(tag in ("red", "green", "accounting"), "Exact RED/GREEN run tag required")
     products = pathlib.Path(sys.argv[1]).resolve()
     derived = products / f"T1734Capture-{tag}.xctestrun"
     result = products / f"T1734Capture-{tag}.xcresult"
@@ -21,6 +21,8 @@ def main():
     configuration, unit, host, info, entitlements, source = validated_unit_run(products)
     suites = ["TaskLinkReadCaptureTests", "TaskLinkReadCaptureBoundaryTests", "TaskLinkPlanTests",
               "MCPReadCaptureBuilderTests", "MCPReadCaptureScopeTests", "MCPReadCoordinatorTests"]
+    if tag == "accounting":
+        suites = ["TaskLinkReadCaptureBoundaryTests"]
     unit["OnlyTestIdentifiers"] = suites
     environment = unit["EnvironmentVariables"]
     for flag in ("T1734_TRANSACTION_DIAGNOSTIC", "T1734_TRANSACTION_ABORT_DIAGNOSTIC",
@@ -32,7 +34,7 @@ def main():
                *[f"-only-testing:TransitTests/{suite}" for suite in suites],
                "-resultBundlePath", str(result)]
     evidence = dict(host=str(host), bundleID=info["CFBundleIdentifier"], entitlements=entitlements,
-                    sourceXctestrun=str(source), suites=suites, expectedExpandedCases=49,
+                    sourceXctestrun=str(source), suites=suites, expectedExpandedCases=6 if tag == "accounting" else 51,
                     expectedSkips=0, launched=False, outsideWriterExclusion=False,
                     primitiveDiagnosticsExcluded=True, derivedXctestrun=str(derived),
                     resultBundlePath=str(result), expectedCommand=command)

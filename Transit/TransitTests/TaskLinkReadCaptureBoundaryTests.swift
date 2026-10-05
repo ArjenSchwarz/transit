@@ -75,9 +75,28 @@ struct TaskLinkReadCaptureBoundaryTests {
 
     @Test func retainedGraphIndicesAndDiagnosticsAreChargedAlongsideCapture() async throws {
         let owner = try TestModelContainer()
+        let project = Project(name: "charge", description: "", gitRepo: nil, colorHex: "blue")
+        let source = TransitTask(name: "source", type: .feature, project: project, displayID: .permanent(1))
+        let collision = TransitTask(name: "collision", type: .feature, project: project, displayID: .permanent(2))
+        collision.id = source.id
+        let row = TaskLinkOccurrence(id: UUID(), kindRawValue: "future-kind", sourceTaskID: source.id,
+                                     targetTaskID: UUID(), createdAt: Date())
+        let copy = TaskLinkOccurrence(id: row.id, kindRawValue: row.kindRawValue, sourceTaskID: row.sourceTaskID,
+                                      targetTaskID: row.targetTaskID, createdAt: row.createdAt)
+        owner.context.insert(project)
+        owner.context.insert(source)
+        owner.context.insert(collision)
+        owner.context.insert(row)
+        owner.context.insert(copy)
+        try owner.context.save()
         let builder = MCPReadCaptureBuilder(container: owner.container, fence: .actorOnlyTestFixture)
         let view = try builder.capture(request())
         let graph = try #require(view.taskLinkGraph)
+        #expect(graph.tasksById[source.id]?.count == 2)
+        #expect(graph.occurrencesById[row.id]?.count == 2)
+        #expect(graph.incidence[source.id]?.count == 2)
+        #expect(graph.invalidOccurrences.count == 2)
+        #expect(!graph.diagnostics.isEmpty)
         let without = CapturedReadView(completeness: view.completeness, captureScope: view.captureScope,
             metadata: view.metadata, createdAt: view.createdAt, retentionDeadline: view.retentionDeadline,
             projects: view.projects, tasks: view.tasks, milestones: view.milestones, comments: view.comments)
@@ -101,6 +120,30 @@ struct TaskLinkReadCaptureBoundaryTests {
             try await Task.sleep(for: .milliseconds(5))
         }
         #expect(coordinator.unfinishedCount == 0)
+    }
+
+    @Test(arguments: [8, 64])
+    func inputScalarsFitButRetainedIndexCapacityFailsWholeGraph(count: Int) throws {
+        let tasks = (0..<count).map { index in
+            TaskLinkTaskValue(physicalKey: Data(repeating: UInt8(index), count: 128), id: UUID(),
+                              name: String(repeating: "s", count: 200), status: "done")
+        }
+        let edges = (0..<(count - 1)).map { index in
+            TaskLinkOccurrenceValue(physicalKey: Data(repeating: UInt8(index), count: 128), id: UUID(),
+                kind: "dependency", source: tasks[index].id, target: tasks[index + 1].id, createdAt: Date())
+        }
+        let instant = Date()
+        let input = try TaskLinkGraphIndex(tasks: tasks, occurrences: edges, evidence: [], instant: instant,
+                                          budget: TaskLinkGraphBudget())
+        let cap = input.retainedBytes * 2
+        let complete = try TaskLinkGraph.project(tasks: tasks, occurrences: edges, removalEvidence: [],
+                                                evaluationInstant: instant)
+        #expect(input.retainedBytes < cap)
+        #expect(complete.retainedBytes > cap)
+        #expect(throws: TaskLinkGraphError.capacityExceeded) {
+            try TaskLinkGraph.project(tasks: tasks, occurrences: edges, removalEvidence: [],
+                                      evaluationInstant: instant, budget: TaskLinkGraphBudget(maximumBytes: cap))
+        }
     }
 
     private func request() -> ReadCaptureRequest {
