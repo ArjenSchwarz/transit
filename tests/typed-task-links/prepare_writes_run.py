@@ -11,7 +11,7 @@ from prepare_unit_run import require, validated_unit_run
 def main():
     require(len(sys.argv) == 3, "Build-products path and RED/GREEN run tag required")
     tag = sys.argv[2]
-    require(tag in ("red", "green"), "Exact RED/GREEN run tag required")
+    require(tag in ("red", "green", "green-keyfix"), "Exact RED/GREEN run tag required")
     products = pathlib.Path(sys.argv[1]).resolve()
     derived = products / f"T1734Writes-{tag}.xctestrun"
     result = products / f"T1734Writes-{tag}.xcresult"
