@@ -102,7 +102,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [3.2](requirements.md#3.2), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.4](requirements.md#4.4), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 12. Green: implement standalone wire deltas and accepted domain plan validation <!-- id:ev1ktl7 -->
+- [x] 12. Green: implement standalone wire deltas and accepted domain plan validation <!-- id:ev1ktl7 -->
   - Add MCP/Links delta DTO/parser and l1 immutable occurrence fingerprint; extend standalone create/update validation and schemas, supplying TaskLinkPlan with complete captured result and endpoint guards.
   - Explicitly reject linkChanges/endpointPreconditions in T-2384 batch shapes. Keep existing field/permission semantics and all accepted domain failures in the original protected operation; no replacement set, alternate spelling, endpoint-first-match or implicit revision chaining.
   - Tool schema descriptions are executable caller guidance: explain type/direction, exact occurrence/preconditions, omitted versus empty evidence and unsupported batch fields; do not change public type spellings.
@@ -112,7 +112,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [3.2](requirements.md#3.2), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.4](requirements.md#4.4), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 13. Red: test protected standalone link create/update integration <!-- id:ev1ktl8 -->
+- [-] 13. Red: test protected standalone link create/update integration <!-- id:ev1ktl8 -->
   - Write TaskLinkWriteIntegrationTests for mixed task fields/links, allocation awaits, endpoint revision races, no-op exact replay, repair-only unrelated corruption, deleted targets, accepted rejection, delivery/save failure and restart uncertainty.
   - Verify task/occurrence deletion/addition/removal evidence/terminal result in one local save, original-key/tool/store binding and seven-day receipt behavior; dirty UI drafts remain untouched on all success/error/recovery paths. No global CloudKit atomicity claim.
   - Blocked-by: ev1ktl7 (Green: implement standalone wire deltas and accepted domain plan validation), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment), ev1ktl3 (Green: implement bounded saved capture and graph-closure capacity)
