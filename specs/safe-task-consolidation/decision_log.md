@@ -7,7 +7,7 @@
 | Resume planning | Owner `Sentinel_c4dd914497c08191bc5612ccddd5449c`: “While Asterism is ongoing, start on the spec for 2381 and start planning the work for Meddy”. This branch owns T-2381 only. |
 | Scope, route and name | Approved by owner Sentinel_330b41f7115481918e53c2e1480c5dbc, replying “Approved” to Sentinel_efafa185b128819198b0fb0f045ba886; exact reviewed checkpoint 2bc58bbd. This approval permits requirements only. |
 | Requirements / design / tasks | Requirements approved by Sentinel_1e5655b5fba48191b5a5be8602d0cf1b against b1d02591dd214f1d2ca6cf3f196b52b01058076a and Library packet libfile_25ec8d9d5da48191875d258b9c419406. Design approved by Sentinel_21b7c9588ec88191b7d78732649d99a9 against 7714e30121baf55f51086924269bd253dc8bfd9b and Library packet libfile_31bf6900be6481919971a2a80d72763c. Task plan approved by Sentinel_30bf9cc075e48191997f3eaee84ba68d against 5921d7954304e4c5df34eca686f15fd7d89acb14 and Library packet libfile_fbcfd24510a88191b3fecffe6e61a9f3; conditional implementation authorisation recorded below. |
-| Implementation | Authorised conditionally by Sentinel_30bf9cc075e48191997f3eaee84ba68d; queued until the parent explicitly confirms Meddy has released shared build/test resources. No launch yet; no additional approval gate after resource release. |
+| Implementation | Authorised by Sentinel_30bf9cc075e48191997f3eaee84ba68d. Parent confirmed resource release and later returned the slot after the urgent Meddy fix. Phase 1 implementation and critic recheck complete; phase 2 proceeds in one stream. No further approval gate. |
 | Live bookkeeping | Paused with live MCP mutations; local records only. |
 
 ## Quick Decisions
@@ -175,3 +175,9 @@ Paired behavioral RED executed 4/4 declarations with all four failing and no cra
 - Real owned commitment suite: 10/10 declarations, 18/18 expanded cases. Adds actual large unchanged candidate preservation and stale transient raw-review rejection; existing one-save/reopen/r1/o1/receipt/fault controls remain green.
 
 All final runs had zero failures/skips, enforced nonzero discovery, and drained their owned test hosts. Evidence is under `/tmp/t2381-phase1-unit/Build/Products/T2381-{review-fix-green2,foundation-green2,owned-green4}-evidence.json` and corresponding `.xcresult` bundles. Final build passed (`/tmp/t2381-review-fix-green-build3.log`), strict `make lint` passed guards and zero violations in 664 Swift files (`/tmp/t2381-review-fix-lint4.log`), Python helper AST parse and `git diff --check` passed. Scalar/schema registrations are unchanged; the earlier four-stage closed migration proof remains applicable and was not repeated. Tasks 1–4 retain completed status on this corrected proof. No live store, advertised production tool, CHANGELOG or parent-owned review artifact was changed.
+
+## Phase 1 review acceptance and integration handoff — 2026-10-05
+
+Implementation checkpoint b1e9e4c481394839a8e5ba9980950280c58c0f74 established the durability foundation. The phase critic found unnecessary unchanged raw-field history copies and insufficient inverse-history validation; correction checkpoint 2e2a78157fffe418b8bc6bceee8bd602c45821cd fixes both with paired regressions. Critic recheck confirmed both findings resolved, no remaining phase-one blocker, and recorded final 5/10 correction, 8/12 foundation and 10/18 owned declarations/cases passed with zero skips and drained hosts.
+
+Root verified clean worktree and Rune four completed tasks. One available stream remains for tasks 5–20. The approved shared slot is available; the same implementation worker proceeds through the second phase. Final platform verification, pre-push review and PR workflow follow; no new merge authorisation is inferred and live bookkeeping remains paused.

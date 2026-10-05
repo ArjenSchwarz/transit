@@ -36,6 +36,7 @@
 | [MCP Project Creation](#mcp-project-creation) | 2026-10-02 | Ready for Review | Create projects through MCP with validation and reusable project metadata |
 | [Batch Task Queries](#batch-task-queries) | 2026-10-03 | Done | MCP task detail selection, batch lookup, and frozen cursor pagination |
 | [MCP Write Safety](#mcp-write-safety) | 2026-10-03 | Done | Add retry-safe MCP writes, local revision preconditions, and structured saved outcomes |
+| [Safe Task Consolidation](#safe-task-consolidation) | 2026-10-05 | In Progress | Reviewed saved consolidation and guarded whole undo; local durability foundation complete, integration in progress |
 | [Typed Task Links](#typed-task-links) | 2026-10-03 | Done | Saved typed task relationships with guarded edits, graph-covered revisions and frozen queries |
 | [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | Ready for Review | Structured/text results and latest-only transport locally verified; client compatibility explicitly deferred post-merge |
 | [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | Done | Bound MCP read completion and report immutable saved capture/import evidence |
@@ -471,3 +472,13 @@ T-2384 provides `mutate_tasks` as one modern application tool call with advisory
 - [Fresh reconciled publication verification](batch-task-mutations/publication-verification.json)
 - [Final handoff](batch-task-mutations/final-handoff.md)
 - [Local pre-push review archive](batch-task-mutations/local-review.json)
+
+## Safe Task Consolidation
+
+T-2381 preserves caller-selected originals while applying a reviewed same-project consolidation through the existing protected coordinator. Four of twenty tasks are complete: additive closed-store migration, bounded changed-field history and owned group/history/receipt commitment. Previews, apply/undo integration, native history and composed verification remain pending; live CloudKit and production activation are outside this work.
+
+- [scope-assessment.md](safe-task-consolidation/scope-assessment.md)
+- [requirements.md](safe-task-consolidation/requirements.md)
+- [design.md](safe-task-consolidation/design.md)
+- [tasks.md](safe-task-consolidation/tasks.md)
+- [decision_log.md](safe-task-consolidation/decision_log.md)
