@@ -56,7 +56,6 @@ extension MCPToolHandler {
         return ReadCaptureRequest(projectSelectors: nil,
             selection: .tasks(detail: request.detailLevel == "full" ? .fullRecord : .summary),
             completeness: .selectedRead, includeComments: request.includeComments,
-            taskLinkBudget: budget, taskLinkOptions: request.graphOptions,
             validateProjects: { [self] projects in
                 let args = fields.mapValues(\.value)
                 try checkTaskQueryProjectStorage(args)
@@ -73,7 +72,7 @@ extension MCPToolHandler {
                 return true
             }, selectTaskBodies: { values in
                 try MCPReadProjection.taskBodyKeys(values, request: request, filters: state.filters)
-            })
+            }, taskLinkBudget: budget, taskLinkOptions: request.graphOptions)
     }
 
     func encodeQueryPages(
