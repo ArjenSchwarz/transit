@@ -2,6 +2,13 @@ import Foundation
 import SwiftData
 
 @MainActor enum TaskLinkEvidenceMaintenance {
+    /// Startup alone invokes maintenance; unit/UI memory hosts stay inactive.
+    static func atStartup(container: ModelContainer, mode: AppPersistencePolicy.Mode,
+                          persistence: PersistenceAvailability) {
+        guard !mode.usesMemoryStore, !persistence.isFallbackStorageActive else { return }
+        _ = try? cleanup(container: container, instant: Date(), limit: 128, budget: TaskLinkGraphBudget())
+    }
+
     /// At most 512 candidates scanned and 128 deletions in one startup pass.
     /// Unsafe evidence remains untouched; this is not a remote sync safety horizon.
     static func cleanup(container: ModelContainer, instant: Date, limit: Int,

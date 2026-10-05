@@ -154,7 +154,7 @@ metadata:
   - Requirements: [1.3](requirements.md#1.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [6.4](requirements.md#6.4), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 18. Green: implement seven-day repair evidence expiry and clean maintenance <!-- id:ev1ktld -->
+- [x] 18. Green: implement seven-day repair evidence expiry and clean maintenance <!-- id:ev1ktld -->
   - Implement seven-day evidence recognition/expiry and a bounded maintenance hook in TaskLinkService using its own clean autosave-disabled context. Preserve actual platform occurrence deletion and do not add a custom tombstone or history purge protocol.
   - Wire maintenance to an existing safe owned lifecycle hook, outside read/preview/graph commit. Remove only eligible evidence after fresh identity revalidation; stale completion/cleanup must not alter retained graph or imply retry/convergence safety.
   - Blocked-by: ev1ktlc (Red: test seven-day repair evidence expiry and clean maintenance), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment), ev1ktl3 (Green: implement bounded saved capture and graph-closure capacity)
@@ -162,7 +162,7 @@ metadata:
   - Requirements: [1.3](requirements.md#1.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [6.4](requirements.md#6.4), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 19. Red: test saved native relationship visibility and unique navigation <!-- id:ev1ktle -->
+- [-] 19. Red: test saved native relationship visibility and unique navigation <!-- id:ev1ktle -->
   - Write TaskLinkNativeProjectionTests and focused automated UI/navigation tests for saved endpoint labels under unsaved drafts, unsaved source unavailable, missing/colliding destination UUIDs, saved import refresh and cancellation of stale task/generation completions.
   - Assert no first-match navigation at click or TaskDetailWindowView resolution; read-only incident direction/canonical diagnostics use the existing iOS/macOS detail patterns.
   - Blocked-by: ev1ktld (Green: implement seven-day repair evidence expiry and clean maintenance), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment), ev1ktl3 (Green: implement bounded saved capture and graph-closure capacity)
