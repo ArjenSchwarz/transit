@@ -43,11 +43,11 @@ struct MCPToolHandlerTests {
         let result = try #require(json["result"] as? [String: Any])
         let tools = try #require(result["tools"] as? [[String: Any]])
 
-        #expect(tools.count == 12)
+        #expect(tools.count == 13)
         let names = tools.compactMap { $0["name"] as? String }
         #expect(Set(names) == Set(["create_task", "update_task_status", "query_tasks", "update_task", "add_comment",
             "get_projects", "create_project", "create_milestone", "query_milestones", "update_milestone",
-            "delete_milestone", "query_project_summaries"]))
+            "delete_milestone", "query_project_summaries", "mutate_tasks"]))
         #expect(names.contains("create_task"))
         #expect(names.contains("update_task_status"))
         #expect(names.contains("query_tasks"))

@@ -1,0 +1,53 @@
+{
+  "deliveryCommit": "b21e358c8a5ea1e287afe332c1fc50d83303ce19",
+  "sourceCommit": "543c4a757e4cb7f9f73c973d7cb1be5725c8f342",
+  "imported": [
+    {
+      "path": "Transit/Transit/MCP/Results/MCPJSONDocument.swift",
+      "sha256": "7efd3387f8b262d2a253343ce976f562dab830fe7aa2954832c6a11e1fae725c"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultAdapter.swift",
+      "sha256": "b27522345f88c6a28a2a5ccc5d339bb89859bcecf794ced5e7f20314d3802254"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultByteWriter.swift",
+      "sha256": "2aae6f485a5648c38bb83df76a2f7f5320d387d1e0b9ad66867c16020d6760c0"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultClassification.swift",
+      "sha256": "8d3664f62cce2e142174235e060a00bfb02d92cfc4b4f3b1b81c8b26968a7380"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultEncoder.swift",
+      "sha256": "177abf4f9b5b6158047de2c0ff0ad179565d8a1d1c50027403a902d3aaa77127"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultInspection.swift",
+      "sha256": "5202d57c29a946a6e64ebb26ce5512f19aa1d5460a766141d30789af5c7fc2f1"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultLinks.swift",
+      "sha256": "c31ec2298e3d90d56f71ba79a430eec94184a71876350e4b4ed0a7d277cf0036"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultProviderSelection.swift",
+      "sha256": "49d54b6e3591c5e8eb37bb7c9d2779aa4d6309de055447a42ffb161e16dbdc62"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultSchemas.swift",
+      "sha256": "ebb3af861af669af946f0b94eb3b3c68fd276e4be9416b180545ba383cf20338"
+    },
+    {
+      "path": "Transit/Transit/MCP/Results/MCPResultSource.swift",
+      "sha256": "524fe680c37db3670d283bb1e02d8a48a15195dc9ffc8aaa8ff5712e62337068"
+    }
+  ],
+  "protectedUnchanged": {
+    "Transit/Transit/MCP/Writes/MCPWriteCoordinator.swift": "a1c040d1f007b1f2a3db27e64c2336c6670bac2b2e340204220414f92874a7d4",
+    "Transit/Transit/TransitApp.swift": "64382a046f849f41b0015ee779a3e5ca956f241e4fedc5f260a51ef4ecaf34b6",
+    "Transit/Transit.xcodeproj/project.pbxproj": "322614fe5cf1f6d2ba88e04c5bf46b44600c41a9f448149aa9f81d547ba6daee",
+    "Makefile": "ec6fd731fd3fca59881077368f3fb1d8b2c29d399518f3747be3ae0732891c86"
+  },
+  "scope": "Task3 exact immutable source/encoder dependencies; no server binding or isolation import; no runtime verification"
+}

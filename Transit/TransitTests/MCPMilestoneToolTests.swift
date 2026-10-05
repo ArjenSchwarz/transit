@@ -23,13 +23,13 @@ struct MCPMilestoneToolTests {
         let names = tools.compactMap { $0["name"] as? String }
         #expect(Set(names) == Set(["create_task", "update_task_status", "query_tasks", "update_task", "add_comment",
             "get_projects", "create_project", "create_milestone", "query_milestones", "update_milestone",
-            "delete_milestone", "query_project_summaries"]))
+            "delete_milestone", "query_project_summaries", "mutate_tasks"]))
         #expect(names.contains("create_milestone"))
         #expect(names.contains("query_milestones"))
         #expect(names.contains("update_milestone"))
         #expect(names.contains("delete_milestone"))
         #expect(names.contains("update_task"))
-        #expect(tools.count == 12)
+        #expect(tools.count == 13)
     }
 
     // MARK: - create_milestone

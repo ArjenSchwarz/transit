@@ -2,12 +2,11 @@
 import Foundation
 
 // MARK: - Tool Definitions
-
 nonisolated enum MCPToolDefinitions {
     static let coreTools: [MCPToolDefinition] = [
         createTask, updateTaskStatus, queryTasks, addComment, getProjects, createProject,
         createMilestone, queryMilestones, updateMilestone, deleteMilestone, updateTask,
-        MCPPortfolioToolDefinitions.queryProjectSummaries
+        MCPPortfolioToolDefinitions.queryProjectSummaries, MCPBatchToolDefinition.definition
     ]
 
     static let maintenanceTools: [MCPToolDefinition] = [
@@ -23,15 +22,19 @@ nonisolated enum MCPToolDefinitions {
         includingMaintenance ? coreTools + maintenanceTools : coreTools
     }
 
-    /// Uses the same selected definitions without altering their public input contracts.
     static func modernTools(includingMaintenance: Bool) throws -> [MCPModernToolDescriptor] {
         try tools(includingMaintenance: includingMaintenance).map { definition in
-            MCPModernToolDescriptor(
-                name: definition.name,
-                description: definition.description,
-                inputSchema: try MCPJSONDocument.parse(JSONEncoder().encode(definition.inputSchema)),
-                resultSchema: try MCPResultSchemas.descriptor(
-                    tool: definition.name, description: definition.description))
+            let input: MCPJSONDocument
+            let result: MCPResultSchemaDescriptor
+            if definition.name == "mutate_tasks" {
+                input = try MCPBatchTaskSchema.inputSchema()
+                result = try MCPBatchTaskOutputSchema.descriptor(description: definition.description)
+            } else {
+                input = try MCPJSONDocument.parse(JSONEncoder().encode(definition.inputSchema))
+                result = try MCPResultSchemas.descriptor(tool: definition.name, description: definition.description)
+            }
+            return MCPModernToolDescriptor(name: definition.name, description: definition.description,
+                inputSchema: input, resultSchema: result)
         }
     }
 

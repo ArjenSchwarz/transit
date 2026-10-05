@@ -1,0 +1,32 @@
+{
+  "status": "SOURCE ONLY; Task7 in progress; no meaningful RED yet",
+  "base": "6eae0f3",
+  "declarations": 25,
+  "bodies": 68,
+  "intendedPlaceholderBodies": 53,
+  "existingControlBodies": 15,
+  "noAppJobExecuted": true,
+  "ownedFiles": {
+    "Transit/Transit/Services/CommentInputValidation.swift": "6559ed200988b9d4d72f7d284f2ab98b12907da87ae8fb9b1ec2b50501e71350",
+    "Transit/Transit/MCP/BatchWrites/MCPTaskMutationValidation.swift": "09c186ae0ab5cf6a1e74baecaa1944ec3bf3abf04f3490bc1fe30d057ca13f9c",
+    "Transit/Transit/MCP/BatchWrites/MCPBatchTaskPreview.swift": "4e1b05a0282e229e35f083c4d3821981aa54e2e5e7863a260d68bec8327fe395",
+    "Transit/TransitTests/MCPBatchTaskPreviewFixture.swift": "905f13fd09369a914763b7b5be6cece149e5894cddc7e46193335d38dc5ba235",
+    "Transit/TransitTests/MCPBatchTaskPreviewTests.swift": "e0115616d04d6659f0851b2a82bea0bf67baf93e5d20e143647b3810db84465d",
+    "Transit/TransitTests/MCPTaskMutationValidationTests.swift": "bd413773b58209d2ad0ca909216d8f2a0d7d7f68a72d7c8af5636b63c97b4026"
+  },
+  "protectedFilesUnchanged": [
+    "Transit/Transit/MCP/Writes/MCPWriteCoordinator.swift",
+    "Transit/Transit/Services/CommentService.swift",
+    "Transit/Transit/Services/TaskService.swift",
+    "Transit/Transit/MCP/Writes/MCPWriteCommand.swift",
+    "Transit/Transit/TransitApp.swift",
+    "Transit/Transit.xcodeproj/project.pbxproj",
+    "Makefile"
+  ],
+  "oldFixtureFilesUnchanged": 9,
+  "readinessDirectory": ".codex-cache/task7-red-readiness",
+  "sourceReview": "Independent root source review clear for 46363eecd2a929d452297c1abd851cf188efa278; see task7-red-review.md. No runtime RED result or Task8 authority.",
+  "runtimeLimits": "Syntax parse is not typecheck. Static effect guard supplements descriptor spies, noChanges, pending preservation and canonical durable readback; discarded constructor/clock calls are prohibited by source guard, not global runtime interception. No coordinator/sidecar constructor or write services supplied to preview.",
+  "expectedFailures": "Preview and pure helper shells throw explicit notImplemented. Existing CommentService/TaskService/TaskUpdateValidator/protected-command controls must independently pass.",
+  "requiredStart": "Parent exclusive heavy START after reviewed sourcepin/signature/hash/inventory guards. No Task8 source until meaningful RED reviewed."
+}

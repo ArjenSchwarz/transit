@@ -28,7 +28,7 @@ import Testing
             commentService: env.commentService, milestoneService: env.milestoneService,
             maintenanceService: env.maintenanceService, settings: env.mcpSettings,
             taskQuerySnapshots: snapshots, writeCoordinator: env.writeCoordinator, readService: service,
-            readCoordinator: env.handler.readCoordinator)
+            readCoordinator: env.handler.readCoordinator, batchContainer: env.context.container)
         return MCPTestEnv(handler: handler, taskService: env.taskService, projectService: env.projectService,
             commentService: env.commentService, milestoneService: env.milestoneService,
             maintenanceService: env.maintenanceService, mcpSettings: env.mcpSettings, context: env.context,
@@ -40,6 +40,10 @@ import Testing
                                task: TransitTask, milestone: Milestone) throws -> [String: Any] {
         var args: [String: Any] = [:]
         switch tool {
+        case "mutate_tasks":
+            args = ["mode": "dry_run", "items": [["itemId": "modern.smoke", "operation": "update_task",
+                "arguments": ["taskId": task.id.uuidString, "idempotencyKey": "modern.batch.smoke",
+                    "expectedRevision": try MCPRecordSnapshot.task(task, in: env.context).revision]]]]
         case "create_project": args = ["name": "New Project", "colorHex": "#334455"]
         case "create_task": args = ["name": "New Task", "type": "feature", "projectId": project.id.uuidString]
         case "create_milestone": args = ["name": "New Milestone", "projectId": project.id.uuidString]

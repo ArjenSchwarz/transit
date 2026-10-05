@@ -39,6 +39,7 @@
 | [Structured MCP Results](#structured-mcp-results) | 2026-10-03 | Ready for Review | Structured/text results and latest-only transport locally verified; client compatibility explicitly deferred post-merge |
 | [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | Done | Bound MCP read completion and report immutable saved capture/import evidence |
 | [Portfolio Summaries](#portfolio-summaries) | 2026-10-04 | Done | Saved portfolio counts and reusable frozen task views; qualified native verification complete |
+| [Batch Task Mutations](#batch-task-mutations) | 2026-10-04 | Done | Saved-only previews and ordered per-item MCP task writes; fresh native verification complete, publication pending |
 
 ---
 
@@ -423,3 +424,20 @@ T-2382 completes regression coverage and caller guidance for the portfolio imple
 - [Tasks](portfolio-summaries/tasks.md)
 - [Implementation](portfolio-summaries/implementation.md)
 - [Acceptance qualifications](portfolio-summaries/integration-acceptance.md)
+
+## Batch Task Mutations
+
+T-2384 provides `mutate_tasks` as one modern application tool call with advisory saved-only previews and ordered per-item protected writes. Original receipts, revision checks and retry evidence remain authoritative; complete preencoded fallback protects post-effect serialization failure. All 14 tasks and fresh macOS/iOS/UI acceptance are complete locally. Client readiness and specific publication/disclosure approvals remain separate release boundaries.
+
+- [Scope](batch-task-mutations/scope.md)
+- [Requirements](batch-task-mutations/requirements.md)
+- [Design](batch-task-mutations/design.md)
+- [Tasks](batch-task-mutations/tasks.md)
+- [Decision log](batch-task-mutations/decision_log.md)
+- [Implementation explanation and evidence](batch-task-mutations/implementation.md)
+- [Three-level explanation](batch-task-mutations/explanation.md)
+- [Final critical review](batch-task-mutations/final-critical-review.md)
+- [Original native acceptance](batch-task-mutations/task14-green-actual.json)
+- [Fresh reconciled publication verification](batch-task-mutations/publication-verification.json)
+- [Final handoff](batch-task-mutations/final-handoff.md)
+- [Local pre-push review archive](batch-task-mutations/local-review.json)

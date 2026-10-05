@@ -1,0 +1,121 @@
+{
+  "ticket": "T-2384",
+  "task": 14,
+  "status": "GREEN verified; all14Rune tasks complete",
+  "verifiedCodePin": "5c42c7e059e8c810e89d366f0889aef132adf5c5",
+  "reviewMode": "Four internal pre-push peers and independent root source/runtime review; external disclosure not authorized",
+  "integrationSourceCommits": [
+    "226b59454de946e6b497d11d75ef1e41db0e9926",
+    "5b66fe33dc96a8ffc6bc81a64b5d65257fc81549",
+    "5c42c7e059e8c810e89d366f0889aef132adf5c5"
+  ],
+  "focusedAttempt1": {
+    "sourcePin": "5b66fe33dc96a8ffc6bc81a64b5d65257fc81549",
+    "buildExit": 65,
+    "runtimeExecuted": false,
+    "failure": "Throwing modern schema calls needed explicit try; reviewed narrow correction preserved schema semantics"
+  },
+  "focusedGREEN": {
+    "declarations": 17,
+    "actualCases": 22,
+    "buildExit": 0,
+    "runtimeExit": 0,
+    "finalized": true,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": [],
+    "ownedRemaining": []
+  },
+  "freshMacOSUnits": {
+    "declarations": 2409,
+    "actualCases": 3049,
+    "compiledToExecutedIdentityMatch": true,
+    "includesTwoRepetitionLeaves": true,
+    "runtimeExit": 0,
+    "finalized": true,
+    "failed": 0,
+    "skipped": 0,
+    "expectedFailures": 0,
+    "runtimeWarnings": [],
+    "ownedRemaining": []
+  },
+  "freshIOSUnits": {
+    "declarations": 1289,
+    "actualCases": 1334,
+    "compiledToExecutedIdentityMatch": true,
+    "buildExit": 0,
+    "runtimeExit": 0,
+    "finalized": true,
+    "failed": 0,
+    "skipped": 0,
+    "expectedFailures": 0,
+    "runtimeWarnings": [],
+    "ownedRemaining": []
+  },
+  "freshIOSUI": {
+    "declarations": 21,
+    "actualCases": 24,
+    "compiledToExecutedMethodMatch": true,
+    "nativeDisplayNormalization": "Only native testLaunch omits empty () suffix; exact suite/method identities and all24leaves verified",
+    "runtimeExit": 0,
+    "finalized": true,
+    "failed": 0,
+    "skipped": 0,
+    "expectedFailures": 0,
+    "runtimeWarnings": [],
+    "ownedRemaining": []
+  },
+  "iosPreflight": {
+    "firstAttempt": "Fail closed before app launch because inherited macOS get-task-allow predicate does not apply to simulator empty entitlements",
+    "acceptedAttempt": "signed-preflight-attempt2.json; root reviewed exact iOS27 simulator platform/development identity/private Debug hostpaths/strict signatures/noCloud/push/groups; separate fullunit unit-test and fullUI ui-test launches"
+  },
+  "lightChecks": {
+    "finalMakeLintExit": 0,
+    "swiftFiles": 596,
+    "ownershipSchemaDevelopmentGuards": true,
+    "syntaxParseExit": 0,
+    "whitespaceExit": 0
+  },
+  "coverage": "Native Xcode results retained; no invented JUnit or coverage data",
+  "cleanup": {
+    "ownedDisposableSimulator": "14C40035-BADD-46EF-BA94-52875A387F30",
+    "deletedAfterNormalDrain": true,
+    "otherSimulatorsUntouched": true,
+    "persistentTestStores": "Retained; no unmatched cleanup guard or old unmarked directory deletion"
+  },
+  "publication": "No push, PR, deployment, client activation, live writes or external review disclosure",
+  "remaining": "Root-owned final phase documentation, CHANGELOG/OVERVIEW and local review HTML; installed-client readiness deferred to post-merge MacBook validation",
+  "artifacts": {
+    ".codex-cache/task14-green-attempt2-readiness/native-summary.json": "5553d1955c25f12daf97193d68d8f36957c688a0daaee2d2d2b8ef1956806c81",
+    ".codex-cache/task14-green-attempt2-readiness/native-tests.json": "2d0b229b38b5de267688540259e19a2df4afde0e8e740079f14208c656b72e57",
+    ".codex-cache/task14-green-attempt2-readiness/drain.json": "986e34b4958a1d565ce169d33bbccff7efcfaf8ac8025bd8c3e7ff0bd9b3990a",
+    ".codex-cache/task14-green-attempt2-readiness/host-preflight.json": "bc1a5a291cec99503b077bc8488d07247f617ac4cedab7baa07ba7588bc9fff1",
+    ".codex-cache/task14-green-attempt2-readiness/compiled-inventory-verification.json": "05d98f046907dae063fc5ad9b30b3f84c36af1c0deeaf8b9d16b6d164d70e530",
+    ".codex-cache/task14-green-attempt2-readiness/focused-green-build.log": "ac4120ba0b11527d3a071cde700d7a4db6a4a8834b385d0d1cdad0c886cf5432",
+    ".codex-cache/task14-green-attempt2-readiness/focused-green-test.log": "a3334549c8b2e5cce8ea066e2022db782add7ae4bc653ec68c88fa14c3cd3db2",
+    ".codex-cache/final-macos-units/native-summary.json": "401da4ffb1c0a7d9904579f70145b3aa6e36550246fb072fc2ad7719f7049c78",
+    ".codex-cache/final-macos-units/native-tests.json": "147d376005c6bbd335ab1045a9780995702160ec3e505cfbc495301012fbf7de",
+    ".codex-cache/final-macos-units/full-inventory-guard.json": "0349960af5156d928a4a176dfd429e160e552b339a80b2f92804c4722fe82d70",
+    ".codex-cache/final-macos-units/actual-native-inventory-check.json": "806f59ac3db2e73df831f3eb17f6aae8e71af0922d2c6f0c84c9c38eabf6b06f",
+    ".codex-cache/final-macos-units/drain.json": "0c4b1c980c32cd74683205b1150d9a9a36325acb07f715e8c31d5620a66dd07e",
+    ".codex-cache/final-macos-units/full-unit-test.log": "72531bf0a90668cb852955bd5479efbb08fb1e09fe75f79278ff5fc98edf6484",
+    ".codex-cache/final-ios/signed-preflight-attempt2.json": "bd53d06badd23b71f3a1b7fd1a7d663250cb250e1505c9dc94eb96132b396b0c",
+    ".codex-cache/final-ios/preflight-attempt1.json": "d86fb04862e30036b1f681b09a112e6a8b0a0eab23cef3782e9caa750edc55c5",
+    ".codex-cache/final-ios/unit-native-summary.json": "c5ba7241e107aa4792df8195b6df3247dd0e9462b35cc276d932b11ec69d1838",
+    ".codex-cache/final-ios/unit-native-tests.json": "20fde05d6b841085c6306cdb69ddefb8b6dd0ef0a88f1d14ebe27213e08a5285",
+    ".codex-cache/final-ios/unit-native-inventory-check.json": "9121991dafbe44af4157b8cab608e391e7404878487fc201c34d465911d6daa6",
+    ".codex-cache/final-ios/unit-inventory-guard.json": "f2b07ce2f7e98ba6a31164ae31af18e1dbc23d30d5bb488de2d68ffca201d2f6",
+    ".codex-cache/final-ios/unit-drain.json": "ac46bcfcb9debc7f58708cba12a37cd75f00712e13fe23e1222f0433c042521c",
+    ".codex-cache/final-ios/ui-native-summary.json": "8d36ee6587fc95d9844bd3cc180b990184f21fd73e34cca590b1182f59b8ceb3",
+    ".codex-cache/final-ios/ui-native-tests.json": "91571dad79f96815af481405879fc06dc2c66f92ed678314382909e93ba5c8fc",
+    ".codex-cache/final-ios/ui-native-inventory-check.json": "8af0ef0a79707ccebc6a0138edd84ee1317dbcaef18f96242e6348b5a3ab8cf5",
+    ".codex-cache/final-ios/ui-inventory-guard.json": "d280fc09ca5d38a625643238cfac04fa1dfedfcd95185c6904be4d9c467b9d4d",
+    ".codex-cache/final-ios/ui-drain.json": "ac46bcfcb9debc7f58708cba12a37cd75f00712e13fe23e1222f0433c042521c",
+    ".codex-cache/final-ios/owned-simulator-cleanup.json": "19e1112c696ff4ed7103216af95f55e61cd15315afb7dff867ecd858ed752bc6",
+    ".codex-cache/final-ios/full-ios-build.log": "f88fdf25cccae8b16f4d0be1c0a875e9d23058d5d1b61db300bbbc0b1097cb86",
+    ".codex-cache/final-ios/full-ios-unit-test.log": "d28f21ba03c1645302a0eb7565841fc25e2323a11dc10a800674c6e42872b034",
+    ".codex-cache/final-ios/full-ios-ui-test.log": "9c1a9802974f9d825006927839a47320c041dd76e8eeb5cb436d7d3a958324f0",
+    ".codex-cache/task14-source-checks/final-full-lint.log": "a39bb730aa922727caa8192bd5809582f7ad1e3849e0153ecf9a11044ba14100",
+    ".codex-cache/task14-source-checks/parse.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -157,7 +157,7 @@ test-development-isolation: prepare-cache-dirs test-development-configuration
 	xcrun swiftc -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
 		$(MCP_PROBE_MODELS) Transit/Transit/MCP/Writes/{MCPCanonicalJSON,MCPRecordRevision}.swift \
 		Transit/Transit/Services/{AppPersistencePolicy,IsolatedPersistenceConfiguration}.swift \
-		tests/development-isolation/MigrationProbe.swift \
+		tests/development-isolation/{DisposableStorePath,MigrationProbe}.swift \
 		-o $(DERIVED_DATA)/isolated-migration-probe
 	xcrun swiftc -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
 		$(MCP_PROBE_MODELS) \
@@ -201,12 +201,12 @@ test-mcp-write-guards: prepare-cache-dirs
 test-mcp-write-foundation: prepare-cache-dirs
 	xcrun swiftc $(MCP_PROBE_SWIFT_FLAGS) -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
 		$(MCP_PROBE_MODELS) Transit/Transit/MCP/Writes/{MCPCanonicalJSON,MCPRecordSnapshot,MCPRecordRevision,MCPLocalReservationStore,MCPWriteReceiptStore}.swift \
-		Transit/Transit/Services/CommentService.swift Transit/Transit/Extensions/ModelContext+{Save,SafeRollback}.swift \
+		Transit/Transit/Services/CommentInputValidation.swift Transit/Transit/Services/CommentService.swift Transit/Transit/Extensions/ModelContext+{Save,SafeRollback}.swift \
 		tests/mcp-write-probe/FoundationProbe.swift -o $(DERIVED_DATA)/mcp-write-foundation-probe
 	$(DERIVED_DATA)/mcp-write-foundation-probe
 
 .PHONY: test-mcp-write-services
-MCP_PROBE_SERVICES = Transit/Transit/Services/{TaskService,TaskService+Error,MilestoneService,MilestoneService+Error,ProjectService,CommentService,ModelFetching,UsedDisplayIDs,DisplayIDAllocator,DisplayIDRecordLookup,CloudKitCounterStore,CreationProjectValidator,TaskCreationMilestoneValidator,ProjectNameReconciler,MilestoneNameReconciler,StatusEngine,PersistenceAvailability,ContainerFactory}.swift
+MCP_PROBE_SERVICES = Transit/Transit/Services/{TaskService,TaskService+Error,MilestoneService,MilestoneService+Error,ProjectService,CommentInputValidation,CommentService,ModelFetching,UsedDisplayIDs,DisplayIDAllocator,DisplayIDRecordLookup,CloudKitCounterStore,CreationProjectValidator,TaskCreationMilestoneValidator,ProjectNameReconciler,MilestoneNameReconciler,StatusEngine,PersistenceAvailability,ContainerFactory}.swift
 MCP_PROBE_DEPENDENCIES ?= $(DERIVED_DATA)/Build/Products/Debug
 .PHONY: format-mcp-write
 format-mcp-write:
@@ -248,7 +248,7 @@ test-mcp-write-coordinator: prepare-cache-dirs
 
 test-mcp-write-services: prepare-cache-dirs
 	xcrun swiftc $(MCP_PROBE_SWIFT_FLAGS) -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
-		$(MCP_PROBE_MODELS) Transit/Transit/Services/{TaskService,TaskService+Error,MilestoneService,MilestoneService+Error,ProjectService,CommentService,ModelFetching,UsedDisplayIDs,DisplayIDAllocator,DisplayIDRecordLookup,CloudKitCounterStore,CreationProjectValidator,TaskCreationMilestoneValidator,ProjectNameReconciler,MilestoneNameReconciler,StatusEngine,PersistenceAvailability,ContainerFactory}.swift \
+		$(MCP_PROBE_MODELS) Transit/Transit/Services/{TaskService,TaskService+Error,MilestoneService,MilestoneService+Error,ProjectService,CommentInputValidation,CommentService,ModelFetching,UsedDisplayIDs,DisplayIDAllocator,DisplayIDRecordLookup,CloudKitCounterStore,CreationProjectValidator,TaskCreationMilestoneValidator,ProjectNameReconciler,MilestoneNameReconciler,StatusEngine,PersistenceAvailability,ContainerFactory}.swift \
 		Transit/Transit/Intents/{IntentHelpers,IntentError}.swift Transit/Transit/Extensions/ModelContext+{Save,SafeRollback}.swift \
 		tests/mcp-write-probe/ServiceProbe.swift -o $(DERIVED_DATA)/mcp-write-service-probe
 	$(DERIVED_DATA)/mcp-write-service-probe

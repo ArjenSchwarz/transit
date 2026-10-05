@@ -1,0 +1,16 @@
+# Task 4 independent source review and GREEN readiness
+
+Reviewed runtime-pending source `390fae8`, bounded-field correction `123dc9c`, and null compatibility correction `28bee6ae0bf48a756da7220a5840ba24cb0e7aa3`. Mode: internal independent root critic, separate from the implementation worker; no external disclosure/service.
+
+Result: CLEAR for focused GREEN execution, not a runtime acceptance claim.
+
+- Classifier preserves the entire immutable input source, optional error flag, raw text and parsed unknown/null/numeric evidence. Only supported committed proof advances. Numeric equality to1 is decimal-lexeme based; opaque fields use exact scalars; UUIDs normalize comparison only; revisions retain their saved spelling. Canonical UTC millisecond timestamps roundtrip and compare expiry with completion, never with the current clock.
+- Supported failure results remain distinct from malformed evidence. Review tightened typed error/code/message and outcome/accepted/retry consistency without a business-code allowlist or rewriting retryAction.
+- Review corrected benign error/retryAction nulls: explicit null remains in saved evidence and does not alone contradict commitment. Non-null contradictions remain unavailable. Oversized bounded safety fields are length-checked before array allocation.
+- Compact provider-owned serialization_failed source is shallow and omits item IDs, raw records and links. It retains original index/tool/key/task UUID and unestablished effect evidence.
+- The private prepared-response initializer requires actual complete correlated common encoder bytes. Preparation failure yields no dispatch capability. Selection supplies already prepared immutable bytes through the delivered common selector; no encoder/checkpoint callback is retained or invoked for fallback selection. Real executor construction must require this capability when introduced in the later approved task.
+- Coordinator, common imports, App/isolation files and original13-declaration/52-case fixtures retain recorded hashes. Separate adapter/boundary suites add8 declarations/32 cases, total21/84. Full lint430files passed on initial source; later corrections passed targeted strict lint, parse-only and whitespace checks. No compiler/app/runtime verification was performed in this preparation.
+
+Concrete bounded sequence in `.codex-cache/task4-green-readiness/guarded-commands.json`: configuration guard; private incremental Transit/Debug arm64 build with locked packages, serial1 job and local signing; NEW signed source-pinned unit-test host launch configuration; exact four-suite21-declaration discovery; serial selected bodies requiring84 actual passes. New Task4GreenBuild/Task4Green result paths preserve the prior RED evidence. Prior dedicated smoke was accepted; its isolation inputs are unchanged.
+
+Before accepting GREEN, verification must answer: does the signed host retain the development identity/no CloudKit-push-groups/explicit unit-test guard; does compiled inventory exactly match21 declarations; do all84 bodies pass; and do owned workers drain with finalization limits reported separately? Task4 remains in progress until actual GREEN. Parent exclusive-slot START is required before any app job.

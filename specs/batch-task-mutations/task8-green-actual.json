@@ -1,0 +1,22 @@
+{
+  "sourcePin": "403844121916ab2f19f6d2ead5d63fd42d0fbdfa",
+  "declarations": 27,
+  "parameterDeclarations": 19,
+  "parameterBodies": 63,
+  "standaloneBodies": 8,
+  "bodies": 71,
+  "issues": 0,
+  "runtimeExit": 0,
+  "runStarts": 1,
+  "automaticRestarts": 0,
+  "vnodeFaults": 0,
+  "ownedMarkers": 50,
+  "signals": [],
+  "cleanupExecuted": true,
+  "task8Complete": true,
+  "logSHA256": "559954ae981aba28ae81e1ae8ffdc7133b36c899b2d5a5fac62a545cf9c9a6a7",
+  "cleanupDirectories": 50,
+  "finalizedXCResult": true,
+  "review": "Parent independent actual console and finalized xcresult review clear.",
+  "evidenceDirectory": ".codex-cache/task8-green-readiness"
+}

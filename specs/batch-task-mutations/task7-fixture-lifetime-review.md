@@ -1,0 +1,15 @@
+# Task 7 fixture lifetime correction — independent review
+
+The root reviewed the owned preview fixture correction and off-process cleanup helper independently of the implementation worker. This is source-only readiness for a corrected RED attempt, not Task 7 completion.
+
+The fixture previously deleted its SQLite backing directory in `deinit`, while `TestModelContainer` deliberately retains containers for the process lifetime. The correction preserves that directory until the owned host drains and records an exact prefixed UUID ownership marker. The fixture setup, saved snapshots, pending object identities, descriptors, revisions, symbolic effects, and every assertion remain unchanged. Production normalization/preview shells, coordinator, services, global retention and historical safety fixture remain unchanged.
+
+The cleanup helper defaults to validation. It checks clean pinned source and hashes, run identity and log hash, finite ordered drain times, owned PID absence, exact development temp containment, canonical ownership markers, regular bounded directory contents and guard bytes before any deletion. It rejects replays, interleaved/duplicate markers, old unmarked stores, traversal, links, live owned processes and excessive directories. It sends no signals. All directories validate before deletion; no real store cleanup was executed during preparation.
+
+Independent artifact checks confirmed original runtime log SHA-256 `0d3c110ac3c0c0c0f0756b76f2493c2cc61368f21bf8fabb1338c1ae1d6b0b94`, eight physical run starts, seven automatic restarts and 1,170 vnode-unlinked messages. The original complete run reported 25 declarations/68 bodies, 53 intended placeholder issues and 15 passing existing-service controls. Later partial automatic runs and four unclassified interleaved partial issues remain separate evidence. Samples establish framework waits, not a preview deadlock. The runner-only SIGTERM/exit 143 and verified owned drain are recorded separately; no clean runtime exit or finalized result bundle is claimed.
+
+Source-only checks passed: strict targeted lint, required full lint (444 files), syntax parse, whitespace, a bounded serial three-helper typecheck using the valid attempt-5 app module, and 18 synthetic cleanup-boundary checks. The first typecheck driver flag diagnostic is retained separately; the corrected command exited zero. No new app build, host launch or runtime retry was performed.
+
+Corrected attempt 6 retains the same three suites, 25 declarations and 68 bodies, expecting 53 placeholder issues and 15 independent controls. It requires a fresh signed development-host preflight and exact inventory after the parent grants the exclusive heavy-test slot. Task 7 stays in progress; Task 8 is not started. T2383 owns the current slot.
+
+The historical safety fixture has the same deletion/retention pattern and needs coordinated later assessment; it was not edited within this narrow correction. Actual cleanup requires pinned run/drain evidence, current process checks and the parent route before bookkeeping changes the run HEAD. Old unmarked attempt-5 stores remain untouched.

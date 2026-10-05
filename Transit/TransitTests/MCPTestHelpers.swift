@@ -81,7 +81,8 @@ enum MCPTestHelpers {
             maintenanceService: maintenanceService, settings: mcpSettings, persistence: persistence,
             taskFetcher: taskFetcher, commentFetcher: commentFetcher,
             milestoneFetcher: milestoneFetcher,
-            milestoneDisplayIDFinder: milestoneDisplayIDFinder, writeCoordinator: writeCoordinator
+            milestoneDisplayIDFinder: milestoneDisplayIDFinder, writeCoordinator: writeCoordinator,
+            batchContainer: context.container
         )
         return MCPTestEnv(
             handler: handler,

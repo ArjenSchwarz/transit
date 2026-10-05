@@ -1,0 +1,165 @@
+{
+  "status": "Fresh publication reconciliation verification passed",
+  "publicationBase": "adc98b55e69af6be22e095126c81986d0d8e48a8",
+  "featureDeltaBase": "a4a60de579e5a30bc2ad9ff88b6954233f7ff42f",
+  "reviewedFeatureTip": "db775173ea5f6d4717939a60d0a24da73204e7fd",
+  "reconciliationCommit": "fde318d5f8eedbef62f825bd9ad69889187c5f09",
+  "initialVerifiedPin": "b90e6f84255f01c3de39104ea59a9aa0c77c7acb",
+  "finalUIFixturePin": "b8f9fc7e2277c5f4a6ba1d37f1133c8796ffa940",
+  "scope": {
+    "application": "Only reviewed feature base-to-tip diff applied with git apply --3way; no cumulative commit replay",
+    "productionConflicts": [],
+    "documentConflictsResolvedPreservingMain": [
+      "CHANGELOG.md",
+      "README.md",
+      "specs/OVERVIEW.md"
+    ],
+    "productionAndConfigurationPathsEqualReviewedTip": 271,
+    "postBaselineNonoverlappingMainFilesPreserved": [
+      "Transit/TransitTests/MCPPortfolioReconciliationTests.swift",
+      "specs/bounded-read-freshness/decision_log.md",
+      "specs/bounded-read-freshness/implementation.md",
+      "specs/bounded-read-freshness/task15-green-acceptance.md",
+      "specs/bounded-read-freshness/task15-source-handoff.md",
+      "specs/bounded-read-freshness/task16-green-acceptance.md",
+      "specs/portfolio-summaries/decision_log.md",
+      "specs/portfolio-summaries/implementation.md",
+      "specs/portfolio-summaries/integration-acceptance.md",
+      "specs/portfolio-summaries/requirements.md"
+    ],
+    "originalWorktreeCleanAndUntouched": true,
+    "finalUIChange": "Only Transit/TransitUITests/TransitUITests.swift changed after initial verified pin; production, configuration and all unit test sources are byte-identical. Thus fresh full macOS/iOS unit acceptance remains applicable; full UI was freshly rebuilt and rerun at final pin."
+  },
+  "freshBuilds": {
+    "macOS": {
+      "exit": 0,
+      "result": "DerivedData/t2384-publication-macos/PublicationMacOSBuild.xcresult"
+    },
+    "iOS": {
+      "exit": 0,
+      "result": "DerivedData/t2384-publication-ios/PublicationIOSBuild.xcresult"
+    },
+    "correctedUIIncremental": {
+      "exit": 0,
+      "result": "DerivedData/t2384-publication-ios/PublicationIOSUIBuildAttempt2.xcresult"
+    }
+  },
+  "isolation": {
+    "bundleID": "me.nore.ig.Transit.development",
+    "signedPrivateDebugHost": true,
+    "CloudKitPushAndAppGroupsAbsent": true,
+    "unitPersistenceMode": "unit-test",
+    "UIPersistenceMode": "ui-test",
+    "serialRuns": true,
+    "fullTargetsNoOnlyOrSkipFilters": true,
+    "ownedSimulator": "BC0BB706-5B71-4827-8384-37931176D9A7",
+    "ownedSimulatorShutdownAndDeleted": true,
+    "otherSimulatorInventoryUnchanged": true,
+    "persistentFixtureStoresPreserved": true
+  },
+  "acceptance": [
+    {
+      "suite": "macOS full units",
+      "pin": "b90e6f84255f01c3de39104ea59a9aa0c77c7acb",
+      "declarations": 2409,
+      "cases": 3049,
+      "result": "Passed",
+      "finalized": true,
+      "failed": 0,
+      "skipped": 0,
+      "expectedFailures": 0,
+      "nativeRuntimeWarnings": [],
+      "runnerExit": 0,
+      "ownedRemaining": [],
+      "hostSignals": [],
+      "nativeResult": "DerivedData/t2384-publication-macos/PublicationMacOSUnits.xcresult",
+      "inventoryProof": ".codex-cache/publication-macos/actual-inventory-check.json",
+      "nativeSummary": ".codex-cache/publication-macos/native-summary.json",
+      "drainEvidence": ".codex-cache/publication-macos/drain.json",
+      "logSHA256": "038b65c48eb807026b15f098834b02ce6ff08a96ab9dc8d71b697aa84ee06ead"
+    },
+    {
+      "suite": "iOS full units",
+      "pin": "b90e6f84255f01c3de39104ea59a9aa0c77c7acb",
+      "declarations": 1289,
+      "cases": 1334,
+      "result": "Passed",
+      "finalized": true,
+      "failed": 0,
+      "skipped": 0,
+      "expectedFailures": 0,
+      "nativeRuntimeWarnings": [],
+      "runnerExit": 0,
+      "ownedRemaining": [],
+      "hostSignals": [],
+      "nativeResult": "DerivedData/t2384-publication-ios/PublicationIOSUnits.xcresult",
+      "inventoryProof": ".codex-cache/publication-ios/unit-native-inventory-check.json",
+      "nativeSummary": ".codex-cache/publication-ios/unit-native-summary.json",
+      "drainEvidence": ".codex-cache/publication-ios/unit-drain.json",
+      "logSHA256": "17a832f4d5a5ba5b13b94b3b98d141b5bd735104bbc2c940f37a1205e6be3c0c"
+    },
+    {
+      "suite": "iOS full UI",
+      "pin": "b8f9fc7e2277c5f4a6ba1d37f1133c8796ffa940",
+      "declarations": 21,
+      "cases": 24,
+      "result": "Passed",
+      "finalized": true,
+      "failed": 0,
+      "skipped": 0,
+      "expectedFailures": 0,
+      "nativeRuntimeWarnings": [],
+      "runnerExit": 0,
+      "ownedRemaining": [],
+      "hostSignals": [],
+      "nativeResult": "DerivedData/t2384-publication-ios/PublicationIOSUIAttempt2.xcresult",
+      "inventoryProof": ".codex-cache/publication-ios-ui-attempt2/ui-native-inventory-check.json",
+      "nativeSummary": ".codex-cache/publication-ios-ui-attempt2/ui-native-summary.json",
+      "drainEvidence": ".codex-cache/publication-ios-ui-attempt2/ui-drain.json",
+      "logSHA256": "cf12cd6d088facab5307011fc9a7d31bda9a2a1ec07faa7f0d274bc776f4d440"
+    }
+  ],
+  "retainedFailedUIAttempt": {
+    "pin": "b90e6f84255f01c3de39104ea59a9aa0c77c7acb",
+    "executedCases": 24,
+    "passed": 20,
+    "failed": 4,
+    "finalized": false,
+    "failureEvidence": ".codex-cache/publication-ios/ui-failed-body-evidence.json",
+    "teardown": "Sampled owned runner then runner-only TERM after bounded stalled finalization; subprocess exit -15, wrapper exit 241, no host signals, all owned processes drained. No successful native result claimed.",
+    "correction": "Three Settings tests now use existing overflow-aware toolbar helper. Portrait test captures one remote frame and asserts height>width and existing width>=400/Kanban checks, avoiding a remote-query predicate timeout. Same21 declarations/24 cases; behavior assertions retained.",
+    "correctedFreshResult": "iOS full UI acceptance above"
+  },
+  "lint": {
+    "command": "make lint",
+    "exit": 0,
+    "files": 596,
+    "violations": 0,
+    "ownershipSchemaAndDevelopmentConfigurationGuards": "Passed",
+    "log": ".codex-cache/publication-reconcile/final-lint.log"
+  },
+  "qualifications": [
+    "Historical original-worktree artifacts are not current acceptance; these are fresh full native runs, not a union of focused results.",
+    "UI native method display omits empty parentheses for testLaunch only; inventory comparison normalizes only that display suffix.",
+    "Native runtimeWarnings arrays are empty; ordinary XCTest debugger lookup and animation-idle console diagnostics are retained in logs.",
+    "Existing approved Markdown hard-break whitespace in imported spec documents was preserved.",
+    "MacBook client check is deferred and is not a publication blocker. Parent owns remaining final documentation, external review and publication; this worker performed no push or external disclosure."
+  ],
+  "artifactSHA256": {
+    ".codex-cache/publication-reconcile/source-equivalence.json": "eb0cc9bc2d46570c5e523a9542b8141f58dca3b50841515fe05ac8dbeda22564",
+    ".codex-cache/publication-reconcile/final-source-check.json": "3c7f68fc2f0f09f63e121039ed77cf0a1e824f852f2e4a0b3ad82ddf0ec09ba5",
+    ".codex-cache/publication-reconcile/final-lint.log": "95773cc729eff86e0de16c4c17502f4001f07acb1ad4eb579c9bcd278f3475ad",
+    ".codex-cache/publication-macos/source-guard.json": "c29bd244d8e00bddb0a35e879fece14fa04dfacbf865fc23876b706a975354a5",
+    ".codex-cache/publication-macos/signed-preflight.json": "3e244005234adbf3422d353c60ca0c4c9d20fec0449032c5d2fc2d44439e53fe",
+    ".codex-cache/publication-macos/actual-inventory-check.json": "531f663d65b9edfbc00dfb86d0b077508ed645d5cfbd2425e9b1d65e0349a0b6",
+    ".codex-cache/publication-ios/signed-preflight.json": "86509e0af4412a0508c0b34b1e74f789994813ba95e02892181ecb9067d7c96c",
+    ".codex-cache/publication-ios/unit-native-inventory-check.json": "1dd19ac3887aab10e88858c25b862f10024dc61db919b7f114757610b09d1ea8",
+    ".codex-cache/publication-ios/ui-failed-body-evidence.json": "f2c720ec5d53bde1b4265abefc1e3ec4cd83d2f0f5edebb7655b51ef73504812",
+    ".codex-cache/publication-ios/ui-drain.json": "81ef27f6c5049b6b82ec06497672330d3ec5c03f8838743913b26c05b0210167",
+    ".codex-cache/publication-ios/ui-finalization-runner-sample.txt": "ba3c3e561f2664e5705702fcaea021da6e7d549e3d61ef12e3a260a0c1249006",
+    ".codex-cache/publication-ios-ui-attempt2/scope-equivalence.json": "aa126c798a45d964599ae1e34e3831a03085eb5bd2ea9f8767df1f761f41d3a4",
+    ".codex-cache/publication-ios-ui-attempt2/signed-preflight.json": "81f886cffcc722e8759c34c30276834928969f35c158cde7324986ae75eba516",
+    ".codex-cache/publication-ios-ui-attempt2/ui-native-inventory-check.json": "eabacad5cf859c94df45431c29702e9bf0a68a6c77c2218f10269ec2be2adc37",
+    ".codex-cache/publication-ios-ui-attempt2/owned-simulator-cleanup.json": "fcaaf7061b326b8c7cdf6651bc39e7dae06f9fd63e709debb14f2d3a517a1c04"
+  }
+}

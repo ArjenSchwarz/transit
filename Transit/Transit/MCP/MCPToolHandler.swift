@@ -28,6 +28,10 @@ final class MCPToolHandler {
     private let persistence: PersistenceAvailability
     private let writeCoordinator: MCPWriteCoordinator?
 
+    // Batch provider injection only; Task14 binds dispatch after real-route RED.
+    let batchContainer: ModelContainer?
+    let batchResultEncoder: MCPResultProviderSelection.EncodeOutcome?
+
     /// Task14 fault seam declaration; task15 binds only the post-effect provider encoding stage.
     let maintenanceReassignmentEncoder: (@Sendable (ReassignmentResult) throws -> String)?
 
@@ -78,7 +82,9 @@ final class MCPToolHandler {
         readService: MCPReadService? = nil,
         readCoordinator: MCPReadCoordinator? = nil,
         reusableSnapshots: MCPReusableSnapshotStore? = nil,
-        maintenanceReassignmentEncoder: (@Sendable (ReassignmentResult) throws -> String)? = nil
+        maintenanceReassignmentEncoder: (@Sendable (ReassignmentResult) throws -> String)? = nil,
+        batchContainer: ModelContainer? = nil,
+        batchResultEncoder: MCPResultProviderSelection.EncodeOutcome? = nil
     ) {
         self.taskService = taskService
         self.taskFetcher = taskFetcher ?? taskService
@@ -109,6 +115,8 @@ final class MCPToolHandler {
             return try MCPReusableSnapshotStore(domain: domain)
         }
         self.writeCoordinator = writeCoordinator
+        self.batchContainer = batchContainer
+        self.batchResultEncoder = batchResultEncoder
         self.maintenanceReassignmentEncoder = maintenanceReassignmentEncoder
         self.readService = readService
     }
@@ -357,26 +365,7 @@ final class MCPToolHandler {
         }
 
         if MCPWriteCommand.protectedTools.contains(name) {
-            let result: MCPToolResult
-            if let writeCoordinator {
-                result = await writeCoordinator.execute(tool: name, arguments: arguments)
-            } else {
-                do {
-                    let command = try MCPWriteCommand.validate(tool: name, arguments: arguments)
-                    result = MCPWriteOutcome.result(
-                        MCPWriteOutcome.failure(
-                            tool: name, key: command.key,
-                            failure: .init("PERSISTENCE_UNAVAILABLE", "Protected write storage is not available"),
-                            accepted: false, retryAction: "retry_same_request"
-                        ), isError: true)
-                } catch {
-                    result = MCPWriteOutcome.result(
-                        MCPWriteOutcome.failure(
-                            tool: name, key: arguments["idempotencyKey"] as? String,
-                            failure: MCPWriteFailure.from(error), accepted: false
-                        ), isError: true)
-                }
-            }
+            let result = await protectedWriteResult(tool: name, arguments: arguments)
             return JSONRPCResponse.success(id: id, result: result)
         }
 
@@ -747,6 +736,50 @@ extension MCPToolHandler {
         return dict
     }
 
+}
+
+extension MCPToolHandler {
+    /// Shared with batch invocation; the default policy preserves standalone behavior.
+    func protectedWriteResult(
+        tool: String, arguments: [String: Any], batchPolicy: MCPBatchWritePolicy? = nil
+    ) async -> MCPToolResult {
+        if let writeCoordinator {
+            return await writeCoordinator.execute(tool: tool, arguments: arguments, batchPolicy: batchPolicy)
+        }
+        do {
+            let command = try MCPWriteCommand.validate(tool: tool, arguments: arguments)
+            return MCPWriteOutcome.result(MCPWriteOutcome.failure(tool: tool, key: command.key,
+                failure: .init("PERSISTENCE_UNAVAILABLE", "Protected write storage is not available"),
+                accepted: false, retryAction: "retry_same_request"), isError: true)
+        } catch {
+            return MCPWriteOutcome.result(MCPWriteOutcome.failure(tool: tool,
+                key: arguments["idempotencyKey"] as? String, failure: MCPWriteFailure.from(error), accepted: false),
+                isError: true)
+        }
+    }
+
+    func batchPreview(_ request: MCPBatchTaskRequest) throws -> MCPBatchTaskPreview.Report {
+        guard let batchContainer else {
+            return .init(entries: request.items.map {
+                .init(index: $0.index, itemId: $0.itemId, state: .unavailable, code: "PERSISTENCE_UNAVAILABLE",
+                      current: nil, proposedEffects: nil)
+            }, observation: "saved_local_store", keyState: "unchecked", advisory: true, isError: true)
+        }
+        return try MCPBatchTaskPreview.evaluate(request, container: batchContainer, persistence: persistence)
+    }
+
+    func executeBatchItem(_ item: MCPBatchTaskRequest.Item) async throws -> MCPBatchTaskCoordinator.Execution {
+        var pendingEditsStop = false
+        let policy = MCPBatchWritePolicy(onPendingEditsStop: { pendingEditsStop = true })
+        let result = await protectedWriteResult(tool: item.command.tool,
+            arguments: item.command.arguments, batchPolicy: policy)
+        guard result.content.count == 1, let text = result.content.first?.text else {
+            throw MCPResultBoundaryError.unsupportedEvidence
+        }
+        let source = try MCPResultAdapter.source(text: text, isError: result.isError,
+            origin: .retainedJSON, evidence: .established)
+        return .init(source: source, pendingEditsStop: pendingEditsStop)
+    }
 }
 
 #endif

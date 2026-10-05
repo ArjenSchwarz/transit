@@ -22,9 +22,7 @@ final class TransitUITests: XCTestCase {
         let app = launchApp()
 
         // Navigate to settings [req 12.1]
-        let settingsButton = app.buttons["dashboard.settingsButton"]
-        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5))
-        settingsButton.tap()
+        app.tapTransitToolbarButton(identifier: "dashboard.settingsButton", overflowLabel: "Settings")
 
         // [req 20.4] Settings with zero projects shows create prompt
         let prompt = app.staticTexts["Create your first project to get started."]
@@ -37,9 +35,7 @@ final class TransitUITests: XCTestCase {
     func testTappingGearPushesSettingsView() throws {
         let app = launchApp()
 
-        let settingsButton = app.buttons["dashboard.settingsButton"]
-        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5))
-        settingsButton.tap()
+        app.tapTransitToolbarButton(identifier: "dashboard.settingsButton", overflowLabel: "Settings")
 
         // [req 12.1] Settings view is pushed onto the navigation stack
         let settingsTitle = app.navigationBars["Settings"]
@@ -50,7 +46,7 @@ final class TransitUITests: XCTestCase {
     func testSettingsHasBackChevron() throws {
         let app = launchApp()
 
-        app.buttons["dashboard.settingsButton"].tap()
+        app.tapTransitToolbarButton(identifier: "dashboard.settingsButton", overflowLabel: "Settings")
 
         // [req 12.2] Chevron-only back button (no label text)
         let backButton = app.navigationBars["Settings"].buttons.element(boundBy: 0)
@@ -177,18 +173,14 @@ final class TransitUITests: XCTestCase {
         let app = launchApp()
         let window = app.windows.firstMatch
         XCTAssertTrue(window.waitForExistence(timeout: 5))
-        let portraitExpectation = XCTNSPredicateExpectation(
-            predicate: NSPredicate { object, _ in
-                guard let element = object as? XCUIElement else { return false }
-                return element.frame.height > element.frame.width
-            },
-            object: window
-        )
-        XCTAssertEqual(XCTWaiter.wait(for: [portraitExpectation], timeout: 5), .completed)
+        // A remote frame query can exceed a predicate waiter's budget even when
+        // the device has acknowledged portrait. Capture once and assert the layout.
+        let windowFrame = window.frame
+        XCTAssertGreaterThan(windowFrame.height, windowFrame.width)
 
         let segmentedControl = app.segmentedControls.firstMatch
         XCTAssertGreaterThanOrEqual(
-            window.frame.width,
+            windowFrame.width,
             400,
             "The standard iPhone 17 UI destination must exercise the wide portrait Kanban path"
         )
