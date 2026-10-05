@@ -105,7 +105,7 @@ import SwiftData
                 command, .init("OPERATION_IN_PROGRESS", "Retry the same request after completion"),
                 accepted: true, outcome: "in_progress", retry: "retry_same_request")
         }
-        if batchPolicy != nil && services.context.hasChanges {
+        if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
             return inspectRetainedWhileDirty(
                 command, payload: payload, reservations: reservations, receipts: receipts,
                 now: clock(), batchPolicy: batchPolicy)
@@ -183,7 +183,7 @@ extension MCPWriteCoordinator {
         reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore,
         batchPolicy: MCPBatchWritePolicy?
     ) -> Acceptance {
-        if batchPolicy != nil && services.context.hasChanges {
+        if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
             return .result(inspectRetainedWhileDirty(
                 command, payload: payload, reservations: reservations, receipts: receipts,
                 now: clock(), batchPolicy: batchPolicy))
@@ -192,6 +192,11 @@ extension MCPWriteCoordinator {
         if let existing = existingOutcome(command, payload: payload, reservations: reservations, receipts: receipts,
                                           batchPolicy: batchPolicy) {
             return .result(existing)
+        }
+        if command.hasLinkInput && batchPolicy?.taskLinkCapability == nil {
+            return .result(transient(command,
+                .init("PERSISTENCE_UNAVAILABLE", "Typed-link owned plan/apply policy is not installed"),
+                accepted: false))
         }
         do {
             if services.context.hasChanges { try save(services.context, .baseline) }
@@ -240,14 +245,14 @@ extension MCPWriteCoordinator {
         let prepared: PreparedMCPWrite
         do {
             try await preparationHook(command)
-            if batchPolicy != nil && services.context.hasChanges {
+            if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
                 return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
             }
             prepared = try await command.prepare(using: services)
             try Task.checkCancellation()
         } catch {
             // Return before a rejection phase can save or roll back UI edits.
-            if batchPolicy != nil && services.context.hasChanges {
+            if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
                 return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
             }
             // Validate a fresh scope after suspension, before retaining rejection.
@@ -264,7 +269,7 @@ extension MCPWriteCoordinator {
                 }
             } catch { return uncertain(command) }
         }
-        if batchPolicy != nil && services.context.hasChanges {
+        if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
             return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
         }
         do {

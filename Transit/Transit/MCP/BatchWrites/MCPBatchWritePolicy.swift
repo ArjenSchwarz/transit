@@ -13,6 +13,7 @@ import SwiftData
 
     let onPendingEditsStop: @MainActor () -> Void
     let makeCommitServices: (@MainActor (ModelContext) throws -> MCPWriteCommitServices)?
+    let taskLinkCapability: TaskLinkWriteCapability?
     let afterTaskApply: MCPWriteCommand.AfterTaskApply?
     let validateBeforeApply: @MainActor (MCPWriteCommand, ModelContext) throws -> Void
 
@@ -32,9 +33,11 @@ import SwiftData
         makeCommitServices: (@MainActor (ModelContext) throws -> MCPWriteCommitServices)? = nil,
         onPendingEditsStop: @escaping @MainActor () -> Void = {},
         afterTaskApply: MCPWriteCommand.AfterTaskApply? = nil,
+        taskLinkCapability: TaskLinkWriteCapability? = nil,
         validateBeforeApply: @escaping @MainActor (MCPWriteCommand, ModelContext) throws -> Void =
             MCPBatchWritePolicy.validateTaskIdentity
     ) {
+        self.taskLinkCapability = taskLinkCapability
         self.afterTaskApply = afterTaskApply
         self.validateBeforeApply = validateBeforeApply
         self.onPendingEditsStop = onPendingEditsStop

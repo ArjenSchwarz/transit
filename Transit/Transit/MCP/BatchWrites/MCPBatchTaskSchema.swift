@@ -19,6 +19,8 @@ nonisolated enum MCPBatchTaskSchema {
             throw MCPResultBoundaryError.unsupportedEvidence
         }
         properties.removeValue(forKey: "displayId")
+        properties.removeValue(forKey: "linkChanges")
+        properties.removeValue(forKey: "endpointPreconditions")
         var required = definition.inputSchema.required ?? []
         if !required.contains("taskId") { required.append("taskId") }
         return ArgumentShape(properties: properties, required: required)

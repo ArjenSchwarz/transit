@@ -232,9 +232,10 @@ nonisolated struct JSONSchema: Encodable, Sendable {
 nonisolated struct JSONSchemaItems: Encodable, Sendable {
     let type: String?
     let enumValues: [String]?
+    var oneOf: [JSONSchema]?
 
     nonisolated enum CodingKeys: String, CodingKey {
-        case type
+        case type, oneOf
         case enumValues = "enum"
     }
 }
@@ -249,9 +250,10 @@ nonisolated struct JSONSchemaProperty: Encodable, Sendable {
     var maximum: Int?
     var const: Bool?
     var defaultValue: String?
+    var maxItems: Int?
 
     nonisolated enum CodingKeys: String, CodingKey {
-        case type, description, items, pattern, minimum, maximum, const
+        case type, description, items, pattern, minimum, maximum, const, maxItems
         case enumValues = "enum"
         case defaultValue = "default"
     }

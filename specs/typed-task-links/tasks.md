@@ -93,7 +93,7 @@ metadata:
   - Requirements: [1.5](requirements.md#1.5), [4.2](requirements.md#4.2), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [5.5](requirements.md#5.5), [5.6](requirements.md#5.6), [6.2](requirements.md#6.2), [6.4](requirements.md#6.4), [6.6](requirements.md#6.6), [7.3](requirements.md#7.3), [8.2](requirements.md#8.2), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 11. Red: test standalone wire deltas and accepted domain plan validation <!-- id:ev1ktl6 -->
+- [x] 11. Red: test standalone wire deltas and accepted domain plan validation <!-- id:ev1ktl6 -->
   - Write TaskLinkWireTests for exact kebab-case types, UUID/l1/r1 shapes, 50 directives, create-additions-only, omitted fields, unique endpoint preconditions and inverses.
   - Separate pre-acceptance shape errors from saved-edge/semantic conflict validation after retained replay. Cover precise affected endpoints, source no-op guard, unknown/expired selector, retained no-op source incidence, physical UUID collisions, and duplicate retarget versus same-logical remove/add. Batch link fields reject before any item/key acceptance.
   - Add negative enablement tests: before protected task14 wiring succeeds, fresh link-bearing requests are unavailable rather than accepted/ignored. Assert schema descriptions cover directions, affected endpoint guards, no-op/repair/removal expiry, local-only guarantees and unsupported batches.
@@ -102,7 +102,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [1.5](requirements.md#1.5), [3.2](requirements.md#3.2), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.4](requirements.md#4.4), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 12. Green: implement standalone wire deltas and accepted domain plan validation <!-- id:ev1ktl7 -->
+- [-] 12. Green: implement standalone wire deltas and accepted domain plan validation <!-- id:ev1ktl7 -->
   - Add MCP/Links delta DTO/parser and l1 immutable occurrence fingerprint; extend standalone create/update validation and schemas, supplying TaskLinkPlan with complete captured result and endpoint guards.
   - Explicitly reject linkChanges/endpointPreconditions in T-2384 batch shapes. Keep existing field/permission semantics and all accepted domain failures in the original protected operation; no replacement set, alternate spelling, endpoint-first-match or implicit revision chaining.
   - Tool schema descriptions are executable caller guidance: explain type/direction, exact occurrence/preconditions, omitted versus empty evidence and unsupported batch fields; do not change public type spellings.

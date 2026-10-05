@@ -32,6 +32,7 @@ struct MCPWriteCommand {
     let tool: String
     let key: String
     let arguments: [String: Any]
+    var hasLinkInput: Bool { arguments["linkChanges"] != nil || arguments["endpointPreconditions"] != nil }
     var expectedRevision: String? { arguments["expectedRevision"] as? String }
 
     static func validate(tool: String, arguments: [String: Any]) throws -> Self {
@@ -52,7 +53,7 @@ struct MCPWriteCommand {
         }
         let usesProjectID = ["create_task", "create_milestone"].contains(tool)
             && (arguments["projectId"] as? String).flatMap(UUID.init(uuidString:)) != nil
-        for (field, value) in arguments where !safetyFields.contains(field) {
+        for (field, value) in arguments where !safetyFields.union(TaskLinkWireRequest.fields).contains(field) {
             if field == "project", usesProjectID { continue }
             try validateValue(value, field: field, schema: properties[field]!)
         }
@@ -74,6 +75,7 @@ struct MCPWriteCommand {
                 throw MCPWriteFailure("INVALID_INPUT", "\(field) must be a valid UUID string")
             }
         }
+        _ = try TaskLinkWireRequest.parse(tool: tool, arguments: arguments)
         return Self(tool: tool, key: key, arguments: arguments)
     }
 

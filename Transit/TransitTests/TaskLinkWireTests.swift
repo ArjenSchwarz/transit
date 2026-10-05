@@ -25,6 +25,8 @@ struct TaskLinkWireTests {
         let command = try MCPWriteCommand.validate(
             tool: "update_task", arguments: arguments(changes: [addition(type.rawValue)]))
         #expect(command.tool == "update_task")
+        let parsed = try #require(try TaskLinkWireRequest.parse(tool: command.tool, arguments: command.arguments))
+        #expect(parsed.changes == [.add(type: type, target: target)])
     }
 
     @Test(arguments: [0, 50])
@@ -89,21 +91,40 @@ struct TaskLinkWireTests {
         let request = try MCPBatchTaskRequestFixtures.document(mode: "execute", items: [
             ["itemId": "one", "operation": "update_task", "arguments": args]
         ])
-        #expect(throws: (any Error).self) { try MCPBatchTaskRequestFixtures.valid(request) }
+        try MCPBatchTaskRequestFixtures.invalid(request, index: 0, field: field)
     }
 
-    @Test func freshLinkRequestCannotBeAcceptedWithoutOwnedPolicy() async throws {
+    @Test(arguments: [false, true])
+    func freshLinkRequestCannotBeAcceptedWithoutOwnedPolicy(genericCallback: Bool) async throws {
         let fixture = try TaskLinkCommitDiskFixture()
         var args = try fixture.updateArguments()
         args["linkChanges"] = [addition("relates-to", target: fixture.target.id)]
         args["endpointPreconditions"] = [["taskId": fixture.target.id.uuidString,
             "expectedRevision": try MCPRecordSnapshot.task(fixture.target, in: fixture.owner.context).revision]]
+        var callbackCount = 0
+        let policy: MCPBatchWritePolicy? = genericCallback
+            ? MCPBatchWritePolicy(afterTaskApply: { _, _, _ in callbackCount += 1 }) : nil
         let result = try fixture.decode(await fixture.coordinator(save: { context, _ in try context.save() })
-            .execute(tool: "update_task", arguments: args))
-        #expect(result["accepted"] as? Bool == false)
+            .execute(tool: "update_task", arguments: args, batchPolicy: policy))
+        #expect(result["accepted"] as? Bool == false && callbackCount == 0)
         let error = try #require(result["error"] as? [String: Any])
         #expect(error["code"] as? String == "PERSISTENCE_UNAVAILABLE")
         #expect(try fixture.receipts(in: fixture.owner.context).isEmpty)
+    }
+
+    @Test(arguments: ["create_task", "update_task"])
+    func generatedArraySchemaClosesEachDirectiveAndBoundsCount(tool: String) throws {
+        let definition = try #require(MCPToolDefinitions.coreTools.first { $0.name == tool })
+        let changes = try #require(definition.inputSchema.properties?["linkChanges"])
+        #expect(changes.maxItems == 50)
+        let branches = try #require(changes.items?.oneOf)
+        #expect(branches.count == (tool == "create_task" ? 1 : 2))
+        #expect(branches.allSatisfy { $0.additionalProperties == false && $0.required?.isEmpty == false })
+        let endpoints = try #require(definition.inputSchema.properties?["endpointPreconditions"])
+        #expect(endpoints.maxItems == 50)
+        let endpoint = try #require(endpoints.items?.oneOf?.first)
+        #expect(endpoint.additionalProperties == false)
+        #expect(Set(endpoint.required ?? []) == ["taskId", "expectedRevision"])
     }
 
     @Test func taskSchemasDescribeLinkGuardsAndUnsupportedBatches() throws {
