@@ -14,6 +14,14 @@ final class TaskLinkService {
 
     init(container: ModelContainer) { self.container = container }
 
+    /// Inactive maintenance entry point while its synthetic-store RED contract
+    /// is established. No lifecycle calls this until owned cleanup is verified.
+    func cleanupExpiredEvidence(evaluationInstant: Date = Date(), limit: Int = 128,
+                                budget: TaskLinkGraphBudget = TaskLinkGraphBudget()) throws -> Int {
+        try budget.check()
+        return 0
+    }
+
     func savedGraph(budget: TaskLinkGraphBudget = TaskLinkGraphBudget()) throws -> TaskLinkGraphView {
         let context = ModelContext(container)
         context.autosaveEnabled = false

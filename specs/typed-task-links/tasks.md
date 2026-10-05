@@ -137,7 +137,7 @@ metadata:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [6.5](requirements.md#6.5), [6.6](requirements.md#6.6), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 16. Green: implement ordinary query filters, frozen detail and modern result parity <!-- id:ev1ktlb -->
+- [x] 16. Green: implement ordinary query filters, frozen detail and modern result parity <!-- id:ev1ktlb -->
   - Wire MCPToolHandler+TaskQuery/definitions to the saved frozen graph and prepared tool result; add links/diagnostics/duplicateResolution/blockerAssessment while preserving authoritative tokens when bodies omitted.
   - Integrate T-2383 frozen encoder fragment and existing T-63 publication gates. T-2382 reusable project/status queries stay unchanged and reject graph options; no live enrichment, broadened selection/counts or guessed navigation URLs.
   - Describe saved-only scope, revision coverage transition, blocker/canonical rules, missing historic graph coverage and supported navigation directly in published tool/output contract guidance.
@@ -146,7 +146,7 @@ metadata:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [3.4](requirements.md#3.4), [3.5](requirements.md#3.5), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [6.5](requirements.md#6.5), [6.6](requirements.md#6.6), [7.3](requirements.md#7.3), [7.4](requirements.md#7.4), [8.3](requirements.md#8.3)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 17. Red: test seven-day repair evidence expiry and clean maintenance <!-- id:ev1ktlc -->
+- [-] 17. Red: test seven-day repair evidence expiry and clean maintenance <!-- id:ev1ktlc -->
   - Write TaskLinkRemovalEvidenceTests with both active/evidence import arrival orders, frozen versus fresh evaluation at seven-day expiry, content-token stability, changed evidence-based diagnostics/derived assessments, re-add identity and original-key receipt independence.
   - Verify cleanup affects only expired evidence, never active rows/framework history or UI drafts; future/malformed dates and ambiguous evidence identity defer; post-expiry unknown selectors fail closed, live reads/preview never run cleanup.
   - Blocked-by: ev1ktlb (Green: implement ordinary query filters, frozen detail and modern result parity), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment), ev1ktl3 (Green: implement bounded saved capture and graph-closure capacity)
