@@ -33,7 +33,8 @@ struct TaskLinkReadCaptureBoundaryTests {
         let resumed = try #require(resumedAt)
         #expect(view.createdAt <= resumed)
         #expect(view.createdAt.duration(to: view.retentionDeadline) == .seconds(300))
-        #expect(view.taskLinkGraph?.evaluationInstant == view.metadata.asOf)
+        let graph = try #require(view.taskLinkGraph)
+        #expect(MCPRecordSnapshot.timestamp(graph.evaluationInstant) == view.metadata.asOf)
     }
 
     @Test func capturedEndpointMultiplicityRemainsInvalid() throws {
