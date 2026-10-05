@@ -4,9 +4,70 @@ Current contract: owner `Sentinel_c95239aefa6481919303c2353b8a9e9c` approved par
 
 ## Current local implementation status
 
-Tasks1..22 are locally evidenced complete. Final local readiness and native platform evidence are recorded in [final-handoff.md](final-handoff.md). All four foundations are landed on origin/main e04c1268ee37bd4ae925d4d686954cf2121005c7. The final typed branch was reconciled onto that base without changing code/tests/Makefile; provenance is in task14-checkpoint.md. Canonical/main is untouched by T1734 and is now e04 (advanced outside this isolated work).
+All 22 approved tasks are complete on `T-1734/typed-task-links-final`. The verified application/test source is `81f78e7687029895faef4e0d914882f403962f26`, based on the four landed foundations at `e04c1268ee37bd4ae925d4d686954cf2121005c7`. Later commits record completion and review only; application/test/Makefile content is unchanged. Original worktrees and the pre-reconciliation branch remain preserved. A fresh final fetch confirms origin/main and the merge base are e04. Canonical main and canonical `.kiro` were not edited by T-1734.
 
-Model registration, closed-store eight-entity upgrade/reopen and raw field/receipt preservation passed locally. Development CloudKit setup/export/deletion remains explicitly deferred to T2402. Shared narrow coordinator ownership and local implementation/commits/isolated verification were subsequently authorized. Earlier readiness/ownership/cloud gate statements below are a historical implementation log, not current blockers. Native saved projection/navigation has eight unit controls PASS plus two actual iOS UI cases PASS; task20-checkpoint.md records the recovered UI lost-exit limitation and owned simulator drain. Three integrated real-foundation controls at061bbdf passed with build/run0, host59702 drained (qyhmjovq).
+Final isolated runs passed 3,253 expanded macOS unit cases, 1,391 iOS unit cases and 26 iOS UI cases: 4,670 passing case executions across platforms, zero failures, and five intentional macOS opt-in skips. Native declarations are 2,527 macOS passes plus five skips, 1,323 iOS unit passes and 23 UI passes. Runtime result warnings are empty; builds and lint passed. All recorded hosts drained and owned simulators were deleted. Pre-existing compiler warnings are documented in [final-handoff.md](final-handoff.md), alongside source pins, signed preflight and exact outcomes.
+
+Four independent local review roles inspected the complete branch and corrective deltas. The caller tool name, captured-task refetch and project error-precedence findings are resolved. Optional maintenance/efficiency suggestions remain non-blocking. [local-review.md](local-review.md) records the findings, 39-criterion traceability and final critic answers. Live Development CloudKit setup/export/deletion remains deferred to T-2402; consolidation remains T-2381 work.
+
+## Beginner level
+
+### What changed
+
+Tasks can record five kinds of relationship: blocks, blocked-by, relates-to, introduced-by and duplicate-of. A link records an occurrence between two task UUIDs. Duplicate-of can identify a canonical task through a chain, but each original task keeps its identity, content and comments.
+
+### Why it matters
+
+Agents can select work using recorded dependencies and inspect duplicate relationships without combining several changing responses themselves. Native task details show saved relationship labels and diagnostics. Selecting a resolved relationship opens that exact saved task; ambiguous or missing destinations do not choose an arbitrary record.
+
+### Key concepts
+
+A revision is a content token used to reject edits based on old evidence. Current task revisions cover link membership as well as existing task fields and comments. A receipt preserves a protected write's original result for retry. A frozen query page preserves its original saved evidence even if tasks change later. These are local-store guarantees; they do not certify remote CloudKit convergence.
+
+## Intermediate level
+
+### Implementation approach
+
+Two additive scalar SwiftData models store active occurrences and separate bounded removal evidence. All physical rows remain visible to value-only graph projection, including repeated UUIDs and malformed imports. Dependency assessment uses direct blockers: Done satisfies a valid blocker; Abandoned and other recognized non-Done statuses do not. Cycles, missing or colliding endpoints, unknown direct blocker status and conflicting evidence are reported explicitly. Duplicate resolution walks a directed chain and stops on repeated identity, cardinality or endpoint faults.
+
+Standalone create/update link directives use the existing protected coordinator. The adapter resolves current source and affected endpoint revisions in a clean owned context, validates the entire proposed graph, stages task fields and exact occurrence changes, encodes the terminal result, then saves domain changes and receipt together. No-op additions/removals preserve timestamps and content tokens. Removal-only repair can reduce precisely identified corruption without silently deleting equivalent rows or adding unrelated changes. Batches retain their approved per-item fields and reject link directives before acceptance.
+
+### Reads and compatibility
+
+The MCP capture builder freezes selected task values, full graph closure, required comments and evaluation time inside the existing history/generation fence. Graph filters run before body serialization, ordering and page publication. Closure tasks support assessment without becoming selectable or changing portfolio totals. Current `r1` tokens explicitly cover empty incidence; old pre-feature tokens cannot authorize fresh preconditioned edits. Historical receipt bytes and results missing graph coverage are preserved rather than reminted.
+
+### Trade-offs
+
+Participating writes cannot interleave the synchronous final coordinator phase. Independent containers, external writers and imports can race with it and leave inconsistent saved links. Later reads report available faults; no automatic repair, post-commit rollback, task redirect or consolidation is introduced. Native sections use fresh saved value DTOs and generation/cancellation checks. Their observation is distinct from a fenced retained MCP snapshot.
+
+## Expert level
+
+### Technical details
+
+The graph indexes domain UUIDs to every physical match and preserves raw occurrence tuples. Iterative strongly connected component traversal retains every structurally resolved physical dependency, so logical deduplication cannot hide cycle evidence. `l1` fingerprints include occurrence identity, kind, endpoints and immutable creation time. Current `r1` incidence includes identity/kind/endpoints with physical multiplicity; endpoint labels/status, removal expiry and derived assessments remain separately observed data. Authoritative snapshot entry points require explicit incidence coverage, including an explicitly empty set.
+
+Owned write commitment refetches and binds the original receipt to its exact store scope, tool, key, payload, version and state. Source revalidation precedes staging; exact deletion additionally checks physical identity and immutable tuple/date bits. Allocation selects a new task UUID before graph validation and assigns it before insertion. Dirty shared contexts are checked before acceptance and after preparation success or error. Retained replay remains read-only and precedes current graph lookup; uncertain persistence retains original-key reconciliation instead of clearing durable guards.
+
+Capture reuses the task population already fetched within the fence, avoiding a second fetch that could replace selected evidence before canonical serialization. The original five-second deadline reaches graph construction, body selection, filters and encoding. Existing physical read admission and five-minute/eight-view/16-MiB retention caps remain intact; graph backing values, index membership and diagnostics are charged. Deadline or capacity exhaustion produces a whole failure without late publication. Startup cleanup separately scans at most 512 evidence candidates, deletes at most 128 eligible uniquely identified rows and uses one owned save with rollback on failure.
+
+### Architecture and limits
+
+The extension joins the landed read capture, modern result, reusable portfolio and batch coordinator foundations. Saved native navigation checks uniqueness both at click and at macOS window resolution, then returns the exact physical model owned by the navigation context. Native saved projections are refreshed on save/import notifications and reject stale or cancelled completion; they do not advertise the MCP capture's certified frozen boundary. Optional efficiency follow-ups include diagnostic indexing and notification coalescing, within the same budgets and freshness semantics.
+
+Live Development CloudKit schema/export/deletion verification remains T-2402 work. Installed-client activation, production promotion and T-2381 consolidation are outside this local implementation. Local schema migration and scalar compatibility do not prove CloudKit-wide atomicity or convergence.
+
+
+## Completeness Assessment
+
+**Fully implemented:** all 39 acceptance criteria within the approved participating-write/local-saved scope, covering the 22 tasks, additive migration/schema registration, graph/repair semantics, current revisions, protected owned writes, bounded frozen queries, evidence maintenance, native visibility/navigation and foundation compatibility. Final focused, full macOS, iOS unit and iOS UI outcomes are green; local review has no outstanding mandatory fix.
+
+**Partially implemented:** none within that approved local scope. Native saved projection is intentionally described separately from the history-fenced retained MCP capture; concurrent inter-fetch native coherence is not certified. Actual UI execution here is iOS; macOS click/window uniqueness is implemented and covered by shared resolver unit controls.
+
+**Deferred or outside scope:** T-2402 live CloudKit setup/export/platform deletion verification, installed-client activation/production promotion, global/all-independent-writer atomicity and T-2381 consolidation. They are not silently marked passed. Historical RED, compile-only failures, lost executor exit and interrupted UI diagnostic evidence remain recorded; definitive final platform results are in the final handoff.
+
+## Historical implementation record
+
+The following chronological record preserves original source pins, failures and approvals. Earlier readiness, external-environment and superseded independent-writer fence statements are historical; the current status and approved ADR 4 above govern this completed local implementation.
 
 ## Authority
 
