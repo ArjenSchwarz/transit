@@ -57,13 +57,15 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
 
 ### Data Model
 
-Six SwiftData entities:
+Eight SwiftData entities:
 - **Project** → has many **Tasks** and many **Milestones**
 - **TransitTask** → belongs to one Project, optionally belongs to one Milestone, has many Comments
 - **Milestone** → belongs to one Project, has many Tasks. Statuses: open / done / abandoned
 - **Comment** → belongs to one Task. Has `authorName`, `isAgent` flag, and `content`
 - **SyncHeartbeat** → singleton record whose `lastBeat` timestamp triggers CloudKit sync cycles
 - **MCPWriteReceipt** → same-store accepted/terminal write state and saved replay result, scoped to the originating local store even when synced
+- **TaskLinkOccurrence** → immutable scalar UUID/kind/endpoints/time for each physical active relationship; no task relationships or delete cascades
+- **TaskLinkRemovalEvidence** → separate immutable occurrence fingerprint and removal time, recognized for seven days; no automatic task consolidation
 
 Both tasks and milestones have a UUID and a separate `permanentDisplayId` integer for human-facing use (T-1, M-3), allocated via CloudKit counter records with optimistic locking and provisional fallback when offline.
 
@@ -208,11 +210,11 @@ Services follow a consistent pattern: mutate in memory, then `save()`, rolling b
 ## Test Infrastructure
 
 - **Swift Testing** framework (not XCTest) for unit tests
-- **TestModelContainer** fixture (`TransitTests/TestModelContainer.swift`) — creates an isolated in-memory container with `cloudKitDatabase: .none` and an explicit `Schema` including all five models. All three properties (schema, in-memory, no CloudKit) are required to avoid conflicts.
+- **TestModelContainer** fixture (`TransitTests/TestModelContainer.swift`) — creates an isolated in-memory container with `cloudKitDatabase: .none` and an explicit `Schema` including all eight current entities (Project, TransitTask, Comment, Milestone, SyncHeartbeat, MCPWriteReceipt, TaskLinkOccurrence and TaskLinkRemovalEvidence). All three properties (schema, in-memory, no CloudKit) are required to avoid conflicts.
 - Each test constructs `let testContainer = try TestModelContainer()` and derives `testContainer.context`; helpers that create SwiftData storage should return or store the owning fixture rather than only a context/service
 - Custom-schema and multi-context tests use `TestModelContainer(schema:configurations:)`; direct `ModelContainer` construction and raw container/context factories in test sources are rejected by the ownership guard run from `make lint`
 - SwiftData test suites must use `@Suite(.serialized)` to prevent concurrent access issues
-- UI tests use `TRANSIT_UI_TEST_SCENARIO` environment variable (`empty` or `board`) for deterministic seeded data
+- UI tests use `TRANSIT_UI_TEST_SCENARIO` environment variable (`empty`, `board`, `duplicateDisplayIds`, `taskLinks` or `taskLinksAmbiguous`) for deterministic seeded data
 - MCP tool handler tests use `MCPTestHelpers.swift` for common setup patterns
 
 ## Key Design Decisions

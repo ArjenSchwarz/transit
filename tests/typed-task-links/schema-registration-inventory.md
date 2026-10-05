@@ -1,4 +1,6 @@
-# Proposed task 2 registration ownership split
+# Schema registration inventory and historical ownership proposal
+
+Current status: all seven current schema factories register both link entities; app/default test schema is eight entities. Exact list-only ownership handoffs were granted and implemented before later sole-worker integration. `audit_schema_sources.py --check` inventories actual current source. Probe.seed-old remains the historical five-entity fixture, the migration baseline remains six entities, and development-isolation controls remain intentionally graph-free. Runtime migration/metadata gates passed locally; live Development CloudKit verification is deferred to T2402 by owner amendment. The adjacent patch and the proposal below are historical review artifacts, not outstanding permission or publication gates.
 
 Source checkpoint: `4459a96451588266c6b13c3475bac5a3243c9cc3`, branch `T-1734/typed-task-links`. The adjacent `pending-schema-registration.patch` is a review artifact only; it has not been applied. Ownership agreement is pending. Owners must adapt these narrow additions against their actual latest integrated source rather than replace files from this checkpoint.
 

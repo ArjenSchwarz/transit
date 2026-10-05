@@ -95,6 +95,7 @@ enum UITestScenario: String {
         if ambiguous {
             let collision = TransitTask(name: "Collision", type: .feature, project: project, displayID: .permanent(3))
             collision.id = target.id
+            collision.statusRawValue = TaskStatus.abandoned.rawValue
             context.insert(collision)
         }
         do { try context.save() } catch {

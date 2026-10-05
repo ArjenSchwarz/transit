@@ -3,7 +3,7 @@ import SwiftData
 import Testing
 @testable import Transit
 
-@MainActor
+@MainActor @Suite(.serialized)
 struct TaskLinkGraphServiceTests {
     @Test func savedDetailIgnoresUnsavedLabelAndGraphDrafts() throws {
         let owner = try TestModelContainer()

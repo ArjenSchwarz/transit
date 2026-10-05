@@ -2,6 +2,12 @@
 
 Current contract: owner `Sentinel_c95239aefa6481919303c2353b8a9e9c` approved participating Transit writes with pre-save validation and outside-writer conflict reporting (decision_log.md ADR 4). The historical all-independent-writer/import validation-to-save fence and persistence-redesign completion gate below are superseded. Original tests, failures and approvals remain historical evidence; owned same-store domain/receipt saving and T-2402 deferral remain unchanged.
 
+## Current local implementation status
+
+Tasks1..21 are locally evidenced complete; task22 final schema/docs/platform verification is in progress. All four foundations are landed on origin/main e04c1268ee37bd4ae925d4d686954cf2121005c7. The final typed branch was reconciled onto that base without changing code/tests/Makefile; provenance is in task14-checkpoint.md. Canonical/main is untouched by T1734 and is now e04 (advanced outside this isolated work).
+
+Model registration, closed-store eight-entity upgrade/reopen and raw field/receipt preservation passed locally. Development CloudKit setup/export/deletion remains explicitly deferred to T2402. Shared narrow coordinator ownership and local implementation/commits/isolated verification were subsequently authorized. Earlier readiness/ownership/cloud gate statements below are a historical implementation log, not current blockers. Native saved projection/navigation has eight unit controls PASS plus two actual iOS UI cases PASS; task20-checkpoint.md records the recovered UI lost-exit limitation and owned simulator drain. Three integrated real-foundation controls at061bbdf passed with build/run0, host59702 drained (qyhmjovq).
+
 ## Authority
 
 Owner `Sentinel_d1ba9360969c81918777711b2420bfc7` approved tasks checkpoint `18a268f` and continuation once the code foundations are ready. Local approval commit `9449b9f` records that authority. Readiness is a technical prerequisite, not another user approval gate. Seven-day repair recognition and the migration/atomic-save/capture enablement gates remain binding.
