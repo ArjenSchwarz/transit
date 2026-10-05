@@ -22,7 +22,8 @@ struct TaskLinkRemovalEvidenceTests {
         #expect(try observer.context.fetchCount(FetchDescriptor<TaskLinkOccurrence>()) == 1)
         #expect(try observer.context.fetchCount(FetchDescriptor<TaskLinkRemovalEvidence>()) == 1)
         let saved = try base.task(base.source.id, in: observer.context)
-        #expect(saved.name == "source" && (try MCPRecordSnapshot.task(saved, in: observer.context).revision) == before)
+        let savedRevision = try MCPRecordSnapshot.task(saved, in: observer.context).revision
+        #expect(saved.name == "source" && savedRevision == before)
         #expect(try base.historicReceipt(in: observer.context).resultJSON == base.historicJSON)
     }
 
