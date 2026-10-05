@@ -6,10 +6,16 @@ import NIOCore
 import NIOFoundationCompat
 
 extension MCPServer {
+    private nonisolated struct DispatchSnapshot {
+        let maintenanceEnabled: Bool
+        let admittedAt: ContinuousClock.Instant
+        let owner: MCPReadAdmissionOwner
+    }
 
     /// Modern single-request transport. Availability is frozen before covered admission.
     nonisolated static func makeRouter(
-        handler: MCPToolHandler, readCoordinator: MCPReadCoordinator? = nil
+        handler: MCPToolHandler, readCoordinator: MCPReadCoordinator? = nil,
+        admissionOwner: MCPReadAdmissionOwner = .application
     ) -> Router<MCPRequestContext> {
         let coordinator = readCoordinator ?? handler.readCoordinator
         let router = Router(context: MCPRequestContext.self)
@@ -21,13 +27,15 @@ extension MCPServer {
             }
         }
         router.post("mcp") { request, context -> Response in
-            await modernPost(request, context: context, handler: handler, coordinator: coordinator)
+            await modernPost(request, context: context, handler: handler,
+                coordinator: coordinator, admissionOwner: admissionOwner)
         }
         return router
     }
 
     nonisolated private static func modernPost(_ request: Request, context: MCPRequestContext, handler: MCPToolHandler,
-                                               coordinator: MCPReadCoordinator) async -> Response {
+                                               coordinator: MCPReadCoordinator,
+                                               admissionOwner: MCPReadAdmissionOwner) async -> Response {
         guard Self.isAllowedMCPRequest(request) else { return forbiddenResponse() }
         var headers = request.head.headerFields.map {
             MCPModernHeader(name: $0.name.rawName, value: $0.value)
@@ -45,7 +53,8 @@ extension MCPServer {
                 availability: MCPModernProviderBinding.availability(maintenanceEnabled: maintenanceEnabled))
             let admittedAt = ContinuousClock.now
             return try await dispatchModern(modern, context: context, handler: handler, coordinator: coordinator,
-                snapshot: (maintenanceEnabled, admittedAt))
+                snapshot: DispatchSnapshot(maintenanceEnabled: maintenanceEnabled,
+                    admittedAt: admittedAt, owner: admissionOwner))
         } catch let rejection as MCPModernRejection {
             return modernRejection(rejection)
         } catch let transport as HTTPError {
@@ -57,9 +66,10 @@ extension MCPServer {
 
     nonisolated private static func dispatchModern(
         _ modern: MCPModernRequest, context: MCPRequestContext, handler: MCPToolHandler,
-        coordinator: MCPReadCoordinator, snapshot: (maintenanceEnabled: Bool, admittedAt: ContinuousClock.Instant)
+        coordinator: MCPReadCoordinator, snapshot: DispatchSnapshot
     ) async throws -> Response {
-        let (maintenanceEnabled, admittedAt) = snapshot
+        let maintenanceEnabled = snapshot.maintenanceEnabled
+        let admittedAt = snapshot.admittedAt, admissionOwner = snapshot.owner
         switch modern.method {
         case .discover:
             let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -79,7 +89,7 @@ extension MCPServer {
                     throw MCPResultBoundaryError.unsupportedEvidence
                 }
                 let bytes = try await MCPBoundedReadDispatcher.response(for: read, rpc: rpc,
-                    handler: handler, coordinator: coordinator, admittedAt: admittedAt,
+                    handler: handler, coordinator: coordinator, admittedAt: admittedAt, admissionOwner: admissionOwner,
                     encodeWithOperation: { prepared, id, operation in
                         try MCPModernProviderBinding.read(prepared, id: id, tool: tool, operation: operation)
                     }, encodeConstantToolFailure: { prepared, id in

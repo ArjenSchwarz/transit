@@ -58,7 +58,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 6. Green: implement value-only group and reversal planning <!-- id:eiyvabm -->
+- [x] 6. Green: implement value-only group and reversal planning <!-- id:eiyvabm -->
   - Add Services/TaskConsolidation/ConsolidationPlanner and strict request/accounting value validators; bind caller reason/dispositions and optional survivor edits to exact selected originals and combined graph rules.
   - Produce only permitted deltas; retain existing canonical chains/incoming relationships, preserve original assignments/comments, reject raw corrupt evidence and missing attribution without semantic summarization.
   - Implement history-based reversal planning/current-availability projection over codec values and complete dependency evidence, including already-reversed/ambiguous history and exact attributable raw fields/status dates/created occurrences. Wire these planners into fixture service dependencies.
@@ -67,7 +67,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 7. Red: test shared read lifecycle and complete saved history closure <!-- id:eiyvabn -->
+- [x] 7. Red: test shared read lifecycle and complete saved history closure <!-- id:eiyvabn -->
   - Add TaskConsolidationCaptureTests.swift and lifecycle tests using saved contexts and original admission clocks: selected participant history requires all operation participants, comments/incidences/canonical paths and physical event multiplicity within one stable saved boundary.
   - Cover pending UI inserts/edits/deletions, comment/history storage/decode failures, unknown versions/missing or ambiguous closure, original selection unchanged by supplementary dependencies, legacy absent coverage versus current observed empty history, and stable capture invalidation.
   - Specify eight shared unfinished native/MCP reads, five-second original deadline, cancellation/timeout retaining physical capacity until cleanup, listener-scoped stop/restart preserving native admission, and complete six-ticket/long-history/full-envelope 16-MiB boundaries. No partial review or hidden truncation.
@@ -76,7 +76,7 @@ metadata:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [4.4](requirements.md#4.4), [5.4](requirements.md#5.4), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 8. Green: integrate shared admission and saved participant/history capture <!-- id:eiyvabo -->
+- [x] 8. Green: integrate shared admission and saved participant/history capture <!-- id:eiyvabo -->
   - Expose the existing MCPReadCoordinator Foundation lifecycle/value-result entry across platforms; TransitApp owns one lifetime and listener admission tags keep MCPServer cancellation scoped. Keep transport/provider adapters macOS-gated and retain physical cleanup accounting.
   - Extract/reuse the existing persistent-history/generation saved boundary for MCP and native consolidation capture, add event empty-store proof, immutable values and byte charges, and capture complete supplementary participant/comment/incidence/canonical/event closure.
   - Extend fresh full query projection with mandatory history/current undo assessment and explicit unavailable/over-limit outcomes; legacy retained results are unchanged. Pass paired bounded capture/lifecycle tests before preview/write integration; native extraction creates no second counter/timer/snapshot engine.

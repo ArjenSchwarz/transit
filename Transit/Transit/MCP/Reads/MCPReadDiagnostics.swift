@@ -1,6 +1,5 @@
-#if os(macOS)
 import Foundation
-import NIOConcurrencyHelpers
+import Synchronization
 import OSLog
 
 nonisolated enum MCPReadDiagnosticPhase: Sendable, Equatable {
@@ -38,7 +37,7 @@ nonisolated final class MCPReadDiagnosticSink: Sendable {
     static let application = MCPReadDiagnosticSink(writer: MCPReadDiagnosticLogging.write)
     let capacity: Int
     private let writer: @Sendable (MCPReadDiagnosticEvent) -> Void
-    private let state = NIOLockedValueBox(State())
+    private let state = Mutex(State())
     private let queue: DispatchQueue?
 
     private struct State: Sendable {
@@ -53,11 +52,11 @@ nonisolated final class MCPReadDiagnosticSink: Sendable {
         queue = capacity > 0 ? DispatchQueue(label: "transit.read.diagnostics", qos: .utility) : nil
     }
 
-    var pendingCount: Int { state.withLockedValue { $0.unfinished } }
+    var pendingCount: Int { state.withLock { $0.unfinished } }
 
     @discardableResult func enqueue(_ event: MCPReadDiagnosticEvent) -> Bool {
         guard let queue else { return false }
-        let admission = state.withLockedValue { state -> (accepted: Bool, start: Bool) in
+        let admission = state.withLock { state -> (accepted: Bool, start: Bool) in
             guard state.unfinished < capacity else { return (false, false) }
             state.events.append(event)
             state.unfinished += 1
@@ -71,13 +70,13 @@ nonisolated final class MCPReadDiagnosticSink: Sendable {
 
     private func drain() {
         while true {
-            let event = state.withLockedValue { state -> MCPReadDiagnosticEvent? in
+            let event = state.withLock { state -> MCPReadDiagnosticEvent? in
                 guard !state.events.isEmpty else { state.draining = false; return nil }
                 return state.events.removeFirst()
             }
             guard let event else { return }
             writer(event)
-            state.withLockedValue { $0.unfinished -= 1 }
+            state.withLock { $0.unfinished -= 1 }
         }
     }
 }
@@ -104,4 +103,3 @@ nonisolated private enum MCPReadDiagnosticLogging {
             """)
     }
 }
-#endif

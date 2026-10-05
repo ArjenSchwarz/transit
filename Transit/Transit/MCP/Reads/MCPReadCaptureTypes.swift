@@ -31,12 +31,14 @@ nonisolated struct CapturedReadView: Sendable {
     let comments: [ReadCommentEvidence]
     /// Nil is explicit missing coverage for legacy/provider fixtures, never empty incidence.
     let taskLinkGraph: TaskLinkGraphView?
+    /// Nil marks retained legacy/provider coverage; current full captures always supply evidence.
+    let consolidationEvidence: ConsolidationSavedEvidence?
 
     // A capture retains one declared scope and its complete immutable value payload.
     init(completeness: CaptureCompleteness, captureScope: ReadCaptureScope, metadata: ReadCaptureMetadata,
          createdAt: ContinuousClock.Instant, retentionDeadline: ContinuousClock.Instant,
          projects: [ReadProject], tasks: [ReadTask], milestones: [ReadMilestone], comments: [ReadCommentEvidence],
-         taskLinkGraph: TaskLinkGraphView? = nil) {
+         taskLinkGraph: TaskLinkGraphView? = nil, consolidationEvidence: ConsolidationSavedEvidence? = nil) {
         self.completeness = completeness
         self.captureScope = captureScope
         self.metadata = metadata
@@ -47,6 +49,7 @@ nonisolated struct CapturedReadView: Sendable {
         self.milestones = milestones
         self.comments = comments
         self.taskLinkGraph = taskLinkGraph
+        self.consolidationEvidence = consolidationEvidence
     }
 }
 

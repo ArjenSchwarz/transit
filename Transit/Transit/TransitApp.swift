@@ -24,6 +24,7 @@ struct TransitApp: App {
     private let milestoneIDAllocator: DisplayIDAllocator
     private let syncManager: SyncManager
     private let connectivityMonitor: ConnectivityMonitor
+    private let readCoordinator: MCPReadCoordinator
 
     #if os(macOS)
     private let mcpSettings: MCPSettings
@@ -147,6 +148,10 @@ struct TransitApp: App {
         appDelegate.quickActionService = quickActionService
         #endif
 
+        let readDomain = MCPReadPublicationDomain()
+        let readCoordinator = MCPReadCoordinator(domain: readDomain, diagnostics: .application)
+        self.readCoordinator = readCoordinator
+
         #if os(macOS)
         let mcpSettings = MCPSettings()
         self.mcpSettings = mcpSettings
@@ -163,8 +168,7 @@ struct TransitApp: App {
             sidecarDirectory: sidecar, persistence: persistence)
         self.mcpWriteCoordinator = writeCoordinator
         try? writeCoordinator.cleanupExpiredOutcomes()
-        let reads = MCPReadAppDependencies.make(container: container, syncActive: cloudSyncActive)
-        let readCoordinator = MCPReadCoordinator(domain: reads.snapshots.domain, diagnostics: reads.diagnostics)
+        let reads = MCPReadAppDependencies.make(container: container, syncActive: cloudSyncActive, domain: readDomain)
         let mcpToolHandler = MCPToolHandler(
             taskService: taskService, projectService: projectService,
             commentService: commentService, milestoneService: milestoneService,
@@ -327,74 +331,3 @@ extension TransitApp {
     #endif
 
 }
-
-// MARK: - macOS Commands
-
-#if os(macOS)
-private struct NewTaskCommand: Commands {
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some Commands {
-        CommandGroup(replacing: .newItem) {
-            Button("New Task") {
-                openWindow(id: "add-task")
-            }
-            .keyboardShortcut("n", modifiers: .command)
-        }
-    }
-}
-
-private struct SettingsCommand: Commands {
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some Commands {
-        CommandGroup(replacing: .appSettings) {
-            Button("Settings…") {
-                openWindow(id: "settings")
-            }
-            .keyboardShortcut(",", modifiers: .command)
-        }
-    }
-}
-#endif
-
-// MARK: - Quick Action App Delegate
-
-#if os(iOS)
-final class QuickActionAppDelegate: NSObject, UIApplicationDelegate {
-    var quickActionService: QuickActionService?
-
-    func application(
-        _ application: UIApplication,
-        configurationForConnecting connectingSceneSession: UISceneSession,
-        options: UIScene.ConnectionOptions
-    ) -> UISceneConfiguration {
-        if let shortcut = options.shortcutItem, shortcut.type == QuickActionService.newTaskActionType {
-            quickActionService?.requestNewTask(
-                forSceneSession: connectingSceneSession.persistentIdentifier
-            )
-        }
-        let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
-        // Always register scene delegate so warm-start quick actions are delivered
-        // via windowScene(_:performActionFor:completionHandler:).
-        config.delegateClass = QuickActionSceneDelegate.self
-        return config
-    }
-}
-
-final class QuickActionSceneDelegate: NSObject, UIWindowSceneDelegate {
-    func windowScene(
-        _ windowScene: UIWindowScene,
-        performActionFor shortcutItem: UIApplicationShortcutItem,
-        completionHandler: @escaping (Bool) -> Void
-    ) {
-        let handled = shortcutItem.type == QuickActionService.newTaskActionType
-        if handled, let appDelegate = UIApplication.shared.delegate as? QuickActionAppDelegate {
-            appDelegate.quickActionService?.requestNewTask(
-                forSceneSession: windowScene.session.persistentIdentifier
-            )
-        }
-        completionHandler(handled)
-    }
-}
-#endif

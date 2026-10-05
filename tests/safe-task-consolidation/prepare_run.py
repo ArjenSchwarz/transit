@@ -9,7 +9,7 @@ from prepare_unit_run import require, validated_unit_run
 
 products = pathlib.Path(sys.argv[1]).resolve()
 tag = sys.argv[2]
-require(tag in ("red", "green", "owned-red", "owned-green", "codec-green", "codec-green2", "owned-red2", "owned-red-full", "foundation-green", "owned-red-full2", "owned-green2", "receipt-regression", "owned-green3", "receipt-regression2", "review-fix-red", "review-fix-green", "owned-green4", "foundation-green2", "review-fix-green2", "planner-red", "planner-green"), "Unknown run tag")
+require(tag in ("red", "green", "owned-red", "owned-green", "codec-green", "codec-green2", "owned-red2", "owned-red-full", "foundation-green", "owned-red-full2", "owned-green2", "receipt-regression", "owned-green3", "receipt-regression2", "review-fix-red", "review-fix-green", "owned-green4", "foundation-green2", "review-fix-green2", "planner-red", "planner-green", "capture-red", "capture-green", "capture-red2", "capture-green2", "capture-green3", "capture-green4", "capture-green5", "read-lifecycle-regression"), "Unknown run tag")
 configuration, unit, host, info, entitlements, source = validated_unit_run(products)
 suites = ["TaskConsolidationHistoryTests"] if tag == "red" else [
     "TaskConsolidationHistoryTests", "TaskConsolidationCodecTests"]
@@ -21,6 +21,10 @@ if tag.startswith("review-fix"):
     suites = ["TaskConsolidationReviewFixTests"]
 if tag.startswith("planner"):
     suites = ["TaskConsolidationPlannerTests"]
+if tag.startswith("capture"):
+    suites = ["TaskConsolidationCaptureTests", "TaskConsolidationReadLifecycleTests"]
+if tag == "read-lifecycle-regression":
+    suites = ["MCPReadCoordinatorTests", "TaskLinkReadCaptureTests", "MCPReadDiagnosticsTests"]
 unit["OnlyTestIdentifiers"] = suites
 run = products / ("T2381-" + tag + ".xctestrun")
 result = products / ("T2381-" + tag + ".xcresult")

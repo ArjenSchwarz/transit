@@ -91,39 +91,14 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                 stablePersistentHistory: fence == .persistentHistory)), createdAt: instant,
             retentionDeadline: instant + .seconds(300), projects: copied.projects,
             tasks: copied.tasks, milestones: copied.milestones, comments: copied.comments,
-            taskLinkGraph: copied.taskLinkGraph)
+            taskLinkGraph: copied.taskLinkGraph, consolidationEvidence: copied.consolidationEvidence)
         if view.completeness == .completePortfolio { try MCPReadCaptureValidation.validateReusableCapture(view) }
         try request.taskLinkBudget?.check()
         return view
     }
     private func watermark() throws -> DefaultHistoryTransaction? {
         guard fence == .persistentHistory else { return nil }
-        guard container.configurations.count == 1 else { throw MCPReadCaptureError.incoherentCapture }
-        let context = ModelContext(container)
-        context.autosaveEnabled = false
-        do {
-            var descriptor = HistoryDescriptor<DefaultHistoryTransaction>(
-                sortBy: [SortDescriptor(\.transactionIdentifier, order: .reverse)])
-            descriptor.fetchLimit = 1
-            if let transaction = try context.fetchHistory(descriptor).first {
-                guard !transaction.storeIdentifier.isEmpty else { throw MCPReadCaptureError.incoherentCapture }
-                return transaction
-            }
-            // An empty selection does not prove an empty store. History can have been purged.
-            guard try context.fetchCount(FetchDescriptor<Project>()) == 0,
-                  try context.fetchCount(FetchDescriptor<TransitTask>()) == 0,
-                  try context.fetchCount(FetchDescriptor<Milestone>()) == 0,
-                  try context.fetchCount(FetchDescriptor<Comment>()) == 0,
-                  try context.fetchCount(FetchDescriptor<SyncHeartbeat>()) == 0,
-                  try context.fetchCount(FetchDescriptor<MCPWriteReceipt>()) == 0,
-                  try context.fetchCount(FetchDescriptor<TaskLinkOccurrence>()) == 0,
-                  try context.fetchCount(FetchDescriptor<TaskLinkRemovalEvidence>()) == 0 else {
-                throw MCPReadCaptureError.incoherentCapture
-            }
-            return nil
-        } catch {
-            throw MCPReadCaptureError.incoherentCapture
-        }
+        do { return try SavedReadBoundary.watermark(container) } catch { throw MCPReadCaptureError.incoherentCapture }
     }
     private struct Copied {
         let scope: ReadCaptureScope
@@ -132,6 +107,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
         let milestones: [ReadMilestone]
         let comments: [ReadCommentEvidence]
         let taskLinkGraph: TaskLinkGraphView?
+        let consolidationEvidence: ConsolidationSavedEvidence?
     }
     private func copy(
         _ request: ReadCaptureRequest, in context: ModelContext, evaluationInstant: Date
@@ -149,10 +125,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                 guard request.projectSelectors != nil else { return true }
                 return try task.project.map { selectedKeys.contains(try key($0)) } ?? false
             }
-            let milestones = try allMilestones.filter { milestone in
-                guard request.projectSelectors != nil else { return true }
-                return try milestone.project.map { selectedKeys.contains(try key($0)) } ?? false
-            }
+            let milestones = try scopedMilestones(allMilestones, request: request, keys: selectedKeys)
             let bodyKeys = try request.taskBodyKeys(tasks.map(taskSelectionValue), graph: graph)
             let milestoneBodyKeys = try milestoneBodyKeys(request, all: allMilestones, scoped: milestones)
             let bodyTasks = try tasks.filter { bodyKeys.contains(try key($0)) }
@@ -168,6 +141,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             let scope: ReadCaptureScope = request.completeness == .completePortfolio
                 ? (request.projectSelectors == nil ? .wholePortfolio : .projects(selectedKeys.sorted(by: keyOrder)))
                 : .selectedQuery
+            let consolidation = try consolidationEvidence(request, context: context, tasks: bodyTasks, graph: graph)
             return try Copied(scope: scope, projects: projects.map(projectValue),
                               tasks: copyTaskValues(request.completeness == .completePortfolio ? allTasks : tasks,
                                   selectedKeys: bodyKeys, comments: commentIndex,
@@ -177,7 +151,8 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                                   ? allMilestones : milestones).map {
                                       try milestoneValue($0, canonical: milestoneBodyKeys.contains(try key($0)))
                                   },
-                              comments: includedComments.map(commentValue), taskLinkGraph: graph)
+                              comments: includedComments.map(commentValue), taskLinkGraph: graph,
+                              consolidationEvidence: consolidation)
         } catch let error as MCPTaskQueryError {
             throw error
         } catch let error where error is TaskLinkGraphError || error is MCPReadCaptureError {
@@ -188,6 +163,24 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             throw MCPReadCaptureError.storageFailure
         }
     }
+    private func scopedMilestones(_ values: [Milestone], request: ReadCaptureRequest,
+                                  keys: Set<LocalRecordKey>) throws -> [Milestone] {
+        try values.filter { milestone in
+            guard request.projectSelectors != nil else { return true }
+            return try milestone.project.map { keys.contains(try key($0)) } ?? false
+        }
+    }
+
+    private func consolidationEvidence(_ request: ReadCaptureRequest, context: ModelContext,
+                                       tasks: [TransitTask], graph: TaskLinkGraphView?) throws
+        -> ConsolidationSavedEvidence? {
+        guard fullRecordSelection(request.selection), request.selection.requiredEntities.0 else { return nil }
+        guard let graph else { throw MCPReadCaptureError.incoherentCapture }
+        return try TaskConsolidationSavedCapture(container: container).copy(
+            .init(selectedTaskIds: tasks.map(\.id), requireSelectedOriginals: false),
+            in: context, graph: graph, budget: request.taskLinkBudget ?? TaskLinkGraphBudget())
+    }
+
     private func resolve(_ selectors: [ReadProjectSelector]?, projects: [Project]) throws -> [Project] {
         guard let selectors else { return projects }
         return try selectors.map { selector in

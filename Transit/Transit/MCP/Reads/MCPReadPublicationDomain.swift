@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 /// All mutable coordinator and retention state uses this single short lock domain.
@@ -165,4 +164,3 @@ nonisolated final class MCPReadPublicationDomain: @unchecked Sendable {
         store.pendingBytes -= reservation.chargeBytes
     }
 }
-#endif

@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 /// Stable identity of one retention store sharing the common publication domain.
@@ -55,4 +54,3 @@ nonisolated struct PreparedReadResult: Sendable {
         self.diagnosticOutcome = diagnosticOutcome
     }
 }
-#endif

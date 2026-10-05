@@ -22,13 +22,14 @@ nonisolated enum MCPBoundedReadDispatcher {
     @concurrent static func response(
         for read: MCPClassifiedRead, rpc: JSONRPCRequest, handler: MCPToolHandler,
         coordinator: MCPReadCoordinator, admittedAt: ContinuousClock.Instant,
+        admissionOwner: MCPReadAdmissionOwner = .application,
         encode: @escaping @Sendable (MCPPreparedToolRead, JSONRPCId) throws -> Data = encodeResult,
         encodeWithOperation: (@Sendable (MCPPreparedToolRead, JSONRPCId, MCPReadOperation) throws -> Data)? = nil,
         encodeConstantToolFailure: (@Sendable (MCPPreparedToolRead, JSONRPCId) throws -> Data)? = nil
     ) async throws -> Data {
         guard let id = rpc.id else { throw MCPReadCaptureError.serializationFailure }
         let constantEncoder = encodeConstantToolFailure ?? encodeResult
-        let admission = MCPReadAdmission()
+        let admission = MCPReadAdmission(owner: admissionOwner)
         let policy = (read.request.arguments["readPolicy"]?.value as? String).flatMap(MCPReadPolicy.init(rawValue:))
             ?? .refreshIfNeeded
         let timeout = try failure(id: id, operationID: admission.operationID, policy: policy,
