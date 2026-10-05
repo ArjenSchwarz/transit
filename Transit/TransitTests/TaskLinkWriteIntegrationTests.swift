@@ -24,7 +24,7 @@ struct TaskLinkWriteIntegrationTests {
         #expect(try observer.context.fetchCount(FetchDescriptor<TaskLinkOccurrence>()) == 2)
         let record = try #require(try base.decode(result)["record"] as? [String: Any])
         #expect(record["revision"] as? String == (try MCPRecordSnapshot.task(source, in: observer.context).revision))
-        #expect(try base.receipts(in: observer.context).first?.resultJSON == result.content.first?.text)
+        #expect(try fixture.receipts(for: args, in: observer.context).first?.resultJSON == result.content.first?.text)
         #expect(try base.historicReceipt(in: observer.context).resultJSON == base.historicJSON)
     }
 
@@ -63,7 +63,7 @@ struct TaskLinkWriteIntegrationTests {
         #expect(try fixture.revision(base.source.id) == before)
         let observer = try base.observer()
         #expect(try observer.context.fetchCount(FetchDescriptor<TaskLinkOccurrence>()) == 1)
-        #expect(try base.receipts(in: observer.context).count == 1)
+        #expect(try fixture.receipts(for: args, in: observer.context).count == 1)
         let replay = await fixture.execute(args)
         #expect(replay.content.first?.text == result.content.first?.text)
     }
@@ -130,7 +130,7 @@ struct TaskLinkWriteIntegrationTests {
         #expect((decoded["currentRecord"] as? [String: Any])?["graphCoverage"] as? String == "available")
         let observer = try base.observer()
         #expect(try observer.context.fetchCount(FetchDescriptor<TaskLinkOccurrence>()) == 1)
-        #expect(try base.receipts(in: observer.context).first?.stateRawValue == "rejected")
+        #expect(try fixture.receipts(for: args, in: observer.context).first?.stateRawValue == "rejected")
     }
 
     @Test(arguments: ["cycle", "missing"])
@@ -149,7 +149,7 @@ struct TaskLinkWriteIntegrationTests {
         #expect((try base.decode(first)["error"] as? [String: Any])?["code"] as? String != "PERSISTENCE_UNAVAILABLE")
         let observer = try base.observer()
         #expect(try observer.context.fetchCount(FetchDescriptor<TaskLinkOccurrence>()) == 1)
-        #expect(try base.receipts(in: observer.context).first?.resultJSON == first.content.first?.text)
+        #expect(try fixture.receipts(for: args, in: observer.context).first?.resultJSON == first.content.first?.text)
         let replay = await fixture.execute(args)
         #expect(first.content.first?.text == replay.content.first?.text)
     }
@@ -173,7 +173,7 @@ struct TaskLinkWriteIntegrationTests {
         let observer = try base.observer()
         #expect(try base.task(base.source.id, in: observer.context).name == "source")
         #expect(try observer.context.fetchCount(FetchDescriptor<TaskLinkOccurrence>()) == 1)
-        #expect(try base.receipts(in: observer.context).first?.stateRawValue == "rejected")
+        #expect(try fixture.receipts(for: args, in: observer.context).first?.stateRawValue == "rejected")
     }
 
     @Test(arguments: [false, true])
@@ -192,7 +192,7 @@ struct TaskLinkWriteIntegrationTests {
         let observer = try base.observer()
         #expect(try base.task(base.source.id, in: observer.context).name == "source")
         #expect(try observer.context.fetchCount(FetchDescriptor<TaskLinkOccurrence>()) == 1)
-        #expect(try base.receipts(in: observer.context).first?.stateRawValue == "accepted")
+        #expect(try fixture.receipts(for: args, in: observer.context).first?.stateRawValue == "accepted")
     }
 }
 #endif

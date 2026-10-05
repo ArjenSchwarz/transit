@@ -61,6 +61,11 @@ import Testing
         await handler.protectedWriteResult(tool: tool, arguments: arguments)
     }
 
+    func receipts(for arguments: [String: Any], in context: ModelContext) throws -> [MCPWriteReceipt] {
+        let key = try #require(arguments["idempotencyKey"] as? String)
+        return try context.fetch(FetchDescriptor<MCPWriteReceipt>(predicate: #Predicate { $0.key == key }))
+    }
+
     func assertOutcome(_ result: MCPToolResult, _ outcome: String, accepted: Bool = true) throws {
         let value = try base.decode(result)
         #expect(value["outcome"] as? String == outcome)
