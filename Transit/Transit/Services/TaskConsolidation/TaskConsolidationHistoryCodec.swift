@@ -21,13 +21,7 @@ nonisolated struct TaskConsolidationRawFields: Codable, Equatable, Sendable {
     }
 }
 
-nonisolated struct TaskConsolidationTaskChange: Codable, Equatable, Sendable {
-    let taskId: UUID
-    let before: TaskConsolidationRawFields
-    let after: TaskConsolidationRawFields
-}
-
-nonisolated struct TaskConsolidationOccurrence: Codable, Equatable, Sendable {
+nonisolated struct TaskConsolidationOccurrence: Codable, Hashable, Sendable {
     let id: UUID
     let kind: String
     let source: UUID
@@ -48,6 +42,7 @@ nonisolated struct TaskConsolidationPayload: Codable, Equatable, Sendable {
     let appliedRevisions: [String: String]
     let createdOccurrences: [TaskConsolidationOccurrence]
     let retainedOccurrences: [TaskConsolidationOccurrence]
+    var removedOccurrences: [TaskConsolidationOccurrence] = []
     let requestKey: String
     let reviewId: UUID
     let reviewRevision: String
@@ -118,7 +113,7 @@ nonisolated enum TaskConsolidationHistoryCodec {
         }
         try validatePreservation(payload)
         try validateChanges(payload.changes)
-        for occurrence in payload.createdOccurrences + payload.retainedOccurrences {
+        for occurrence in payload.createdOccurrences + payload.retainedOccurrences + payload.removedOccurrences {
             let date = try TaskConsolidationRawFields.date(occurrence.createdAt)
             guard ["dependency", "association", "attribution", "duplicate"].contains(occurrence.kind),
                   occurrence.source != occurrence.target, token(occurrence.revision, prefix: "l1:") else {
@@ -133,27 +128,17 @@ nonisolated enum TaskConsolidationHistoryCodec {
             let fingerprint = "l1:" + SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
             guard fingerprint == occurrence.revision else { throw TaskConsolidationHistoryError.malformed }
         }
-        let created = payload.createdOccurrences
+        guard payload.kind == "apply" ? payload.removedOccurrences.isEmpty : payload.createdOccurrences.isEmpty else {
+            throw TaskConsolidationHistoryError.malformed
+        }
+        let created = payload.kind == "apply" ? payload.createdOccurrences : payload.removedOccurrences
         guard Set(created.map(\.id)).count == created.count,
               created.allSatisfy({ $0.kind == "duplicate" && payload.candidateTaskIds.contains($0.source)
                   && $0.target == payload.survivorTaskId }) else { throw TaskConsolidationHistoryError.malformed }
     }
 
     private static func validateChanges(_ changes: [TaskConsolidationTaskChange]) throws {
-        for change in changes {
-            for fields in [change.before, change.after] {
-                guard TaskStatus(rawValue: fields.statusRawValue) != nil else {
-                    throw TaskConsolidationHistoryError.malformed
-                }
-                _ = try TaskConsolidationRawFields.date(fields.lastStatusChangeDate)
-                if let completed = fields.completionDate { _ = try TaskConsolidationRawFields.date(completed) }
-                if let raw = fields.metadataJSON {
-                    guard (try JSONSerialization.jsonObject(with: Data(raw.utf8))) is [String: String] else {
-                        throw TaskConsolidationHistoryError.malformed
-                    }
-                }
-            }
-        }
+        for change in changes { try change.validate() }
     }
 
     private static func token(_ value: String, prefix: String) -> Bool {
@@ -189,8 +174,7 @@ nonisolated enum TaskConsolidationHistoryCodec {
                           let field = reference["survivorField"], ["description", "metadata"].contains(field),
                           payload.changes.contains(where: { change in
                               change.taskId == payload.survivorTaskId && (field == "description"
-                                  ? change.before.description != change.after.description
-                                  : change.before.metadataJSON != change.after.metadataJSON)
+                                  ? change.fields["description"] != nil : change.fields["metadataJSON"] != nil)
                           }) else { throw TaskConsolidationHistoryError.malformed }
                 }
                 accounted = true
@@ -199,7 +183,7 @@ nonisolated enum TaskConsolidationHistoryCodec {
         }
     }
 
-    /// Multiplicity and physical identity are deliberately retained in the digest.
+    /// Immutable scalar content and physical multiplicity are retained in the digest.
     static func revision(_ events: [TaskConsolidationEventValue]) throws -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
@@ -214,6 +198,12 @@ nonisolated enum TaskConsolidationHistoryCodec {
         }.sorted { $0.lexicographicallyPrecedes($1) }
         let bytes = try encoder.encode(tuples)
         return "o1:" + SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func sameOccurrences(_ lhs: [TaskConsolidationOccurrence],
+                                        _ rhs: [TaskConsolidationOccurrence]) -> Bool {
+        Dictionary(grouping: lhs, by: { $0 }).mapValues(\.count)
+            == Dictionary(grouping: rhs, by: { $0 }).mapValues(\.count)
     }
 
     static func history(_ events: [TaskConsolidationEventValue], operationId: UUID)
@@ -231,7 +221,11 @@ nonisolated enum TaskConsolidationHistoryCodec {
         let apply = applies[0]
         if let reversal = reversals.first {
             guard apply.survivorTaskId == reversal.survivorTaskId,
-                  apply.candidateTaskIds == reversal.candidateTaskIds else {
+                  apply.candidateTaskIds == reversal.candidateTaskIds,
+                  Dictionary(uniqueKeysWithValues: apply.changes.map { ($0.taskId, $0.inverse) })
+                    == Dictionary(uniqueKeysWithValues: reversal.changes.map { ($0.taskId, $0) }),
+                  sameOccurrences(reversal.removedOccurrences, apply.createdOccurrences),
+                  sameOccurrences(reversal.retainedOccurrences, apply.retainedOccurrences) else {
                 throw TaskConsolidationHistoryError.malformed
             }
         }

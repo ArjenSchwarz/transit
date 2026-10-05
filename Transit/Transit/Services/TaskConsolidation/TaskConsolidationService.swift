@@ -8,6 +8,7 @@ struct TaskConsolidationOwnedReview {
     let revision: String
     let originScopeId: String
     let payload: TaskConsolidationPayload
+    let changes: [TaskConsolidationReviewedTaskChange]
     let expectedRevisions: [UUID: String]
     let links: TaskLinkPlan
 }
@@ -69,7 +70,7 @@ struct TaskConsolidationOwnedReview {
         guard try context.fetch(collision).isEmpty else {
             throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "New operation identity conflicts")
         }
-        let changes = try actualChanges(review.payload.changes, tasks: tasks,
+        let changes = try actualChanges(review.changes, tasks: tasks,
             survivorId: review.payload.survivorTaskId, instant: instant)
         let prospective = try review.links.additions.map { addition in
             try occurrence(TaskLinkOccurrenceValue(physicalKey: Data(), id: UUID(), kind: addition.relation.kind,
@@ -94,7 +95,7 @@ struct TaskConsolidationOwnedReview {
 
     private struct OwnedEffects {
         let id: UUID
-        let changes: [TaskConsolidationTaskChange]
+        let changes: [TaskConsolidationReviewedTaskChange]
         let applied: TaskLinkOwnedApply.Applied
         let graph: TaskLinkGraphView
         let instant: Date
@@ -132,6 +133,7 @@ struct TaskConsolidationOwnedReview {
             throw MCPWriteFailure("OUTCOME_UNCERTAIN", "Review resolution introduced pending changes")
         }
         try TaskConsolidationHistoryCodec.validate(review.payload)
+        try validateReviewChanges(review)
         let ids = [review.payload.survivorTaskId] + review.payload.candidateTaskIds
         guard Set(review.expectedRevisions.keys) == Set(ids), review.links.removals.isEmpty else {
             throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Incomplete group evidence")
@@ -171,8 +173,31 @@ struct TaskConsolidationOwnedReview {
         return tasks
     }
 
-    private func actualChanges(_ proposed: [TaskConsolidationTaskChange], tasks: [UUID: TransitTask],
-                               survivorId: UUID, instant: Date) throws -> [TaskConsolidationTaskChange] {
+    private func validateReviewChanges(_ review: TaskConsolidationOwnedReview) throws {
+        guard review.changes.map(\.delta) == review.payload.changes else {
+            throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Reviewed fields and history delta disagree")
+        }
+        for change in review.changes {
+            try validateRawFields(change.before)
+            try validateRawFields(change.after)
+        }
+    }
+
+    private func validateRawFields(_ fields: TaskConsolidationRawFields) throws {
+        guard TaskStatus(rawValue: fields.statusRawValue) != nil else {
+            throw TaskConsolidationHistoryError.malformed
+        }
+        _ = try TaskConsolidationRawFields.date(fields.lastStatusChangeDate)
+        if let date = fields.completionDate { _ = try TaskConsolidationRawFields.date(date) }
+        if let raw = fields.metadataJSON {
+            guard (try JSONSerialization.jsonObject(with: Data(raw.utf8))) is [String: String] else {
+                throw TaskConsolidationHistoryError.malformed
+            }
+        }
+    }
+
+    private func actualChanges(_ proposed: [TaskConsolidationReviewedTaskChange], tasks: [UUID: TransitTask],
+                               survivorId: UUID, instant: Date) throws -> [TaskConsolidationReviewedTaskChange] {
         try proposed.map { change in
             let task = tasks[change.taskId]!
             guard try TaskConsolidationRawFields.capture(task) == change.before else {
@@ -202,17 +227,18 @@ struct TaskConsolidationOwnedReview {
                     lastStatusChangeDate: try TaskConsolidationRawFields.exactDate(instant),
                     completionDate: try TaskConsolidationRawFields.exactDate(instant))
             }
-            return TaskConsolidationTaskChange(taskId: change.taskId, before: change.before, after: after)
+            return TaskConsolidationReviewedTaskChange(taskId: change.taskId, before: change.before, after: after)
         }
     }
 
     private func payload(_ review: TaskConsolidationOwnedReview,
-                         effects: (id: UUID, changes: [TaskConsolidationTaskChange]), command: MCPWriteCommand,
+                         effects: (id: UUID, changes: [TaskConsolidationReviewedTaskChange]), command: MCPWriteCommand,
                          revisions: [String: String],
                          created: [TaskConsolidationOccurrence]) -> TaskConsolidationPayload {
         TaskConsolidationPayload(operationId: effects.id, kind: "apply", survivorTaskId: review.payload.survivorTaskId,
             candidateTaskIds: review.payload.candidateTaskIds, reason: review.payload.reason,
-            preservationJSON: review.payload.preservationJSON, changes: effects.changes, appliedRevisions: revisions,
+            preservationJSON: review.payload.preservationJSON, changes: effects.changes.map(\.delta),
+            appliedRevisions: revisions,
             createdOccurrences: created, retainedOccurrences: review.payload.retainedOccurrences,
             requestKey: command.key, reviewId: review.id, reviewRevision: review.revision)
     }

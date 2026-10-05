@@ -46,7 +46,23 @@ struct TaskConsolidationOwnedCommitTests {
         #expect(!fixture.base.owner.context.hasChanges && !observer.context.hasChanges)
     }
 
-    @Test(arguments: ["save", "encode", "capacity", "recovery", "interruption"])
+    @Test func statusOnlyClosureRetainsLargeUnchangedCandidateContent() async throws {
+        let fixture = try TaskConsolidationCommitFixture(fault: "large-unchanged")
+        let result = await fixture.execute()
+        #expect(try fixture.base.decode(result)["outcome"] as? String == "committed")
+        let observer = try fixture.base.observer()
+        let source = try fixture.base.task(fixture.base.source.id, in: observer.context)
+        #expect(source.taskDescription == String(repeating: "x", count: 300_000))
+        #expect(source.metadataJSON == fixture.base.source.metadataJSON)
+        #expect(source.statusRawValue == "abandoned")
+        let event = try #require(observer.context.fetch(FetchDescriptor<TaskConsolidationEvent>()).first)
+        #expect(event.payloadJSON.utf8.count < 8_192)
+        let payload = try TaskConsolidationHistoryCodec.decode(TaskConsolidationEventValue.capture(event))
+        let sourceChange = try #require(payload.changes.first { $0.taskId == source.id })
+        #expect(sourceChange.fields["description"] == nil && sourceChange.fields["metadataJSON"] == nil)
+    }
+
+    @Test(arguments: ["save", "encode", "capacity", "recovery", "interruption", "raw-review"])
     func failureHasNoGroupEffectsOrTruthfulUncertainty(fault: String) async throws {
         let fixture = try TaskConsolidationCommitFixture(fault: fault)
         let result = await fixture.execute()
@@ -173,10 +189,10 @@ struct TaskConsolidationOwnedCommitTests {
     init(fault: String = "none") throws {
         let base = try TaskLinkCommitDiskFixture()
         self.base = base
-        extra = try Self.seedExtra(base)
+        extra = try Self.seedExtra(base, fault: fault)
         let ids = [base.target.id, base.source.id, extra.id]
         let reviewId = UUID(), revision = "p1:" + String(repeating: "a", count: 64)
-        let (payload, revisions) = try Self.reviewPayload(base: base, extra: extra, fault: fault,
+        let values = try Self.reviewPayload(base: base, extra: extra, fault: fault,
             id: reviewId, revision: revision)
         let observation = self.observation
         coordinator = base.coordinator(save: { context, stage in
@@ -203,7 +219,7 @@ struct TaskConsolidationOwnedCommitTests {
         })
         let scope = try #require(coordinator.localScopeId)
         review = TaskConsolidationOwnedReview(id: reviewId, revision: revision, originScopeId: scope,
-            payload: payload, expectedRevisions: revisions,
+            payload: values.payload, changes: values.changes, expectedRevisions: values.revisions,
             links: TaskLinkPlan(removals: [], additions: [base.source.id, extra.id].map {
                 TaskLinkPlannedAddition(relation:
                     TaskLinkType.duplicateOf.normalized(source: $0, target: base.target.id))
@@ -217,7 +233,13 @@ struct TaskConsolidationOwnedCommitTests {
                 }, clock: { base.instant }))
     }
 
-    private static func seedExtra(_ base: TaskLinkCommitDiskFixture) throws -> TransitTask {
+    private static func seedExtra(_ base: TaskLinkCommitDiskFixture, fault: String) throws -> TransitTask {
+        if fault == "large-unchanged" {
+            base.source.taskDescription = String(repeating: "x", count: 300_000)
+            base.source.metadataJSON = "{\"retained\":\"" + String(repeating: "m", count: 300_000) + "\"}"
+            try base.owner.context.save()
+        }
+
         let extra = TransitTask(name: "second candidate", type: .feature, project: try #require(base.source.project),
             displayID: .permanent(3))
         extra.statusRawValue = "planning"
@@ -231,19 +253,29 @@ struct TaskConsolidationOwnedCommitTests {
         return extra
     }
 
+    private struct ReviewValues {
+        let payload: TaskConsolidationPayload
+        let revisions: [UUID: String]
+        let changes: [TaskConsolidationReviewedTaskChange]
+    }
+
     private static func reviewPayload(base: TaskLinkCommitDiskFixture, extra: TransitTask, fault: String,
                                       id reviewId: UUID, revision: String)
-        throws -> (TaskConsolidationPayload, [UUID: String]) {
+        throws -> ReviewValues {
         let revisions = try Dictionary(uniqueKeysWithValues: [base.target, base.source, extra].map {
             ($0.id, try MCPRecordSnapshot.task($0, in: base.owner.context).revision)
         })
         let changes = try [base.target, base.source, extra].map { task in
-            let before = try TaskConsolidationRawFields.capture(task)
+            let raw = try TaskConsolidationRawFields.capture(task)
+            let before = TaskConsolidationRawFields(description:
+                fault == "raw-review" && task.id == base.source.id ? "stale transient field" : raw.description,
+                metadataJSON: raw.metadataJSON, statusRawValue: raw.statusRawValue,
+                lastStatusChangeDate: raw.lastStatusChangeDate, completionDate: raw.completionDate)
             let survivor = task.id == base.target.id
             let after = TaskConsolidationRawFields(description: survivor ? "reviewed survivor" : before.description,
                 metadataJSON: before.metadataJSON, statusRawValue: survivor ? before.statusRawValue : "abandoned",
                 lastStatusChangeDate: before.lastStatusChangeDate, completionDate: before.completionDate)
-            return TaskConsolidationTaskChange(taskId: task.id, before: before, after: after)
+            return TaskConsolidationReviewedTaskChange(taskId: task.id, before: before, after: after)
         }
         let preservation = Dictionary(uniqueKeysWithValues: [base.source.id, extra.id].map {
             ($0.uuidString, ["retainedExplanation": "original detail retained"])
@@ -254,11 +286,11 @@ struct TaskConsolidationOwnedCommitTests {
             candidateTaskIds: [base.source.id, extra.id],
             reason: fault == "capacity" ? String(repeating: "é", count: 256 * 1_024) : "reviewed equivalent work",
             preservationJSON: preservationJSON,
-            changes: changes,
+            changes: changes.map(\.delta),
             appliedRevisions: Dictionary(uniqueKeysWithValues: revisions.map { ($0.key.uuidString, $0.value) }),
             createdOccurrences: [], retainedOccurrences: [], requestKey: "group", reviewId: reviewId,
             reviewRevision: revision)
-        return (payload, revisions)
+        return ReviewValues(payload: payload, revisions: revisions, changes: changes)
     }
 
     func arguments(key: String = "group") -> [String: Any] {

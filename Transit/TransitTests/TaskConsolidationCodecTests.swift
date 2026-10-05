@@ -8,9 +8,9 @@ struct TaskConsolidationCodecTests {
         let value = try fixture()
         let event = try event(value)
         #expect(try TaskConsolidationHistoryCodec.decode(event) == value)
-        let fields = try #require(value.changes.first?.before)
-        #expect(fields.metadataJSON == "{ \"source\" : \"café\" }")
-        let date = try TaskConsolidationRawFields.date(fields.lastStatusChangeDate)
+        let fields = try #require(value.changes.first?.fields)
+        #expect(fields["metadataJSON"]?.before == "{ \"source\" : \"café\" }")
+        let date = try TaskConsolidationRawFields.date(try #require(fields["lastStatusChangeDate"]?.before))
         #expect(date.timeIntervalSinceReferenceDate.bitPattern == Double(123456.00000000001).bitPattern)
         #expect(throws: (any Error).self) { try TaskConsolidationRawFields.date("7ff0000000000000") }
     }
@@ -87,6 +87,11 @@ struct TaskConsolidationCodecTests {
         var document = try #require(JSONSerialization.jsonObject(with: Data(original.payloadJSON.utf8))
             as? [String: Any])
         document["kind"] = "undo"
+        let originalPayload = try TaskConsolidationHistoryCodec.decode(original)
+        document["changes"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(
+            originalPayload.changes.map(\.inverse)))
+        document["removedOccurrences"] = document["createdOccurrences"]
+        document["createdOccurrences"] = [] as [[String: Any]]
         let bytes = try JSONSerialization.data(withJSONObject: document)
         let json = try #require(String(data: bytes, encoding: .utf8))
         let reversal = copied(original, id: UUID(), kind: "undo", payload: json)
@@ -123,7 +128,7 @@ struct TaskConsolidationCodecTests {
             statusRawValue: "idea", lastStatusChangeDate:
                 try TaskConsolidationRawFields.exactDate(Date(timeIntervalSinceReferenceDate: 123456.00000000001)),
             completionDate: nil)
-        let after = TaskConsolidationRawFields(description: before.description, metadataJSON: before.metadataJSON,
+        let after = TaskConsolidationRawFields(description: before.description, metadataJSON: "{\"source\":\"after\"}",
             statusRawValue: "abandoned", lastStatusChangeDate: "0", completionDate: "0")
         return TaskConsolidationPayload(operationId: UUID(), kind: "apply", survivorTaskId: survivor,
             candidateTaskIds: [candidate], reason: reason,
