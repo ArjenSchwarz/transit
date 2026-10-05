@@ -11,11 +11,7 @@ struct TaskDetailWindowView: View {
     @State private var isEditing = false
 
     private var task: TransitTask? {
-        var descriptor = FetchDescriptor<TransitTask>(
-            predicate: #Predicate { $0.id == taskID }
-        )
-        descriptor.fetchLimit = 1
-        return try? modelContext.fetch(descriptor).first
+        try? TaskLinkNavigationResolver.resolve(taskID, in: modelContext)
     }
 
     var body: some View {
