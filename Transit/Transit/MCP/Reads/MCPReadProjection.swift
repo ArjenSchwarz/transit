@@ -125,17 +125,7 @@ enum MCPReadProjection {
 
     static func projectIdentity(_ args: [String: Any], projects: [ReadProjectIdentity],
                                 validateIgnoredName: Bool = true) throws -> ReadProjectIdentity? {
-        let id: UUID?
-        if let raw = args["projectId"] {
-            guard let text = raw as? String, let parsed = UUID(uuidString: text) else {
-                throw MCPTaskQueryError.invalid("Invalid projectId: expected a UUID string")
-            }
-            id = parsed
-        } else { id = nil }
-        if id == nil || validateIgnoredName, args["project"] != nil, !(args["project"] is String) {
-            throw MCPTaskQueryError.invalid("project must be a string")
-        }
-        let name = (args["project"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let (id, name) = try projectSelector(args, validateIgnoredName: validateIgnoredName)
         guard id != nil || name?.isEmpty == false else { return nil }
         let matches = projects.filter {
             if let id { return $0.id == id }

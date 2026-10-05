@@ -58,6 +58,7 @@ extension MCPToolHandler {
             completeness: .selectedRead, includeComments: request.includeComments,
             validateProjects: { [self] projects in
                 let args = fields.mapValues(\.value)
+                _ = try MCPReadProjection.projectSelector(args)
                 try checkTaskQueryProjectStorage(args)
                 state.project = try MCPReadProjection.projectIdentity(args, projects: projects)
                 try MCPReadProjection.validateTaskScalars(args)

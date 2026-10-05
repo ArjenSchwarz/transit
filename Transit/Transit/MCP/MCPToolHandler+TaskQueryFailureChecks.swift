@@ -9,7 +9,7 @@ extension MCPToolHandler {
         let result: Result<Project, ProjectLookupError>?
         if let raw = args["projectId"] as? String, let id = UUID(uuidString: raw) {
             result = projectService.findProject(id: id)
-        } else if let name = args["project"] as? String, !name.trimmingCharacters(in: .whitespaces).isEmpty {
+        } else if let name = args["project"] as? String, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             result = projectService.findProject(id: nil, name: name)
         } else { result = nil }
         if let result, case .failure(.storageFailure(let hint)) = result {
