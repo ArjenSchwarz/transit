@@ -80,7 +80,7 @@ enum UITestScenario: String {
     }
 
     private func seedTaskLinks(into context: ModelContext, ambiguous: Bool) {
-        let project = Project(name: "Relationships", description: nil, gitRepo: nil, colorHex: "#0A84FF")
+        let project = Project(name: "Relationships", description: "Synthetic relationship UI fixture", gitRepo: nil, colorHex: "#0A84FF")
         context.insert(project)
         let source = TransitTask(name: "Linked Source", type: .feature, project: project, displayID: .permanent(1))
         source.id = UUID(uuidString: "00000000-0000-0000-0000-000000173401")!
