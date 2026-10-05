@@ -88,6 +88,7 @@ nonisolated struct MCPResultClassification {
         "AMBIGUOUS_MILESTONE": .ambiguousIdentity, "AMBIGUOUS_FILTER": .ambiguousIdentity,
         "DUPLICATE_MILESTONE_NAME": .ambiguousIdentity, "DUPLICATE_PROJECT_NAME": .ambiguousIdentity,
         "DUPLICATE_TASK_IDENTIFIER": .ambiguousIdentity, "MILESTONE_NOT_OPEN": .invalidInput,
+        "LINK_REPAIR_UNAVAILABLE": .notFound, "LINK_GRAPH_INVALID": .invalidInput,
         "REVISION_CONFLICT": .revisionConflict, "IDEMPOTENCY_KEY_REUSED": .keyConflict,
         "PERSISTENCE_UNAVAILABLE": .storageFailure, "QUERY_FAILED": .storageFailure,
         "READ_BUSY": .admissionBusy, "QUERY_UNAVAILABLE": .admissionBusy,

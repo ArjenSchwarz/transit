@@ -12,7 +12,7 @@ struct MCPWriteCommandServices {
 }
 
 enum PreparedMCPWrite {
-    case taskCreation(TaskService.PreparedCreation)
+    case taskCreation(TaskService.PreparedCreation, UUID)
     case milestoneCreation(MilestoneService.PreparedCreation)
     case task(UUID)
     case milestone(UUID)
@@ -97,7 +97,8 @@ struct MCPWriteCommand {
         }
     }
 
-    func prepare(using services: MCPWriteCommandServices) async throws -> PreparedMCPWrite {
+    func prepare(using services: MCPWriteCommandServices,
+                 newTaskID: @MainActor () -> UUID = UUID.init) async throws -> PreparedMCPWrite {
         try Task.checkCancellation()
         switch tool {
         case "create_task":
@@ -107,12 +108,12 @@ struct MCPWriteCommand {
             }
             let priority = try taskPriority()
             let milestone = try assignedMilestone(project: project, using: services)
-            return .taskCreation(
-                try await services.tasks.prepareTaskCreation(
+            let creation = try await services.tasks.prepareTaskCreation(
                     name: try string("name"), description: arguments["description"] as? String,
                     type: type, project: project, metadata: IntentHelpers.stringMetadata(from: arguments["metadata"]),
                     priority: priority, milestone: milestone
-                ))
+                )
+            return .taskCreation(creation, newTaskID())
         case "create_milestone":
             return .milestoneCreation(
                 try await services.milestones.prepareMilestoneCreation(
@@ -136,8 +137,8 @@ struct MCPWriteCommand {
                afterTaskApply: AfterTaskApply? = nil) throws -> [String: Any] {
         try Task.checkCancellation()
         switch prepared {
-        case .taskCreation(let creation):
-            let task = try services.tasks.applyTaskCreation(creation)
+        case .taskCreation(let creation, let id):
+            let task = try services.tasks.applyTaskCreation(creation, taskID: id)
             try afterTaskApply?(self, task, services)
             return try saved(MCPRecordSnapshot.task(task, in: services.context))
         case .milestoneCreation(let creation):

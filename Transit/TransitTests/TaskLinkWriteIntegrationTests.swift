@@ -71,12 +71,13 @@ struct TaskLinkWriteIntegrationTests {
     @Test func exactRemovalFreshKeyNoOpAndReAddPreserveOriginalEvidence() async throws {
         let base = try TaskLinkCommitDiskFixture()
         let fixture = TaskLinkWriteFixture(base: base)
+        let edgeID = base.edge.id
         let args = try fixture.removal()
         let first = await fixture.execute(args)
         try fixture.assertOutcome(first, "committed")
         let observer = try base.observer()
         let evidence = try observer.context.fetch(FetchDescriptor<TaskLinkRemovalEvidence>())
-            .filter { $0.edgeId == base.edge.id }
+            .filter { $0.edgeId == edgeID }
         let original = try #require(evidence.count == 1 ? evidence.first : nil)
         var retry = args
         retry["idempotencyKey"] = "fresh-removal-noop"
@@ -84,14 +85,14 @@ struct TaskLinkWriteIntegrationTests {
         retry["endpointPreconditions"] = [] as [[String: String]]
         try fixture.assertOutcome(await fixture.execute(retry), "committed")
         let unchanged = try base.observer().context.fetch(FetchDescriptor<TaskLinkRemovalEvidence>())
-            .filter { $0.edgeId == base.edge.id }
+            .filter { $0.edgeId == edgeID }
         #expect(unchanged.count == 1 && unchanged.first?.id == original.id)
         #expect(unchanged.first?.removedAt == original.removedAt)
         let reAdd = try fixture.addition(type: "blocked-by", key: "re-add")
         try fixture.assertOutcome(await fixture.execute(reAdd), "committed")
         let reopened = try base.observer()
         let edges = try reopened.context.fetch(FetchDescriptor<TaskLinkOccurrence>())
-        #expect(edges.count == 1 && edges.first?.id != base.edge.id)
+        #expect(edges.count == 1 && edges.first?.id != edgeID)
         let replay = await fixture.execute(args)
         #expect(replay.content.first?.text == first.content.first?.text)
     }

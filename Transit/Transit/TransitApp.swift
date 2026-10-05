@@ -170,7 +170,8 @@ struct TransitApp: App {
             commentService: commentService, milestoneService: milestoneService,
             maintenanceService: maintenanceService, settings: mcpSettings,
             persistence: persistence, taskQuerySnapshots: reads.snapshots, writeCoordinator: writeCoordinator,
-            readService: reads, readCoordinator: readCoordinator, batchContainer: container
+            readService: reads, readCoordinator: readCoordinator, batchContainer: container,
+            taskLinkWriteAdapter: TaskLinkWriteAdapter(taskAllocator: allocator, milestoneAllocator: milestoneAllocator)
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler, readCoordinator: readCoordinator)
         #endif

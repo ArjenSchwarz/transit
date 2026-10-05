@@ -14,6 +14,7 @@ import SwiftData
     private let clock: @MainActor () -> Date
     private let save: @MainActor (ModelContext, SaveStage) throws -> Void
     private let encode: @MainActor ([String: Any]) throws -> String
+    private let newTaskID: @MainActor () -> UUID
     private let preparationHook: @MainActor (MCPWriteCommand) async throws -> Void
     private let recoveryHook: @MainActor () throws -> Void
     private let persistence: PersistenceAvailability
@@ -27,6 +28,7 @@ import SwiftData
         clock: @escaping @MainActor () -> Date = Date.init,
         save: @escaping @MainActor (ModelContext, SaveStage) throws -> Void = { context, _ in try context.save() },
         encode: @escaping @MainActor ([String: Any]) throws -> String = MCPWriteOutcome.encode,
+        newTaskID: @escaping @MainActor () -> UUID = UUID.init,
         preparationHook: @escaping @MainActor (MCPWriteCommand) async throws -> Void = { _ in },
         recoveryHook: @escaping @MainActor () throws -> Void = {}
     ) {
@@ -36,6 +38,7 @@ import SwiftData
         self.clock = clock
         self.save = save
         self.encode = encode
+        self.newTaskID = newTaskID
         self.preparationHook = preparationHook
         self.recoveryHook = recoveryHook
         if persistence.isFallbackStorageActive {
@@ -248,7 +251,7 @@ extension MCPWriteCoordinator {
             if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
                 return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
             }
-            prepared = try await command.prepare(using: services)
+            prepared = try await command.prepare(using: services, newTaskID: newTaskID)
             try Task.checkCancellation()
         } catch {
             // Return before a rejection phase can save or roll back UI edits.
@@ -301,6 +304,7 @@ extension MCPWriteCoordinator {
         defer { context.autosaveEnabled = autosave }
         do {
             try batchPolicy?.validateBeforeApply(command, context)
+            try batchPolicy?.taskLinkCapability?.validatePrepared(command, prepared, scope.services)
             var envelope = try command.apply(
                 prepared, using: scope.services, afterTaskApply: batchPolicy?.afterTaskApply)
             envelope["contractVersion"] = 1

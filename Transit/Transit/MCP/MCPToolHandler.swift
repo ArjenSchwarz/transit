@@ -29,6 +29,7 @@ final class MCPToolHandler {
     private let writeCoordinator: MCPWriteCoordinator?
 
     // Batch provider injection only; Task14 binds dispatch after real-route RED.
+    let taskLinkWriteAdapter: TaskLinkWriteAdapter?
     let batchContainer: ModelContainer?
     let batchResultEncoder: MCPResultProviderSelection.EncodeOutcome?
 
@@ -84,6 +85,7 @@ final class MCPToolHandler {
         reusableSnapshots: MCPReusableSnapshotStore? = nil,
         maintenanceReassignmentEncoder: (@Sendable (ReassignmentResult) throws -> String)? = nil,
         batchContainer: ModelContainer? = nil,
+        taskLinkWriteAdapter: TaskLinkWriteAdapter? = nil,
         batchResultEncoder: MCPResultProviderSelection.EncodeOutcome? = nil
     ) {
         self.taskService = taskService
@@ -115,6 +117,7 @@ final class MCPToolHandler {
             return try MCPReusableSnapshotStore(domain: domain)
         }
         self.writeCoordinator = writeCoordinator
+        self.taskLinkWriteAdapter = taskLinkWriteAdapter
         self.batchContainer = batchContainer
         self.batchResultEncoder = batchResultEncoder
         self.maintenanceReassignmentEncoder = maintenanceReassignmentEncoder
@@ -744,7 +747,9 @@ extension MCPToolHandler {
         tool: String, arguments: [String: Any], batchPolicy: MCPBatchWritePolicy? = nil
     ) async -> MCPToolResult {
         if let writeCoordinator {
-            return await writeCoordinator.execute(tool: tool, arguments: arguments, batchPolicy: batchPolicy)
+            let covered = ["create_task", "update_task", "update_task_status", "add_comment"].contains(tool)
+            let policy = batchPolicy ?? (covered ? taskLinkWriteAdapter?.policy() : nil)
+            return await writeCoordinator.execute(tool: tool, arguments: arguments, batchPolicy: policy)
         }
         do {
             let command = try MCPWriteCommand.validate(tool: tool, arguments: arguments)
@@ -770,7 +775,9 @@ extension MCPToolHandler {
 
     func executeBatchItem(_ item: MCPBatchTaskRequest.Item) async throws -> MCPBatchTaskCoordinator.Execution {
         var pendingEditsStop = false
-        let policy = MCPBatchWritePolicy(onPendingEditsStop: { pendingEditsStop = true })
+        let stop: @MainActor () -> Void = { pendingEditsStop = true }
+        let policy = taskLinkWriteAdapter?.policy(onPendingEditsStop: stop)
+            ?? MCPBatchWritePolicy(onPendingEditsStop: stop)
         let result = await protectedWriteResult(tool: item.command.tool,
             arguments: item.command.arguments, batchPolicy: policy)
         guard result.content.count == 1, let text = result.content.first?.text else {

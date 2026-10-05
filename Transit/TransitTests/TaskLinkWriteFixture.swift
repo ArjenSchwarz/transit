@@ -4,8 +4,8 @@ import SwiftData
 import Testing
 @testable import Transit
 
-/// The real shared protected handler/coordinator route. The RED baseline has no
-/// feature factory; GREEN installs the production adapter, never a test mutation.
+/// The real shared protected handler/coordinator route with the production
+/// feature adapter. No test code inserts graph changes on behalf of the SUT.
 @MainActor struct TaskLinkWriteFixture {
     let base: TaskLinkCommitDiskFixture
     let coordinator: MCPWriteCoordinator
@@ -28,7 +28,9 @@ import Testing
         handler = MCPToolHandler(taskService: tasks, projectService: projects, commentService: comments,
             milestoneService: milestones, maintenanceService: maintenance, settings: MCPSettings(),
             persistence: PersistenceAvailability(isFallbackStorageActive: false), writeCoordinator: coordinator,
-            batchContainer: base.owner.container)
+            batchContainer: base.owner.container,
+            taskLinkWriteAdapter: TaskLinkWriteAdapter(taskAllocator: base.allocator,
+                                                     milestoneAllocator: base.allocator))
     }
 
     func revision(_ id: UUID) throws -> String {
