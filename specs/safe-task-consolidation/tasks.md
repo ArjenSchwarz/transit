@@ -6,7 +6,7 @@ references:
 metadata:
     approval: approved-5921d795
     design: approved-7714e301
-    execution: phase-1-complete-awaiting-parent-review
+    execution: running-phase-2
 ---
 # Safe task consolidation implementation tasks
 
@@ -49,7 +49,7 @@ metadata:
 
 ## Consolidation integration
 
-- [ ] 5. Red: test explicit preservation planning and attributable undo properties <!-- id:eiyvabl -->
+- [x] 5. Red: test explicit preservation planning and attributable undo properties <!-- id:eiyvabl -->
   - Write TaskConsolidationPlannerTests.swift with seeded Swift Testing generators and an independent reference for unchanged input/unrelated content, combined proposed graph deltas and eligible apply-to-undo changed-field/graph restoration.
   - Cover one-to-five candidates, UUID normalization/repeats/self-selection/physical ambiguity, unique same-project physical identity, terminal canonical survivor, valid retained chains versus different/missing/cyclic targets, mixed source-accounting and complete metadata replacement/description null versus omission.
   - Assert unfinished-only closure policy and commit-time date/ID markers, strict statusRawValue/metadataJSON rejection, unconditional acknowledgment including retention-only plans, and undo guards for current content/evidence rather than temporal ABA detection.
@@ -58,7 +58,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 6. Green: implement value-only group and reversal planning <!-- id:eiyvabm -->
+- [-] 6. Green: implement value-only group and reversal planning <!-- id:eiyvabm -->
   - Add Services/TaskConsolidation/ConsolidationPlanner and strict request/accounting value validators; bind caller reason/dispositions and optional survivor edits to exact selected originals and combined graph rules.
   - Produce only permitted deltas; retain existing canonical chains/incoming relationships, preserve original assignments/comments, reject raw corrupt evidence and missing attribution without semantic summarization.
   - Implement history-based reversal planning/current-availability projection over codec values and complete dependency evidence, including already-reversed/ambiguous history and exact attributable raw fields/status dates/created occurrences. Wire these planners into fixture service dependencies.
