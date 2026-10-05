@@ -171,7 +171,8 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             return try Copied(scope: scope, projects: projects.map(projectValue),
                               tasks: copyTaskValues(request.completeness == .completePortfolio ? allTasks : tasks,
                                   selectedKeys: bodyKeys, comments: commentIndex,
-                                  full: full, includeComments: request.includeComments, graph: graph),
+                                  full: full, includeComments: request.includeComments,
+                                  graph: graph, budget: request.taskLinkBudget),
                               milestones: (request.completeness == .completePortfolio
                                   ? allMilestones : milestones).map {
                                       try milestoneValue($0, canonical: milestoneBodyKeys.contains(try key($0)))
@@ -251,7 +252,8 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
         let taskKey = try key(task)
         let ownedComments = comments.owned
         let snapshot = full && !identityOnly
-            ? try MCPRecordSnapshot.task(task, incidence: graph?.occurrences) { _ in coveredComments } : nil
+            ? try MCPRecordSnapshot.task(task, incidence: graph.map { $0.incidence[task.id, default: []] },
+                                         budget: comments.budget) { _ in coveredComments } : nil
         var noComments = snapshot?.record
         noComments?.removeValue(forKey: "comments")
         var selected = noComments ?? ["taskId": task.id.uuidString, "name": task.name,
@@ -350,7 +352,6 @@ private extension MCPReadCaptureBuilder {
         let allTasks = needsTasks && needsTaskValues ? try fetchTasks(context) : []
         return (allTasks, allMilestones)
     }
-
     func commentsForScope(_ comments: [Comment], request: ReadCaptureRequest, tasks: [TransitTask]) -> [Comment] {
         if request.completeness == .completePortfolio && request.projectSelectors == nil { return comments }
         let ids = Set(tasks.map(\.id))
@@ -361,11 +362,12 @@ private extension MCPReadCaptureBuilder {
 
     // swiftlint:disable:next function_parameter_count
     private func copyTaskValues(_ tasks: [TransitTask], selectedKeys: Set<LocalRecordKey>, comments: CommentIndex,
-                                full: Bool, includeComments: Bool, graph: TaskLinkGraphView?) throws -> [ReadTask] {
+                                full: Bool, includeComments: Bool, graph: TaskLinkGraphView?,
+                                budget: TaskLinkGraphBudget?) throws -> [ReadTask] {
         try tasks.map { task in
             let taskKey = try key(task)
             return try taskValue(task, comments: TaskComments(canonical: comments.canonical[task.id] ?? [],
-                                                            owned: comments.physical[taskKey] ?? []),
+                                                            owned: comments.physical[taskKey] ?? [], budget: budget),
                                  full: full, includeComments: includeComments,
                                  identityOnly: !selectedKeys.contains(taskKey), graph: graph)
         }
@@ -392,7 +394,7 @@ private extension MCPReadCaptureBuilder {
     private struct TaskComments {
         let canonical: [Comment]
         let owned: [Comment]
+        let budget: TaskLinkGraphBudget?
     }
-
 }
 #endif

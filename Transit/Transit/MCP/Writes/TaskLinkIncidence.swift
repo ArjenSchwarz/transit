@@ -16,12 +16,20 @@ import SwiftData
         }
     }
 
-    static func canonical(_ rows: [TaskLinkOccurrenceValue], incidentTo id: UUID) throws -> [[String: Any]] {
-        try rows.filter { $0.source == id || $0.target == id }.map { row in
+    static func canonical(_ rows: [TaskLinkOccurrenceValue], incidentTo id: UUID,
+                          budget: TaskLinkGraphBudget? = nil) throws -> [[String: Any]] {
+        try budget?.check()
+        let canonical = try rows.filter { row in
+            try budget?.check()
+            return row.source == id || row.target == id
+        }.map { row in
+            try budget?.check()
             let fields: [String: Any] = ["edgeId": MCPRecordRevision.uuid(row.id), "kind": row.kind,
                 "sourceTaskId": MCPRecordRevision.uuid(row.source),
                 "targetTaskId": MCPRecordRevision.uuid(row.target)]
             return (try MCPCanonicalJSON.encode(fields), fields)
         }.sorted { $0.0 < $1.0 }.map(\.1)
+        try budget?.check()
+        return canonical
     }
 }

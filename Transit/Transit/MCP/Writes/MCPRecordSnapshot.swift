@@ -79,7 +79,7 @@ struct MCPRecordSnapshot {
     }
 
     static func task(_ task: TransitTask, incidence: [TaskLinkOccurrenceValue]?,
-                     fetchComments: (UUID) throws -> [Comment]) throws -> Self {
+                     budget: TaskLinkGraphBudget? = nil, fetchComments: (UUID) throws -> [Comment]) throws -> Self {
         let comments = try fetchComments(task.id).sorted {
             ($0.creationDate, $0.id.uuidString) < ($1.creationDate, $1.id.uuidString)
         }.map { try Self.comment($0) }
@@ -99,7 +99,7 @@ struct MCPRecordSnapshot {
         ]
         if let incidence {
             fields["linkContract"] = "task-links-v1"
-            fields["incidentLinks"] = try TaskLinkIncidence.canonical(incidence, incidentTo: task.id)
+            fields["incidentLinks"] = try TaskLinkIncidence.canonical(incidence, incidentTo: task.id, budget: budget)
         }
         var record: [String: Any] = [
             "taskId": task.id.uuidString, "name": task.name, "status": task.statusRawValue,
