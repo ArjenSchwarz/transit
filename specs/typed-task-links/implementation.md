@@ -4,7 +4,7 @@ Current contract: owner `Sentinel_c95239aefa6481919303c2353b8a9e9c` approved par
 
 ## Current local implementation status
 
-Tasks1..21 are locally evidenced complete; task22 final schema/docs/platform verification is in progress. All four foundations are landed on origin/main e04c1268ee37bd4ae925d4d686954cf2121005c7. The final typed branch was reconciled onto that base without changing code/tests/Makefile; provenance is in task14-checkpoint.md. Canonical/main is untouched by T1734 and is now e04 (advanced outside this isolated work).
+Tasks1..22 are locally evidenced complete. Final local readiness and native platform evidence are recorded in [final-handoff.md](final-handoff.md). All four foundations are landed on origin/main e04c1268ee37bd4ae925d4d686954cf2121005c7. The final typed branch was reconciled onto that base without changing code/tests/Makefile; provenance is in task14-checkpoint.md. Canonical/main is untouched by T1734 and is now e04 (advanced outside this isolated work).
 
 Model registration, closed-store eight-entity upgrade/reopen and raw field/receipt preservation passed locally. Development CloudKit setup/export/deletion remains explicitly deferred to T2402. Shared narrow coordinator ownership and local implementation/commits/isolated verification were subsequently authorized. Earlier readiness/ownership/cloud gate statements below are a historical implementation log, not current blockers. Native saved projection/navigation has eight unit controls PASS plus two actual iOS UI cases PASS; task20-checkpoint.md records the recovered UI lost-exit limitation and owned simulator drain. Three integrated real-foundation controls at061bbdf passed with build/run0, host59702 drained (qyhmjovq).
 
