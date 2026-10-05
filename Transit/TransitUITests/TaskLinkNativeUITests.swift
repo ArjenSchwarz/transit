@@ -38,7 +38,11 @@ final class TaskLinkNativeUITests: XCTestCase {
 
     @MainActor private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
         for _ in 0..<6 where !element.isHittable {
+            #if os(macOS)
+            app.scrollViews.firstMatch.scroll(byDeltaX: 0, deltaY: -300)
+            #else
             app.swipeUp()
+            #endif
         }
     }
 }

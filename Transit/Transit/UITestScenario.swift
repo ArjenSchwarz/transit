@@ -80,7 +80,8 @@ enum UITestScenario: String {
     }
 
     private func seedTaskLinks(into context: ModelContext, ambiguous: Bool) {
-        let project = Project(name: "Relationships", description: "Synthetic relationship UI fixture", gitRepo: nil, colorHex: "#0A84FF")
+        let project = Project(name: "Relationships", description: "Synthetic relationship UI fixture",
+                              gitRepo: nil, colorHex: "#0A84FF")
         context.insert(project)
         let source = TransitTask(name: "Linked Source", type: .feature, project: project, displayID: .permanent(1))
         source.id = UUID(uuidString: "00000000-0000-0000-0000-000000173401")!
@@ -95,6 +96,9 @@ enum UITestScenario: String {
             let collision = TransitTask(name: "Collision", type: .feature, project: project, displayID: .permanent(3))
             collision.id = target.id
             context.insert(collision)
+        }
+        do { try context.save() } catch {
+            preconditionFailure("Could not save synthetic relationship UI fixture: \(error)")
         }
     }
 
