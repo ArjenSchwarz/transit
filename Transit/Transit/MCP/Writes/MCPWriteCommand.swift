@@ -9,6 +9,7 @@ struct MCPWriteCommandServices {
     let comments: CommentService
     let milestones: MilestoneService
     let context: ModelContext
+    var consolidation: TaskConsolidationService?
 }
 
 enum PreparedMCPWrite {
@@ -17,6 +18,7 @@ enum PreparedMCPWrite {
     case task(UUID)
     case milestone(UUID)
     case project
+    case consolidation(UUID)
 }
 
 struct MCPWriteCommand {
@@ -24,7 +26,8 @@ struct MCPWriteCommand {
 
     static let protectedTools: Set<String> = [
         "create_task", "create_project", "create_milestone", "add_comment",
-        "update_task", "update_task_status", "update_milestone", "delete_milestone"
+        "update_task", "update_task_status", "update_milestone", "delete_milestone",
+        "consolidate_tasks", "undo_task_consolidation"
     ]
     static let revisionTools: Set<String> = [
         "update_task", "update_task_status", "update_milestone", "delete_milestone"
@@ -32,12 +35,14 @@ struct MCPWriteCommand {
     let tool: String
     let key: String
     let arguments: [String: Any]
+    var isConsolidation: Bool { MCPConsolidationWriteDefinition.tools.contains(tool) }
     var hasLinkInput: Bool { arguments["linkChanges"] != nil || arguments["endpointPreconditions"] != nil }
     var expectedRevision: String? { arguments["expectedRevision"] as? String }
 
     static func validate(tool: String, arguments: [String: Any]) throws -> Self {
         guard protectedTools.contains(tool),
             let definition = MCPToolDefinitions.coreTools.first(where: { $0.name == tool })
+                ?? MCPConsolidationWriteDefinition.definition(tool)
         else {
             throw MCPWriteFailure("INVALID_INPUT", "Unknown protected tool")
         }
@@ -75,6 +80,7 @@ struct MCPWriteCommand {
                 throw MCPWriteFailure("INVALID_INPUT", "\(field) must be a valid UUID string")
             }
         }
+        try validateConsolidation(tool: tool, arguments: arguments)
         _ = try TaskLinkWireRequest.parse(tool: tool, arguments: arguments)
         return Self(tool: tool, key: key, arguments: arguments)
     }
@@ -101,6 +107,11 @@ struct MCPWriteCommand {
                  newTaskID: @MainActor () -> UUID = UUID.init) async throws -> PreparedMCPWrite {
         try Task.checkCancellation()
         switch tool {
+        case "consolidate_tasks", "undo_task_consolidation":
+            guard let id = (arguments["reviewId"] as? String).flatMap(UUID.init(uuidString:)) else {
+                throw MCPWriteFailure("INVALID_INPUT", "reviewId must be a UUID")
+            }
+            return .consolidation(id)
         case "create_task":
             let project = try project(using: services)
             guard let type = TaskType(rawValue: try string("type")) else {
@@ -158,6 +169,7 @@ struct MCPWriteCommand {
             return try saved(MCPRecordSnapshot.project(project))
         case .task(let id): return try applyTask(id, using: services, afterTaskApply: afterTaskApply)
         case .milestone(let id): return try applyMilestone(id, using: services)
+        case .consolidation(let id): return try applyConsolidation(id, using: services)
         }
     }
 
@@ -272,6 +284,25 @@ struct MCPWriteCommand {
     }
 }
 extension MCPWriteCommand {
+    private static func validateConsolidation(tool: String, arguments: [String: Any]) throws {
+        if MCPConsolidationWriteDefinition.tools.contains(tool) {
+            try MCPConsolidationWriteDefinition.validate(tool: tool, arguments: arguments)
+        }
+    }
+
+    private func applyConsolidation(_ id: UUID, using services: MCPWriteCommandServices) throws -> [String: Any] {
+        guard let consolidation = services.consolidation else {
+            throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Owned reviewed execution is not installed")
+        }
+        do { return try consolidation.apply(self, reviewId: id) } catch TaskConsolidationHistoryError.capacityExceeded {
+            throw MCPWriteFailure("CONSOLIDATION_OVER_LIMIT", "Complete history exceeds the 256-KiB payload limit")
+        } catch is TaskConsolidationHistoryError {
+            throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Complete reviewed history evidence is invalid")
+        } catch let error as TaskLinkGraphError {
+            throw TaskLinkWriteFailure.map(error)
+        }
+    }
+
     private func assignedMilestone(project: Project, using services: MCPWriteCommandServices) throws -> Milestone? {
         if let id = arguments["milestoneDisplayId"] as? NSNumber {
             do {

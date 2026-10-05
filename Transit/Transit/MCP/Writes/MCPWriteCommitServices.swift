@@ -8,12 +8,16 @@ import SwiftData
     var context: ModelContext { storedServices.context }
     var services: MCPWriteCommandServices { storedServices }
 
-    init(context: ModelContext, taskAllocator: DisplayIDAllocator, milestoneAllocator: DisplayIDAllocator) {
+    init(context: ModelContext, taskAllocator: DisplayIDAllocator, milestoneAllocator: DisplayIDAllocator,
+         consolidation: TaskConsolidationService.Configuration? = nil) {
         storedServices = MCPWriteCommandServices(
             tasks: TaskService(modelContext: context, displayIDAllocator: taskAllocator),
             projects: ProjectService(modelContext: context), comments: CommentService(modelContext: context),
             milestones: MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator),
-            context: context)
+            context: context, consolidation: consolidation.map { configuration in
+                TaskConsolidationService(context: context, originScopeId: configuration.originScopeId,
+                    reviewSource: configuration.reviewSource, clock: configuration.clock)
+            })
     }
 }
 

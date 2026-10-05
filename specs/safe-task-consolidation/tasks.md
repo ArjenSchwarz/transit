@@ -6,13 +6,13 @@ references:
 metadata:
     approval: approved-5921d795
     design: approved-7714e301
-    execution: queued-until-parent-confirms-Meddy-resource-release
+    execution: phase-1-complete-awaiting-parent-review
 ---
 # Safe task consolidation implementation tasks
 
 ## Local durability foundations
 
-- [ ] 1. Red: test immutable history encoding, limits and closed-store migration <!-- id:eiyvabh -->
+- [x] 1. Red: test immutable history encoding, limits and closed-store migration <!-- id:eiyvabh -->
   - In TransitTests/TaskConsolidationHistoryTests.swift and TaskConsolidationMigrationTests.swift, use owning TestModelContainer fixtures and an exact prior eight-entity closed disk store; assert reopen preserves tasks/comments/links/receipt bytes and adds only the event entity.
   - Specify event scalar/default/optional/no-unique/no-cascade shape; version/index/payload validation, physical collision/multiple reversal diagnostics, exact raw date/metadata restoration evidence, deterministic o1 and apply/undo history beyond seven days.
   - Test UTF-8 payload immediately below/at/above 256 KiB and bounded changed-value/accounting fixtures. These tests must fail for the absent event/codec; no production store or CloudKit mutation.
@@ -20,7 +20,7 @@ metadata:
   - Requirements: [3.1](requirements.md#3.1), [3.3](requirements.md#3.3), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 2. Green: implement bounded immutable history and additive schema integration <!-- id:eiyvabi -->
+- [x] 2. Green: implement bounded immutable history and additive schema integration <!-- id:eiyvabi -->
   - Add Models/TaskConsolidationEvent.swift and Services/TaskConsolidation history value/codec/o1 components; use immutable scalar participant slots and validated versioned payload with the approved 256-KiB limit.
   - Register only the new entity in TransitApp/current TestModelContainer schemas; retain intentional old migration fixture schemas. Reopen and prove the paired old-store tests, preserved bytes and non-expiring history.
   - Wire codec/history projection into owned fixture services for subsequent steps. A failed local migration stops dependent work for design correction; no production schema promotion or persistence redesign.
@@ -29,7 +29,7 @@ metadata:
   - Requirements: [3.1](requirements.md#3.1), [3.3](requirements.md#3.3), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 3. Red: test one owned group/history/receipt commitment and recovery <!-- id:eiyvabj -->
+- [x] 3. Red: test one owned group/history/receipt commitment and recovery <!-- id:eiyvabj -->
   - Add TaskConsolidationOwnedCommitTests.swift using the real MCPWriteCoordinator/MCPWriteCommitScope with deterministic reviewed-plan fixtures: multiple task/status changes, actual link occurrences, one history event and one terminal receipt must share a save and survive independent reopen.
   - Inject pre-save encoding/capacity failure, save failure, accepted interruption, lost response and unavailable durability probes; require proven all-or-none local outcomes and truthful uncertainty. Cover clean checks before acceptance and every post-await success/error, dirty replay without saves/rollback, and participating noninterleave.
   - Define typed group command/owned service interfaces needed by these fixtures; RED may fail on absent interfaces. Outside-container/import counterexamples are acknowledged allowed races, never a required global fence.
@@ -38,7 +38,7 @@ metadata:
   - Requirements: [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [6.3](requirements.md#6.3), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 4. Green: extend the existing protected coordinator with owned group execution <!-- id:eiyvabk -->
+- [x] 4. Green: extend the existing protected coordinator with owned group execution <!-- id:eiyvabk -->
   - Extend MCPWriteCommand/PreparedMCPWrite and MCPWriteCommandServices/MCPWriteCommitServices with group cases and TaskConsolidationService; consolidation adapter supplies the existing clean owned-context policy/factory.
   - Implement the minimum no-save group execution and actual staged evidence path exercised by deterministic review fixtures; extend TaskLinkOwnedApply to return inserted/removed occurrence values while preserving standalone callers. Compute staged r1/o1 and terminal/history from the same values before one save.
   - Pass paired fault/reopen and dirty-context controls using the real coordinator. Keep production tool registration for final integration; an absent full planner/review capability must be unavailable, not bypassed. No second coordinator, per-item keys or compensation.

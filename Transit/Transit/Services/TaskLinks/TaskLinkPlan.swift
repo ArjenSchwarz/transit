@@ -99,7 +99,7 @@ extension TaskLinkPlan {
     }
 
     @MainActor
-    private static func validateProposed(
+    static func validateProposed(
         _ plan: TaskLinkPlan, source: UUID, graph: TaskLinkGraphView, budget: TaskLinkGraphBudget
     ) throws {
         let removed = Set(plan.removals.map(\.physicalKey))

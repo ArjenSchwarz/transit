@@ -21,7 +21,7 @@ struct TestModelContainer {
     init() throws {
         let schema = Schema([
             Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self,
-            TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self
+            TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self, TaskConsolidationEvent.self
         ])
         let config = ModelConfiguration(
             "TransitTests-\(UUID().uuidString)",
