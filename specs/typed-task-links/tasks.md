@@ -120,7 +120,7 @@ metadata:
   - Requirements: [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [4.6](requirements.md#4.6), [1.3](requirements.md#1.3), [3.2](requirements.md#3.2), [3.5](requirements.md#3.5), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [7.3](requirements.md#7.3), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 14. Green: implement protected standalone link create/update integration <!-- id:ev1ktl9 -->
+- [x] 14. Green: implement protected standalone link create/update integration <!-- id:ev1ktl9 -->
   - Wire MCPWriteCommand prepare/apply and MCPWriteCoordinator execution policy to the completed participating coordination and owned-save boundary and graph plan. Revalidate complete proposed invariants and all affected endpoint guards immediately before the sole attributable domain/result save.
   - Delete only the exact active occurrence and insert separate removal evidence atomically. Re-add gets fresh identity, no-op changes no timestamps/token, endpoint tokens change through incidence only. Retained replay remains first and read-only while dirty; keep uncertainty/reconciliation and enablement guards intact.
   - Blocked-by: ev1ktl8 (Red: test protected standalone link create/update integration), ev1ktkx (Green: implement pre-feature store migration and schema parity), ev1ktkz (Green: implement coordinated saved validation and owned receipt commitment), ev1ktl3 (Green: implement bounded saved capture and graph-closure capacity)
@@ -128,7 +128,7 @@ metadata:
   - Requirements: [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [4.5](requirements.md#4.5), [4.6](requirements.md#4.6), [1.3](requirements.md#1.3), [3.2](requirements.md#3.2), [3.5](requirements.md#3.5), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [7.3](requirements.md#7.3), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 15. Red: test ordinary query filters, frozen detail and modern result parity <!-- id:ev1ktla -->
+- [-] 15. Red: test ordinary query filters, frozen detail and modern result parity <!-- id:ev1ktla -->
   - Write TaskLinkQueryTests for hasLinks/type/opposite UUID/direction/unblocked plus existing selectors, incoming duplicate direct targets, complete blocker assessments and unsupported/conflicting options.
   - Test certified blocked-only unblocked:false, invalid matching neither value, scoped closure/count/order compatibility, frozen pages across edits/imports/expiry, missing graph coverage, reused graph options rejected before publication, and semantic text/structured parity.
   - Assert query/output descriptions cover saved-only scope, blockers/canonical resolution, body omission versus empty incidence, new r1 coverage/old-token conflicts, immutable historic receipts and explicit missing historic graph coverage.
