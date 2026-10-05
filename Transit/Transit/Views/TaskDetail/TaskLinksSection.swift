@@ -24,7 +24,8 @@ struct TaskLinksSection: View {
         }
         .task(id: RefreshKey(source: taskID, version: refreshVersion)) {
             let service = TaskLinkService(container: context.container)
-            await state.refresh(source: taskID) { source in
+            let debounce: Duration = state.sourceID == taskID ? .milliseconds(100) : .zero
+            await state.refresh(source: taskID, debounce: debounce) { source in
                 try Task.checkCancellation()
                 return try service.savedDetail(for: source, budget: TaskLinkGraphBudget(checkpoint: {
                     try Task.checkCancellation()
@@ -63,7 +64,7 @@ struct TaskLinksSection: View {
         let incoming = row.target == taskID
         let target = incoming ? row.source : row.target
         let matches = graph.tasksById[target, default: []]
-        let title = publicType(row, incoming: incoming)
+        let title = TaskLinkNativeLabels.title(kind: row.kind, incoming: incoming)
         if matches.count == 1, let value = matches.first {
             Button {
                 do {
@@ -85,16 +86,6 @@ struct TaskLinksSection: View {
             .accessibilityIdentifier("task-links.target.\(target.uuidString)")
         } else {
             Text("\(title): Unresolved \(target.uuidString)").foregroundStyle(.secondary)
-        }
-    }
-
-    private func publicType(_ row: TaskLinkOccurrenceValue, incoming: Bool) -> String {
-        switch row.kind {
-        case "dependency": incoming ? "Blocked by" : "Blocks"
-        case "association": "Relates to"
-        case "attribution": "Introduced by"
-        case "duplicate": "Duplicate of"
-        default: "Unknown relation"
         }
     }
 
