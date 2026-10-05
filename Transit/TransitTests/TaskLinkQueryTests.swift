@@ -136,7 +136,7 @@ struct TaskLinkQueryTests {
         func capture() throws -> CapturedReadView {
             try MCPReadCaptureBuilder(container: base.owner.container, fence: .actorOnlyTestFixture).capture(
                 ReadCaptureRequest(projectSelectors: nil, selection: .tasks(detail: .fullRecord),
-                                   completeness: .selectedRead))
+                                   completeness: .selectedRead, includeComments: false))
         }
         func project(_ args: [String: Any], view: CapturedReadView? = nil) throws -> [[String: Any]] {
             let request = try MCPTaskQueryRequest.parse(args)
