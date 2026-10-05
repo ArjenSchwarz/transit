@@ -90,6 +90,11 @@ struct TransitApp: App {
         }
 
         let context = container.mainContext
+        // Startup-only bounded evidence maintenance owns a separate clean context.
+        // Reads/previews and protected graph saves never invoke this cleanup.
+        if !mode.usesMemoryStore && !persistence.isFallbackStorageActive {
+            _ = try? TaskLinkService(container: container).cleanupExpiredEvidence()
+        }
         let allocators = AppDisplayIDAllocators.make(mode: mode, syncActive: cloudSyncActive)
         let allocator = allocators.tasks
         self.displayIDAllocator = allocator
