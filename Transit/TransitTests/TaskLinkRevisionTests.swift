@@ -87,7 +87,7 @@ struct TaskLinkRevisionTests {
 
     @Test func retainedReceiptReplayStaysByteIdenticalAfterIncidenceChanges() async throws {
         let fixture = try TaskLinkCommitDiskFixture()
-        let coordinator = fixture.coordinator()
+        let coordinator = fixture.coordinator(save: { context, _ in try context.save() })
         let arguments = try fixture.updateArguments()
         let first = await coordinator.execute(tool: "update_task", arguments: arguments)
         #expect(try fixture.decode(first)["outcome"] as? String == "committed")
