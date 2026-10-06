@@ -23,12 +23,27 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         XCTAssertTrue(accounting.waitForExistence(timeout: 5))
         XCTAssertEqual(accounting.label, "Preservation accounting")
         accounting.tap()
+        XCTAssertEqual(accounting.value as? String, "Expanded")
         let retained = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@",
             "Original description remains available")).firstMatch
         reveal(retained, in: app)
         XCTAssertTrue(retained.waitForExistence(timeout: 5))
+        let changes = app.buttons["Saved changes: 00000000-0000-0000-0000-000000238102"]
+        reveal(changes, in: app)
+        XCTAssertTrue(changes.waitForExistence(timeout: 5))
+        changes.tap()
+        let status = app.staticTexts["statusRawValue: idea → abandoned"]
+        reveal(status, in: app)
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        XCTAssertEqual(status.label, "statusRawValue: idea → abandoned")
+        let recordedSurvivor = app.buttons[
+            "Recorded canonical task: History Survivor · 00000000-0000-0000-0000-000000238101"].firstMatch
+        reveal(recordedSurvivor, in: app)
+        XCTAssertTrue(recordedSurvivor.waitForExistence(timeout: 5))
+        XCTAssertEqual(recordedSurvivor.label,
+            "Recorded canonical task: History Survivor · 00000000-0000-0000-0000-000000238101")
         let original = app.buttons["Original task: History Original · 00000000-0000-0000-0000-000000238102"]
-        reveal(original, in: app)
+        reveal(original, in: app, towardEarlierContent: true)
         XCTAssertTrue(original.waitForExistence(timeout: 5))
         XCTAssertEqual(original.label, "Original task: History Original · 00000000-0000-0000-0000-000000238102")
         original.tap()
@@ -92,12 +107,13 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         return app
     }
 
-    @MainActor private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
+    @MainActor private func reveal(_ element: XCUIElement, in app: XCUIApplication,
+                                   towardEarlierContent: Bool = false) {
         for _ in 0..<8 where !element.isHittable {
             #if os(macOS)
-            app.scrollViews.firstMatch.scroll(byDeltaX: 0, deltaY: -300)
+            app.scrollViews.firstMatch.scroll(byDeltaX: 0, deltaY: towardEarlierContent ? 300 : -300)
             #else
-            app.swipeUp()
+            if towardEarlierContent { app.swipeDown() } else { app.swipeUp() }
             #endif
         }
     }

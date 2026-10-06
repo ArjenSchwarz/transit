@@ -103,7 +103,8 @@ struct TaskConsolidationHistorySection: View {
                     onSelect(destination)
                 } catch { navigationProblem = "The saved task cannot be resolved." }
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
+            .foregroundStyle(.tint)
             .accessibilityIdentifier("consolidation.destination.\(operationID.uuidString)."
                 + "\(label == "Original task" ? "original" : "canonical").\(id.uuidString)")
         } else { Text("Unresolved \(label.lowercased()): \(id.uuidString)").foregroundStyle(.secondary) }
@@ -126,7 +127,7 @@ struct TaskConsolidationHistorySection: View {
                     }
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.plain)
                 .foregroundStyle(.primary)
                 .accessibilityValue(configuration.isExpanded ? "Expanded" : "Collapsed")
                 if configuration.isExpanded { configuration.content.padding(.leading, 12) }
