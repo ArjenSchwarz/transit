@@ -94,6 +94,7 @@ struct TaskConsolidationHistorySection: View {
                     onSelect(destination)
                 } catch { navigationProblem = "The saved task cannot be resolved." }
             }
+            .buttonStyle(.borderless)
         } else { Text("Unresolved \(label.lowercased()): \(id.uuidString)").foregroundStyle(.secondary) }
     }
     private func display(_ value: String?, field: String) -> String {
