@@ -4,6 +4,11 @@ import Foundation
 nonisolated struct MCPReadToolRequest: Sendable {
     let tool: String
     let arguments: [String: AnyCodable]
+
+    var hasRetainedReadReference: Bool {
+        ["query_tasks", "query_project_summaries"].contains(tool)
+            && (arguments["snapshotId"] != nil || arguments["cursor"] != nil)
+    }
 }
 
 extension MCPToolHandler {
@@ -11,7 +16,8 @@ extension MCPToolHandler {
     func prepareCoveredRead(_ request: MCPReadToolRequest,
                             operation: MCPReadOperation) async throws -> MCPPreparedToolRead {
         operation.finishActorQueue()
-        guard taskQueryAdmissionOpen else {
+        // Retired references preserve their typed no-capture lookup errors.
+        guard taskQueryAdmissionOpen || request.hasRetainedReadReference else {
             let metadata = ReadFailureMetadata(requestId: operation.id.uuidString, category: .busy,
                 read: ReadExecutionMetadata(policy: .refreshIfNeeded, refreshOutcome: .unavailable, budgetMs: 5_000))
             let text = IntentHelpers.encodeJSON(["error": ["code": "READ_BUSY", "message": "READ_BUSY"]])
