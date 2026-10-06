@@ -1,0 +1,373 @@
+{
+  "schemaVersion": 1,
+  "sourceSHA": "a1829161885a009b99b636e254d8475f44cddd8d",
+  "acceptance": "incomplete",
+  "tasks": {
+    "completed": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "incomplete": [
+      17,
+      18,
+      19,
+      20
+    ],
+    "reason": "Required macOS rendered UI gate has zero executions; full 27-declaration iPhone UI target remains incomplete; iPad accounting tap incorrectly navigates to survivor before retained explanation/original navigation assertions."
+  },
+  "builds": {
+    "ios": {
+      "log": "/tmp/t2381-independent-history-ios-build.log",
+      "exitCode": 0,
+      "result": "TEST BUILD SUCCEEDED",
+      "sourceSHA": "a1829161885a009b99b636e254d8475f44cddd8d"
+    },
+    "macOS": {
+      "log": "/tmp/t2381-independent-history-macos-build.log",
+      "exitCode": 0,
+      "result": "TEST BUILD SUCCEEDED",
+      "sourceSHA": "a1829161885a009b99b636e254d8475f44cddd8d"
+    }
+  },
+  "strictLint": {
+    "files": 719,
+    "violations": 0,
+    "log": "/tmp/t2381-independent-history-lint.log",
+    "exitCode": 0,
+    "sourceSHA": "a1829161885a009b99b636e254d8475f44cddd8d"
+  },
+  "macOSFull": {
+    "sourceSHA": "484dd2c",
+    "declarationsDiscovered": 2636,
+    "declarationsPassed": 2630,
+    "expandedCasesPassed": 3431,
+    "failed": 0,
+    "skipped": 6,
+    "result": "/tmp/t2381-phase1-unit/Build/Products/T2381FinalMacOS3.xcresult",
+    "evidenceRoot": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-final-macos.nac7sajm",
+    "hostDrained": true,
+    "intentionalSkips": [
+      {
+        "identifier": "TaskConsolidationMigrationTests/closedEightEntityStoreStage()",
+        "reason": "Dedicated T2381_CLOSED_STAGE/token four-host closed8-to9 migration proof executed separately; general full target lacks stage configuration."
+      },
+      {
+        "identifier": "TaskLinkClosedStoreMigrationTests/closedStoreStage()",
+        "reason": "T1734_CLOSED_STAGE dedicated typed-links migration stage is opt-in."
+      },
+      {
+        "identifier": "TaskLinkCommitBoundaryTests/primitiveTransactionEarlierObservationCanBeInvalidatedByPeerSave()",
+        "reason": "T1734_TRANSACTION_DIAGNOSTIC=1 primitive outside-writer diagnostic is opt-in."
+      },
+      {
+        "identifier": "TaskLinkCommitBoundaryTests/primitiveTransactionInternalSaveMustRollBackOnClosureAbort()",
+        "reason": "T1734_TRANSACTION_ABORT_DIAGNOSTIC=1 primitive abort diagnostic is opt-in."
+      },
+      {
+        "identifier": "TaskLinkDevelopmentSchemaPrecheckTests/developmentVerificationIsNotSatisfiedByLocalRegistration()",
+        "reason": "T1734_DEV_SCHEMA_PRECHECK=1 requires separately authorized CloudKit development operator fixture; current verification uses CloudKit.none."
+      },
+      {
+        "identifier": "TaskLinkProtectedBoundaryTests/outsideWriterAfterValidationRemainsSavedAndRetainedReplayIsUnchanged(race:)",
+        "reason": "T1734_OUTSIDE_WRITER_OBSERVATIONS=1 acknowledged outside-writer counterexamples are opt-in; no global atomicity claim."
+      }
+    ]
+  },
+  "iPhoneFullUnit": {
+    "sourceSHA": "ffbf62cf3bfdb43b5291410b022757450038c724",
+    "declarationsDiscovered": 1351,
+    "declarationsPassed": 1351,
+    "expandedCasesPassed": 1455,
+    "failed": 0,
+    "skipped": 0,
+    "result": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-final-ios.bu23owa1/TransitTests.xcresult",
+    "evidenceRoot": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-final-ios.bu23owa1",
+    "hostDrained": true
+  },
+  "phoneCritical": {
+    "sourceSHA": "a1829161885a009b99b636e254d8475f44cddd8d",
+    "status": "passed",
+    "counts": {
+      "declarations": 1,
+      "cases": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    "result": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-phone-critical.xnqa7jv1/TransitUITests.xcresult",
+    "evidenceRoot": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-phone-critical.xnqa7jv1",
+    "log": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-phone-critical.xnqa7jv1/TransitUITests.log",
+    "exitCode": 0,
+    "hostDrained": true,
+    "simulatorDrained": true,
+    "simulatorDeletionExit": 0
+  },
+  "phoneRemaining": {
+    "sourceSHA": "a1829161885a009b99b636e254d8475f44cddd8d",
+    "status": "passed",
+    "counts": {
+      "declarations": 3,
+      "cases": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "result": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-phone-remaining.f6via8rq/TransitUITests.xcresult",
+    "evidenceRoot": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-phone-remaining.f6via8rq",
+    "log": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-phone-remaining.f6via8rq/TransitUITests.log",
+    "exitCode": 0,
+    "hostDrained": true,
+    "simulatorDrained": true,
+    "simulatorDeletionExit": 0
+  },
+  "iPad": {
+    "sourceSHA": "a1829161885a009b99b636e254d8475f44cddd8d",
+    "status": "failed",
+    "counts": {
+      "declarations": 4,
+      "cases": 4,
+      "passed": 3,
+      "failed": 1,
+      "skipped": 0
+    },
+    "result": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-ipad.fvs6r3u9/TransitUITests.xcresult",
+    "evidenceRoot": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-ipad.fvs6r3u9",
+    "log": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-ipad.fvs6r3u9/TransitUITests.log",
+    "exitCode": 65,
+    "hostDrained": true,
+    "simulatorDrained": true,
+    "simulatorDeletionExit": 0,
+    "failure": {
+      "identifier": "TaskConsolidationNativeUITests/testSavedReasonAccountingAndOriginalNavigation()",
+      "sourceAssertion": "Transit/TransitUITests/TaskConsolidationNativeUITests.swift:29",
+      "symptom": "Retained preservation explanation absent; intended original navigation assertions not reached. Applied and exact accounting label passed.",
+      "attachments": "/tmp/t2381-ipad-accounting-attachments",
+      "failureScreenshot": "/tmp/t2381-ipad-accounting-failure.png",
+      "recording": "/tmp/t2381-ipad-accounting-attachments/374FEC9D-A635-442E-8AF9-62D7CEAA8F50.mp4",
+      "frames": [
+        "/tmp/t2381-ipad-frame-31.png",
+        "/tmp/t2381-ipad-frame-33.png",
+        "/tmp/t2381-ipad-frame-35.png",
+        "/tmp/t2381-ipad-frame-38.png"
+      ],
+      "accountingTap": {
+        "testRelativeSeconds": 31.64,
+        "eventTimestamp": 1791307011.053,
+        "coordinate": [
+          522,
+          1182.25
+        ],
+        "attachment": "E4B0717A-9EF4-43D5-90F5-8E06AD471D2F"
+      },
+      "firstRevealSwipeTestRelativeSeconds": 35.4,
+      "observedChronology": "Accounting tap at test t31.64 is followed by a second survivor navigation at recording frame33; the first retained-text reveal swipe starts at t35.40. The underlying hit-frame/gesture mechanism remains unresolved."
+    }
+  },
+  "macOSRendered": {
+    "status": "environment_blocked",
+    "executedDeclarations": 0,
+    "executedCases": 0,
+    "error": "Timed out while enabling automation mode",
+    "prerequisiteCandidate": "Developer mode is currently disabled (read-only DevToolsSecurity status); not proven sole cause.",
+    "settingsChanged": false,
+    "evidenceRoot": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-macos.se9gbpbx",
+    "result": "/tmp/t2381-phase1-unit/Build/Products/T2381NativeMacOS.xcresult",
+    "hostDrained": true
+  },
+  "fullPhoneUI": {
+    "status": "incomplete",
+    "sourceSHA": "ffbf62cf3bfdb43b5291410b022757450038c724",
+    "discoveredDeclarations": 27,
+    "boundSeconds": 1200,
+    "countsFinalized": false,
+    "completedLogCases": [
+      {
+        "identifier": "-[TransitUITests.DataMaintenanceUITests testDataMaintenanceGoldenPath]",
+        "outcome": "passed",
+        "duration": "148.023 seconds"
+      },
+      {
+        "identifier": "-[TransitUITests.SearchEmptyStateUITests testNonSearchFilterNoMatchShowsGenericFilterState]",
+        "outcome": "passed",
+        "duration": "137.980 seconds"
+      },
+      {
+        "identifier": "-[TransitUITests.SearchEmptyStateUITests testSearchEmptyStateShowsAndSearchFieldPersists]",
+        "outcome": "passed",
+        "duration": "137.971 seconds"
+      },
+      {
+        "identifier": "-[TransitUITests.TaskConsolidationNativeUITests testRenderedMissingAndAmbiguousOriginalReferences]",
+        "outcome": "passed",
+        "duration": "158.997 seconds"
+      },
+      {
+        "identifier": "-[TransitUITests.TaskConsolidationNativeUITests testRenderedReversedHistory]",
+        "outcome": "passed",
+        "duration": "138.018 seconds"
+      },
+      {
+        "identifier": "-[TransitUITests.TaskConsolidationNativeUITests testRenderedUnavailableAndOverLimitHistory]",
+        "outcome": "passed",
+        "duration": "152.981 seconds"
+      },
+      {
+        "identifier": "-[TransitUITests.TaskConsolidationNativeUITests testSavedReasonAccountingAndOriginalNavigation]",
+        "outcome": "failed",
+        "duration": "142.339 seconds"
+      }
+    ],
+    "rawResult": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-final-ios.bu23owa1/TransitUITests.xcresult",
+    "hostDrained": true,
+    "simulatorDeleted": true
+  },
+  "closedStoreMigration": [
+    {
+      "stage": "seed",
+      "result": "/tmp/t2381-phase1-unit/Build/Products/T2381Closed-seed.xcresult",
+      "evidence": "/tmp/t2381-phase1-unit/Build/Products/t2381-closed-seed-drained.json",
+      "cloudKit": "none",
+      "schemaEntities": [
+        "Comment",
+        "MCPWriteReceipt",
+        "Milestone",
+        "Project",
+        "SyncHeartbeat",
+        "TaskLinkOccurrence",
+        "TaskLinkRemovalEvidence",
+        "TransitTask"
+      ],
+      "rawFieldsPreserved": true,
+      "hostDrained": true,
+      "exitCode": 0
+    },
+    {
+      "stage": "legacy",
+      "result": "/tmp/t2381-phase1-unit/Build/Products/T2381Closed-legacy.xcresult",
+      "evidence": "/tmp/t2381-phase1-unit/Build/Products/t2381-closed-legacy-drained.json",
+      "cloudKit": "none",
+      "schemaEntities": [
+        "Comment",
+        "MCPWriteReceipt",
+        "Milestone",
+        "Project",
+        "SyncHeartbeat",
+        "TaskLinkOccurrence",
+        "TaskLinkRemovalEvidence",
+        "TransitTask"
+      ],
+      "rawFieldsPreserved": true,
+      "hostDrained": true,
+      "exitCode": 0
+    },
+    {
+      "stage": "upgrade",
+      "result": "/tmp/t2381-phase1-unit/Build/Products/T2381Closed-upgrade.xcresult",
+      "evidence": "/tmp/t2381-phase1-unit/Build/Products/t2381-closed-upgrade-drained.json",
+      "cloudKit": "none",
+      "schemaEntities": [
+        "Comment",
+        "MCPWriteReceipt",
+        "Milestone",
+        "Project",
+        "SyncHeartbeat",
+        "TaskConsolidationEvent",
+        "TaskLinkOccurrence",
+        "TaskLinkRemovalEvidence",
+        "TransitTask"
+      ],
+      "rawFieldsPreserved": true,
+      "hostDrained": true,
+      "exitCode": 0
+    },
+    {
+      "stage": "reopen",
+      "result": "/tmp/t2381-phase1-unit/Build/Products/T2381Closed-reopen.xcresult",
+      "evidence": "/tmp/t2381-phase1-unit/Build/Products/t2381-closed-reopen-drained.json",
+      "cloudKit": "none",
+      "schemaEntities": [
+        "Comment",
+        "MCPWriteReceipt",
+        "Milestone",
+        "Project",
+        "SyncHeartbeat",
+        "TaskConsolidationEvent",
+        "TaskLinkOccurrence",
+        "TaskLinkRemovalEvidence",
+        "TransitTask"
+      ],
+      "rawFieldsPreserved": true,
+      "hostDrained": true,
+      "exitCode": 0
+    }
+  ],
+  "earlierFailedArtifacts": [
+    "/tmp/t2381-phase1-unit/Build/Products/T2381FinalMacOS.xcresult",
+    "/tmp/t2381-phase1-unit/Build/Products/T2381FinalMacOS2.xcresult",
+    "/tmp/t2381-final-review-corrections-build1.log",
+    "/tmp/t2381-final-review-corrections-build2.log",
+    "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-final-ios.mtd7uuvp"
+  ],
+  "earlierPhoneAttempts": [
+    {
+      "sourceSHA": "45c1f778",
+      "finalized": true,
+      "passed": 3,
+      "failed": 1,
+      "skipped": 0,
+      "result": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-phone.r4mvr4uv/TransitUITests.xcresult",
+      "hostDrained": true,
+      "simulatorDeleted": true
+    },
+    {
+      "sourceSHA": "3ec41322",
+      "finalized": false,
+      "completedLogPassed": 5,
+      "completedLogFailed": 1,
+      "result": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-phone2.38so2kqf/TransitUITests.xcresult",
+      "hostDrained": true,
+      "simulatorDeleted": true
+    },
+    {
+      "sourceSHA": "c4488acc",
+      "finalized": true,
+      "passed": 5,
+      "failed": 1,
+      "skipped": 0,
+      "result": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-phone3._3gdpzjt/TransitUITests.xcresult",
+      "hostDrained": true,
+      "simulatorDeleted": true
+    }
+  ],
+  "sourceProvenance": "Full macOS units at484dd2c; full iOS units atffbf62cf; current a182916 view-only source has signed iOS/macOS builds, strict lint, focused phone4 pass and iPad3 pass/1 fail. No final-head full-suite or JUnit claim.",
+  "heavySlotReleased": true,
+  "activeBuildOrTestJobs": [],
+  "allOwnedSimulatorsDeleted": true,
+  "remainingWork": [
+    "Resolve iPad accounting control hit/navigation using preserved finalized evidence; no additional source change or test launched in this handoff.",
+    "Full 27-declaration phone UI gate remains incomplete.",
+    "Mac rendered UI gate requires separately authorized working automation environment; zero feature executions.",
+    "Tasks17\u201320 remain open."
+  ],
+  "limits": [
+    "No final-head full-unit-suite or complete phone UI pass is claimed.",
+    "Focused selection exclusions are not runtime skips.",
+    "Closed-store proof uses CloudKit.none; no live CloudKit schema/sync proof.",
+    "No JUnit XML or line coverage is fabricated; original xcresult/evidence paths are retained.",
+    "No live Transit bookkeeping, deployment, merge or machine-wide setting changes."
+  ]
+}
