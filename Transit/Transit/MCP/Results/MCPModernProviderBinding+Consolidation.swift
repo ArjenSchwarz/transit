@@ -2,8 +2,8 @@
 import Foundation
 
 extension MCPModernProviderBinding {
-    static func compactRecoveryText(_ request: JSONRPCRequest, tool: String,
-                                    encodedMessage: String) -> String {
+    nonisolated static func compactRecoveryText(_ request: JSONRPCRequest, tool: String,
+                                                encodedMessage: String) -> String {
         let error = "{\"error\":{\"code\":\"OUTCOME_UNCERTAIN\",\"message\":" + encodedMessage + "}"
         guard tool == "undo_task_consolidation",
               let params = request.params?.value as? [String: Any],

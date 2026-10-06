@@ -29,7 +29,7 @@ extension MCPWriteReceiptStore {
         }
         let history = try JSONDecoder().decode(ConsolidationHistoryProjection.self,
             from: JSONSerialization.data(withJSONObject: raw))
-        guard history.operationId == id, history.apply.operationId == id,
+        guard history.apply.kind == "apply", history.operationId == id, history.apply.operationId == id,
               history.operationRevision == envelope["operationRevision"] as? String,
               history.apply.reason == envelope["reason"] as? String,
               let available = envelope["undoAvailable"],

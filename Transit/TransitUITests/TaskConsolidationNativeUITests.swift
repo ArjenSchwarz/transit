@@ -16,6 +16,15 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         reveal(reason, in: app)
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
         reason.tap()
+        XCTAssertTrue(app.staticTexts["Applied"].waitForExistence(timeout: 5))
+        let accounting = app.buttons["Preservation accounting"]
+        reveal(accounting, in: app)
+        XCTAssertTrue(accounting.waitForExistence(timeout: 5))
+        accounting.tap()
+        let retained = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@",
+            "Original description remains available")).firstMatch
+        reveal(retained, in: app)
+        XCTAssertTrue(retained.waitForExistence(timeout: 5))
         let original = app.buttons["Original task: History Original · 00000000-0000-0000-0000-000000238102"]
         reveal(original, in: app)
         XCTAssertTrue(original.waitForExistence(timeout: 5))
