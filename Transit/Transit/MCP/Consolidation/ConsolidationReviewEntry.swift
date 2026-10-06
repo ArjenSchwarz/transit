@@ -1,4 +1,5 @@
 #if os(macOS)
+import CryptoKit
 import Foundation
 
 /// Server-owned immutable proposal backing. The caller supplies only its opaque reference.
@@ -10,10 +11,27 @@ nonisolated struct ConsolidationReviewEntry: Sendable {
     let revision: String
     let proposalBytes: Data
     let expiresAt: ContinuousClock.Instant
+    let integrityDigest: String
+
+    init(id: UUID, kind: Kind, originScopeId: String, revision: String, proposalBytes: Data,
+         expiresAt: ContinuousClock.Instant) {
+        self.id = id
+        self.kind = kind
+        self.originScopeId = originScopeId
+        self.revision = revision
+        self.proposalBytes = proposalBytes
+        self.expiresAt = expiresAt
+        integrityDigest = Self.digest(proposalBytes)
+    }
+
+    static func digest(_ bytes: Data) -> String {
+        SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+    }
 
     /// Complete proposal backing plus fixed value/index handles and identity strings.
     var retainedByteCount: Int {
-        proposalBytes.count + originScopeId.utf8.count + revision.utf8.count + kind.rawValue.utf8.count + 256
+        proposalBytes.count + originScopeId.utf8.count + revision.utf8.count
+            + integrityDigest.utf8.count + kind.rawValue.utf8.count + 256
     }
 }
 
@@ -49,6 +67,15 @@ extension MCPTaskQuerySnapshotStore {
         } catch PublicationRejection.capacity { throw capacityError() } catch PublicationRejection.expired {
             throw expiryError()
         }
+    }
+
+    func ownedReview(id: UUID, scope: String) throws -> ConsolidationReviewEntry {
+        purgeExpired()
+        let base = try domain.snapshot(for: publicationStoreID)
+        guard let index = base.index as? Index, let entry = index.reviews[id.uuidString] else {
+            throw ConsolidationPlanningError.unavailableEvidence
+        }
+        return try review(id: id, revision: entry.revision, scope: scope, kind: entry.kind)
     }
 
     func review(id: UUID, revision: String, scope: String,

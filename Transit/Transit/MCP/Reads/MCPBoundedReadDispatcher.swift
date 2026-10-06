@@ -12,6 +12,7 @@ nonisolated enum MCPBoundedReadDispatcher {
         guard rpc.jsonrpc == "2.0", !rpc.isNotification, rpc.id != nil, rpc.method == "tools/call",
               let params = rpc.params?.value as? [String: Any], let tool = params["name"] as? String,
               ["query_tasks", "query_milestones", "get_projects", "query_project_summaries"].contains(tool)
+                || MCPConsolidationToolDefinitions.previewTools.contains(tool)
         else { return nil }
         let arguments = params["arguments"] as? [String: Any]
         return MCPClassifiedRead(request: MCPReadToolRequest(tool: tool,

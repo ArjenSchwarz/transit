@@ -166,11 +166,12 @@ struct ConsolidationPreviewPublicationTests {
                           clearBeforeGate: Bool, cancelBeforeGate: Bool) async -> PreparedReadResult {
         let failure = Data("rejected".utf8)
         let errors = PreencodedPublicationErrors(busy: failure, expired: failure, capacity: failure)
+        let visibleBefore = store.retainedBytes
         do {
             let prepared = tool == "query_tasks"
                 ? try await service.prepare(tool: tool, arguments: arguments.mapValues(\.value), operation: operation)
                 : try await adapter.prepare(tool: tool, arguments: arguments.mapValues(\.value), operation: operation)
-            #expect(store.retainedBytes == 0)
+            #expect(store.retainedBytes == visibleBefore)
             if cancelBeforeGate { coordinator.stop() }
             if clearBeforeGate { store.clear() }
             return PreparedReadResult(encodedResponse: prepared.encodedToolResult,

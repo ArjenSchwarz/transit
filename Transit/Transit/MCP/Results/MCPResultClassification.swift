@@ -81,6 +81,7 @@ nonisolated struct MCPResultClassification {
     static func category(for code: String) -> MCPResultErrorCategory? { categories[code] }
 
     private static let categories: [String: MCPResultErrorCategory] = [
+        "CONSOLIDATION_UNAVAILABLE": .notFound, "CONSOLIDATION_OVER_LIMIT": .retentionCapacity,
         "INVALID_INPUT": .invalidInput, "INVALID_STATUS": .invalidInput, "INVALID_TYPE": .invalidInput,
         "INVALID_PRIORITY": .invalidInput, "MILESTONE_PROJECT_MISMATCH": .invalidInput,
         "TASK_NOT_FOUND": .notFound, "PROJECT_NOT_FOUND": .notFound, "MILESTONE_NOT_FOUND": .notFound,

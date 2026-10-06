@@ -51,13 +51,18 @@ struct TaskDetailView: View {
     }
 
     private var relationships: some View {
-        TaskLinksSection(taskID: task.id) { destination in
-            #if os(macOS)
-            openWindow(id: "task-detail", value: destination.id)
-            #else
-            linkedTask = destination
-            #endif
+        VStack(alignment: .leading, spacing: 16) {
+            TaskLinksSection(taskID: task.id, onSelect: selectLinkedTask)
+            TaskConsolidationHistorySection(taskID: task.id, onSelect: selectLinkedTask)
         }
+    }
+
+    private func selectLinkedTask(_ destination: TransitTask) {
+        #if os(macOS)
+        openWindow(id: "task-detail", value: destination.id)
+        #else
+        linkedTask = destination
+        #endif
     }
 
     // MARK: - iOS Layout

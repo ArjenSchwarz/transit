@@ -7,6 +7,7 @@ enum UITestScenario: String {
     case duplicateDisplayIds
     case taskLinks
     case taskLinksAmbiguous
+    case consolidationHistory
 
     // swiftlint:disable:next function_body_length
     func seed(into ctx: ModelContext) {
@@ -18,6 +19,9 @@ enum UITestScenario: String {
             return
         case .taskLinks, .taskLinksAmbiguous:
             seedTaskLinks(into: ctx, ambiguous: self == .taskLinksAmbiguous)
+            return
+        case .consolidationHistory:
+            seedConsolidationHistory(into: ctx)
             return
         case .board:
             break

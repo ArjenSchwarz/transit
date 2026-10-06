@@ -458,6 +458,7 @@ extension MCPWriteCoordinator {
         envelope["completedAt"] = MCPRecordSnapshot.timestamp(completed)
         envelope["replayExpiresAt"] = MCPRecordSnapshot.timestamp(expiry)
         let json = try encode(envelope)
+        try MCPConsolidationTerminalBudget.validate(json, receipt: receipt)
         receipt.stateRawValue = rejected ? "rejected" : "committed"
         receipt.completedAt = completed
         receipt.expiresAt = expiry

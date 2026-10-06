@@ -1,7 +1,6 @@
 #if os(macOS)
 import Foundation
 import SwiftData
-
 /// Retained immutable review input; execution resolves it anew in the owned phase.
 struct TaskConsolidationOwnedReview {
     let id: UUID
@@ -12,14 +11,12 @@ struct TaskConsolidationOwnedReview {
     let expectedRevisions: [UUID: String]
     let links: TaskLinkPlan
 }
-
 /// No save or receipt lifecycle here: the existing protected coordinator owns both.
 @MainActor final class TaskConsolidationService {
     struct Configuration {
         let originScopeId: String
         let reviewSource: ReviewSource
         let clock: @MainActor () -> Date
-
         init(originScopeId: String, reviewSource: @escaping ReviewSource,
              clock: @escaping @MainActor () -> Date = Date.init) {
             self.originScopeId = originScopeId
@@ -27,13 +24,11 @@ struct TaskConsolidationOwnedReview {
             self.clock = clock
         }
     }
-
     typealias ReviewSource = @MainActor (UUID, ModelContext) throws -> TaskConsolidationOwnedReview
-    private let context: ModelContext
-    private let originScopeId: String
-    private let reviewSource: ReviewSource
-    private let clock: @MainActor () -> Date
-
+    let context: ModelContext
+    let originScopeId: String
+    let reviewSource: ReviewSource
+    let clock: @MainActor () -> Date
     init(context: ModelContext, originScopeId: String, reviewSource: @escaping ReviewSource,
          clock: @escaping @MainActor () -> Date = Date.init) {
         self.context = context
@@ -41,10 +36,10 @@ struct TaskConsolidationOwnedReview {
         self.reviewSource = reviewSource
         self.clock = clock
     }
-
     func apply(_ command: MCPWriteCommand, reviewId: UUID) throws -> [String: Any] {
+        if command.tool == "undo_task_consolidation" { return try undo(command, reviewId: reviewId) }
         guard command.tool == "consolidate_tasks" else {
-            throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Reversal capability is not yet installed")
+            throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Unknown reviewed group command")
         }
         guard !context.hasChanges, !context.autosaveEnabled else {
             throw MCPWriteFailure("OUTCOME_UNCERTAIN", "Consolidation needs a clean owned context")
@@ -72,14 +67,8 @@ struct TaskConsolidationOwnedReview {
         }
         let changes = try actualChanges(review.changes, tasks: tasks,
             survivorId: review.payload.survivorTaskId, instant: instant)
-        let prospective = try review.links.additions.map { addition in
-            try occurrence(TaskLinkOccurrenceValue(physicalKey: Data(), id: UUID(), kind: addition.relation.kind,
-                source: addition.relation.source, target: addition.relation.target, createdAt: instant))
-        }
-        // All UUIDs/tokens have fixed encoded lengths. This is the exact payload
-        // charge before effects; actual allocated tuples replace placeholders.
-        _ = try TaskConsolidationHistoryCodec.encode(payload(review, effects: (operationId, changes),
-            command: command, revisions: review.payload.appliedRevisions, created: prospective))
+        try preflightApply(review, input: ApplyPreflight(command: command, operationId: operationId,
+            changes: changes, graph: graph, instant: instant, budget: budget))
         for change in changes {
             let task = tasks[change.taskId]!
             task.taskDescription = change.after.description
@@ -92,17 +81,15 @@ struct TaskConsolidationOwnedReview {
         return try stage(OwnedEffects(id: operationId, changes: changes, applied: applied, graph: graph,
             instant: instant), review: review, command: command, tasks: tasks, budget: budget)
     }
-
-    private struct OwnedEffects {
+    struct OwnedEffects {
         let id: UUID
         let changes: [TaskConsolidationReviewedTaskChange]
         let applied: TaskLinkOwnedApply.Applied
         let graph: TaskLinkGraphView
         let instant: Date
     }
-
-    private func stage(_ effects: OwnedEffects, review: TaskConsolidationOwnedReview, command: MCPWriteCommand,
-                       tasks: [UUID: TransitTask], budget: TaskLinkGraphBudget) throws -> [String: Any] {
+    func stage(_ effects: OwnedEffects, review: TaskConsolidationOwnedReview, command: MCPWriteCommand,
+               tasks: [UUID: TransitTask], budget: TaskLinkGraphBudget) throws -> [String: Any] {
         let operationId = effects.id, changes = effects.changes, applied = effects.applied
         let graph = effects.graph, instant = effects.instant
         let removed = Set(applied.removed.map(\.id))
@@ -113,8 +100,11 @@ struct TaskConsolidationOwnedReview {
             }
         }
         let revisions = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.entityID.uuidString, $0.revision) })
-        let history = payload(review, effects: (operationId, changes), command: command,
+        var history = payload(review, effects: (operationId, changes), command: command,
             revisions: revisions, created: try applied.inserted.map(occurrence))
+        let savedGraph = try stagedGraph(graph, occurrences: staged, tasks: tasks, instant: instant, budget: budget)
+        history.mappings = try TaskConsolidationMapping.capture(
+            [history.survivorTaskId] + history.candidateTaskIds, graph: savedGraph, budget: budget)
         let json = try TaskConsolidationHistoryCodec.encode(history)
         let event = TaskConsolidationEvent(id: operationId, operationId: operationId, kindRawValue: "apply",
             createdAt: instant, originScopeId: originScopeId, survivorTaskId: history.survivorTaskId,
@@ -122,12 +112,11 @@ struct TaskConsolidationOwnedReview {
         context.insert(event)
         let value = try TaskConsolidationEventValue.capture(event)
         let revision = try TaskConsolidationHistoryCodec.revision([value])
-        return ["entityId": operationId.uuidString, "operationId": operationId.uuidString,
-            "operationRevision": revision, "reason": history.reason, "participants": snapshots.map(\.record),
-            "undoAvailable": false, "undoUnavailableReason": "Reversal capability is not installed"]
+        let projection = ConsolidationHistoryProjection(operationId: operationId, operationRevision: revision,
+            apply: history, reversal: nil, reversalId: nil, undoAvailable: true, undoUnavailableReason: nil)
+        return try result(projection, snapshots: snapshots, graph: savedGraph, budget: budget)
     }
-
-    private func resolve(_ review: TaskConsolidationOwnedReview, budget: TaskLinkGraphBudget)
+    func resolve(_ review: TaskConsolidationOwnedReview, budget: TaskLinkGraphBudget)
         throws -> [UUID: TransitTask] {
         guard !context.hasChanges else {
             throw MCPWriteFailure("OUTCOME_UNCERTAIN", "Review resolution introduced pending changes")
@@ -135,7 +124,8 @@ struct TaskConsolidationOwnedReview {
         try TaskConsolidationHistoryCodec.validate(review.payload)
         try validateReviewChanges(review)
         let ids = [review.payload.survivorTaskId] + review.payload.candidateTaskIds
-        guard Set(review.expectedRevisions.keys) == Set(ids), review.links.removals.isEmpty else {
+        guard Set(review.expectedRevisions.keys) == Set(ids),
+              review.payload.kind == "apply" ? review.links.removals.isEmpty : review.links.additions.isEmpty else {
             throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Incomplete group evidence")
         }
         var tasks: [UUID: TransitTask] = [:]
@@ -172,7 +162,6 @@ struct TaskConsolidationOwnedReview {
         }
         return tasks
     }
-
     private func validateReviewChanges(_ review: TaskConsolidationOwnedReview) throws {
         guard review.changes.map(\.delta) == review.payload.changes else {
             throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Reviewed fields and history delta disagree")
@@ -182,7 +171,6 @@ struct TaskConsolidationOwnedReview {
             try validateRawFields(change.after)
         }
     }
-
     private func validateRawFields(_ fields: TaskConsolidationRawFields) throws {
         guard TaskStatus(rawValue: fields.statusRawValue) != nil else {
             throw TaskConsolidationHistoryError.malformed
@@ -195,7 +183,6 @@ struct TaskConsolidationOwnedReview {
             }
         }
     }
-
     private func actualChanges(_ proposed: [TaskConsolidationReviewedTaskChange], tasks: [UUID: TransitTask],
                                survivorId: UUID, instant: Date) throws -> [TaskConsolidationReviewedTaskChange] {
         try proposed.map { change in
@@ -230,11 +217,10 @@ struct TaskConsolidationOwnedReview {
             return TaskConsolidationReviewedTaskChange(taskId: change.taskId, before: change.before, after: after)
         }
     }
-
-    private func payload(_ review: TaskConsolidationOwnedReview,
-                         effects: (id: UUID, changes: [TaskConsolidationReviewedTaskChange]), command: MCPWriteCommand,
-                         revisions: [String: String],
-                         created: [TaskConsolidationOccurrence]) -> TaskConsolidationPayload {
+    func payload(_ review: TaskConsolidationOwnedReview,
+                 effects: (id: UUID, changes: [TaskConsolidationReviewedTaskChange]), command: MCPWriteCommand,
+                 revisions: [String: String],
+                 created: [TaskConsolidationOccurrence]) -> TaskConsolidationPayload {
         TaskConsolidationPayload(operationId: effects.id, kind: "apply", survivorTaskId: review.payload.survivorTaskId,
             candidateTaskIds: review.payload.candidateTaskIds, reason: review.payload.reason,
             preservationJSON: review.payload.preservationJSON, changes: effects.changes.map(\.delta),
@@ -242,8 +228,7 @@ struct TaskConsolidationOwnedReview {
             createdOccurrences: created, retainedOccurrences: review.payload.retainedOccurrences,
             requestKey: command.key, reviewId: review.id, reviewRevision: review.revision)
     }
-
-    private func occurrence(_ value: TaskLinkOccurrenceValue) throws -> TaskConsolidationOccurrence {
+    func occurrence(_ value: TaskLinkOccurrenceValue) throws -> TaskConsolidationOccurrence {
         TaskConsolidationOccurrence(id: value.id, kind: value.kind, source: value.source, target: value.target,
             createdAt: try TaskConsolidationRawFields.exactDate(value.createdAt),
             revision: try TaskLinkGraph.occurrenceRevision(value))

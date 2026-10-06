@@ -46,6 +46,7 @@ nonisolated struct TaskConsolidationPayload: Codable, Equatable, Sendable {
     let requestKey: String
     let reviewId: UUID
     let reviewRevision: String
+    var mappings: [TaskConsolidationMapping]?
 }
 
 nonisolated struct TaskConsolidationEventValue: Codable, Equatable, Sendable {
@@ -110,6 +111,15 @@ nonisolated enum TaskConsolidationHistoryCodec {
         guard revisionIds.count == participants.count, Set(revisionIds) == Set(participants),
               payload.appliedRevisions.values.allSatisfy({ token($0, prefix: "r1:") }) else {
             throw TaskConsolidationHistoryError.malformed
+        }
+        if let mappings = payload.mappings {
+            guard mappings.count == participants.count,
+                  Set(mappings.map(\.sourceTaskId)) == Set(participants), mappings.allSatisfy({ mapping in
+                      mapping.path.first == mapping.sourceTaskId && mapping.path.last == mapping.canonicalTaskId
+                          && mapping.canonicalTaskId == payload.survivorTaskId
+                          && Set(mapping.path).count == mapping.path.count
+                          && Set(mapping.directTaskIds).count == mapping.directTaskIds.count
+                  }) else { throw TaskConsolidationHistoryError.malformed }
         }
         try validatePreservation(payload)
         try validateChanges(payload.changes)
@@ -225,7 +235,8 @@ nonisolated enum TaskConsolidationHistoryCodec {
                   Dictionary(uniqueKeysWithValues: apply.changes.map { ($0.taskId, $0.inverse) })
                     == Dictionary(uniqueKeysWithValues: reversal.changes.map { ($0.taskId, $0) }),
                   sameOccurrences(reversal.removedOccurrences, apply.createdOccurrences),
-                  sameOccurrences(reversal.retainedOccurrences, apply.retainedOccurrences) else {
+                  sameOccurrences(reversal.retainedOccurrences, apply.retainedOccurrences),
+                  reversal.mappings == apply.mappings else {
                 throw TaskConsolidationHistoryError.malformed
             }
         }

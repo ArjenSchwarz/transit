@@ -1,15 +1,12 @@
 #if os(macOS)
 import Foundation
-
 @MainActor final class MCPConsolidationPreviewAdapter {
     let service: MCPReadService
     let originScopeId: String
-
     init(service: MCPReadService, originScopeId: String) {
         self.service = service
         self.originScopeId = originScopeId
     }
-
     func prepare(tool: String, arguments: [String: Any], operation: MCPReadOperation) async throws
         -> MCPPreparedToolRead {
         operation.finishActorQueue()
@@ -40,7 +37,6 @@ import Foundation
         return try await service.prepareCapturedRead(request: capture, policy: policy,
             operation: operation, transform: transform)
     }
-
     private func prepare(_ capsule: MCPPreparedReadCapture, tool: String, request: ConsolidationRequest?,
                          operationId: UUID?, operation: MCPReadOperation) throws -> MCPPreparedToolRead {
         try MCPPortfolioReadEncoding.check(operation)
@@ -68,7 +64,8 @@ import Foundation
         let proposalBytes = try proposal.encoded(budget: budget)
         try MCPPortfolioReadEncoding.check(operation)
         let entry = ConsolidationReviewEntry(id: UUID(), kind: request == nil ? .undo : .apply,
-            originScopeId: originScopeId, revision: ConsolidationReviewProposal.revision(proposalBytes),
+            originScopeId: originScopeId, revision: try ConsolidationReviewProposal.revision(proposalBytes,
+                budget: budget),
             proposalBytes: proposalBytes,
             expiresAt: capsule.view.retentionDeadline)
         result["reviewId"] = entry.id.uuidString
@@ -96,6 +93,5 @@ import Foundation
         guard let asOf = formatter.date(from: timestamp) else { throw MCPReadCaptureError.incoherentCapture }
         return formatter.string(from: asOf.addingTimeInterval(300))
     }
-
 }
 #endif

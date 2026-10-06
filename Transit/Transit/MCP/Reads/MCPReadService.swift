@@ -1,16 +1,13 @@
 #if os(macOS)
 import Foundation
-
 /// A Sendable synchronous function value; no actor isolation or checkpoint is added.
 typealias MCPReadPagePreparer = @Sendable ([MCPPreparedToolRead], String, MCPReadOperation)
     throws -> [MCPResultPreparedPage]
-
 nonisolated struct MCPReadImportApplicability: Sendable {
     let inFlightImportIDs: Set<UUID>
     /// Independent evidence of saved-store visibility available before the decision.
     let visibleSavedImportProof: MCPImportCaptureProof?
 }
-
 /// Captures and prepares tool values. The outer coordinator alone publishes and chooses RPC bytes.
 @MainActor
 final class MCPReadService: MCPReadCapturedPreparing {
@@ -21,7 +18,6 @@ final class MCPReadService: MCPReadCapturedPreparing {
     let pagePreparer: MCPReadPagePreparer?
     private let applicability: () -> MCPReadImportApplicability
     private let proof: (CapturedReadView) -> MCPImportCaptureProof?
-
     init(source: any MCPReadCaptureSource, monitor: MCPImportEvidenceMonitor,
          snapshots: MCPTaskQuerySnapshotStore,
          applicability: @escaping () -> MCPReadImportApplicability = {
@@ -37,7 +33,6 @@ final class MCPReadService: MCPReadCapturedPreparing {
         self.diagnostics = diagnostics
         self.pagePreparer = pagePreparer
     }
-
     /// Pure optional forwarding seam. Existing paged flow stays inactive until verified binding.
     func preparePrivatePages(_ pages: [MCPPreparedToolRead], tool: String,
                              operation: MCPReadOperation) throws -> [MCPResultPreparedPage]? {
@@ -59,7 +54,6 @@ final class MCPReadService: MCPReadCapturedPreparing {
         }
         return prepared
     }
-
     func prepare(tool: String, arguments: [String: Any],
                  operation: MCPReadOperation) async throws -> MCPPreparedToolRead {
         operation.finishActorQueue()
@@ -97,11 +91,10 @@ final class MCPReadService: MCPReadCapturedPreparing {
             return try prepareFailure(error, tool: tool, operation: operation, policy: policy)
         }
     }
-
     private func prepareProjection(
-        _ capsule: MCPPreparedReadCapture, tool: String, arguments: [String: Any],
-        query: MCPTaskQueryRequest?, operation: MCPReadOperation
-    ) throws -> MCPPreparedToolRead {
+                                   _ capsule: MCPPreparedReadCapture, tool: String, arguments: [String: Any],
+                                   query: MCPTaskQueryRequest?, operation: MCPReadOperation
+                                   ) throws -> MCPPreparedToolRead {
         let captured = capsule.view
         let results: [[String: Any]]
         if let query {
@@ -127,7 +120,6 @@ final class MCPReadService: MCPReadCapturedPreparing {
         guard owners.count == 1, let owner = owners.first else { throw MCPReadCaptureError.incoherentCapture }
         return prepared.attachingPreparedResultPage(owner)
     }
-
     func prepareCapturedRead(request: ReadCaptureRequest, policy: MCPReadPolicy,
                              operation: MCPReadOperation, transform: @escaping MCPReadCaptureTransform)
         async throws -> MCPPreparedToolRead {
@@ -143,7 +135,6 @@ final class MCPReadService: MCPReadCapturedPreparing {
         let metadataBytes = try JSONEncoder().encode(view.metadata)
         return try await transform(MCPPreparedReadCapture(view: view, frozenMetadataBytes: metadataBytes), operation)
     }
-
     private func capture(request: ReadCaptureRequest,
                          policy: MCPReadPolicy, operation: MCPReadOperation,
                          context: (MCPImportObservationWindow?, MCPImportCaptureProof?))
@@ -196,7 +187,6 @@ final class MCPReadService: MCPReadCapturedPreparing {
             tasks: view.tasks, milestones: view.milestones, comments: view.comments, taskLinkGraph: view.taskLinkGraph,
             consolidationEvidence: view.consolidationEvidence)
     }
-
     func jsonText(_ value: Any) throws -> String {
         do {
             let data = try JSONSerialization.data(withJSONObject: value, options: [.sortedKeys])
@@ -204,7 +194,6 @@ final class MCPReadService: MCPReadCapturedPreparing {
             return text
         } catch { throw MCPReadCaptureError.serializationFailure }
     }
-
     /// Prepares the existing tool failure shape before outer transport serialization.
     func prepareFailure(_ error: Error, tool: String, operation: MCPReadOperation,
                         policy: MCPReadPolicy) throws -> MCPPreparedToolRead {
@@ -213,6 +202,12 @@ final class MCPReadService: MCPReadCapturedPreparing {
         let code: String
         let message: String
         switch error {
+        case ConsolidationPlanningError.invalidInput:
+            category = nil; code = "INVALID_INPUT"; message = "Invalid complete consolidation preview input"
+        case is ConsolidationPlanningError, is TaskConsolidationHistoryError:
+                        category = nil
+            code = "CONSOLIDATION_UNAVAILABLE"
+            message = "Complete saved consolidation evidence is unavailable"
         case let query as MCPTaskQueryError:
             category = nil; code = query.code; message = query.message
         case MCPReadCaptureError.incoherentCapture:
@@ -232,7 +227,8 @@ final class MCPReadService: MCPReadCapturedPreparing {
         let metadata = category.map { MCPReadResultMetadata.failure(ReadFailureMetadata(
             requestId: operation.id.uuidString, category: $0,
             read: ReadExecutionMetadata(policy: policy, refreshOutcome: .unavailable, budgetMs: 5_000))) }
-        let jsonFailure = tool == "query_tasks" || (code == "READ_FAILED"
+                let jsonFailure = MCPConsolidationToolDefinitions.previewTools.contains(tool)
+            || tool == "query_tasks" || (code == "READ_FAILED"
             && (tool == "get_projects" || tool == "query_milestones"))
         let text = jsonFailure
             ? IntentHelpers.encodeJSON(["error": ["code": code, "message": message]]) : message
@@ -243,7 +239,6 @@ final class MCPReadService: MCPReadCapturedPreparing {
                                           diagnostic: nil))
         return try MCPPreparedToolRead(text: text, isError: true, metadata: metadata, providerEvidence: evidence)
     }
-
     private enum ReadExecutionError: Error { case timeout }
 }
 #endif

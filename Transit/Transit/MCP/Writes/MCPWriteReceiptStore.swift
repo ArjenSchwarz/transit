@@ -126,7 +126,10 @@ extension MCPWriteReceiptStore {
     fileprivate func validateCommitted(_ envelope: [String: Any], tool: String, id: UUID,
                                        request: [String: Any]) throws {
         switch tool {
-        case "consolidate_tasks": try validateConsolidation(envelope, id: id)
+        case "consolidate_tasks":
+            try validateConsolidation(envelope, id: id)
+            try validateConsolidationHistory(envelope, id: id, requiresReversal: false)
+        case "undo_task_consolidation": try validateUndoTerminal(envelope, id: id, request: request)
         case "create_project": try validateRecord(envelope["record"], kind: "project", id: id)
         case "add_comment": try validateRecord(envelope["record"], kind: "comment", id: id)
         case "create_milestone", "update_milestone":
@@ -162,7 +165,7 @@ extension MCPWriteReceiptStore {
 
     }
 
-    fileprivate func validateConsolidation(_ envelope: [String: Any], id: UUID) throws {
+    func validateConsolidation(_ envelope: [String: Any], id: UUID) throws {
         guard (envelope["operationId"] as? String).flatMap(UUID.init(uuidString:)) == id,
               let revision = envelope["operationRevision"] as? String,
               revision.range(of: "^o1:[0-9a-f]{64}$", options: .regularExpression)
@@ -170,10 +173,15 @@ extension MCPWriteReceiptStore {
               let reason = envelope["reason"] as? String,
               !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               let participants = envelope["participants"] as? [[String: Any]], (2...6).contains(participants.count),
-              let undo = envelope["undoAvailable"], try MCPCanonicalJSON.encode(undo) == "false",
-              let unavailable = envelope["undoUnavailableReason"] as? String, !unavailable.isEmpty else {
+              let undo = envelope["undoAvailable"],
+              ["true", "false"].contains(try MCPCanonicalJSON.encode(undo)) else {
             throw Error.inconsistentReceipt
         }
+        if try MCPCanonicalJSON.encode(undo) == "false" {
+            guard let unavailable = envelope["undoUnavailableReason"] as? String, !unavailable.isEmpty else {
+                throw Error.inconsistentReceipt
+            }
+        } else if envelope["undoUnavailableReason"] != nil { throw Error.inconsistentReceipt }
         var ids = Set<UUID>()
         for participant in participants {
             try validateRecord(participant, kind: "task")

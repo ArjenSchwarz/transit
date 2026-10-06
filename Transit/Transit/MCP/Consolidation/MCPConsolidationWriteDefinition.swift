@@ -1,10 +1,8 @@
 #if os(macOS)
 import Foundation
-
 /// Private owned-execution contracts; advertised registration is a later gate.
 nonisolated enum MCPConsolidationWriteDefinition {
     static let tools: Set<String> = ["consolidate_tasks", "undo_task_consolidation"]
-
     static func definition(_ tool: String) -> MCPToolDefinition? {
         guard tools.contains(tool) else { return nil }
         var properties: [String: JSONSchemaProperty] = [
@@ -14,7 +12,9 @@ nonisolated enum MCPConsolidationWriteDefinition {
         ]
         var required = ["idempotencyKey", "reviewId", "reviewRevision"]
         if tool == "consolidate_tasks" {
-            properties["preservationAcknowledged"] = .boolean("Explicit review acknowledgment")
+            var acknowledgment = JSONSchemaProperty.boolean("Explicit review acknowledgment")
+            acknowledgment.const = true
+            properties["preservationAcknowledged"] = acknowledgment
             required.append("preservationAcknowledged")
         } else {
             properties["operationId"] = .string("Original saved operation identity")
@@ -22,9 +22,12 @@ nonisolated enum MCPConsolidationWriteDefinition {
         }
         var schema = JSONSchema.object(properties: properties, required: required)
         schema.additionalProperties = false
-        return MCPToolDefinition(name: tool, description: "Protected reviewed group write", inputSchema: schema)
+        return MCPToolDefinition(name: tool, description: tool == "consolidate_tasks"
+            ? "Commit an exactly acknowledged retained review in one local protected save; "
+                + "preserves originals and comments"
+            : "Reverse one saved consolidation wholly against its exact current review, "
+                + "or reconcile an already saved reversal", inputSchema: schema)
     }
-
     @MainActor static func validate(tool: String, arguments: [String: Any]) throws {
         guard let raw = arguments["reviewId"] as? String, UUID(uuidString: raw) != nil,
               let revision = arguments["reviewRevision"] as? String,
@@ -33,7 +36,8 @@ nonisolated enum MCPConsolidationWriteDefinition {
             throw MCPWriteFailure("INVALID_INPUT", "A valid exact reviewId and p1 reviewRevision are required")
         }
         if tool == "consolidate_tasks" {
-            guard IntentHelpers.parseBoolValue(arguments["preservationAcknowledged"]) == true else {
+            guard let acknowledged = arguments["preservationAcknowledged"],
+                  try MCPCanonicalJSON.encode(acknowledged) == "true" else {
                 throw MCPWriteFailure("INVALID_INPUT", "preservationAcknowledged must be true")
             }
         } else {

@@ -296,6 +296,8 @@ extension MCPWriteCommand {
         }
         do { return try consolidation.apply(self, reviewId: id) } catch TaskConsolidationHistoryError.capacityExceeded {
             throw MCPWriteFailure("CONSOLIDATION_OVER_LIMIT", "Complete history exceeds the 256-KiB payload limit")
+        } catch is ConsolidationPlanningError {
+            throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Complete saved review evidence is unavailable")
         } catch is TaskConsolidationHistoryError {
             throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Complete reviewed history evidence is invalid")
         } catch let error as TaskLinkGraphError {

@@ -103,7 +103,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [4.1](requirements.md#4.1), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [7.1](requirements.md#7.1), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 11. Red: test protected reviewed apply against current saved evidence <!-- id:eiyvabr -->
+- [x] 11. Red: test protected reviewed apply against current saved evidence <!-- id:eiyvabr -->
   - Write TaskConsolidationApplyTests.swift through the real coordinator and injected review source: acknowledgment and exact reviewId/p1/scope/kind are mandatory; stale task/comment/incidence/canonical evidence and unique common-project failures reject the whole group.
   - Specify all six participants preserved, unfinished closures with existing StatusEngine dates, terminal/survivor dates untouched, survivor edited fields only, combined graph validation before effects and retained pre-existing chains/unselected content.
   - Assert actual allocated occurrence tuples feed staged r1 and inserted event feeds staged o1; exceed event/result limits before commit, inject final-save/recovery faults and participating interleave attempts. Unrelated outside imports may race; actual saved result/diagnostics remain truthful.
@@ -112,7 +112,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [7.1](requirements.md#7.1), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 12. Green: complete consolidation apply in the owned group service <!-- id:eiyvabs -->
+- [x] 12. Green: complete consolidation apply in the owned group service <!-- id:eiyvabs -->
   - Replace deterministic fixture-only planning with current saved participant/comment/link/canonical resolution and exact retained proposal validation in TaskConsolidationService/MCPConsolidationWriteAdapter's final synchronous phase.
   - Apply only reviewed fields/unfinished statuses and combined link delta; use actual returned occurrence values, exact raw reversible values and staged r1/o1 for bounded immutable event plus committed result in the existing one-save receipt path.
   - Integrate strict acknowledgment/domain errors and actual mappings/undo assessment in test handler paths; no nested mutate_tasks calls, all-writer fence, implicit canonical redirection or UI draft publication.
@@ -121,7 +121,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [7.1](requirements.md#7.1), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 13. Red: test reviewed whole undo and persistent reversal history <!-- id:eiyvabt -->
+- [x] 13. Red: test reviewed whole undo and persistent reversal history <!-- id:eiyvabt -->
   - Add TaskConsolidationUndoTests.swift for exact retained reversal/evidence/o1 and all applied participant r1s; comment/incident-link/content differences, missing originals/events, physical collisions, stale preview and graph-rule failures reject the whole reversal.
   - Specify exact raw survivor/status/date restoration and only consolidation-created occurrence removal with existing removal evidence; pre-existing links/comments/assignments/history/receipt bytes survive. Add seeded round-trip and unrelated-record invariants alongside concrete terminal/no-edit/mixed-disposition fixtures.
   - Inject shared dirty-context, one-save reversal/event/receipt faults and uncertainty; verify one unique reversal, exact retained undo replay, fresh-key already_reversed reconciliation and no reversal inferred from missing/expired receipts or evidence.
@@ -130,7 +130,7 @@ metadata:
   - Requirements: [1.4](requirements.md#1.4), [3.1](requirements.md#3.1), [3.3](requirements.md#3.3), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [7.1](requirements.md#7.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 14. Green: implement exact reversal and already-reversed reconciliation <!-- id:eiyvabu -->
+- [x] 14. Green: implement exact reversal and already-reversed reconciliation <!-- id:eiyvabu -->
   - Complete TaskConsolidationService.undo with current exact review/task/operation/link checks, combined reversal graph validation and raw field/status-date restoration; remove exact created occurrences through existing owned removal handling.
   - Save reversal event and terminal result with all attributable effects once; derive o1 from staged events and preserve original event/history. Multiple/unknown/conflicting history fails closed.
   - Handle valid already_reversed from saved history without requiring a now-expired review, while exact terminal replay still precedes all current checks. Reuse originating-store retry/recovery and outside-writer limitations; no force/selective undo or abandoned-to-Idea shortcut.
@@ -139,7 +139,7 @@ metadata:
   - Requirements: [1.4](requirements.md#1.4), [3.1](requirements.md#3.1), [3.3](requirements.md#3.3), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [7.1](requirements.md#7.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 15. Red: test modern tool contracts, historical replay and recovery envelopes <!-- id:eiyvabv -->
+- [x] 15. Red: test modern tool contracts, historical replay and recovery envelopes <!-- id:eiyvabv -->
   - Add TaskConsolidationWireResultTests.swift using injected handlers with all four private tool definitions: strict nested schemas/no unknown fields, correct read-only/protected classification, structured/text equality, known task participant positions and operation IDs without navigation links.
   - Assert original-key byte-identical replay after edits/deletion/review expiry/restart, changed-payload reuse rejection, accepted/active/interrupted/uncertain outcomes, seven-day receipt expiry separate from permanent operation history, and retained legacy page/token bytes unchanged.
   - Inject complete-wrapper failure before/after effects and require prepared compact recovery bytes with known tool/key/operation identity, no unbounded participant bodies or invented no effect. Preserve mutate_tasks/App Intent and generic r1 contracts.
@@ -148,7 +148,7 @@ metadata:
   - Requirements: [2.2](requirements.md#2.2), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [7.1](requirements.md#7.1), [7.2](requirements.md#7.2), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 16. Green: implement strict schemas and modern consolidation result adapters <!-- id:eiyvabw -->
+- [x] 16. Green: implement strict schemas and modern consolidation result adapters <!-- id:eiyvabw -->
   - Add MCP/Consolidation strict input/output definition builders and MCPResultSchemas/MCPModernProviderBinding/MCPResultLinks integration; previews are covered reads and apply/undo protected group writes in injected test registration.
   - Prepare bounded committed participant/mapping/operation envelopes and pre-effect compact recovery identities through the existing provider seam; operation IDs remain source evidence, task references reuse current unavailable navigation presentation.
   - Pass paired replay/expiry/failure tests without reminting old pages/receipts/r1 tokens; do not add link/group operations to mutate_tasks, new navigation URLs or live client setup.
@@ -157,7 +157,7 @@ metadata:
   - Requirements: [2.2](requirements.md#2.2), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [7.1](requirements.md#7.1), [7.2](requirements.md#7.2), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 17. Red: test native saved history presentation and safe navigation <!-- id:eiyvabx -->
+- [-] 17. Red: test native saved history presentation and safe navigation <!-- id:eiyvabx -->
   - Write TaskConsolidationNativeStateTests.swift and automated task-detail UI tests for reason, original/survivor references, changes/dispositions, reversal state and explicit unavailable/over-limit history in every existing detail layout.
   - Exercise the shared saved value provider/physical admission with source changes, cancellation, save/import notification bursts and 100-ms coalescing; stale values must not publish, listener restart must not suppress native reads.
   - Use deterministic history-bearing UI fixtures; exact unique saved navigation works and missing/duplicate physical task references remain diagnostics. Assert no native consolidation editing/apply/undo controls.

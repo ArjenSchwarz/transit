@@ -1,6 +1,5 @@
 import Foundation
 import SwiftData
-
 extension TaskConsolidationRawFields {
     @MainActor static func capture(_ task: TransitTask) throws -> Self {
         Self(description: task.taskDescription, metadataJSON: task.metadataJSON, statusRawValue: task.statusRawValue,
@@ -8,7 +7,6 @@ extension TaskConsolidationRawFields {
             completionDate: try task.completionDate.map(exactDate))
     }
 }
-
 extension TaskConsolidationEventValue {
     @MainActor static func capture(_ event: TaskConsolidationEvent) throws -> Self {
         Self(physicalKey: try JSONEncoder().encode(event.persistentModelID), id: event.id,
@@ -19,12 +17,21 @@ extension TaskConsolidationEventValue {
             payloadJSON: event.payloadJSON)
     }
 }
-
 @MainActor enum TaskConsolidationHistoryStore {
-    static func savedEvents(operationId: UUID, in context: ModelContext) throws -> [TaskConsolidationEventValue] {
+    static func savedEvents(operationId: UUID, in context: ModelContext,
+                            budget: TaskLinkGraphBudget = TaskLinkGraphBudget()) throws
+        -> [TaskConsolidationEventValue] {
         var descriptor = FetchDescriptor<TaskConsolidationEvent>(
             predicate: #Predicate { $0.operationId == operationId })
         descriptor.includePendingChanges = false
-        return try context.fetch(descriptor).map(TaskConsolidationEventValue.capture)
+        try budget.check()
+        guard try context.fetchCount(descriptor) <= 2 else { throw TaskConsolidationHistoryError.ambiguous }
+        return try context.fetch(descriptor).map { row in
+            try budget.check()
+            guard row.payloadJSON.utf8.count <= min(budget.maximumBytes, 256 * 1_024) else {
+                throw TaskConsolidationHistoryError.capacityExceeded
+            }
+            return try TaskConsolidationEventValue.capture(row)
+        }
     }
 }

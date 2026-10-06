@@ -21,9 +21,14 @@ extension MCPToolHandler {
         }
         let arguments = request.arguments.mapValues(\.value)
         if ["preview_task_consolidation", "preview_task_consolidation_undo"].contains(request.tool) {
-            guard let consolidationPreviewAdapter else { throw ConsolidationPlanningError.unavailableEvidence }
-            return try await consolidationPreviewAdapter.prepare(tool: request.tool,
-                arguments: arguments, operation: operation)
+            do {
+                guard let consolidationPreviewAdapter else { throw ConsolidationPlanningError.unavailableEvidence }
+                return try await consolidationPreviewAdapter.prepare(tool: request.tool,
+                    arguments: arguments, operation: operation)
+            } catch {
+                return try readService.prepareFailure(error, tool: request.tool, operation: operation,
+                    policy: MCPReadRefreshPolicy.parse(arguments["readPolicy"]) ?? .refreshIfNeeded)
+            }
         }
         if request.tool == "query_project_summaries" {
             return try await preparePortfolioRead(arguments: arguments, service: readService, operation: operation)

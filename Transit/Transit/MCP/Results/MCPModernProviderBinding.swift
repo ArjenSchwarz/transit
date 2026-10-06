@@ -75,11 +75,12 @@ nonisolated enum MCPModernProviderBinding {
         return true
     }
 
-    static func availability(maintenanceEnabled: Bool) -> MCPModernAvailability {
+    static func availability(maintenanceEnabled: Bool, consolidationEnabled: Bool = false) -> MCPModernAvailability {
         let covered: Set<String> = ["query_tasks", "query_milestones", "get_projects", "query_project_summaries"]
-        return MCPModernAvailability(tools: MCPToolDefinitions.tools(includingMaintenance: maintenanceEnabled).map {
+        return MCPModernAvailability(tools: MCPToolDefinitions.tools(includingMaintenance: maintenanceEnabled,
+            includingConsolidation: consolidationEnabled).map {
             let execution: MCPModernToolExecution
-            if covered.contains($0.name) {
+            if covered.contains($0.name) || MCPConsolidationToolDefinitions.previewTools.contains($0.name) {
                 execution = .coveredRead
             } else if $0.name == "scan_duplicate_display_ids" {
                 execution = .ordinaryRead
@@ -118,12 +119,15 @@ nonisolated enum MCPModernProviderBinding {
                 guard let encodedMessage = String(data: try JSONEncoder().encode(message), encoding: .utf8) else {
                     throw MCPResultBoundaryError.unsupportedEvidence
                 }
-                let fallbackText = "{\"error\":{\"code\":\"OUTCOME_UNCERTAIN\",\"message\":" + encodedMessage + "}}"
+                let fallbackText = compactRecoveryText(request, tool: tool, encodedMessage: encodedMessage)
                 let fallback = try MCPResultAdapter.source(
                     text: fallbackText,
                     isError: true, origin: .generatedJSON, evidence: .unestablished)
+                let encoder = MCPConsolidationWriteDefinition.tools.contains(tool)
+                    ? await handler.consolidationResultEncoder : nil
                 return try await MCPResultProviderSelection.mutation(id: id, context: context,
-                    metadata: nil, fallbackSource: fallback) {
+                    metadata: nil, fallbackSource: fallback,
+                    encodeOutcome: encoder ?? MCPResultProviderSelection.encode) {
                         try await dispatch(request, context: context, handler: handler,
                             maintenanceEnabled: maintenanceEnabled)
                     }

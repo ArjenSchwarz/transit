@@ -50,7 +50,8 @@ extension MCPServer {
             let maintenanceEnabled = handler.modernMaintenanceEnabled
             let modern = try MCPModernValidator.validate(MCPModernRequestInput(httpMethod: "POST",
                 headers: headers, body: Data(buffer: body)),
-                availability: MCPModernProviderBinding.availability(maintenanceEnabled: maintenanceEnabled))
+                availability: MCPModernProviderBinding.availability(maintenanceEnabled: maintenanceEnabled,
+                    consolidationEnabled: handler.consolidationCapabilityInstalled))
             let admittedAt = ContinuousClock.now
             return try await dispatchModern(modern, context: context, handler: handler, coordinator: coordinator,
                 snapshot: DispatchSnapshot(maintenanceEnabled: maintenanceEnabled,
@@ -77,7 +78,8 @@ extension MCPServer {
                 identity: MCPModernServerIdentity(name: "transit", version: version)))
         case .listTools:
             return encodedResponse(try MCPModernDiscovery.encodeTools(id: modern.id,
-                tools: MCPToolDefinitions.modernTools(includingMaintenance: maintenanceEnabled)))
+                tools: MCPToolDefinitions.modernTools(includingMaintenance: maintenanceEnabled,
+                    includingConsolidation: handler.consolidationCapabilityInstalled)))
         case .callTool(let tool, let execution):
             // Batch shape and numeric tokens must reach the parser before Any conversion.
             if case .applicationBatch = execution {

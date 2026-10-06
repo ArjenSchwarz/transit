@@ -36,6 +36,9 @@ final class MCPToolHandler {
     /// Task14 fault seam declaration; task15 binds only the post-effect provider encoding stage.
     let maintenanceReassignmentEncoder: (@Sendable (ReassignmentResult) throws -> String)?
 
+    nonisolated let consolidationCapabilityInstalled: Bool
+    let consolidationResultEncoder: MCPResultProviderSelection.EncodeOutcome?
+    let consolidationWriteAdapter: MCPConsolidationWriteAdapter?
     let consolidationPreviewAdapter: MCPConsolidationPreviewAdapter?
     let readService: MCPReadService?
     let taskQuerySnapshots: MCPTaskQuerySnapshotStore
@@ -55,7 +58,8 @@ final class MCPToolHandler {
 
     /// Tools that only read.
     private static let readOnlyToolNames: Set<String> = [
-        "query_tasks", "query_milestones", "get_projects", "query_project_summaries", "scan_duplicate_display_ids"
+        "query_tasks", "query_milestones", "get_projects", "query_project_summaries", "scan_duplicate_display_ids",
+        "preview_task_consolidation", "preview_task_consolidation_undo"
     ]
 
     /// Tools blocked while fallback storage is active. Derived by subtracting the read-only
@@ -83,6 +87,8 @@ final class MCPToolHandler {
         writeCoordinator: MCPWriteCoordinator? = nil,
         readService: MCPReadService? = nil,
         consolidationPreviewAdapter: MCPConsolidationPreviewAdapter? = nil,
+        consolidationWriteAdapter: MCPConsolidationWriteAdapter? = nil,
+        consolidationResultEncoder: MCPResultProviderSelection.EncodeOutcome? = nil,
         readCoordinator: MCPReadCoordinator? = nil,
         reusableSnapshots: MCPReusableSnapshotStore? = nil,
         maintenanceReassignmentEncoder: (@Sendable (ReassignmentResult) throws -> String)? = nil,
@@ -125,6 +131,9 @@ final class MCPToolHandler {
         self.maintenanceReassignmentEncoder = maintenanceReassignmentEncoder
         self.readService = readService
         self.consolidationPreviewAdapter = consolidationPreviewAdapter
+        self.consolidationWriteAdapter = consolidationWriteAdapter
+        self.consolidationResultEncoder = consolidationResultEncoder
+        self.consolidationCapabilityInstalled = consolidationPreviewAdapter != nil && consolidationWriteAdapter != nil
     }
 
     /// One immutable request snapshot; no MainActor hop or defaults access at admission.
@@ -327,7 +336,8 @@ final class MCPToolHandler {
 
     private func handleToolsList(id: JSONRPCId?) -> JSONRPCResponse {
         let tools = MCPToolsListResult(
-            tools: MCPToolDefinitions.tools(includingMaintenance: settings.maintenanceToolsEnabled)
+            tools: MCPToolDefinitions.tools(includingMaintenance: settings.maintenanceToolsEnabled,
+                includingConsolidation: consolidationCapabilityInstalled)
         )
         return JSONRPCResponse.success(id: id, result: tools)
     }
@@ -751,7 +761,8 @@ extension MCPToolHandler {
     ) async -> MCPToolResult {
         if let writeCoordinator {
             let covered = ["create_task", "update_task", "update_task_status", "add_comment"].contains(tool)
-            let policy = batchPolicy ?? (covered ? taskLinkWriteAdapter?.policy() : nil)
+            let policy = batchPolicy ?? (MCPConsolidationWriteDefinition.tools.contains(tool)
+                ? consolidationWriteAdapter?.policy() : (covered ? taskLinkWriteAdapter?.policy() : nil))
             return await writeCoordinator.execute(tool: tool, arguments: arguments, batchPolicy: policy)
         }
         do {

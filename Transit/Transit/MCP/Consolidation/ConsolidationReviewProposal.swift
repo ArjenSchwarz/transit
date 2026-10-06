@@ -63,12 +63,8 @@ nonisolated struct ConsolidationReviewProposal: Codable, Sendable {
     }
 
     func revision() throws -> String {
-        Self.revision(try encoded())
+        try Self.revision(encoded())
     }
-    static func revision(_ bytes: Data) -> String {
-        "p1:" + SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
-    }
-
     static func decode(_ bytes: Data) throws -> Self {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in

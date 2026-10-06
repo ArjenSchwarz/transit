@@ -1,6 +1,5 @@
 #if os(macOS)
 import Foundation
-
 // MARK: - Tool Definitions
 nonisolated enum MCPToolDefinitions {
     static let coreTools: [MCPToolDefinition] = [
@@ -8,22 +7,22 @@ nonisolated enum MCPToolDefinitions {
         createMilestone, queryMilestones, updateMilestone, deleteMilestone, updateTask,
         MCPPortfolioToolDefinitions.queryProjectSummaries, MCPBatchToolDefinition.definition
     ]
-
     static let maintenanceTools: [MCPToolDefinition] = [
         scanDuplicateDisplayIds, reassignDuplicateDisplayIds
     ]
-
     /// Backwards-compatible alias for legacy callers — returns core tools only.
     /// Maintenance tools are gated; use `tools(includingMaintenance:)` to
     /// include them based on the runtime toggle.
     static let all: [MCPToolDefinition] = coreTools
-
-    static func tools(includingMaintenance: Bool) -> [MCPToolDefinition] {
-        includingMaintenance ? coreTools + maintenanceTools : coreTools
+    static func tools(includingMaintenance: Bool, includingConsolidation: Bool = false) -> [MCPToolDefinition] {
+        let base = includingMaintenance ? coreTools + maintenanceTools : coreTools
+        return includingConsolidation ? base + MCPConsolidationToolDefinitions.tools : base
     }
-
-    static func modernTools(includingMaintenance: Bool) throws -> [MCPModernToolDescriptor] {
-        try tools(includingMaintenance: includingMaintenance).map { definition in
+    static func modernTools(includingMaintenance: Bool,
+                            includingConsolidation: Bool = false) throws -> [MCPModernToolDescriptor] {
+                let definitions = tools(includingMaintenance: includingMaintenance,
+            includingConsolidation: includingConsolidation)
+        return try definitions.map { definition in
             let input: MCPJSONDocument
             let result: MCPResultSchemaDescriptor
             if definition.name == "mutate_tasks" {
@@ -37,44 +36,35 @@ nonisolated enum MCPToolDefinitions {
                 inputSchema: input, resultSchema: result)
         }
     }
-
     /// Names of tools gated behind `MCPSettings.maintenanceToolsEnabled`,
     /// derived from `maintenanceTools` so adding a tool there is a single edit.
     static let maintenanceToolNames: Set<String> = Set(maintenanceTools.map(\.name))
-
 }
-
 extension MCPToolDefinitions {
     // MARK: - Maintenance Tools
-
     nonisolated private static let scanDuplicateDisplayIdsDescription = """
         Scan tasks and milestones for duplicate permanentDisplayId values. Returns groups of duplicates \
         (winner + losers) without modifying any data. Read-only.
         """
-
     nonisolated static let scanDuplicateDisplayIds = MCPToolDefinition(
         name: "scan_duplicate_display_ids",
         description: scanDuplicateDisplayIdsDescription,
         inputSchema: .object(properties: [:], required: [])
     )
-
     nonisolated private static let reassignDuplicateDisplayIdsDescription = """
         Reassign fresh permanentDisplayId values to losers in each duplicate group. Advances the CloudKit \
         counter past the highest observed ID before allocation. Best-effort per group; returns per-group \
         outcomes.
         """
-
     nonisolated static let reassignDuplicateDisplayIds = MCPToolDefinition(
         name: "reassign_duplicate_display_ids",
         description: reassignDuplicateDisplayIdsDescription,
         inputSchema: .object(properties: [:], required: [])
     )
-
     nonisolated private static let createTaskDescription = """
         Create a new task in Transit. The task starts in Idea status. \
         At least one of 'project' or 'projectId' is required to identify the task's project.
         """
-
     nonisolated static let createTask = protected(
         MCPToolDefinition(
             name: "create_task",
@@ -105,12 +95,10 @@ extension MCPToolDefinitions {
                 required: ["name", "type"]
             )
         ))
-
     nonisolated private static let updateTaskStatusDescription = """
         Move a task to a different status. Identify the task by displayId (e.g. 42 for T-42) or taskId \
         (UUID).
         """
-
     nonisolated static let updateTaskStatus = protected(
         MCPToolDefinition(
             name: "update_task_status",
@@ -129,7 +117,6 @@ extension MCPToolDefinitions {
                 required: ["status"]
             )
         ))
-
     nonisolated private static let queryTasksDescription = """
     Query tasks with required detailLevel (summary/full), includeComments (boolean), and limit (1–100).
     Filters are optional; displayId accepts the same filters. Choose at most one selector: displayId,
@@ -146,7 +133,6 @@ extension MCPToolDefinitions {
     QUERY_CAPACITY_EXCEEDED (reduce scope/comments or retry after expiry). Unknown fields are rejected.
     status/not_status/priority accept arrays; unfinished excludes done/abandoned; search matches name/description.
     """
-
     nonisolated private static let queryTaskProperties: [String: JSONSchemaProperty] = [
                 "detailLevel": .stringEnum("Required task detail", values: ["summary", "full"]),
                 "includeComments": .boolean("Required: include comment payload; full revisions always read comments"),
@@ -179,7 +165,6 @@ extension MCPToolDefinitions {
                 "milestone": .string("Filter by milestone name"),
                 "milestoneDisplayId": .integer("Filter by milestone display ID (e.g. 3 for M-3)")
             ]
-
     nonisolated static let queryTasks = MCPToolDefinition(
         name: "query_tasks",
         description: queryTasksDescription + "\n\n" + TaskLinkQuerySchema.guidance + "\n\n" + readExecutionDescription
@@ -192,11 +177,9 @@ extension MCPToolDefinitions {
             MCPPortfolioToolDefinitions.snapshotTaskQueryInitialSchema
         ])
     )
-
     nonisolated private static let addCommentDescription = """
         Add a comment to a task. Identify the task by displayId or taskId.
         """
-
     nonisolated static let addComment = protected(
         MCPToolDefinition(
             name: "add_comment",
@@ -211,7 +194,6 @@ extension MCPToolDefinitions {
                 required: ["content", "authorName"]
             )
         ))
-
     nonisolated static let createProject = protected(
         MCPToolDefinition(
             name: "create_project",
@@ -227,20 +209,16 @@ extension MCPToolDefinitions {
                 required: ["name", "colorHex"]
             )
         ))
-
     nonisolated static let getProjects = MCPToolDefinition(
         name: "get_projects",
         description: "List all projects with metadata. Returns an array of project objects sorted by name."
             + "\n\n" + readExecutionDescription,
         inputSchema: .object(properties: [:], required: [])
     )
-
     // MARK: - Milestone Tools
-
     nonisolated private static let createMilestoneDescription = """
         Create a new milestone within a project. At least one of 'project' or 'projectId' is required.
         """
-
     nonisolated static let createMilestone = protected(
         MCPToolDefinition(
             name: "create_milestone",
@@ -255,11 +233,9 @@ extension MCPToolDefinitions {
                 required: ["name"]
             )
         ))
-
     nonisolated private static let queryMilestonesDescription = """
         List milestones with optional filters. Returns all milestones if no filters specified.
         """
-
     nonisolated static let queryMilestones = MCPToolDefinition(
         name: "query_milestones",
         description: queryMilestonesDescription + "\n\n" + readExecutionDescription,
@@ -277,11 +253,9 @@ extension MCPToolDefinitions {
             required: []
         )
     )
-
     nonisolated private static let updateMilestoneDescription = """
         Update a milestone's name, description, or status. Identify by displayId or milestoneId.
         """
-
     nonisolated static let updateMilestone = protected(
         MCPToolDefinition(
             name: "update_milestone",
@@ -302,12 +276,10 @@ extension MCPToolDefinitions {
                 required: []
             )
         ))
-
     nonisolated private static let deleteMilestoneDescription = """
         Delete a milestone. Tasks assigned to it lose their association but are not deleted. Identify by \
         displayId or milestoneId.
         """
-
     nonisolated static let deleteMilestone = protected(
         MCPToolDefinition(
             name: "delete_milestone",
@@ -320,12 +292,10 @@ extension MCPToolDefinitions {
                 required: []
             )
         ))
-
     nonisolated private static let updateTaskDescription = """
         Update a task's mutable fields (name, description, type, metadata, milestone) in a single atomic \
         call. Identify task by displayId or taskId.
         """
-
     nonisolated static let updateTask = protected(
         MCPToolDefinition(
             name: "update_task",
@@ -358,5 +328,4 @@ extension MCPToolDefinitions {
             )
         ))
 }
-
 #endif
