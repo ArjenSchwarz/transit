@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- T-2381 phase 2: Add four reviewed consolidation/whole-undo MCP tools and saved read-only native history. Explicit preservation accounting keeps originals and comments; current saved evidence guards permitted survivor edits, candidate abandonment and attributable link changes. Apply/history/receipt and inverse restoration reuse one owned local save, bounded retained reviews and existing retry recovery. Shared native/MCP reads retain physical admission through cleanup. Full macOS unit verification passes; rendered macOS automation remains environment-blocked, and final native layout gates remain pending.
+
 - T-2381 phase 1: Add immutable consolidation history and a fixture-backed protected group-save path. Closed-store migration, exact staged/reopened revisions, all-or-none local commitment and recovery are verified. History stores only changed fields and validates exact inverse evidence. Public consolidation tools, previews, undo execution and native history remain in progress.
 
 - T-1734: Add saved typed task relationships, guarded standalone link edits, precise removal-only repair, dependency/blocker and duplicate-chain diagnostics, frozen relationship queries and read-only native navigation. Link authoring is available through protected standalone MCP writes; native editing is outside this feature. Current task revisions cover active link incidence, including empty incidence; historical receipts retain their original bytes. Participating local writes save task/link/removal changes with their terminal receipt while preserving unsaved drafts. All 22 tasks and local platform checks pass; consolidation and live CloudKit verification remain separate work.

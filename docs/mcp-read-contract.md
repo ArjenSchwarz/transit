@@ -2,7 +2,7 @@
 
 Covered macOS reads describe a completed capture of **saved local data**. A capture timestamp or recent import is not proof that every remote edit has arrived. Use the current advertised tool schema and the [modern transport/result contract](mcp-result-contract.md) for request metadata, headers and structured results.
 
-The server allows five seconds from the read's original admission through complete response preparation. Import observation, store capture, transformation and encoding share that budget. An internal 4,850 ms selection cutoff reserves time for response completion. Client/network delivery time is outside this server budget. Eight unfinished physical reads are admitted per process; listener restart does not reset that count. A timeout ends delivery, while its physical work retains capacity until cleanup.
+The server allows five seconds from the read's original admission through complete response preparation. Import observation, store capture, transformation and encoding share that budget. An internal 4,850 ms selection cutoff reserves time for response completion. Client/network delivery time is outside this server budget. Eight unfinished physical reads are admitted per process; listener restart does not reset that count. A timeout ends delivery, while its physical work retains capacity until cleanup. Native saved consolidation history and macOS MCP reads share this app-lifetime capacity and original deadline. Listener stop/restart closes only that listener's admission and delivery; it does not disable native history or release unfinished workers.
 
 ## Policy and import limits
 

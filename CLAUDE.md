@@ -57,7 +57,7 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
 
 ### Data Model
 
-Eight SwiftData entities:
+Nine SwiftData entities:
 - **Project** → has many **Tasks** and many **Milestones**
 - **TransitTask** → belongs to one Project, optionally belongs to one Milestone, has many Comments
 - **Milestone** → belongs to one Project, has many Tasks. Statuses: open / done / abandoned
@@ -66,6 +66,7 @@ Eight SwiftData entities:
 - **MCPWriteReceipt** → same-store accepted/terminal write state and saved replay result, scoped to the originating local store even when synced
 - **TaskLinkOccurrence** → immutable scalar UUID/kind/endpoints/time for each physical active relationship; no task relationships or delete cascades
 - **TaskLinkRemovalEvidence** → separate immutable occurrence fingerprint and removal time, recognized for seven days; no automatic task consolidation
+- **TaskConsolidationEvent** → immutable scalar consolidation/reversal history with fixed participant slots and a bounded versioned payload; no relationships, unique constraints, cascades or independent expiry
 
 Both tasks and milestones have a UUID and a separate `permanentDisplayId` integer for human-facing use (T-1, M-3), allocated via CloudKit counter records with optimistic locking and provisional fallback when offline.
 
@@ -141,9 +142,9 @@ Shared intent infrastructure lives in `Intents/Shared/`: entities (`ProjectEntit
 
 ### MCP Server (macOS only)
 
-HTTP-based JSON-RPC 2.0 server using **Hummingbird**, gated behind `#if os(macOS)`. Configured via `MCPSettings` (UserDefaults-backed toggle and port). Exposes 13 normal tools:
+HTTP-based JSON-RPC 2.0 server using **Hummingbird**, gated behind `#if os(macOS)`. Configured via `MCPSettings` (UserDefaults-backed toggle and port). Exposes 17 normal tools:
 
-`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `query_project_summaries`, `mutate_tasks`
+`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `query_project_summaries`, `mutate_tasks`, `preview_task_consolidation`, `consolidate_tasks`, `preview_task_consolidation_undo`, `undo_task_consolidation`
 
 Key implementation files:
 - `MCP/MCPServer.swift` — Hummingbird router, lifecycle management
@@ -212,11 +213,11 @@ Services follow a consistent pattern: mutate in memory, then `save()`, rolling b
 ## Test Infrastructure
 
 - **Swift Testing** framework (not XCTest) for unit tests
-- **TestModelContainer** fixture (`TransitTests/TestModelContainer.swift`) — creates an isolated in-memory container with `cloudKitDatabase: .none` and an explicit `Schema` including all eight current entities (Project, TransitTask, Comment, Milestone, SyncHeartbeat, MCPWriteReceipt, TaskLinkOccurrence and TaskLinkRemovalEvidence). All three properties (schema, in-memory, no CloudKit) are required to avoid conflicts.
+- **TestModelContainer** fixture (`TransitTests/TestModelContainer.swift`) — creates an isolated in-memory container with `cloudKitDatabase: .none` and an explicit `Schema` including all nine current entities (Project, TransitTask, Comment, Milestone, SyncHeartbeat, MCPWriteReceipt, TaskLinkOccurrence, TaskLinkRemovalEvidence and TaskConsolidationEvent). All three properties (schema, in-memory, no CloudKit) are required to avoid conflicts.
 - Each test constructs `let testContainer = try TestModelContainer()` and derives `testContainer.context`; helpers that create SwiftData storage should return or store the owning fixture rather than only a context/service
 - Custom-schema and multi-context tests use `TestModelContainer(schema:configurations:)`; direct `ModelContainer` construction and raw container/context factories in test sources are rejected by the ownership guard run from `make lint`
 - SwiftData test suites must use `@Suite(.serialized)` to prevent concurrent access issues
-- UI tests use `TRANSIT_UI_TEST_SCENARIO` environment variable (`empty`, `board`, `duplicateDisplayIds`, `taskLinks` or `taskLinksAmbiguous`) for deterministic seeded data
+- UI tests use `TRANSIT_UI_TEST_SCENARIO` environment variable (`empty`, `board`, `duplicateDisplayIds`, `taskLinks`, `taskLinksAmbiguous`, `consolidationHistory`, `consolidationHistoryReversed`, `consolidationHistoryUnavailable`, `consolidationHistoryOverLimit`, `consolidationHistoryMissing` or `consolidationHistoryAmbiguous`) for deterministic seeded data
 - MCP tool handler tests use `MCPTestHelpers.swift` for common setup patterns
 
 ## Key Design Decisions
