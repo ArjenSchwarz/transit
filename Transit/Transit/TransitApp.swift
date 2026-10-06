@@ -123,16 +123,16 @@ struct TransitApp: App {
         AppDependencyManager.shared.add(dependency: commentService)
         AppDependencyManager.shared.add(dependency: milestoneService)
         AppDependencyManager.shared.add(dependency: maintenanceService)
-        #if os(iOS)
-        let quickActionService = QuickActionService()
-        self.quickActionService = quickActionService
-        appDelegate.quickActionService = quickActionService
-        #endif
         let readDomain = MCPReadPublicationDomain()
         let readCoordinator = MCPReadCoordinator(domain: readDomain, diagnostics: .application)
         self.readCoordinator = readCoordinator
         self.consolidationHistoryReader = TaskConsolidationNativeReader(
             container: container, coordinator: readCoordinator)
+        #if os(iOS)
+        let quickActionService = QuickActionService()
+        self.quickActionService = quickActionService
+        appDelegate.quickActionService = quickActionService
+        #endif
         #if os(macOS)
         let mcpSettings = MCPSettings()
         self.mcpSettings = mcpSettings
