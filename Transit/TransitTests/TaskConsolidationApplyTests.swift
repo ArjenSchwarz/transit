@@ -82,7 +82,8 @@ struct TaskConsolidationApplyTests {
         let before = try fixture.capture()
         try fixture.changeUnrelated(blocker, field: "status")
         let after = try fixture.capture()
-        #expect(before.originals.map(\.revision) == after.originals.map(\.revision))
+        #expect(Dictionary(uniqueKeysWithValues: before.originals.map { ($0.id, $0.revision) })
+            == Dictionary(uniqueKeysWithValues: after.originals.map { ($0.id, $0.revision) }))
         #expect(try fixture.decode(await fixture.apply(reference))["outcome"] as? String == "rejected")
     }
     @Test func onlyOneCompetingKeyCanApplyTheSameRetainedReview() async throws {

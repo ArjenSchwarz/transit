@@ -55,7 +55,8 @@ nonisolated struct ConsolidationReversalPlan: Sendable {
 }
 
 nonisolated enum ConsolidationPlanningError: Error {
-    case invalidInput, unavailableEvidence, wrongProject, invalidCanonical, revisionConflict, alreadyReversed
+    case invalidInput, unavailableEvidence, wrongProject, invalidCanonical
+    case revisionConflict, alreadyReversed, reviewUnavailable
 }
 
 extension ConsolidationDisposition {

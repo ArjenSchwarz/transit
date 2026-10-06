@@ -18,11 +18,11 @@ import SwiftData
         let entry = try store.ownedReview(id: id, scope: originScopeId)
         guard ConsolidationReviewEntry.digest(entry.proposalBytes) == entry.integrityDigest,
               try ConsolidationReviewProposal.revision(entry.proposalBytes) == entry.revision else {
-            throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Retained proposal content is inconsistent")
+            throw MCPWriteFailure("CONSOLIDATION_REVIEW_UNAVAILABLE", "Retained proposal content is inconsistent")
         }
         let proposal = try ConsolidationReviewProposal.decode(entry.proposalBytes)
         guard (entry.kind == .apply) == (proposal.request != nil) else {
-            throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Retained proposal kind is inconsistent")
+            throw MCPWriteFailure("CONSOLIDATION_REVIEW_UNAVAILABLE", "Retained proposal kind is inconsistent")
         }
         let budget = TaskLinkGraphBudget()
         let selection = try selection(proposal, context: context, budget: budget)

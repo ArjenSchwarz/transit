@@ -101,15 +101,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
         guard fence == .persistentHistory else { return nil }
         do { return try SavedReadBoundary.watermark(container) } catch { throw MCPReadCaptureError.incoherentCapture }
     }
-    private struct Copied {
-        let scope: ReadCaptureScope
-        let projects: [ReadProject]
-        let tasks: [ReadTask]
-        let milestones: [ReadMilestone]
-        let comments: [ReadCommentEvidence]
-        let taskLinkGraph: TaskLinkGraphView?
-        let consolidationEvidence: ConsolidationSavedEvidence?
-    }
+    private typealias Copied = MCPReadCopiedValues
     private func copy(
         _ request: ReadCaptureRequest, in context: ModelContext, evaluationInstant: Date
     ) throws -> Copied {
@@ -142,9 +134,8 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             let commentValues = try indexComments(includedComments)
             // Freeze identity closure separately; it never changes the declared selected scope.
             let scope = request.captureScope(selectedKeys: selectedKeys)
-            let consolidation = try consolidationEvidence(request, context: context, tasks: bodyTasks,
-                graph: graph, selection: consolidationSelection)
-            return try Copied(scope: scope, projects: projects.map(projectValue),
+            // Freeze borrowed ordinary records before supplementary context refetches.
+            let copied = try Copied(scope: scope, projects: projects.map(projectValue),
                               tasks: copyTaskValues(request.completeness == .completePortfolio ? allTasks : tasks,
                                   selectedKeys: bodyKeys, comments: commentValues.index,
                                   full: full, includeComments: request.includeComments,
@@ -154,10 +145,12 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                                       try milestoneValue($0, canonical: milestoneBodyKeys.contains(try key($0)))
                                   },
                               comments: commentValues.values, taskLinkGraph: graph,
-                              consolidationEvidence: consolidation)
+                              consolidationEvidence: nil)
+            return copied.retaining(try consolidationEvidence(request, context: context, tasks: bodyTasks,
+                graph: graph, selection: consolidationSelection))
         } catch let error as MCPTaskQueryError {
             throw error
-        } catch let error where error is TaskLinkGraphError || error is MCPReadCaptureError {
+        } catch let error where preservesCaptureFailure(error) {
             throw error
         } catch is MCPCanonicalJSON.Error {
             throw MCPReadCaptureError.serializationFailure
@@ -165,6 +158,11 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             throw MCPReadCaptureError.storageFailure
         }
     }
+    private func preservesCaptureFailure(_ error: Error) -> Bool {
+        error is TaskLinkGraphError || error is MCPReadCaptureError || error is ConsolidationSelectionFailure
+            || error is ConsolidationPlanningError || error is TaskConsolidationHistoryError
+    }
+
     private func bodyKeys(_ request: ReadCaptureRequest, tasks: [TransitTask],
                           selection: ConsolidationCaptureSelection?, graph: TaskLinkGraphView?) throws
         -> Set<LocalRecordKey> {
@@ -187,7 +185,10 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                                        selection: ConsolidationCaptureSelection?) throws
         -> ConsolidationSavedEvidence? {
         guard fullRecordSelection(request.selection), request.selection.requiredEntities.0 else { return nil }
-        guard let graph else { throw MCPReadCaptureError.incoherentCapture }
+        guard let graph else {
+            guard tasks.isEmpty && selection == nil else { throw MCPReadCaptureError.incoherentCapture }
+            return nil // The resolved ordinary selection deliberately required no task fetch.
+        }
         return try TaskConsolidationSavedCapture(container: container).copy(
             selection ?? .init(selectedTaskIds: tasks.map(\.id), requireSelectedOriginals: false),
             in: context, graph: graph, budget: request.taskLinkBudget ?? TaskLinkGraphBudget())

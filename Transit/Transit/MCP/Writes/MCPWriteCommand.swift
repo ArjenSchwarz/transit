@@ -296,10 +296,14 @@ extension MCPWriteCommand {
         }
         do { return try consolidation.apply(self, reviewId: id) } catch TaskConsolidationHistoryError.capacityExceeded {
             throw MCPWriteFailure("CONSOLIDATION_OVER_LIMIT", "Complete history exceeds the 256-KiB payload limit")
+        } catch let selection as ConsolidationSelectionFailure {
+            throw MCPWriteFailure.selection(selection)
+        } catch ConsolidationPlanningError.reviewUnavailable {
+            throw MCPWriteFailure("CONSOLIDATION_REVIEW_UNAVAILABLE", "Exact local review is unavailable")
         } catch is ConsolidationPlanningError {
             throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Complete saved review evidence is unavailable")
         } catch is TaskConsolidationHistoryError {
-            throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Complete reviewed history evidence is invalid")
+            throw MCPWriteFailure("CONSOLIDATION_HISTORY_UNAVAILABLE", "Complete reviewed history evidence is invalid")
         } catch let error as TaskLinkGraphError {
             throw TaskLinkWriteFailure.map(error)
         }

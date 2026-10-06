@@ -16,7 +16,7 @@ extension TaskConsolidationService {
         guard review.id == reviewId, review.revision == command.arguments["reviewRevision"] as? String,
               review.originScopeId == originScopeId, review.payload.kind == "undo",
               review.payload.operationId == operationId else {
-            throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Exact local reversal review is unavailable")
+            throw MCPWriteFailure("CONSOLIDATION_REVIEW_UNAVAILABLE", "Exact local reversal review is unavailable")
         }
         let tasks = try resolve(review, budget: budget)
         let instant = clock()

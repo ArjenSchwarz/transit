@@ -35,15 +35,12 @@ extension UITestScenario {
                 revision: try TaskLinkGraph.occurrenceRevision(value))
             try context.save()
             let graph = try TaskLinkService.graph(in: context, evaluationInstant: instant)
-            let revisions = try [survivor, candidate].map { task in
-                (task.id.uuidString, try MCPRecordSnapshot.task(task,
-                    incidence: graph.occurrences) { _ in [] }.revision)
-            }
+            let revisions = try consolidationRevisions([survivor, candidate], graph: graph)
             let preservation = try consolidationPreservation(candidate.id)
             let payload = TaskConsolidationPayload(operationId: operation, kind: "apply", survivorTaskId: survivor.id,
                 candidateTaskIds: [candidate.id], reason: "Synthetic reviewed history",
                     preservationJSON: preservation, changes: [.init(taskId: candidate.id, before: prior, after: after)],
-                appliedRevisions: Dictionary(uniqueKeysWithValues: revisions), createdOccurrences: [created],
+                appliedRevisions: revisions, createdOccurrences: [created],
                 retainedOccurrences: [], requestKey: "ui-fixture", reviewId: UUID(),
                 reviewRevision: "p1:" + String(repeating: "a", count: 64),
                 mappings: try TaskConsolidationMapping.capture([survivor.id, candidate.id], graph: graph,
@@ -52,7 +49,14 @@ extension UITestScenario {
                 createdAt: instant, originScopeId: "ui-test-fixture", survivorTaskId: survivor.id,
                 candidateTaskIds: [candidate.id], payloadJSON: try TaskConsolidationHistoryCodec.encode(payload)))
             try context.save()
+            try varyConsolidationHistory(payload, candidate: candidate, edge: edge, context: context)
         } catch { preconditionFailure("Could not save synthetic consolidation history fixture: \(error)") }
+    }
+
+    private func consolidationRevisions(_ tasks: [TransitTask], graph: TaskLinkGraphView) throws -> [String: String] {
+        try Dictionary(uniqueKeysWithValues: tasks.map { task in
+            (task.id.uuidString, try MCPRecordSnapshot.task(task, incidence: graph.occurrences) { _ in [] }.revision)
+        })
     }
 
     private func consolidationPreservation(_ id: UUID) throws -> String {

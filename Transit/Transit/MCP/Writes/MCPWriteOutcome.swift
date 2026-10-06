@@ -7,6 +7,7 @@ import Foundation
     let currentRecord: [String: Any]?
     let currentRevisions: [String: String]?
     let affectedTaskIds: [UUID]?
+    private(set) var diagnostics: [[String: String]]?
 
     init(_ code: String, _ message: String, currentRecord: [String: Any]? = nil,
          currentRevisions: [String: String]? = nil, affectedTaskIds: [UUID]? = nil) {
@@ -15,6 +16,12 @@ import Foundation
         self.currentRecord = currentRecord
         self.currentRevisions = currentRevisions
         self.affectedTaskIds = affectedTaskIds
+    }
+
+    static func selection(_ error: ConsolidationSelectionFailure) -> MCPWriteFailure {
+        let result = MCPWriteFailure(error.code, error.message)
+        result.diagnostics = error.diagnostics.map(\.json)
+        return result
     }
 
     static func from(_ error: any Error) -> MCPWriteFailure {
@@ -70,6 +77,9 @@ enum MCPWriteOutcome {
             "error": ["code": failure.code, "message": failure.message],
             "retryAction": retryAction ?? "new_request_new_key"
         ]
+        if let diagnostics = failure.diagnostics {
+            result["error"] = ["code": failure.code, "message": failure.message, "diagnostics": diagnostics]
+        }
         result["idempotencyKey"] = key
         result["currentRecord"] = failure.currentRecord
         result["currentRevisions"] = failure.currentRevisions

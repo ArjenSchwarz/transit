@@ -11,6 +11,12 @@ extension MCPToolHandler {
     func prepareCoveredRead(_ request: MCPReadToolRequest,
                             operation: MCPReadOperation) async throws -> MCPPreparedToolRead {
         operation.finishActorQueue()
+        guard taskQueryAdmissionOpen else {
+            let metadata = ReadFailureMetadata(requestId: operation.id.uuidString, category: .busy,
+                read: ReadExecutionMetadata(policy: .refreshIfNeeded, refreshOutcome: .unavailable, budgetMs: 5_000))
+            let text = IntentHelpers.encodeJSON(["error": ["code": "READ_BUSY", "message": "READ_BUSY"]])
+            return try MCPPreparedToolRead(text: text, isError: true, metadata: .failure(metadata))
+        }
         guard let readService else {
             let metadata = ReadFailureMetadata(requestId: operation.id.uuidString, category: .storageFailure,
                 read: ReadExecutionMetadata(policy: .refreshIfNeeded, refreshOutcome: .unavailable, budgetMs: 5_000))

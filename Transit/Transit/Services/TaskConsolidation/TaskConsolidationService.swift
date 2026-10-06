@@ -48,7 +48,7 @@ struct TaskConsolidationOwnedReview {
         guard review.id == reviewId, review.revision == command.arguments["reviewRevision"] as? String,
               review.originScopeId == originScopeId, review.payload.kind == "apply",
               IntentHelpers.parseBoolValue(command.arguments["preservationAcknowledged"]) == true else {
-            throw MCPWriteFailure("CONSOLIDATION_UNAVAILABLE", "Exact acknowledged local review is unavailable")
+            throw MCPWriteFailure("CONSOLIDATION_REVIEW_UNAVAILABLE", "Exact acknowledged local review is unavailable")
         }
         let budget = TaskLinkGraphBudget()
         let instant = clock()

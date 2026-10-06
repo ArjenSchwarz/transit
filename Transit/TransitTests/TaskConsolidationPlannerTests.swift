@@ -115,11 +115,16 @@ struct TaskConsolidationPlannerTests {
         let fixture = try TaskConsolidationCommitFixture()
         let context = fixture.base.owner.context
         let tasks = [fixture.base.target, fixture.base.source, fixture.extra]
+        let graph = try TaskLinkService.graph(in: context, evaluationInstant: fixture.base.instant)
+        let identityEncoder = JSONEncoder()
+        identityEncoder.outputFormatting = [.sortedKeys]
         let originals = try tasks.map { task in
             let project = try #require(task.project)
             let snapshot = try MCPRecordSnapshot.task(task, in: context)
-            return ConsolidationOriginal(id: task.id, physicalKey: try JSONEncoder().encode(task.persistentModelID),
-                projectId: project.id, projectPhysicalKey: try JSONEncoder().encode(project.persistentModelID),
+            let physical = try #require(graph.tasksById[task.id]?.first?.physicalKey)
+            #expect(try JSONDecoder().decode(PersistentIdentifier.self, from: physical) == task.persistentModelID)
+            return ConsolidationOriginal(id: task.id, physicalKey: physical,
+                projectId: project.id, projectPhysicalKey: try identityEncoder.encode(project.persistentModelID),
                 fields: try TaskConsolidationRawFields.capture(task), revision: snapshot.revision,
                 recordJSON: try JSONSerialization.data(withJSONObject: snapshot.record))
         }
@@ -128,8 +133,7 @@ struct TaskConsolidationPlannerTests {
             preservation: Dictionary(uniqueKeysWithValues: tasks.dropFirst().map {
                 ($0.id.uuidString, ConsolidationDisposition(retainedExplanation: "original retained"))
             }))
-        let plan = try ConsolidationPlanner.plan(request, originals: originals,
-            graph: TaskLinkService.graph(in: context, evaluationInstant: fixture.base.instant))
+        let plan = try ConsolidationPlanner.plan(request, originals: originals, graph: graph)
         let scope = try #require(fixture.coordinator.localScopeId)
         let review = try TaskConsolidationOwnedReview.make(plan: plan, scope: scope)
         let adapter = MCPConsolidationWriteAdapter(taskAllocator: fixture.base.allocator,

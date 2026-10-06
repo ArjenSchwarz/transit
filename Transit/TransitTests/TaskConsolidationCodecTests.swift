@@ -10,7 +10,8 @@ struct TaskConsolidationCodecTests {
         #expect(try TaskConsolidationHistoryCodec.decode(event) == value)
         let fields = try #require(value.changes.first?.fields)
         #expect(fields["metadataJSON"]?.before == "{ \"source\" : \"café\" }")
-        let date = try TaskConsolidationRawFields.date(try #require(fields["lastStatusChangeDate"]?.before))
+        let closure = try #require(value.changes.first { $0.taskId == value.candidateTaskIds[0] })
+        let date = try TaskConsolidationRawFields.date(try #require(closure.fields["lastStatusChangeDate"]?.before))
         #expect(date.timeIntervalSinceReferenceDate.bitPattern == Double(123456.00000000001).bitPattern)
         #expect(throws: (any Error).self) { try TaskConsolidationRawFields.date("7ff0000000000000") }
     }
@@ -82,6 +83,29 @@ struct TaskConsolidationCodecTests {
         #expect(throws: (any Error).self) { try TaskConsolidationHistoryCodec.decode(corrupt) }
     }
 
+    @Test(arguments: ["json", "missing-field", "nested-accounting", "nested-metadata"])
+    func importedDecodeFailuresUseHistoryMalformed(fault: String) throws {
+        let original = try event(fixture())
+        var document = try #require(JSONSerialization.jsonObject(with: Data(original.payloadJSON.utf8))
+            as? [String: Any])
+        switch fault {
+        case "missing-field": document.removeValue(forKey: "changes")
+        case "nested-accounting": document["preservationJSON"] = "{"
+        case "nested-metadata":
+            var changes = try #require(document["changes"] as? [[String: Any]])
+            var fields = try #require(changes[0]["fields"] as? [String: Any])
+            fields["metadataJSON"] = ["before": "{", "after": "{}"]
+            changes[0]["fields"] = fields
+            document["changes"] = changes
+        default: break
+        }
+        let json = fault == "json" ? "{" : try #require(String(data:
+            JSONSerialization.data(withJSONObject: document), encoding: .utf8))
+        #expect(throws: TaskConsolidationHistoryError.malformed) {
+            try TaskConsolidationHistoryCodec.decode(copied(original, payload: json))
+        }
+    }
+
     @Test func multipleReversalsAreAmbiguousAndOldHistoryDoesNotExpire() throws {
         let original = try event(fixture())
         var document = try #require(JSONSerialization.jsonObject(with: Data(original.payloadJSON.utf8))
@@ -128,12 +152,16 @@ struct TaskConsolidationCodecTests {
             statusRawValue: "idea", lastStatusChangeDate:
                 try TaskConsolidationRawFields.exactDate(Date(timeIntervalSinceReferenceDate: 123456.00000000001)),
             completionDate: nil)
-        let after = TaskConsolidationRawFields(description: before.description, metadataJSON: "{\"source\":\"after\"}",
+        let after = TaskConsolidationRawFields(description: before.description, metadataJSON: before.metadataJSON,
             statusRawValue: "abandoned", lastStatusChangeDate: "0", completionDate: "0")
+        let edited = TaskConsolidationRawFields(description: before.description, metadataJSON: "{\"source\":\"after\"}",
+            statusRawValue: before.statusRawValue, lastStatusChangeDate: before.lastStatusChangeDate,
+            completionDate: before.completionDate)
         return TaskConsolidationPayload(operationId: UUID(), kind: "apply", survivorTaskId: survivor,
             candidateTaskIds: [candidate], reason: reason,
             preservationJSON: "{\"\(candidate.uuidString)\":{\"retainedExplanation\":\"original retained\"}}",
-            changes: [TaskConsolidationTaskChange(taskId: candidate, before: before, after: after)],
+            changes: [TaskConsolidationTaskChange(taskId: survivor, before: before, after: edited),
+                      TaskConsolidationTaskChange(taskId: candidate, before: before, after: after)],
             appliedRevisions: [survivor.uuidString: "r1:" + String(repeating: "a", count: 64),
                                candidate.uuidString: "r1:" + String(repeating: "b", count: 64)],
             createdOccurrences: [], retainedOccurrences: [], requestKey: "test", reviewId: UUID(),

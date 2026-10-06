@@ -27,9 +27,11 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
     private let afterCopy: () throws -> Void
     private let fetchEvents: ((ModelContext) throws -> [TaskConsolidationEvent])?
     private let fetchComments: (ModelContext, UUID) throws -> [Comment]
+    private let participantQuery: (Int) -> Void
     private var isCapturing = false
 
     struct Hooks {
+        var participantQuery: (Int) -> Void = { _ in }
         var generation: () -> UInt64 = { 0 }
         var afterCopy: () throws -> Void = {}
         var fetchEvents: ((ModelContext) throws -> [TaskConsolidationEvent])?
@@ -41,6 +43,7 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
     }
 
     init(container: ModelContainer, fence: ConsolidationCaptureFence = .persistentHistory, hooks: Hooks = Hooks()) {
+        self.participantQuery = hooks.participantQuery
         self.container = container
         self.fence = fence
         self.generation = hooks.generation
@@ -87,11 +90,16 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
         try charge.append(graph.retainedBytes)
         let events = try operationEvents(selected: selected, operationId: operationId,
             context: context, charge: charge)
-        let operations = Set(events.map(\.operationId))
+        var grouped: [UUID: [TaskConsolidationEventValue]] = [:]
+        for event in events {
+            try budget.check()
+            grouped[event.operationId, default: []].append(event)
+        }
+        let operations = Set(grouped.keys)
         var required: Set<UUID> = request.requireSelectedOriginals ? selected : []
         for id in operations {
             try budget.check()
-            let history = try TaskConsolidationHistoryCodec.history(events.filter { $0.operationId == id },
+            let history = try TaskConsolidationHistoryCodec.history(grouped[id, default: []],
                 operationId: id)
             required.formUnion([history.apply.survivorTaskId] + history.apply.candidateTaskIds)
         }
@@ -103,7 +111,7 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
         var history: [ConsolidationHistoryProjection] = []
         for id in operations.sorted(by: { $0.uuidString < $1.uuidString }) {
             try budget.check()
-            let projection = try ConsolidationHistoryProjection.make(events: events.filter { $0.operationId == id },
+            let projection = try ConsolidationHistoryProjection.make(events: grouped[id, default: []],
                 operationId: id, originals: originals, graph: graph, budget: budget)
             try budget.check()
             try charge.append(JSONEncoder().encode(projection).count)
@@ -129,11 +137,17 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
         var descriptor = FetchDescriptor<TransitTask>()
         descriptor.includePendingChanges = false
         let tasks = try context.fetch(descriptor).filter { required.contains($0.id) }
+        for id in request.selectedTaskIds where request.requireSelectedOriginals {
+            let count = tasks.filter { $0.id == id }.count
+            guard count == 1 else {
+                throw ConsolidationSelectionFailure(id, count == 0 ? "missing_task" : "ambiguous_task")
+            }
+        }
         let originals = try tasks.compactMap { task -> ConsolidationOriginal? in
             try budget.check()
             guard let project = task.project else {
                 if request.requireSelectedOriginals && request.selectedTaskIds.contains(task.id) {
-                    throw ConsolidationPlanningError.unavailableEvidence
+                    throw ConsolidationSelectionFailure(task.id, "missing_project")
                 }
                 return nil
             }
@@ -164,11 +178,6 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
             try charge.append(JSONEncoder().encode(original).count)
             return original
         }.sorted { $0.physicalKey.lexicographicallyPrecedes($1.physicalKey) }
-        for id in request.selectedTaskIds where request.requireSelectedOriginals {
-            guard originals.filter({ $0.id == id }).count == 1 else {
-                throw ConsolidationPlanningError.unavailableEvidence
-            }
-        }
         return originals
     }
 
@@ -215,18 +224,7 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
                 }
             }
         } else {
-            for id in selected {
-                try budget.check()
-                var descriptor = FetchDescriptor<TaskConsolidationEvent>(predicate: #Predicate {
-                    $0.survivorTaskId == id || $0.candidate1 == id || $0.candidate2 == id
-                        || $0.candidate3 == id || $0.candidate4 == id || $0.candidate5 == id
-                })
-                descriptor.includePendingChanges = false
-                guard try context.fetchCount(descriptor) <= budget.maximumBytes / 128 else {
-                    throw TaskLinkGraphError.capacityExceeded
-                }
-                for row in try context.fetch(descriptor) { operations.insert(row.operationId) }
-            }
+            operations.formUnion(try participantOperations(selected, in: context, charge: charge))
         }
         try charge.checkAdditional(operations.count * 128)
         var values: [TaskConsolidationEventValue] = []
@@ -272,6 +270,43 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
         }
         return try JSONSerialization.data(withJSONObject: ["tasks": tasks, "occurrences": occurrences,
             "removals": removals], options: [.sortedKeys])
+    }
+}
+
+extension TaskConsolidationSavedCapture {
+    private func participantOperations(_ selected: Set<UUID>, in context: ModelContext,
+                                       charge: ConsolidationCaptureCharge) throws -> Set<UUID> {
+        let budget = charge.budget
+        var operations: Set<UUID> = []
+        let ordered = selected.sorted { $0.uuidString < $1.uuidString }
+        for start in stride(from: 0, to: ordered.count, by: 128) {
+            try budget.check()
+            let ids = Array(ordered[start..<min(start + 128, ordered.count)])
+            // No nil member: absent candidate slots must never match a selected UUID.
+            let candidateIds: [UUID?] = ids.map { Optional.some($0) }
+            participantQuery(ids.count)
+            let first = #Predicate<TaskConsolidationEvent> {
+                ids.contains($0.survivorTaskId) || candidateIds.contains($0.candidate1)
+                    || candidateIds.contains($0.candidate2)
+            }
+            let second = #Predicate<TaskConsolidationEvent> {
+                candidateIds.contains($0.candidate3) || candidateIds.contains($0.candidate4)
+                    || candidateIds.contains($0.candidate5)
+            }
+            var descriptor = FetchDescriptor<TaskConsolidationEvent>(predicate: #Predicate {
+                first.evaluate($0) || second.evaluate($0)
+            })
+            descriptor.includePendingChanges = false
+            guard try context.fetchCount(descriptor) <= budget.maximumBytes / 128 else {
+                throw TaskLinkGraphError.capacityExceeded
+            }
+            for row in try context.fetch(descriptor) {
+                try budget.check()
+                operations.insert(row.operationId)
+                try charge.checkAdditional(operations.count * 128)
+            }
+        }
+        return operations
     }
 }
 

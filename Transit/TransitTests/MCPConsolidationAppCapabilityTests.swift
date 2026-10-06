@@ -47,8 +47,9 @@ import Testing
     let fixture: ConsolidationPreviewFixture
     let handler: MCPToolHandler
 
-    init(resultEncoder: MCPResultProviderSelection.EncodeOutcome? = nil) throws {
-        fixture = try ConsolidationPreviewFixture()
+    init(fixture existing: ConsolidationPreviewFixture? = nil,
+         resultEncoder: MCPResultProviderSelection.EncodeOutcome? = nil) throws {
+        fixture = try existing ?? ConsolidationPreviewFixture()
         let context = fixture.base.base.owner.context, allocator = fixture.base.base.allocator
         let tasks = TaskService(modelContext: context, displayIDAllocator: allocator)
         let projects = ProjectService(modelContext: context)

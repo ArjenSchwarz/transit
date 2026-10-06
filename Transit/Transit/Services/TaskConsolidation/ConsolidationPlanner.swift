@@ -9,7 +9,7 @@ enum ConsolidationPlanner {
         let survivor = selected[0]
         let canonical = try TaskLinkGraph.duplicateResolution(for: survivor.id, in: graph, budget: budget)
         guard canonical.diagnostic == nil, canonical.canonical == survivor.id else {
-            throw ConsolidationPlanningError.invalidCanonical
+            throw ConsolidationSelectionFailure(survivor.id, "survivor_not_canonical")
         }
         let changes = try proposedChanges(request, originals: selected)
         let links = try proposedLinks(request, graph: graph, budget: budget)
@@ -50,8 +50,10 @@ enum ConsolidationPlanner {
         let selected = try ids.map { id in
             try budget.check()
             let matches = originals.filter { $0.id == id }
-            guard matches.count == 1, let original = matches.first,
-                  graph.tasksById[id]?.count == 1,
+            guard matches.count == 1, graph.tasksById[id]?.count == 1 else {
+                throw ConsolidationSelectionFailure(id, matches.isEmpty ? "missing_task" : "ambiguous_task")
+            }
+            guard let original = matches.first,
                   graph.tasksById[id]?.first?.physicalKey == original.physicalKey else {
                 throw ConsolidationPlanningError.unavailableEvidence
             }
@@ -64,7 +66,9 @@ enum ConsolidationPlanner {
         }
         guard let survivor = selected.first, selected.allSatisfy({ $0.projectId == survivor.projectId
             && $0.projectPhysicalKey == survivor.projectPhysicalKey }) else {
-            throw ConsolidationPlanningError.wrongProject
+            let mismatch = selected.dropFirst().first { $0.projectId != selected[0].projectId
+                || $0.projectPhysicalKey != selected[0].projectPhysicalKey }
+            throw ConsolidationSelectionFailure(mismatch?.id ?? request.survivorTaskId, "wrong_project")
         }
         return selected
     }
@@ -113,7 +117,7 @@ enum ConsolidationPlanner {
             let resolution = try TaskLinkGraph.duplicateResolution(for: id, in: graph, budget: budget)
             guard resolution.diagnostic == nil,
                 resolution.canonical == id || resolution.canonical == request.survivorTaskId else {
-                throw ConsolidationPlanningError.invalidCanonical
+                throw ConsolidationSelectionFailure(id, "invalid_canonical_chain")
             }
             if resolution.canonical == id {
                 additions.append(.init(relation: TaskLinkType.duplicateOf.normalized(source: id,

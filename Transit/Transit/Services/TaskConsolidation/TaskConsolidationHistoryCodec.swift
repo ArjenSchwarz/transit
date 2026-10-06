@@ -79,10 +79,17 @@ nonisolated enum TaskConsolidationHistoryCodec {
     }
 
     static func decode(_ value: TaskConsolidationEventValue) throws -> TaskConsolidationPayload {
+        do { return try decodeImported(value) } catch let error as TaskConsolidationHistoryError {
+            throw error
+        } catch { throw TaskConsolidationHistoryError.malformed }
+    }
+
+    private static func decodeImported(_ value: TaskConsolidationEventValue) throws -> TaskConsolidationPayload {
         guard value.payloadJSON.utf8.count <= maximumPayloadBytes else {
             throw TaskConsolidationHistoryError.capacityExceeded
         }
-        let payload = try JSONDecoder().decode(TaskConsolidationPayload.self, from: Data(value.payloadJSON.utf8))
+        let payload: TaskConsolidationPayload
+        payload = try JSONDecoder().decode(TaskConsolidationPayload.self, from: Data(value.payloadJSON.utf8))
         try validate(payload)
         let slots = value.candidateSlots
         guard slots.count == 5, slots.prefix(payload.candidateTaskIds.count).compactMap({ $0 })
@@ -123,6 +130,7 @@ nonisolated enum TaskConsolidationHistoryCodec {
         }
         try validatePreservation(payload)
         try validateChanges(payload.changes)
+        try validateApplyEffects(payload)
         for occurrence in payload.createdOccurrences + payload.retainedOccurrences + payload.removedOccurrences {
             let date = try TaskConsolidationRawFields.date(occurrence.createdAt)
             guard ["dependency", "association", "attribution", "duplicate"].contains(occurrence.kind),

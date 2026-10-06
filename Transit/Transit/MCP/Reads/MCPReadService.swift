@@ -201,13 +201,8 @@ final class MCPReadService: MCPReadCapturedPreparing {
         let category: ReadFailureCategory?
         let code: String
         let message: String
+        if let result = ConsolidationReadFailure.prepare(error, tool: tool) { return try result() }
         switch error {
-        case ConsolidationPlanningError.invalidInput:
-            category = nil; code = "INVALID_INPUT"; message = "Invalid complete consolidation preview input"
-        case is ConsolidationPlanningError, is TaskConsolidationHistoryError:
-                        category = nil
-            code = "CONSOLIDATION_UNAVAILABLE"
-            message = "Complete saved consolidation evidence is unavailable"
         case let query as MCPTaskQueryError:
             category = nil; code = query.code; message = query.message
         case MCPReadCaptureError.incoherentCapture:
@@ -227,7 +222,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
         let metadata = category.map { MCPReadResultMetadata.failure(ReadFailureMetadata(
             requestId: operation.id.uuidString, category: $0,
             read: ReadExecutionMetadata(policy: policy, refreshOutcome: .unavailable, budgetMs: 5_000))) }
-                let jsonFailure = MCPConsolidationToolDefinitions.previewTools.contains(tool)
+        let jsonFailure = MCPConsolidationToolDefinitions.previewTools.contains(tool)
             || tool == "query_tasks" || (code == "READ_FAILED"
             && (tool == "get_projects" || tool == "query_milestones"))
         let text = jsonFailure

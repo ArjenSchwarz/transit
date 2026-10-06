@@ -86,17 +86,63 @@ struct TaskConsolidationReviewFixTests {
         #expect(throws: (any Error).self) { try TaskConsolidationHistoryCodec.decode(malformed) }
     }
 
+    @Test(arguments: ["candidate-description", "candidate-metadata", "survivor-status", "survivor-date",
+                      "terminal-status", "date-only", "null-completion", "different-instants"])
+    func importedApplyCannotDeclareUnsupportedParticipantEffects(fault: String) throws {
+        let base = try event(fixture())
+        var document = try object(base.payloadJSON)
+        var changes = try #require(document["changes"] as? [[String: Any]])
+        var fields = try #require(changes[0]["fields"] as? [String: [String: Any]])
+        switch fault {
+        case "candidate-description": fields["description"] = ["before": NSNull(), "after": "forged"]
+        case "candidate-metadata": fields["metadataJSON"] = ["before": NSNull(), "after": "{\"x\":\"forged\"}"]
+        case "survivor-status": changes[0]["taskId"] = base.survivorTaskId.uuidString
+        case "survivor-date":
+            changes[0]["taskId"] = base.survivorTaskId.uuidString
+            fields.removeValue(forKey: "statusRawValue")
+        case "terminal-status": fields["statusRawValue"] = ["before": "done", "after": "abandoned"]
+        case "null-completion": fields["completionDate"] = ["before": "0", "after": NSNull()]
+        case "different-instants": fields["lastStatusChangeDate"] = ["before": "0", "after": "4000000000000000"]
+        default: fields.removeValue(forKey: "statusRawValue")
+        }
+        changes[0]["fields"] = fields
+        document["changes"] = changes
+        let malformed = try copied(base, document: document, kind: "apply", id: base.id)
+        #expect(throws: (any Error).self) { try TaskConsolidationHistoryCodec.decode(malformed) }
+    }
+
+    @Test func candidateClosureMayOmitUnchangedDates() throws {
+        let base = try event(fixture())
+        var document = try object(base.payloadJSON)
+        var changes = try #require(document["changes"] as? [[String: Any]])
+        var fields = try #require(changes[0]["fields"] as? [String: [String: Any]])
+        fields.removeValue(forKey: "lastStatusChangeDate")
+        fields.removeValue(forKey: "completionDate")
+        changes[0]["fields"] = fields
+        document["changes"] = changes
+        let valid = try copied(base, document: document, kind: "apply", id: base.id)
+        #expect(try TaskConsolidationHistoryCodec.decode(valid).changes[0].fields.count == 1)
+    }
+
     private func fixture(description: String? = nil, metadata: String? = nil,
                          changedDescription: String? = nil) throws -> TaskConsolidationPayload {
         let survivor = UUID(), candidate = UUID()
         let before = TaskConsolidationRawFields(description: description, metadataJSON: metadata,
             statusRawValue: "idea", lastStatusChangeDate: "0", completionDate: nil)
-        let after = TaskConsolidationRawFields(description: changedDescription ?? description, metadataJSON: metadata,
+        let after = TaskConsolidationRawFields(description: description, metadataJSON: metadata,
             statusRawValue: "abandoned", lastStatusChangeDate: "3ff0000000000000", completionDate: "3ff0000000000000")
+        var changes = [TaskConsolidationTaskChange(taskId: candidate, before: before, after: after)]
+        if let changedDescription {
+            let prior = TaskConsolidationRawFields(description: nil, metadataJSON: nil,
+                statusRawValue: "idea", lastStatusChangeDate: "0", completionDate: nil)
+            let edited = TaskConsolidationRawFields(description: changedDescription, metadataJSON: nil,
+                statusRawValue: "idea", lastStatusChangeDate: "0", completionDate: nil)
+            changes.insert(.init(taskId: survivor, before: prior, after: edited), at: 0)
+        }
         return TaskConsolidationPayload(operationId: UUID(), kind: "apply", survivorTaskId: survivor,
             candidateTaskIds: [candidate], reason: "x",
             preservationJSON: "{\"\(candidate.uuidString)\":{\"retainedExplanation\":\"retained\"}}",
-            changes: [.init(taskId: candidate, before: before, after: after)],
+            changes: changes,
             appliedRevisions: [survivor.uuidString: "r1:" + String(repeating: "a", count: 64),
                                candidate.uuidString: "r1:" + String(repeating: "b", count: 64)],
             createdOccurrences: [], retainedOccurrences: [], requestKey: "review-fix", reviewId: UUID(),

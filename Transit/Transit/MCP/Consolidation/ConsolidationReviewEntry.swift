@@ -73,7 +73,7 @@ extension MCPTaskQuerySnapshotStore {
         purgeExpired()
         let base = try domain.snapshot(for: publicationStoreID)
         guard let index = base.index as? Index, let entry = index.reviews[id.uuidString] else {
-            throw ConsolidationPlanningError.unavailableEvidence
+            throw ConsolidationPlanningError.reviewUnavailable
         }
         return try review(id: id, revision: entry.revision, scope: scope, kind: entry.kind)
     }
@@ -86,7 +86,7 @@ extension MCPTaskQuerySnapshotStore {
         guard let index = base.index as? Index, let value = index.reviews[key],
               value.id == id, value.kind == kind, value.originScopeId == scope, value.revision == revision,
               let root = index.descriptor.roots[key], root.deadline == value.expiresAt else {
-            throw ConsolidationPlanningError.unavailableEvidence
+            throw ConsolidationPlanningError.reviewUnavailable
         }
         // Review roots have no page cursor. Validate their exact immutable identity under
         // the existing domain gate without changing legacy page-pin requirements.
@@ -101,7 +101,7 @@ extension MCPTaskQuerySnapshotStore {
                 && retained.kind == kind && retained.expiresAt == root.deadline
         }
         guard valid else {
-            throw ConsolidationPlanningError.unavailableEvidence
+            throw ConsolidationPlanningError.reviewUnavailable
         }
         return value
     }
