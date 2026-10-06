@@ -29,6 +29,7 @@ struct TaskConsolidationHistorySection: View {
             } else { Text(state.problem ?? "Loading saved history…").foregroundStyle(.secondary) }
             if let navigationProblem { Text(navigationProblem).foregroundStyle(.secondary) }
         }
+        .disclosureGroupStyle(HistoryDisclosureStyle())
         .task(id: RefreshKey(id: taskID, version: version)) {
             let debounce = state.sourceID == taskID
             await state.refresh(source: taskID, wait: {
@@ -112,6 +113,25 @@ struct TaskConsolidationHistorySection: View {
         if ["lastStatusChangeDate", "completionDate"].contains(field),
            let date = try? TaskConsolidationRawFields.date(value) { return date.formatted() }
         return value
+    }
+    private struct HistoryDisclosureStyle: DisclosureGroupStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            VStack(alignment: .leading, spacing: 8) {
+                Button { configuration.isExpanded.toggle() } label: {
+                    HStack {
+                        configuration.label
+                        Spacer()
+                        Image(systemName: configuration.isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.caption).foregroundStyle(.secondary).accessibilityHidden(true)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.primary)
+                .accessibilityValue(configuration.isExpanded ? "Expanded" : "Collapsed")
+                if configuration.isExpanded { configuration.content.padding(.leading, 12) }
+            }
+        }
     }
     private struct RefreshKey: Hashable { let id: UUID; let version: UInt64 }
 }
