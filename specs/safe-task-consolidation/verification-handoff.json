@@ -361,7 +361,8 @@
     "Resolve iPad accounting control hit/navigation using preserved finalized evidence; no additional source change or test launched in this handoff.",
     "Full 27-declaration phone UI gate remains incomplete.",
     "Mac rendered UI gate requires separately authorized working automation environment; zero feature executions.",
-    "Tasks17\u201320 remain open."
+    "Tasks17\u201320 remain open.",
+    "At locally committed plain-style checkpoint: diagnose bounded unit discovery stall before focused unit execution and critical iPad proof; no automatic retry or settings change."
   ],
   "limits": [
     "No final-head full-unit-suite or complete phone UI pass is claimed.",
@@ -369,5 +370,90 @@
     "Closed-store proof uses CloudKit.none; no live CloudKit schema/sync proof.",
     "No JUnit XML or line coverage is fabricated; original xcresult/evidence paths are retained.",
     "No live Transit bookkeeping, deployment, merge or machine-wide setting changes."
-  ]
+  ],
+  "sourceOnlyContinuation": {
+    "baseCommit": "66f5bd5e8235b2832e343ef510d0cf98eea1c545",
+    "status": "locally_committed_builds_lint_pass_runtime_discovery_blocked",
+    "heavySlotOwner": "released_for_Asterism",
+    "queue": "/tmp/t2381-plain-consumer-batch/checkpoint.json",
+    "tasksRemainOpen": [
+      17,
+      18,
+      19,
+      20
+    ],
+    "macDiagnosis": "XCTest automation initialization times out before feature execution. Paths and bundle identities match. Disabled developer mode is a candidate prerequisite, not a proven sole cause. No settings changed.",
+    "liveCloudKitBlocking": false,
+    "priorEvidenceReattributed": false,
+    "sourceCommit": "6f36b782bb994d4a88753f929974a0a173a38e62"
+  },
+  "boundedBatch": {
+    "status": "blocked_native_discovery_zero_execution",
+    "baseHEAD": "66f5bd5e8235b2832e343ef510d0cf98eea1c545",
+    "sourceDigests": {
+      "Transit/Transit/Views/TaskDetail/TaskConsolidationHistorySection.swift": "d10fb15984b165672dddaeb9e522abadf3316b9f6df21cca9b2dd18e0f686006",
+      "Transit/TransitTests/TaskConsolidationEndToEndTests.swift": "84466cbb6c8b2f87ef96d2cbb708025db1781ca0a9cb85733f489b8672483596",
+      "Transit/TransitTests/TaskConsolidationNativeStateTests.swift": "802ae7f9379c2bf7911306b0940499828a012b154ec6e7f1da8477e34f3875ac",
+      "Transit/TransitUITests/TaskConsolidationNativeUITests.swift": "67c6f0e0cd5b0efa7119d0debad85274c8d95ecf33648b394f2f95309441602d"
+    },
+    "uncommittedSource": false,
+    "sourceFrozen": true,
+    "builds": {
+      "ios": {
+        "log": "/tmp/t2381-plain-consumer-batch/ios-build2.log",
+        "exit": 0
+      },
+      "macOS": {
+        "log": "/tmp/t2381-plain-consumer-batch/macos-build3.log",
+        "exit": 0
+      }
+    },
+    "strictLint": {
+      "log": "/tmp/t2381-plain-consumer-batch/lint2.log",
+      "exit": 0,
+      "files": 719,
+      "violations": 0
+    },
+    "focusedUnits": {
+      "expectedDeclarations": 9,
+      "expectedExpandedCases": 10,
+      "actualDiscoveredDeclarations": null,
+      "actualExecutedDeclarations": 0,
+      "actualExecutedCases": 0,
+      "status": "native_enumeration_deadline",
+      "deadlineSeconds": 120,
+      "evidenceRoot": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-plain-consumer-units.2jco98q6",
+      "runnerLog": "/tmp/t2381-plain-consumer-batch/units-runner.log",
+      "runnerExit": 1,
+      "inventoryProduced": false,
+      "hostLaunched": false,
+      "ownedRunnerPID": 50993,
+      "ownedXcodebuildPID": 51008,
+      "cause": "Unknown; enumeration log contains destination matches then deadline-owned BUILD INTERRUPTED; do not infer source defect or Mac UI permission cause.",
+      "diagnosticSample": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-plain-consumer-units.2jco98q6/traces/T1734Diagnostic-timeout-51008.sample.txt",
+      "enumerationCommand": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-plain-consumer-units.2jco98q6/enumeration-command.json",
+      "enumerationLog": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-plain-consumer-units.2jco98q6/enumeration.log",
+      "rawResult": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-plain-consumer-units.2jco98q6/enumeration.xcresult",
+      "cleanupTrace": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-plain-consumer-units.2jco98q6/traces/T1734Diagnostic-timeout-51008.sample.json"
+    },
+    "nativeUI": {
+      "criticalIPad": "not_started_units_gate_incomplete",
+      "remainingIPad": "not_started",
+      "phone": "not_started",
+      "simulatorsCreated": []
+    },
+    "priorProofs": "All prior source-qualified evidence retained in /tmp/t2381-final-platform-checkpoint.json; no new runtime pass claim.",
+    "failedAttempts": [
+      "/tmp/t2381-plain-consumer-batch/lint.log",
+      "/tmp/t2381-plain-consumer-batch/units-runner.log"
+    ],
+    "drain": {
+      "ownedBuildTestJobsRemaining": [],
+      "readOnlyProcessCheck": "Only inspection shell and rg matched exact owned runner/development-host filters",
+      "heavySlotReleased": true,
+      "indexReleased": true
+    },
+    "nextStep": "Parent coordinate bounded fresh native unit discovery diagnosis/retry before any iPadUI; no system permission changes or automatic retry performed.",
+    "sourceCommit": "6f36b782bb994d4a88753f929974a0a173a38e62"
+  }
 }
