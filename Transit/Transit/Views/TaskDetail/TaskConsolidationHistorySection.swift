@@ -46,17 +46,22 @@ struct TaskConsolidationHistorySection: View {
     }
     @ViewBuilder private func history(_ entry: ConsolidationHistoryProjection,
                                       observation: TaskConsolidationNativeObservation) -> some View {
-        DisclosureGroup(entry.apply.reason) {
+        DisclosureGroup {
             Text("Operation: \(entry.operationId.uuidString)").font(.caption).textSelection(.enabled)
             Text(entry.reversal == nil ? "Applied" : "Reversed")
+                .accessibilityIdentifier("consolidation.state.\(entry.operationId.uuidString)")
             Text(entry.undoAvailable ? "Whole reversal available" :
                 "Whole reversal unavailable: \(entry.undoUnavailableReason ?? "unavailable")")
                 .font(.caption).foregroundStyle(.secondary)
-            DisclosureGroup("Preservation accounting") {
+            DisclosureGroup {
                 Text(entry.apply.preservationJSON).font(.caption).textSelection(.enabled)
+                    .accessibilityIdentifier("consolidation.preservation.\(entry.operationId.uuidString)")
+            } label: {
+                Text("Preservation accounting")
+                    .accessibilityIdentifier("consolidation.accounting.\(entry.operationId.uuidString)")
             }
             ForEach([entry.apply.survivorTaskId] + entry.apply.candidateTaskIds, id: \.self) { id in
-                destination(id, label: "Original task", observation: observation)
+                destination(id, label: "Original task", operationID: entry.operationId, observation: observation)
             }
             ForEach(entry.apply.changes, id: \.taskId) { change in
                 DisclosureGroup("Saved changes: \(change.taskId.uuidString)") {
@@ -72,14 +77,17 @@ struct TaskConsolidationHistorySection: View {
             ForEach(entry.apply.mappings ?? [], id: \.sourceTaskId) { mapping in
                 Text("Recorded path: \(mapping.path.map(\.uuidString).joined(separator: " → "))").font(.caption)
                 if let target = mapping.canonicalTaskId {
-                    destination(target, label: "Recorded canonical task", observation: observation)
+                    destination(target, label: "Recorded canonical task", operationID: entry.operationId,
+                        observation: observation)
                 }
             }
             if let reversal = entry.reversalId { Text("Reversal: \(reversal.uuidString)").font(.caption) }
+        } label: {
+            Text(entry.apply.reason)
+                .accessibilityIdentifier("consolidation.reason.\(entry.operationId.uuidString)")
         }
-        .accessibilityIdentifier("consolidation.operation.\(entry.operationId.uuidString)")
     }
-    @ViewBuilder private func destination(_ id: UUID, label: String,
+    @ViewBuilder private func destination(_ id: UUID, label: String, operationID: UUID,
                                           observation: TaskConsolidationNativeObservation) -> some View {
         let matches = observation.tasks.filter { $0.id == id }
         if matches.count == 1, let task = matches.first {
@@ -95,6 +103,8 @@ struct TaskConsolidationHistorySection: View {
                 } catch { navigationProblem = "The saved task cannot be resolved." }
             }
             .buttonStyle(.borderless)
+            .accessibilityIdentifier("consolidation.destination.\(operationID.uuidString)."
+                + "\(label == "Original task" ? "original" : "canonical").\(id.uuidString)")
         } else { Text("Unresolved \(label.lowercased()): \(id.uuidString)").foregroundStyle(.secondary) }
     }
     private func display(_ value: String?, field: String) -> String {

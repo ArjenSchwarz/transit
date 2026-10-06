@@ -15,11 +15,13 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         let reason = app.buttons["Synthetic reviewed history"]
         reveal(reason, in: app)
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
+        XCTAssertEqual(reason.label, "Synthetic reviewed history")
         reason.tap()
         XCTAssertTrue(app.staticTexts["Applied"].waitForExistence(timeout: 5))
         let accounting = app.buttons["Preservation accounting"]
         reveal(accounting, in: app)
         XCTAssertTrue(accounting.waitForExistence(timeout: 5))
+        XCTAssertEqual(accounting.label, "Preservation accounting")
         accounting.tap()
         let retained = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@",
             "Original description remains available")).firstMatch
@@ -28,6 +30,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         let original = app.buttons["Original task: History Original · 00000000-0000-0000-0000-000000238102"]
         reveal(original, in: app)
         XCTAssertTrue(original.waitForExistence(timeout: 5))
+        XCTAssertEqual(original.label, "Original task: History Original · 00000000-0000-0000-0000-000000238102")
         original.tap()
         let history = app.staticTexts["consolidation.history.00000000-0000-0000-0000-000000238102"]
         reveal(history, in: app)
@@ -41,6 +44,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         let reason = app.buttons["Synthetic reviewed history"]
         reveal(reason, in: app)
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
+        XCTAssertEqual(reason.label, "Synthetic reviewed history")
         reason.tap()
         XCTAssertTrue(app.staticTexts["Reversed"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Whole reversal unavailable: already_reversed"].exists)
@@ -67,6 +71,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
             let reason = app.buttons["Synthetic reviewed history"]
             reveal(reason, in: app)
             XCTAssertTrue(reason.waitForExistence(timeout: 5))
+            XCTAssertEqual(reason.label, "Synthetic reviewed history")
             reason.tap()
             let unresolved = app.staticTexts["Unresolved original task: 00000000-0000-0000-0000-000000238102"]
             reveal(unresolved, in: app)
