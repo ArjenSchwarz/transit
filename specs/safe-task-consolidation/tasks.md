@@ -85,7 +85,7 @@ metadata:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [4.4](requirements.md#4.4), [5.4](requirements.md#5.4), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 9. Red: test retained previews and their exact publication contract <!-- id:eiyvabp -->
+- [-] 9. Red: test retained previews and their exact publication contract <!-- id:eiyvabp -->
   - Add TaskConsolidationPreviewTests.swift and ReviewRetentionTests.swift for complete original/accounting/change/graph readback, strict preview inputs with no write key and no domain/history/receipt/retry/timestamp/display-ID effects.
   - Specify ordinary-index reviewId/p1/local-scope/kind matching, five-minute expiry without consumption/extension, all index rebuild/purge/clear paths, eight-root/16-MiB full-representation accounting and response-gated publication.
   - Fault response encoding/publication, cancellation and original deadline before review visibility; expired/restarted/cleared reviews must not authorize fresh apply. Boundary-sized previews must either fit completely or return unavailable. Include undo preview from recorded operation evidence.

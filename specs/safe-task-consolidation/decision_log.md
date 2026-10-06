@@ -199,3 +199,72 @@ PersistentIdentifier values must be compared after decoding or encoded canonical
 Valid RED: 8 declarations / 8 executed cases, 5 guards passed and 3 positive behaviors failed against unavailable capture/global listener-stop stubs. Final GREEN: 14 declarations / 14 cases passed, zero skips. Existing coordinator/diagnostics/typed-link capture regressions: 19 declarations / 20 expanded cases passed, zero skips. Both final guarded runners confirmed owned process drain. Evidence: `/tmp/t2381-phase1-unit/Build/Products/T2381-capture-{red2,green5}-evidence.json` and `T2381-read-lifecycle-regression-evidence.json`; final build `/tmp/t2381-capture-green-build7.log`; final strict lint `/tmp/t2381-capture-lint-final.log` passed.
 
 Intermediate GREEN runs are not completion evidence: `capture-green` passed 7/8 with the physical-key mismatch, and `capture-green4` passed 13/14 because its test used unsupported full-query arguments. Compile-only fixture/signature/actor-isolation failures were corrected normally. Their preserved logs/results remain diagnostic artifacts. Closed migration was not repeated because schema, scalar types and codec were unchanged. iOS runtime/full platform suites remain the final integration checks, rather than a claim from this focused macOS pair.
+
+### 2026-10-06 — retained preview checkpoint during shared resource hold
+
+Task 9 is in progress. The signed isolated host compiled after correcting the
+retention fixture's established MCPResultContext labels. Guarded retention RED
+executed four declarations: zero passed, four expected failures; process drain
+was verified. Evidence: `/private/tmp/t2381-phase1-unit/Build/Products/T2381-preview-retention-red-evidence.json`.
+The additional complete preview input/readback stubs compile in
+`/tmp/t2381-preview-red-build.log` (exit 0), but their behavioral RED has **not**
+run. They remain stubs; no GREEN or task completion is claimed.
+
+Using the verified retention RED only, source now adds immutable ordinary review
+roots, exact scope/kind/p1 lookup, five-minute expiry without extension, shared
+eight-root capacity, complete prepared wrapper plus proposal/index backing
+charges, and carry/retirement across ordinary index rebuilds. Lookup validates
+review identity directly under the existing publication domain; legacy page
+pins continue requiring their original retained page. These source changes
+are **uncompiled and untested** at this checkpoint. No commit or lint was run.
+
+Asterism's phone/iPad acceptance pipeline owns the shared heavy slot. New
+builds/tests/lint are paused until that slot returns; all pending work remains
+in this checkout. Next: run the additional preview RED, then verify the retention
+source and implement the remaining preview adapters. Also cover the discovered
+MCPReadService metadata-freezing reconstruction that drops consolidationEvidence.
+
+### 2026-10-06 — verified retention and aggregate-capture correction checkpoint
+
+The parent authorized a bounded retention/capture checkpoint before returning the
+shared slot to Meddy validation. Task 9 remains in progress and task 10 pending;
+this commit does not claim complete preview adapters or advertised capabilities.
+
+Ordinary review roots now use the existing response-gated reservation, exact
+reviewId/p1/kind/local-scope lookup, five-minute expiry without consumption or
+extension, shared eight-root capacity and complete prepared response plus
+proposal/index backing charges. Every ordinary index replacement carries or
+retires review entries with descriptor roots; legacy page-pin requirements remain
+unchanged. These four behaviors were RED (4 declarations, 4 expected failures)
+and are included in final GREEN below.
+
+The confirmed aggregate capture finding is corrected: one charge tracks graph,
+events, originals and history projections; values are rejected before append and
+large encodes have checkpoints. The exact final wrapper remains the publication
+limit. A six-original regression proves each individual value fits but collection
+stops before fetching all six when the group exceeds its budget. Review then
+found a false lower-bound rejection for whitespace-heavy metadata: raw metadata
+appears once, while the public record stores decoded metadata. This was
+reproduced RED (2 declarations/cases, 1 pass and 1 expected failure), corrected by
+counting raw metadata once, and verified to preserve exact raw bytes at the
+measured complete-wrapper budget. The final read-only critic found both capture
+budget findings resolved, with no residual bounded blocker.
+
+Final focused GREEN: **20 declarations / 20 executed cases, all passed, zero
+skipped**, with guarded host preflight and owned processes drained. Suites:
+ReviewRetentionTests (4), ConsolidationCaptureAggregateTests (2),
+TaskConsolidationCaptureTests (10), TaskConsolidationReadLifecycleTests (4).
+Evidence: `/private/tmp/t2381-phase1-unit/Build/Products/T2381-retention-budget-green2-evidence.json`.
+Build: `/tmp/t2381-retention-budget-green2-build.log` (exit 0). Strict repository
+lint: `/tmp/t2381-retention-budget-lint-final.log` (exit 0; 686 files, zero
+violations). Closed migration was not repeated because the schema/codec was
+unchanged. No live Transit or production app mutation occurred.
+
+Larger preview work remains preserved and uncommitted. Its earlier expanded RED
+artifact executed 14 declarations (8 pass / 6 fail; 21 expanded cases) but included
+invalid no-effect assertions comparing opaque PID JSON byte order; it is
+diagnostic rather than complete preview proof. Pending tests now compare decoded
+PersistentIdentifier equality while retaining exact raw task/date/metadata,
+record/comment bytes, revisions and counters. Complete adapters, saved metadata
+evidence forwarding, additional publication/cancellation tests and fresh preview
+RED/GREEN remain required before tasks 9–10 can complete.

@@ -83,8 +83,10 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
         try budget.check()
         let graph = try suppliedGraph ?? TaskLinkService.graph(in: context, budget: budget)
         let selected = Set(selectedTaskIds)
+        let charge = ConsolidationCaptureCharge(budget: budget)
+        try charge.append(graph.retainedBytes)
         let events = try operationEvents(selected: selected, operationId: operationId,
-            context: context, budget: budget)
+            context: context, charge: charge)
         let operations = Set(events.map(\.operationId))
         var required = selected
         for id in operations {
@@ -97,15 +99,22 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
             required.formUnion(try TaskLinkGraph.duplicateResolution(for: id, in: graph, budget: budget).path)
         }
         let originals = try captureOriginals(request, required: required, context: context,
-            graph: graph, budget: budget)
-        let history = try operations.sorted { $0.uuidString < $1.uuidString }.map { id in
+            graph: graph, charge: charge)
+        var history: [ConsolidationHistoryProjection] = []
+        for id in operations.sorted(by: { $0.uuidString < $1.uuidString }) {
             try budget.check()
-            return try ConsolidationHistoryProjection.make(events: events.filter { $0.operationId == id },
+            let projection = try ConsolidationHistoryProjection.make(events: events.filter { $0.operationId == id },
                 operationId: id, originals: originals, graph: graph, budget: budget)
+            try budget.check()
+            try charge.append(JSONEncoder().encode(projection).count)
+            history.append(projection)
         }
+        try budget.check()
         let graphJSON = try graphRepresentation(graph)
+        try charge.append(graphJSON.count)
         let wrapper = ConsolidationCaptureRepresentation(selection: selectedTaskIds, originals: originals,
             events: events, history: history, graphJSON: graphJSON)
+        try budget.check()
         let bytes = try JSONEncoder().encode(wrapper).count + graph.retainedBytes
         guard bytes <= budget.maximumBytes else { throw TaskLinkGraphError.capacityExceeded }
         try budget.check()
@@ -115,7 +124,8 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
 
     private func captureOriginals(_ request: ConsolidationCaptureSelection, required: Set<UUID>,
                                   context: ModelContext, graph: TaskLinkGraphView,
-                                  budget: TaskLinkGraphBudget) throws -> [ConsolidationOriginal] {
+                                  charge: ConsolidationCaptureCharge) throws -> [ConsolidationOriginal] {
+        let budget = charge.budget
         var descriptor = FetchDescriptor<TransitTask>()
         descriptor.includePendingChanges = false
         let tasks = try context.fetch(descriptor).filter { required.contains($0.id) }
@@ -127,14 +137,17 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
                 }
                 return nil
             }
-            guard task.name.utf8.count + (task.taskDescription?.utf8.count ?? 0)
-                + (task.metadataJSON?.utf8.count ?? 0) <= budget.maximumBytes else {
-                throw TaskLinkGraphError.capacityExceeded
-            }
+            // Description appears twice; raw metadata appears once, while the record
+            // retains decoded metadata. Whitespace must not cause a false capacity failure.
+            let minimum = task.name.utf8.count + 2 * (task.taskDescription?.utf8.count ?? 0)
+                + (task.metadataJSON?.utf8.count ?? 0)
+            try charge.checkAdditional(minimum)
             let snapshot = try MCPRecordSnapshot.task(task, incidence: graph.occurrences.filter {
                     $0.source == task.id || $0.target == task.id
                 },
-                budget: budget, fetchComments: { try captureComments(context, id: $0, budget: budget) })
+                budget: budget, fetchComments: {
+                    try captureComments(context, id: $0, charge: charge, minimum: minimum)
+                })
             let matching = try graph.tasks.filter { value in
                 try value.id == task.id && JSONDecoder().decode(PersistentIdentifier.self, from: value.physicalKey)
                     == task.persistentModelID
@@ -142,10 +155,14 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
             guard matching.count == 1, let physicalKey = matching.first?.physicalKey else {
                 throw ConsolidationPlanningError.unavailableEvidence
             }
-            return try ConsolidationOriginal(id: task.id, physicalKey: physicalKey,
+            try budget.check()
+            let original = try ConsolidationOriginal(id: task.id, physicalKey: physicalKey,
                 projectId: project.id, projectPhysicalKey: canonicalProjectKey(project),
                 fields: TaskConsolidationRawFields.capture(task), revision: snapshot.revision,
                 recordJSON: JSONSerialization.data(withJSONObject: snapshot.record, options: [.sortedKeys]))
+            try budget.check()
+            try charge.append(JSONEncoder().encode(original).count)
+            return original
         }.sorted { $0.physicalKey.lexicographicallyPrecedes($1.physicalKey) }
         for id in request.selectedTaskIds where request.requireSelectedOriginals {
             guard originals.filter({ $0.id == id }).count == 1 else {
@@ -155,13 +172,15 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
         return originals
     }
 
-    private func captureComments(_ context: ModelContext, id: UUID, budget: TaskLinkGraphBudget) throws -> [Comment] {
+    private func captureComments(_ context: ModelContext, id: UUID, charge: ConsolidationCaptureCharge,
+                                 minimum: Int) throws -> [Comment] {
+        let budget = charge.budget
         let comments = try fetchComments(context, id)
         var bytes = 0
         for comment in comments {
             try budget.check()
             bytes += comment.content.utf8.count + comment.authorName.utf8.count + 128
-            guard bytes <= budget.maximumBytes else { throw TaskLinkGraphError.capacityExceeded }
+            try charge.checkAdditional(minimum + bytes)
         }
         return comments
     }
@@ -173,7 +192,8 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
     }
 
     private func operationEvents(selected: Set<UUID>, operationId: UUID?, context: ModelContext,
-                                 budget: TaskLinkGraphBudget) throws -> [TaskConsolidationEventValue] {
+                                 charge: ConsolidationCaptureCharge) throws -> [TaskConsolidationEventValue] {
+        let budget = charge.budget
         var operations: Set<UUID> = operationId.map { [$0] } ?? []
         let injected = try fetchEvents?(context)
         if let injected {
@@ -199,16 +219,18 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
                 for row in try context.fetch(descriptor) { operations.insert(row.operationId) }
             }
         }
+        try charge.checkAdditional(operations.count * 128)
         var values: [TaskConsolidationEventValue] = []
-        var charged = 0
         for id in operations.sorted(by: { $0.uuidString < $1.uuidString }) {
             try budget.check()
             let rows = try operationRows(id, injected: injected, context: context)
             for row in rows {
                 try budget.check()
-                charged += row.payloadJSON.utf8.count + row.originScopeId.utf8.count + 256
-                guard charged <= budget.maximumBytes else { throw TaskLinkGraphError.capacityExceeded }
-                values.append(try TaskConsolidationEventValue.capture(row))
+                try charge.checkAdditional(row.payloadJSON.utf8.count + row.originScopeId.utf8.count + 256)
+                let value = try TaskConsolidationEventValue.capture(row)
+                try budget.check()
+                try charge.append(JSONEncoder().encode(value).count)
+                values.append(value)
             }
         }
         return values
