@@ -193,7 +193,8 @@ final class MCPReadService: MCPReadCapturedPreparing {
             freshness: freshness, read: ReadExecutionMetadata(policy: policy, refreshOutcome: outcome, budgetMs: 5_000))
         return CapturedReadView(completeness: view.completeness, captureScope: view.captureScope, metadata: metadata,
             createdAt: view.createdAt, retentionDeadline: view.retentionDeadline, projects: view.projects,
-            tasks: view.tasks, milestones: view.milestones, comments: view.comments, taskLinkGraph: view.taskLinkGraph)
+            tasks: view.tasks, milestones: view.milestones, comments: view.comments, taskLinkGraph: view.taskLinkGraph,
+            consolidationEvidence: view.consolidationEvidence)
     }
 
     func jsonText(_ value: Any) throws -> String {

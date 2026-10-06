@@ -1,14 +1,14 @@
 import Foundation
 
 /// Physical identity is independent of the imported domain UUID.
-nonisolated struct TaskLinkTaskValue: Equatable, Sendable {
+nonisolated struct TaskLinkTaskValue: Codable, Equatable, Sendable {
     let physicalKey: Data
     let id: UUID
     let name: String
     let status: String
 }
 
-nonisolated struct TaskLinkOccurrenceValue: Equatable, Sendable {
+nonisolated struct TaskLinkOccurrenceValue: Codable, Equatable, Sendable {
     let physicalKey: Data
     let id: UUID
     let kind: String
@@ -17,7 +17,7 @@ nonisolated struct TaskLinkOccurrenceValue: Equatable, Sendable {
     let createdAt: Date
 }
 
-nonisolated struct TaskLinkRemovalValue: Equatable, Sendable {
+nonisolated struct TaskLinkRemovalValue: Codable, Equatable, Sendable {
     let physicalKey: Data
     let id: UUID
     let edgeId: UUID
@@ -47,7 +47,7 @@ nonisolated enum TaskLinkType: String, CaseIterable, Sendable {
     }
 }
 
-nonisolated struct TaskLinkRelation: Hashable, Sendable {
+nonisolated struct TaskLinkRelation: Codable, Hashable, Sendable {
     let kind: String
     let source: UUID
     let target: UUID

@@ -85,7 +85,7 @@ metadata:
   - Requirements: [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [4.4](requirements.md#4.4), [5.4](requirements.md#5.4), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 9. Red: test retained previews and their exact publication contract <!-- id:eiyvabp -->
+- [x] 9. Red: test retained previews and their exact publication contract <!-- id:eiyvabp -->
   - Add TaskConsolidationPreviewTests.swift and ReviewRetentionTests.swift for complete original/accounting/change/graph readback, strict preview inputs with no write key and no domain/history/receipt/retry/timestamp/display-ID effects.
   - Specify ordinary-index reviewId/p1/local-scope/kind matching, five-minute expiry without consumption/extension, all index rebuild/purge/clear paths, eight-root/16-MiB full-representation accounting and response-gated publication.
   - Fault response encoding/publication, cancellation and original deadline before review visibility; expired/restarted/cleared reviews must not authorize fresh apply. Boundary-sized previews must either fit completely or return unavailable. Include undo preview from recorded operation evidence.
@@ -94,7 +94,7 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [4.1](requirements.md#4.1), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [7.1](requirements.md#7.1), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [ ] 10. Green: implement bounded previews on the ordinary retained-read path <!-- id:eiyvabq -->
+- [x] 10. Green: implement bounded previews on the ordinary retained-read path <!-- id:eiyvabq -->
   - Add MCP/Consolidation preview adapters and immutable review entries to MCPTaskQuerySnapshotStore.Index; preserve entries in every rebuild and retire them with descriptor roots. Reuse shared publication reservation/terminal selection and canonical p1.
   - Implement consolidation/undo preview projection with server-held exact input/evidence/deltas; no editable client plan or durable preview rows. Return review references only after complete response preparation/publication.
   - Wire preview adapters into injected handler/read-service test paths and route complete saved evidence through the planners; keep production advertised wiring for final integration. Pass retained capacity/deadline/expiry and no-write tests.

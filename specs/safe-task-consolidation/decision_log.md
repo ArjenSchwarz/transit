@@ -268,3 +268,25 @@ PersistentIdentifier equality while retaining exact raw task/date/metadata,
 record/comment bytes, revisions and counters. Complete adapters, saved metadata
 evidence forwarding, additional publication/cancellation tests and fresh preview
 RED/GREEN remain required before tasks 9–10 can complete.
+
+
+### 2026-10-06 — Tasks 9–10 retained previews verified
+
+The isolated signed development host uses synthetic fixtures and CloudKit.none. The shared slot was returned after Meddy drained; existing direct implementation/build/test/commit authorization remains in force. Production advertisement remains reserved for task 20. The injected handler alone exposes the private preview adapters in these tests.
+
+Apply and undo previews now resolve selected groups or operation participants inside the existing saved capture boundary, carry supplementary history through metadata freezing, and retain immutable typed input, full originals, complete graph/event closure and planned deltas. Complete modern wrapper owners and proposal bytes share ordinary retention accounting; response selection alone publishes the review root. Scope/kind/p1, fixed five-minute root expiry, clear/rebuild, capacity, original deadline, cancellation and actual outer encoding faults have no domain effects. Canonical p1 preserves candidate order and exact saved raw fields/dates/payloads while normalizing opaque physical-identity JSON and unordered saved enumeration.
+
+Two parent critic findings were resolved with behavioral RED/GREEN: every original now includes saved direct/canonical link assessments, including a multi-hop duplicate chain; projection, apply/reversal planners and proposal preparation receive the original request cutoff/checkpoint. Parent critic recheck accepted both fixes without a residual bounded blocker.
+
+Broader existing capture regressions exposed a borrowed-comment fault being reset by supplementary saved refetch and unnecessary full-body recopying when no relevant history exists. Comment evidence is frozen before refetch. Supplementary originals are captured only for affected operation participants/canonical closure unless the request explicitly requires selected originals; selected scope/full ordinary records/comments remain complete. A saved empty-event-store proof avoids per-participant queries in the empty case. The unchanged 2,375-task provider benchmark succeeds without extending any budget: physical capture 3.771954917 seconds, frozen record encoding 0.007823042 seconds, 1,580,090 bytes.
+
+Evidence (all guarded commands require exact nonzero discovery and reject skips; owned host/build processes drained):
+- Canonical RED: 19 declarations, 18 passed / 1 expected failure, `/private/tmp/t2381-phase1-unit/Build/Products/T2381-preview-canonical-red-evidence.json`.
+- Canonical GREEN: 19 declarations / 26 expanded cases passed, `/private/tmp/t2381-phase1-unit/Build/Products/T2381-preview-canonical-green-evidence.json`.
+- Critic RED: 21 declarations, 19 passed / 2 expected failures, `/private/tmp/t2381-phase1-unit/Build/Products/T2381-preview-critic-red-evidence.json`.
+- Critic GREEN: 21 declarations / 28 expanded cases passed, `/private/tmp/t2381-phase1-unit/Build/Products/T2381-preview-critic-green-evidence.json`.
+- Empty-history RED: 3 declarations, 2 passed / 1 expected failure, `/private/tmp/t2381-phase1-unit/Build/Products/T2381-capture-empty-red-evidence.json`.
+- Final GREEN: **45 declarations / 52 expanded cases passed, zero failures/skips**, `/private/tmp/t2381-phase1-unit/Build/Products/T2381-preview-final-green2-evidence.json`; result bundle `T2381-preview-final-green2.xcresult` in that directory. Build `/tmp/t2381-preview-final-green2-build.log` exited 0.
+- Required lint `/tmp/t2381-preview-pair-lint-verified.log` exited 0: 688 files, zero violations.
+
+Diagnostic runs are not passing evidence. The first integrated GREEN attempt ran 18 declarations / 25 cases with one failing assertion that treated a query-task selector outcome as its task. That assertion is withdrawn; the corrected test requires `outcome.task` and passes in the final inventory. An earlier encoder fault test did not require its callback to execute; final proof requires exactly one callback with one unpublished pending review. The first broader final run executed 44 declarations / 51 cases with two failures; both are resolved in the final 45-declaration run above. Tasks 9–10 are complete; retained-review apply/undo execution and advertised production wiring remain subsequent tasks. No schema change, migration rerun, live mutation or production launch occurred.

@@ -88,7 +88,7 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
         let events = try operationEvents(selected: selected, operationId: operationId,
             context: context, charge: charge)
         let operations = Set(events.map(\.operationId))
-        var required = selected
+        var required: Set<UUID> = request.requireSelectedOriginals ? selected : []
         for id in operations {
             try budget.check()
             let history = try TaskConsolidationHistoryCodec.history(events.filter { $0.operationId == id },
@@ -196,6 +196,15 @@ nonisolated struct ConsolidationSavedEvidence: Sendable {
         let budget = charge.budget
         var operations: Set<UUID> = operationId.map { [$0] } ?? []
         let injected = try fetchEvents?(context)
+        // A saved empty-store proof avoids one participant query per ordinary full-read body.
+        if fetchEvents == nil {
+            var descriptor = FetchDescriptor<TaskConsolidationEvent>()
+            descriptor.includePendingChanges = false
+            descriptor.fetchLimit = 1
+            try budget.check()
+            if try context.fetchCount(descriptor) == 0 { return [] }
+            try budget.check()
+        }
         if let injected {
             for row in injected {
                 try budget.check()

@@ -36,6 +36,7 @@ final class MCPToolHandler {
     /// Task14 fault seam declaration; task15 binds only the post-effect provider encoding stage.
     let maintenanceReassignmentEncoder: (@Sendable (ReassignmentResult) throws -> String)?
 
+    let consolidationPreviewAdapter: MCPConsolidationPreviewAdapter?
     let readService: MCPReadService?
     let taskQuerySnapshots: MCPTaskQuerySnapshotStore
     nonisolated let reusableSnapshots: Result<MCPReusableSnapshotStore, Error>
@@ -81,6 +82,7 @@ final class MCPToolHandler {
         taskQuerySnapshots: MCPTaskQuerySnapshotStore? = nil,
         writeCoordinator: MCPWriteCoordinator? = nil,
         readService: MCPReadService? = nil,
+        consolidationPreviewAdapter: MCPConsolidationPreviewAdapter? = nil,
         readCoordinator: MCPReadCoordinator? = nil,
         reusableSnapshots: MCPReusableSnapshotStore? = nil,
         maintenanceReassignmentEncoder: (@Sendable (ReassignmentResult) throws -> String)? = nil,
@@ -122,6 +124,7 @@ final class MCPToolHandler {
         self.batchResultEncoder = batchResultEncoder
         self.maintenanceReassignmentEncoder = maintenanceReassignmentEncoder
         self.readService = readService
+        self.consolidationPreviewAdapter = consolidationPreviewAdapter
     }
 
     /// One immutable request snapshot; no MainActor hop or defaults access at admission.

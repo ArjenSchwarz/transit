@@ -20,6 +20,11 @@ extension MCPToolHandler {
                                             origin: .plainText, evidence: .established))
         }
         let arguments = request.arguments.mapValues(\.value)
+        if ["preview_task_consolidation", "preview_task_consolidation_undo"].contains(request.tool) {
+            guard let consolidationPreviewAdapter else { throw ConsolidationPlanningError.unavailableEvidence }
+            return try await consolidationPreviewAdapter.prepare(tool: request.tool,
+                arguments: arguments, operation: operation)
+        }
         if request.tool == "query_project_summaries" {
             return try await preparePortfolioRead(arguments: arguments, service: readService, operation: operation)
         }

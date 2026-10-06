@@ -6,6 +6,23 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct ConsolidationCaptureAggregateTests {
+    @Test func emptySupplementaryHistoryDoesNotRecopySelectedTaskBodies() throws {
+        let fixture = try TaskConsolidationCommitFixture()
+        var commentFetches = 0
+        let capture = TaskConsolidationSavedCapture(container: fixture.base.owner.container,
+            fence: .actorOnlyTestFixture, hooks: .init(fetchComments: { _, _ in
+                commentFetches += 1
+                return []
+            }))
+        let ids = [fixture.base.source.id, fixture.base.target.id, fixture.extra.id]
+        let evidence = try capture.copy(.init(selectedTaskIds: ids, requireSelectedOriginals: false),
+            in: fixture.base.owner.context)
+        #expect(evidence.selectedTaskIds == ids)
+        #expect(evidence.originals.isEmpty && evidence.events.isEmpty && evidence.history.isEmpty)
+        #expect(evidence.graph.tasks.count == 3 && commentFetches == 0)
+        #expect(!fixture.base.owner.context.hasChanges && fixture.observation.commitSaves == 0)
+    }
+
     @Test func whitespaceHeavyRawMetadataFitsItsMeasuredCompleteWrapperBudget() throws {
         let fixture = try TestModelContainer()
         let project = Project(name: "isolated", description: "", gitRepo: nil, colorHex: "blue")

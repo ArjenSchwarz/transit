@@ -1,7 +1,7 @@
 import Foundation
 
 /// Full fields belong only to the transient reviewed input, never saved history.
-nonisolated struct TaskConsolidationReviewedTaskChange: Equatable, Sendable {
+nonisolated struct TaskConsolidationReviewedTaskChange: Codable, Equatable, Sendable {
     let taskId: UUID
     let before: TaskConsolidationRawFields
     let after: TaskConsolidationRawFields
