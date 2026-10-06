@@ -55,6 +55,7 @@ struct TaskDetailView: View {
             TaskLinksSection(taskID: task.id, onSelect: selectLinkedTask)
             TaskConsolidationHistorySection(taskID: task.id, onSelect: selectLinkedTask)
         }
+        .buttonStyle(.borderless)
     }
 
     private func selectLinkedTask(_ destination: TransitTask) {
