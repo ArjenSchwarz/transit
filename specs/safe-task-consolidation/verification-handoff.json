@@ -27,7 +27,7 @@
       19,
       20
     ],
-    "reason": "Required macOS rendered UI gate has zero executions; full 27-declaration iPhone UI target remains incomplete; iPad accounting tap incorrectly navigates to survivor before retained explanation/original navigation assertions."
+    "reason": "Final rendered acceptance remains incomplete: the current pre-repair iPad critical case collapses outer history after accounting tap; new sibling-row source repair is unverified. Full phone UI and macOS UI gates remain open."
   },
   "builds": {
     "ios": {
@@ -455,5 +455,96 @@
     },
     "nextStep": "Parent coordinate bounded fresh native unit discovery diagnosis/retry before any iPadUI; no system permission changes or automatic retry performed.",
     "sourceCommit": "6f36b782bb994d4a88753f929974a0a173a38e62"
+  },
+  "standardRunnerCheckpoint20261007": {
+    "status": "focused_native_passed_critical_ipad_failed_all_owned_jobs_drained",
+    "sourceCommit": "6f36b782bb994d4a88753f929974a0a173a38e62",
+    "units": [
+      {
+        "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-direct-native.lhbo2rz_",
+        "result": "unknown",
+        "passedDeclarations": 0,
+        "hostPIDs": [
+          69412
+        ],
+        "hostPIDsAbsent": true,
+        "timeout": false,
+        "accepted": false
+      },
+      {
+        "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-direct-native.a18v7s7e",
+        "result": "Passed",
+        "passedDeclarations": 1,
+        "hostPIDs": [
+          69632
+        ],
+        "hostPIDsAbsent": true,
+        "timeout": false,
+        "accepted": true
+      },
+      {
+        "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-direct-native._vn0ak6q",
+        "result": "Passed",
+        "passedDeclarations": 9,
+        "hostPIDs": [
+          69727
+        ],
+        "hostPIDsAbsent": true,
+        "timeout": false,
+        "accepted": true
+      }
+    ],
+    "focusedDeclarations": 9,
+    "focusedExpandedCases": 10,
+    "focusedSkipped": 0,
+    "controllerPrefixOmittedByUserApproval": true,
+    "toolExecutionPolicyChanged": false,
+    "heavySlot": "released_to_parent_Asterism_T2404",
+    "ipadRoot": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-plain-ipad-critical.aqb0oapv",
+    "broaderGatesComplete": false,
+    "heavySlotReleased": true,
+    "ownedJobsRemaining": [],
+    "ipad": {
+      "result": "Failed",
+      "declarations": 1,
+      "cases": 1,
+      "failed": 1,
+      "skips": 0,
+      "exit": 65,
+      "finalized": true,
+      "timeout": false,
+      "failure": "Accounting tap collapses outer history; line26 accounting Expanded value cannot resolve control",
+      "ownedSimulator": "382241FB-FC78-4E5B-8871-222FEA420AAA",
+      "shutdownExit": 0,
+      "deleteExit": 0,
+      "drained": true,
+      "remainingScenariosRun": false
+    },
+    "nextRepair": {
+      "status": "source_reviewed_candidate_not_implemented",
+      "files": [
+        "Transit/Transit/Views/TaskDetail/TaskDetailView.swift",
+        "Transit/Transit/Views/TaskDetail/TaskConsolidationHistorySection.swift"
+      ],
+      "proposal": "iOS sibling Form history rows and explicit subsection expansion state instead of nested DisclosureGroups inside one relationships row; retain labels/values/payload/navigation/assertions; preserve macOS layout",
+      "reviewer": "implementation_stream",
+      "causalQualification": "Source containment and actual parent collapse support this candidate; private SwiftUI event-routing cause unproven"
+    },
+    "sourceRepoChanges": false,
+    "MacSecuritySettingsChanged": false
+  },
+  "iOSFormRowRepair": {
+    "status": "source_only_uncompiled_unlinted_unexecuted",
+    "sourceDigests": {
+      "Transit/Transit/Views/TaskDetail/TaskDetailView.swift": "6f310a2c3ff05ce3bd0dfe46a6404e77c4c4bb623b8f92e2939c79f5d675d465",
+      "Transit/Transit/Views/TaskDetail/TaskConsolidationHistorySection.swift": "22db199565c72240ed57518f00ef5c1e63bd54ca23d7ac075e36cc401d6a1e55"
+    },
+    "testSourceChanged": false,
+    "sourceReview": "two internal source reviewers; lazy-heading lifecycle finding resolved with stable TaskDetailView ownership",
+    "runtimeEvidenceAppliesTo": "6f36b782bb994d4a88753f929974a0a173a38e62 before this repair",
+    "nextStep": "Exact-source signed builds and strict lint; normal Xcode focused native gate; critical iPad exact1/1, green-only remaining3+existinglinkcontrols; phone then remaining full-platform acceptance in allocated slots",
+    "heavySlot": "T2404",
+    "ownedJobsStarted": false,
+    "acceptanceComplete": false
   }
 }

@@ -483,3 +483,5 @@ T-2381 preserves caller-selected originals while applying a reviewed same-projec
 - [tasks.md](safe-task-consolidation/tasks.md)
 - [decision_log.md](safe-task-consolidation/decision_log.md)
 - [implementation.md](safe-task-consolidation/implementation.md)
+
+Latest 2026-10-07 checkpoint: normal Xcode CLI passes focused nine declarations/ten cases at `6f36b782`; the critical iPad case still fails after accounting tap. A source-reviewed sibling Form row repair with stable task-detail refresh ownership is prepared but uncompiled/unlinted/unexecuted while T2404 verifies. Tasks 17–20 remain open; see the implementation checkpoint and verification handoff for source-qualified evidence.
