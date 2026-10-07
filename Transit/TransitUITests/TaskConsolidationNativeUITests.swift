@@ -151,7 +151,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         #if os(macOS)
         if element.elementType == .disclosureTriangle {
             element.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
-                .withOffset(CGVector(dx: 8, dy: 0)).click()
+                .withOffset(CGVector(dx: 28, dy: 0)).click()
         } else {
             element.click()
         }
