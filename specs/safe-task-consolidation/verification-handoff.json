@@ -27,7 +27,7 @@
       19,
       20
     ],
-    "reason": "Final rendered acceptance remains incomplete: the current pre-repair iPad critical case collapses outer history after accounting tap; new sibling-row source repair is unverified. Full phone UI and macOS UI gates remain open."
+    "reason": "Current e8634d7 phone coverage passes all 27 declarations/30 expanded cases across six scoped runs; affected iPad checks pass. macOS rendered acceptance still has zero feature executions because automation initialization times out. Tasks 17\u201320 remain open through their approved dependencies."
   },
   "builds": {
     "ios": {
@@ -186,7 +186,19 @@
     "settingsChanged": false,
     "evidenceRoot": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-native-macos.se9gbpbx",
     "result": "/tmp/t2381-phase1-unit/Build/Products/T2381NativeMacOS.xcresult",
-    "hostDrained": true
+    "hostDrained": true,
+    "latestReadOnlyDiagnosis": {
+      "status": "environment_blocked",
+      "executedFeatureCases": 0,
+      "developerMode": "disabled",
+      "settingsChanged": false,
+      "blindRetry": false,
+      "requestToTimeoutSeconds": 60,
+      "specificDenialObserved": false,
+      "soleCauseEstablished": false,
+      "boundedLog": "/private/tmp/t2381-phone-viewport-verification/macos-automation-bounded.log",
+      "backendLog": "/private/tmp/t2381-phone-viewport-verification/macos-automation-backend.log"
+    }
   },
   "fullPhoneUI": {
     "status": "incomplete",
@@ -233,7 +245,18 @@
     ],
     "rawResult": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-final-ios.bu23owa1/TransitUITests.xcresult",
     "hostDrained": true,
-    "simulatorDeleted": true
+    "simulatorDeleted": true,
+    "latestCurrentCoverage": {
+      "status": "all27_phone_declarations_passed_across_scoped_runs",
+      "sourceCommit": "e8634d75522106a359affdaeb84d4115a43338c2",
+      "declarations": 27,
+      "expandedCases": 30,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "/tmp/t2381-phone-viewport-verification/phone-scoped-coverage.json",
+      "qualification": "Coverage across six disjoint scoped runs; not a single full-suite invocation",
+      "historicalIncompleteAttemptPreserved": true
+    }
   },
   "closedStoreMigration": [
     {
@@ -358,11 +381,10 @@
   "activeBuildOrTestJobs": [],
   "allOwnedSimulatorsDeleted": true,
   "remainingWork": [
-    "Resolve iPad accounting control hit/navigation using preserved finalized evidence; no additional source change or test launched in this handoff.",
-    "Full 27-declaration phone UI gate remains incomplete.",
-    "Mac rendered UI gate requires separately authorized working automation environment; zero feature executions.",
-    "Tasks17\u201320 remain open.",
-    "At locally committed plain-style checkpoint: diagnose bounded unit discovery stall before focused unit execution and critical iPad proof; no automatic retry or settings change."
+    "Resolve macOS automation initialization in a separately authorized working environment; bounded logs establish request-to-timeout but no sole cause. No blind unchanged retry or global settings change authorized.",
+    "Run exact macOS rendered acceptance only after an authorized changed environment and heavy-slot allocation.",
+    "Finish tasks 17\u201320 dependency and final repository acceptance; keep older full-unit evidence source-qualified.",
+    "Keep draft PR 255 and local source/evidence unpushed while broader acceptance remains open."
   ],
   "limits": [
     "No final-head full-unit-suite or complete phone UI pass is claimed.",
@@ -927,7 +949,7 @@
     }
   },
   "phoneViewportTraversalRepair20261007": {
-    "status": "source_reviewed_ready_not_executed",
+    "status": "runtime_verified_phone_and_affected_ipad",
     "file": "Transit/TransitUITests/TaskConsolidationNativeUITests.swift",
     "sha256": "40c1512cc57e8d5fd5bf0170b690effc3fde4feb62c4a3db0a47dbf70bcfed91",
     "productSourceUnchangedFrom": "7f9a134e252228e3ff130a82e26c4fe2aaef24f5",
@@ -943,8 +965,282 @@
       "launch_chain_peer accepted correction; actual-target gate strengthened"
     ],
     "nextSlotPlan": "/tmp/t2381-phone-viewport-verification/plan.json",
-    "heavySlot": "Halo; no T2381 heavy execution",
-    "runtimeVerified": false,
-    "acceptanceComplete": false
+    "heavySlot": "released; no active owned jobs",
+    "runtimeVerified": true,
+    "acceptanceComplete": false,
+    "initialStatus": "source_reviewed_ready_not_executed",
+    "latestVerification": "/tmp/t2381-phone-viewport-verification/final-checkpoint.json"
+  },
+  "phoneViewportTraversalVerification20261007": {
+    "status": "phone_and_affected_ipad_passed_mac_rendered_blocked",
+    "sourceCommit": "e8634d75522106a359affdaeb84d4115a43338c2",
+    "sourceDigests": {
+      "Transit/Transit/Views/TaskDetail/TaskDetailView.swift": "f9bc6741cfd605119cd40d364783347fd5ec51a1c6e99c1c918dafcd4e7b924a",
+      "Transit/Transit/Views/TaskDetail/TaskConsolidationHistorySection.swift": "6a83b3fba5d72bd67e52e4e1748a32b4cde403368b070459ce491bf35fd60175",
+      "Transit/TransitUITests/TaskConsolidationNativeUITests.swift": "40c1512cc57e8d5fd5bf0170b690effc3fde4feb62c4a3db0a47dbf70bcfed91"
+    },
+    "build": {
+      "sourceCommit": "e8634d75522106a359affdaeb84d4115a43338c2",
+      "sourceDigests": {
+        "Transit/Transit/Views/TaskDetail/TaskDetailView.swift": "f9bc6741cfd605119cd40d364783347fd5ec51a1c6e99c1c918dafcd4e7b924a",
+        "Transit/Transit/Views/TaskDetail/TaskConsolidationHistorySection.swift": "6a83b3fba5d72bd67e52e4e1748a32b4cde403368b070459ce491bf35fd60175",
+        "Transit/TransitUITests/TaskConsolidationNativeUITests.swift": "40c1512cc57e8d5fd5bf0170b690effc3fde4feb62c4a3db0a47dbf70bcfed91"
+      },
+      "builds": {
+        "ios": {
+          "exit": 0,
+          "log": "/private/tmp/t2381-phone-viewport-verification/ios-build.log",
+          "derivedData": "/tmp/t2381-phone-viewport-derived",
+          "signed": true
+        }
+      },
+      "strictLint": {
+        "exit": 0,
+        "violations": 0,
+        "log": "/private/tmp/t2381-phone-viewport-verification/lint2.log"
+      },
+      "status": "builds_and_strict_lint_passed",
+      "ownedBuildJobDrained": true
+    },
+    "phoneCoverage": {
+      "status": "all27_phone_declarations_passed_across_scoped_runs",
+      "sourceCommit": "e8634d75522106a359affdaeb84d4115a43338c2",
+      "sourceDigests": {
+        "Transit/Transit/Views/TaskDetail/TaskDetailView.swift": "f9bc6741cfd605119cd40d364783347fd5ec51a1c6e99c1c918dafcd4e7b924a",
+        "Transit/Transit/Views/TaskDetail/TaskConsolidationHistorySection.swift": "6a83b3fba5d72bd67e52e4e1748a32b4cde403368b070459ce491bf35fd60175",
+        "Transit/TransitUITests/TaskConsolidationNativeUITests.swift": "40c1512cc57e8d5fd5bf0170b690effc3fde4feb62c4a3db0a47dbf70bcfed91"
+      },
+      "buildRoot": "/tmp/t2381-phone-viewport-derived",
+      "declarations": 27,
+      "expandedCases": 30,
+      "skipped": 0,
+      "failed": 0,
+      "configuration": {
+        "configurationId": "1",
+        "configurationName": "Test Scheme Action"
+      },
+      "runs": [
+        {
+          "name": "targeted",
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.2q9w10lk",
+          "declarations": 2,
+          "expandedCases": 2,
+          "cleanup": {
+            "ownedSimulator": "4F98CCA4-BFE9-4D5B-82BA-8163DE31B569",
+            "shutdownExit": 0,
+            "remaining": {},
+            "drained": true,
+            "cleanupErrors": []
+          }
+        },
+        {
+          "name": "remaining",
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.cfnm5owc",
+          "declarations": 2,
+          "expandedCases": 2,
+          "cleanup": {
+            "ownedSimulator": "FD191B75-5913-4256-9D27-436470E8CD01",
+            "shutdownExit": 0,
+            "remaining": {},
+            "drained": true,
+            "cleanupErrors": []
+          }
+        },
+        {
+          "name": "acceptance_1",
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.sjutcjg6",
+          "declarations": 6,
+          "expandedCases": 6,
+          "cleanup": {
+            "ownedSimulator": "15FBEDDF-08ED-46A1-BFE1-880C56A61E4A",
+            "shutdownExit": 0,
+            "remaining": {},
+            "drained": true,
+            "cleanupErrors": []
+          }
+        },
+        {
+          "name": "acceptance_2",
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.g5m74vqy",
+          "declarations": 8,
+          "expandedCases": 8,
+          "cleanup": {
+            "ownedSimulator": "39A25CA9-23AC-467D-B901-6729681F74FC",
+            "shutdownExit": 0,
+            "remaining": {},
+            "drained": true,
+            "cleanupErrors": []
+          }
+        },
+        {
+          "name": "acceptance_3",
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.tueiz6bg",
+          "declarations": 8,
+          "expandedCases": 8,
+          "cleanup": {
+            "ownedSimulator": "99B60D4D-0147-4F3C-9D90-C432FBE7099F",
+            "shutdownExit": 0,
+            "remaining": {},
+            "drained": true,
+            "cleanupErrors": []
+          }
+        },
+        {
+          "name": "acceptance_4",
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.zuegpo7x",
+          "declarations": 1,
+          "expandedCases": 4,
+          "cleanup": {
+            "ownedSimulator": "A0275FFD-8FAB-4B96-B36A-C2A7BA05BE69",
+            "shutdownExit": 0,
+            "remaining": {},
+            "drained": true,
+            "cleanupErrors": []
+          }
+        }
+      ],
+      "qualification": "Coverage across six disjoint scoped runs; not a single full-suite invocation",
+      "macOSRenderedAcceptanceComplete": false,
+      "tasks17Through20": "open"
+    },
+    "affectedIPad": {
+      "sourceCommit": "e8634d75522106a359affdaeb84d4115a43338c2",
+      "passed": true,
+      "drained": true,
+      "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-viewport-ipad.qomi0ct1"
+    },
+    "launchReconciliation": {
+      "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.zuegpo7x",
+      "sourceCommit": "e8634d75522106a359affdaeb84d4115a43338c2",
+      "verification": {
+        "nativeIdentifier": "TransitUITestsLaunchTests/testLaunch",
+        "canonicalCompiledIdentifier": "TransitUITests/TransitUITestsLaunchTests/testLaunch()",
+        "declarationsPassed": 1,
+        "expandedCasesPassed": 4,
+        "configurationNames": [
+          "Dark Appearance, Landscape Right",
+          "Dark Appearance, Portrait",
+          "Light Appearance, Landscape Right",
+          "Light Appearance, Portrait"
+        ]
+      },
+      "originalAdapterRejectedIdentifier": true,
+      "nativeExecutionRepeated": false
+    },
+    "ownedDrain": {
+      "sourceCommit": "e8634d75522106a359affdaeb84d4115a43338c2",
+      "ownedJobsRemaining": {},
+      "ownedSimulatorsDeleted": [
+        "4F98CCA4-BFE9-4D5B-82BA-8163DE31B569",
+        "FD191B75-5913-4256-9D27-436470E8CD01",
+        "56E624B1-4945-4F3B-9319-8A2FF2E13E23",
+        "15FBEDDF-08ED-46A1-BFE1-880C56A61E4A",
+        "39A25CA9-23AC-467D-B901-6729681F74FC",
+        "99B60D4D-0147-4F3C-9D90-C432FBE7099F",
+        "A0275FFD-8FAB-4B96-B36A-C2A7BA05BE69",
+        "DF74D789-69C2-4D02-BCCF-98D4BDD3A034"
+      ],
+      "heavySlotReleased": true,
+      "phoneExecutedDeclarations": 27,
+      "phoneExpandedCases": 30,
+      "launchResultReconciliationPending": false,
+      "disk": "Filesystem      Size    Used   Avail Capacity iused ifree %iused  Mounted on\n/dev/disk3s5   926Gi   869Gi   4.2Gi   100%    9.5M   44M   18%   /System/Volumes/Data\n",
+      "launchResultReconciliation": "/private/tmp/t2381-phone-viewport-verification/launch-result-reconciliation.json"
+    },
+    "artifactCheck": {
+      "freeGiB": 12.28,
+      "derivedDataExists": true,
+      "iosProductsExist": true,
+      "savedEvidence": [
+        {
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.2q9w10lk",
+          "xcresultExists": true,
+          "summaryExists": true,
+          "nativeLogExists": true
+        },
+        {
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.cfnm5owc",
+          "xcresultExists": true,
+          "summaryExists": true,
+          "nativeLogExists": true
+        },
+        {
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.sjutcjg6",
+          "xcresultExists": true,
+          "summaryExists": true,
+          "nativeLogExists": true
+        },
+        {
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.g5m74vqy",
+          "xcresultExists": true,
+          "summaryExists": true,
+          "nativeLogExists": true
+        },
+        {
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.tueiz6bg",
+          "xcresultExists": true,
+          "summaryExists": true,
+          "nativeLogExists": true
+        },
+        {
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.zuegpo7x",
+          "xcresultExists": true,
+          "summaryExists": true,
+          "nativeLogExists": true
+        },
+        {
+          "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-viewport-ipad.qomi0ct1",
+          "xcresultExists": true,
+          "summaryExists": true,
+          "nativeLogExists": true
+        }
+      ],
+      "buildLogExists": true,
+      "lintLogExists": true,
+      "newHeavyExecution": false
+    },
+    "failedPreExecutionAttempt": {
+      "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-phone-viewport.sx4i3zz_",
+      "reason": "testmanagerd socket reported but missing; invalid discovery rejected, no feature case execution",
+      "drained": true,
+      "simulatorDeleted": true
+    },
+    "ownedResourceRecovery": {
+      "paths": [
+        "/tmp/t2381-phone-viewport-derived/Build/Intermediates.noindex",
+        "/tmp/t2381-ios-row-repair-derived/Build/Intermediates.noindex",
+        "/tmp/t2381-macos-row-repair-derived/Build/Intermediates.noindex"
+      ],
+      "reason": "no-space failure during preparation; low disk margin",
+      "productsLogsResultsPreserved": true,
+      "postCleanupAvailableGiB": 7.2,
+      "causality": "Resource recovery supports one fresh bounded retry; socket failure cause not proven"
+    },
+    "priorProductProof": {
+      "sourceCommit": "7f9a134e252228e3ff130a82e26c4fe2aaef24f5",
+      "evidence": "/tmp/t2381-ios-row-repair-verification/final-checkpoint.json",
+      "focusedNativeDeclarations": 9,
+      "focusedNativeExpandedCases": 10,
+      "iPadHistoryDeclarations": 4,
+      "iPadNavigationControls": 2,
+      "qualification": "Earlier exact-source proof retained; product files unchanged, only two UI test traversals changed at current source"
+    },
+    "macOSRendered": {
+      "status": "environment_blocked",
+      "executedFeatureCases": 0,
+      "developerMode": "disabled",
+      "settingsChanged": false,
+      "blindRetry": false,
+      "requestToTimeoutSeconds": 60,
+      "specificDenialObserved": false,
+      "soleCauseEstablished": false,
+      "boundedLog": "/private/tmp/t2381-phone-viewport-verification/macos-automation-bounded.log",
+      "backendLog": "/private/tmp/t2381-phone-viewport-verification/macos-automation-backend.log"
+    },
+    "tasks17Through20": "open",
+    "acceptanceComplete": false,
+    "pushed": false,
+    "draftPR": "https://github.com/ArjenSchwarz/transit/pull/255",
+    "publicPRHead": "66f5bd5"
   }
 }
