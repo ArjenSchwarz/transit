@@ -925,5 +925,26 @@
       "publicHead": "66f5bd5",
       "newPush": false
     }
+  },
+  "phoneViewportTraversalRepair20261007": {
+    "status": "source_reviewed_ready_not_executed",
+    "file": "Transit/TransitUITests/TaskConsolidationNativeUITests.swift",
+    "sha256": "40c1512cc57e8d5fd5bf0170b690effc3fde4feb62c4a3db0a47dbf70bcfed91",
+    "productSourceUnchangedFrom": "7f9a134e252228e3ff130a82e26c4fe2aaef24f5",
+    "evidenceDirectory": "/tmp/t2381-ios-row-repair-verification/phone-attachments",
+    "observedReasonValues": "Expanded",
+    "reversedReasonY": 851.7,
+    "appliedReasonY": 868,
+    "screenHeight": 874,
+    "stateRowsAbsentFromFailureHierarchy": true,
+    "change": "Existing bounded reveal before unchanged exact Applied/Reversed/already_reversed assertions",
+    "sourceReviews": [
+      "implementation_stream accepted",
+      "launch_chain_peer accepted correction; actual-target gate strengthened"
+    ],
+    "nextSlotPlan": "/tmp/t2381-phone-viewport-verification/plan.json",
+    "heavySlot": "Halo; no T2381 heavy execution",
+    "runtimeVerified": false,
+    "acceptanceComplete": false
   }
 }

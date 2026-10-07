@@ -17,7 +17,9 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
         XCTAssertEqual(reason.label, "Synthetic reviewed history")
         reason.tap()
-        XCTAssertTrue(app.staticTexts["Applied"].waitForExistence(timeout: 5))
+        let applied = app.staticTexts["Applied"]
+        reveal(applied, in: app)
+        XCTAssertTrue(applied.waitForExistence(timeout: 5))
         let accounting = app.buttons["Preservation accounting"]
         reveal(accounting, in: app)
         XCTAssertTrue(accounting.waitForExistence(timeout: 5))
@@ -61,8 +63,12 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
         XCTAssertEqual(reason.label, "Synthetic reviewed history")
         reason.tap()
-        XCTAssertTrue(app.staticTexts["Reversed"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Whole reversal unavailable: already_reversed"].exists)
+        let reversed = app.staticTexts["Reversed"]
+        reveal(reversed, in: app)
+        XCTAssertTrue(reversed.waitForExistence(timeout: 5))
+        let unavailable = app.staticTexts["Whole reversal unavailable: already_reversed"]
+        reveal(unavailable, in: app)
+        XCTAssertTrue(unavailable.exists)
         XCTAssertFalse(app.buttons["Undo consolidation"].exists)
     }
 
