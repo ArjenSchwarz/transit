@@ -38,7 +38,8 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         XCTAssertTrue(recordedSurvivor.waitForExistence(timeout: 5))
         XCTAssertEqual(recordedSurvivor.label,
             "Recorded canonical task: History Survivor · 00000000-0000-0000-0000-000000238101")
-        let original = historyContainer(in: app).buttons["Original task: History Original · 00000000-0000-0000-0000-000000238102"]
+        let original = historyContainer(in: app)
+            .buttons["Original task: History Original · 00000000-0000-0000-0000-000000238102"]
         reveal(original, in: app, towardEarlierContent: true)
         XCTAssertTrue(original.waitForExistence(timeout: 5))
         XCTAssertEqual(original.label, "Original task: History Original · 00000000-0000-0000-0000-000000238102")
@@ -73,7 +74,8 @@ final class TaskConsolidationNativeUITests: XCTestCase {
             ("consolidationHistoryOverLimit", "Complete saved consolidation history exceeds the 16 MiB read limit.")
         ] {
             let app = launchHistory(scenario)
-            let problem = historyContainer(in: app).staticTexts.containing(NSPredicate(format: "label CONTAINS %@", message)).firstMatch
+            let problem = historyContainer(in: app).staticTexts
+                .containing(NSPredicate(format: "label CONTAINS %@", message)).firstMatch
             reveal(problem, in: app)
             XCTAssertTrue(problem.waitForExistence(timeout: 5))
             XCTAssertFalse(disclosure("Synthetic reviewed history", in: app).exists)
@@ -89,7 +91,8 @@ final class TaskConsolidationNativeUITests: XCTestCase {
             XCTAssertTrue(reason.waitForExistence(timeout: 5))
             XCTAssertEqual(reason.label, "Synthetic reviewed history")
             activate(reason)
-            let unresolved = historyContainer(in: app).staticTexts["Unresolved original task: 00000000-0000-0000-0000-000000238102"]
+            let unresolved = historyContainer(in: app)
+                .staticTexts["Unresolved original task: 00000000-0000-0000-0000-000000238102"]
             reveal(unresolved, in: app)
             XCTAssertTrue(unresolved.waitForExistence(timeout: 5))
             XCTAssertFalse(app.buttons["Original task: History Original · 00000000-0000-0000-0000-000000238102"].exists)
