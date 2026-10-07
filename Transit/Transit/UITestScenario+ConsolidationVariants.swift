@@ -15,7 +15,7 @@ extension UITestScenario {
         case .consolidationHistoryOverLimit:
             candidate.taskDescription = String(repeating: "x", count: 17 * 1_024 * 1_024)
         case .consolidationHistoryUnavailable:
-            context.insert(TaskConsolidationEvent(id: UUID(), operationId: payload.operationId,
+            context.insert(try TaskConsolidationEvent(id: UUID(), operationId: payload.operationId,
                 kindRawValue: "undo", createdAt: Date(timeIntervalSinceReferenceDate: 124),
                 originScopeId: "ui-test-fixture", survivorTaskId: payload.survivorTaskId,
                 candidateTaskIds: payload.candidateTaskIds, payloadJSON: "malformed imported history"))
@@ -30,7 +30,7 @@ extension UITestScenario {
                 createdOccurrences: [], retainedOccurrences: payload.retainedOccurrences,
                 removedOccurrences: payload.createdOccurrences, requestKey: "ui-reversal", reviewId: UUID(),
                 reviewRevision: payload.reviewRevision, mappings: payload.mappings)
-            context.insert(TaskConsolidationEvent(id: UUID(), operationId: payload.operationId,
+            context.insert(try TaskConsolidationEvent(id: UUID(), operationId: payload.operationId,
                 kindRawValue: "undo", createdAt: Date(timeIntervalSinceReferenceDate: 124),
                 originScopeId: "ui-test-fixture", survivorTaskId: payload.survivorTaskId,
                 candidateTaskIds: payload.candidateTaskIds,

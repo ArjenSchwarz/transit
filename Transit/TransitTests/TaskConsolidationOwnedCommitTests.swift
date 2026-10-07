@@ -186,7 +186,8 @@ struct TaskConsolidationOwnedCommitTests {
     let review: TaskConsolidationOwnedReview
     let observation = TaskConsolidationCommitObservation()
 
-    init(fault: String = "none") throws {
+    init(fault: String = "none",
+         preparation: @escaping @MainActor (MCPWriteCommand) async throws -> Void = { _ in }) throws {
         let base = try TaskLinkCommitDiskFixture()
         self.base = base
         extra = try Self.seedExtra(base, fault: fault)
@@ -208,7 +209,8 @@ struct TaskConsolidationOwnedCommitTests {
                 throw TaskLinkCommitDiskFixture.Failure.injected
             }
             return try MCPWriteOutcome.encode(envelope)
-        }, preparation: { _ in
+        }, preparation: { command in
+            try await preparation(command)
             if fault.hasPrefix("dirty-") {
                 base.source.name = "UI draft"
                 if fault == "dirty-error" { throw TaskLinkCommitDiskFixture.Failure.injected }

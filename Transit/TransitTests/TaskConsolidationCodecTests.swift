@@ -4,6 +4,20 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct TaskConsolidationCodecTests {
+    @Test func eventConstructionPreservesFiveCandidatesAndRejectsOverflow() throws {
+        let candidates = (0..<5).map { _ in UUID() }
+        let event = try TaskConsolidationEvent(id: UUID(), operationId: UUID(), kindRawValue: "apply",
+            createdAt: Date(), originScopeId: "constructor-test", survivorTaskId: UUID(),
+            candidateTaskIds: candidates, payloadJSON: "{}")
+        #expect([event.candidate1, event.candidate2, event.candidate3, event.candidate4, event.candidate5]
+            .compactMap { $0 } == candidates)
+        #expect(throws: TaskConsolidationHistoryError.malformed) {
+            try TaskConsolidationEvent(id: UUID(), operationId: UUID(), kindRawValue: "apply",
+                createdAt: Date(), originScopeId: "constructor-test", survivorTaskId: UUID(),
+                candidateTaskIds: candidates + [UUID()], payloadJSON: "{}")
+        }
+    }
+
     @Test func exactRawFieldsAndDateBitsRoundTrip() throws {
         let value = try fixture()
         let event = try event(value)

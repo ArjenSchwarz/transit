@@ -11,7 +11,9 @@ struct TaskConsolidationOwnedReview {
     let expectedRevisions: [UUID: String]
     let links: TaskLinkPlan
 }
-/// No save or receipt lifecycle here: the existing protected coordinator owns both.
+/// The protected coordinator owns the save, receipt and rollback lifecycle.
+/// Apply/staging can throw after pending mutations; callers must roll back that owned commit context.
+/// The production adapter invokes this only inside the coordinator's synchronous commit phase.
 @MainActor final class TaskConsolidationService {
     struct Configuration {
         let originScopeId: String
@@ -106,7 +108,7 @@ struct TaskConsolidationOwnedReview {
         history.mappings = try TaskConsolidationMapping.capture(
             [history.survivorTaskId] + history.candidateTaskIds, graph: savedGraph, budget: budget)
         let json = try TaskConsolidationHistoryCodec.encode(history)
-        let event = TaskConsolidationEvent(id: operationId, operationId: operationId, kindRawValue: "apply",
+        let event = try TaskConsolidationEvent(id: operationId, operationId: operationId, kindRawValue: "apply",
             createdAt: instant, originScopeId: originScopeId, survivorTaskId: history.survivorTaskId,
             candidateTaskIds: history.candidateTaskIds, payloadJSON: json)
         context.insert(event)

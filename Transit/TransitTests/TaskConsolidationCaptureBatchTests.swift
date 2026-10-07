@@ -19,7 +19,7 @@ struct TaskConsolidationCaptureBatchTests {
             context.insert(task)
             ids.append(task.id)
         }
-        context.insert(TaskConsolidationEvent(id: UUID(), operationId: UUID(), kindRawValue: "apply",
+        context.insert(try TaskConsolidationEvent(id: UUID(), operationId: UUID(), kindRawValue: "apply",
             createdAt: Date(), originScopeId: "unrelated", survivorTaskId: UUID(), candidateTaskIds: [],
             payloadJSON: "unrelated malformed payload"))
         try context.save()

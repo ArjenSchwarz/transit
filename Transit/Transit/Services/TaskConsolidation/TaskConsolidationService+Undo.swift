@@ -34,6 +34,7 @@ extension TaskConsolidationService {
             let task = tasks[change.taskId]!
             task.taskDescription = change.after.description
             task.metadataJSON = change.after.metadataJSON
+            // Restore the recorded raw value and exact dates, rather than creating a new status transition.
             task.statusRawValue = change.after.statusRawValue
             task.lastStatusChangeDate = try TaskConsolidationRawFields.date(change.after.lastStatusChangeDate)
             task.completionDate = try change.after.completionDate.map(TaskConsolidationRawFields.date)
@@ -75,7 +76,7 @@ extension TaskConsolidationService {
         }
         let revisions = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.entityID.uuidString, $0.revision) })
         let payload = undoPayload(review.payload, changes: review.changes, revisions: revisions, command: command)
-        let event = TaskConsolidationEvent(id: reversalId, operationId: payload.operationId, kindRawValue: "undo",
+        let event = try TaskConsolidationEvent(id: reversalId, operationId: payload.operationId, kindRawValue: "undo",
             createdAt: instant, originScopeId: originScopeId, survivorTaskId: payload.survivorTaskId,
             candidateTaskIds: payload.candidateTaskIds, payloadJSON: try TaskConsolidationHistoryCodec.encode(payload))
         context.insert(event)

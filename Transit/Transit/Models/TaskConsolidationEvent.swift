@@ -18,7 +18,9 @@ final class TaskConsolidationEvent {
     private(set) var payloadJSON: String = ""
 
     init(id: UUID, operationId: UUID, kindRawValue: String, createdAt: Date,
-         originScopeId: String, survivorTaskId: UUID, candidateTaskIds: [UUID], payloadJSON: String) {
+         originScopeId: String, survivorTaskId: UUID, candidateTaskIds: [UUID], payloadJSON: String) throws {
+        // Imported malformed rows remain diagnosable; construction must never drop participant IDs.
+        guard candidateTaskIds.count <= 5 else { throw TaskConsolidationHistoryError.malformed }
         self.id = id
         self.operationId = operationId
         self.kindRawValue = kindRawValue

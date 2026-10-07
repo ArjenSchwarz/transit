@@ -54,7 +54,7 @@ struct TaskConsolidationCaptureTests {
         _ = await fixture.execute()
         let context = ModelContext(fixture.base.owner.container)
         let valid = try #require(context.fetch(FetchDescriptor<TaskConsolidationEvent>()).first)
-        let malformed = TaskConsolidationEvent(id: UUID(), operationId: valid.operationId, kindRawValue: "apply",
+        let malformed = try TaskConsolidationEvent(id: UUID(), operationId: valid.operationId, kindRawValue: "apply",
             createdAt: valid.createdAt, originScopeId: valid.originScopeId,
             survivorTaskId: valid.survivorTaskId, candidateTaskIds: [fixture.base.source.id], payloadJSON: "{}")
         context.insert(malformed)
@@ -95,14 +95,14 @@ struct TaskConsolidationCaptureTests {
         _ = await fixture.execute()
         let context = ModelContext(fixture.base.owner.container)
         let valid = try #require(context.fetch(FetchDescriptor<TaskConsolidationEvent>()).first)
-        context.insert(TaskConsolidationEvent(id: UUID(), operationId: UUID(), kindRawValue: "apply",
+        context.insert(try TaskConsolidationEvent(id: UUID(), operationId: UUID(), kindRawValue: "apply",
             createdAt: valid.createdAt, originScopeId: valid.originScopeId, survivorTaskId: UUID(),
             candidateTaskIds: [UUID()], payloadJSON: "unrelated malformed payload"))
         try context.save()
         let capture = TaskConsolidationSavedCapture(container: fixture.base.owner.container,
             fence: .actorOnlyTestFixture)
         #expect(try capture.capture(selectedTaskIds: [fixture.base.source.id]).events.count == 1)
-        context.insert(TaskConsolidationEvent(id: valid.id, operationId: valid.operationId,
+        context.insert(try TaskConsolidationEvent(id: valid.id, operationId: valid.operationId,
             kindRawValue: valid.kindRawValue, createdAt: valid.createdAt, originScopeId: valid.originScopeId,
             survivorTaskId: valid.survivorTaskId,
             candidateTaskIds: [fixture.base.source.id, fixture.extra.id], payloadJSON: valid.payloadJSON))

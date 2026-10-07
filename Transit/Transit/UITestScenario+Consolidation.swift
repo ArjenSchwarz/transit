@@ -45,7 +45,7 @@ extension UITestScenario {
                 reviewRevision: "p1:" + String(repeating: "a", count: 64),
                 mappings: try TaskConsolidationMapping.capture([survivor.id, candidate.id], graph: graph,
                     budget: TaskLinkGraphBudget()))
-            context.insert(TaskConsolidationEvent(id: operation, operationId: operation, kindRawValue: "apply",
+            context.insert(try TaskConsolidationEvent(id: operation, operationId: operation, kindRawValue: "apply",
                 createdAt: instant, originScopeId: "ui-test-fixture", survivorTaskId: survivor.id,
                 candidateTaskIds: [candidate.id], payloadJSON: try TaskConsolidationHistoryCodec.encode(payload)))
             try context.save()

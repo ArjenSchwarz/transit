@@ -42,7 +42,7 @@ struct TaskConsolidationImportedHistoryTests {
         document["changes"] = changes
         let json = try #require(String(data: JSONSerialization.data(withJSONObject: document, options: [.sortedKeys]),
             encoding: .utf8))
-        let replacement = TaskConsolidationEvent(id: event.id, operationId: event.operationId,
+        let replacement = try TaskConsolidationEvent(id: event.id, operationId: event.operationId,
             kindRawValue: event.kindRawValue, createdAt: event.createdAt, originScopeId: event.originScopeId,
             survivorTaskId: event.survivorTaskId,
             candidateTaskIds: [event.candidate1, event.candidate2, event.candidate3, event.candidate4,

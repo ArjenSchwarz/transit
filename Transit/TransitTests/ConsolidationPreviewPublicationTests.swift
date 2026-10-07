@@ -127,9 +127,10 @@ struct ConsolidationPreviewPublicationTests {
     let coordinator: MCPReadCoordinator
     let scope: String
 
-    init(maxBytes: Int = 16 * 1_024 * 1_024) throws {
+    init(maxBytes: Int = 16 * 1_024 * 1_024,
+         preparation: @escaping @MainActor (MCPWriteCommand) async throws -> Void = { _ in }) throws {
         store = MCPTaskQuerySnapshotStore(maxBytes: maxBytes)
-        base = try TaskConsolidationCommitFixture()
+        base = try TaskConsolidationCommitFixture(preparation: preparation)
         scope = try #require(base.coordinator.localScopeId)
         service = MCPReadService(source: MCPReadCaptureBuilder(container: base.base.owner.container,
             fence: .actorOnlyTestFixture), monitor: MCPImportEvidenceMonitor(syncActive: false,

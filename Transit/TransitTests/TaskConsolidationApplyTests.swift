@@ -104,8 +104,9 @@ struct TaskConsolidationApplyTests {
     private var lastApply: [String: Any] = [:]
     var survivor: UUID { preview.base.base.target.id }
     var candidates: [UUID] { [preview.base.base.source.id, preview.base.extra.id] }
-    init(scopeFault: Bool = false) throws {
-        preview = try ConsolidationPreviewFixture()
+    init(scopeFault: Bool = false,
+         preparation: @escaping @MainActor (MCPWriteCommand) async throws -> Void = { _ in }) throws {
+        preview = try ConsolidationPreviewFixture(preparation: preparation)
         source = ConsolidationRetainedReviewSource(container: preview.base.base.owner.container,
             store: preview.store, originScopeId: preview.scope + (scopeFault ? "-different" : ""))
         let resolver = source
@@ -115,9 +116,9 @@ struct TaskConsolidationApplyTests {
                 reviewSource: { id, context in try resolver.resolve(id, in: context) },
                 clock: { Date(timeIntervalSinceReferenceDate: 123) }))
     }
-    func previewApply() async throws -> [String: Any] {
+    func previewApply(description: String = "merged detail") async throws -> [String: Any] {
         var arguments = preview.arguments
-        arguments["survivorEdits"] = ["description": "merged detail", "metadata": ["kept": "detail"]]
+        arguments["survivorEdits"] = ["description": description, "metadata": ["kept": "detail"]]
         let result = try preview.payload(await preview.execute(tool: "preview_task_consolidation",
             arguments: arguments))
         lastApply = ["reviewId": try #require(result["reviewId"] as? String),
