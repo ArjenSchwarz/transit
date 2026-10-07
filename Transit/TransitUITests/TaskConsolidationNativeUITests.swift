@@ -20,10 +20,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         XCTAssertEqual(accounting.label, "Preservation accounting")
         activate(accounting)
         assertExpanded(accounting)
-        let retained = historyContainer(in: app).staticTexts.containing(NSPredicate(format: "label CONTAINS %@",
-            "Original description remains available")).firstMatch
-        reveal(retained, in: app)
-        XCTAssertTrue(retained.waitForExistence(timeout: 5))
+        assertRetainedExplanation(in: app)
         let changes = disclosure("Saved changes: 00000000-0000-0000-0000-000000238102", in: app)
         reveal(changes, in: app)
         XCTAssertTrue(changes.waitForExistence(timeout: 5))
@@ -31,7 +28,11 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         let status = historyContainer(in: app).staticTexts["statusRawValue: idea → abandoned"]
         reveal(status, in: app)
         XCTAssertTrue(status.waitForExistence(timeout: 5))
+        #if os(macOS)
+        XCTAssertEqual(status.value as? String, "statusRawValue: idea → abandoned")
+        #else
         XCTAssertEqual(status.label, "statusRawValue: idea → abandoned")
+        #endif
         let recordedSurvivor = historyContainer(in: app).buttons[
             "Recorded canonical task: History Survivor · 00000000-0000-0000-0000-000000238101"].firstMatch
         reveal(recordedSurvivor, in: app)
@@ -118,6 +119,21 @@ final class TaskConsolidationNativeUITests: XCTestCase {
                       "The exact saved survivor detail window must open before history interaction")
         #endif
         return app
+    }
+
+    @MainActor private func assertRetainedExplanation(in app: XCUIApplication) {
+        let explanation = "Original description remains available"
+        #if os(macOS)
+        let retained = historyContainer(in: app)
+            .staticTexts["consolidation.preservation.00000000-0000-0000-0000-000000238100"]
+        #else
+        let retained = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", explanation)).firstMatch
+        #endif
+        reveal(retained, in: app)
+        XCTAssertTrue(retained.waitForExistence(timeout: 5))
+        #if os(macOS)
+        XCTAssertTrue((retained.value as? String)?.contains(explanation) == true)
+        #endif
     }
 
     @MainActor private func historyContainer(
