@@ -534,17 +534,396 @@
     "MacSecuritySettingsChanged": false
   },
   "iOSFormRowRepair": {
-    "status": "source_only_uncompiled_unlinted_unexecuted",
+    "status": "ipad_verified_phone_regression_open_broader_acceptance_open",
     "sourceDigests": {
-      "Transit/Transit/Views/TaskDetail/TaskDetailView.swift": "6f310a2c3ff05ce3bd0dfe46a6404e77c4c4bb623b8f92e2939c79f5d675d465",
-      "Transit/Transit/Views/TaskDetail/TaskConsolidationHistorySection.swift": "22db199565c72240ed57518f00ef5c1e63bd54ca23d7ac075e36cc401d6a1e55"
+      "Transit/Transit/Views/TaskDetail/TaskDetailView.swift": "f9bc6741cfd605119cd40d364783347fd5ec51a1c6e99c1c918dafcd4e7b924a",
+      "Transit/Transit/Views/TaskDetail/TaskConsolidationHistorySection.swift": "6a83b3fba5d72bd67e52e4e1748a32b4cde403368b070459ce491bf35fd60175"
     },
     "testSourceChanged": false,
     "sourceReview": "two internal source reviewers; lazy-heading lifecycle finding resolved with stable TaskDetailView ownership",
-    "runtimeEvidenceAppliesTo": "6f36b782bb994d4a88753f929974a0a173a38e62 before this repair",
-    "nextStep": "Exact-source signed builds and strict lint; normal Xcode focused native gate; critical iPad exact1/1, green-only remaining3+existinglinkcontrols; phone then remaining full-platform acceptance in allocated slots",
-    "heavySlot": "T2404",
-    "ownedJobsStarted": false,
-    "acceptanceComplete": false
+    "runtimeEvidenceAppliesTo": "7f9a134e252228e3ff130a82e26c4fe2aaef24f5",
+    "nextStep": "Resolve phone Applied/Reversed visibility regression without weakening assertions, then verify in allocated slot; remaining macOS rendered/full phone acceptance; tasks17\u201320 remain open",
+    "heavySlot": "released_to_parent",
+    "ownedJobsStarted": true,
+    "acceptanceComplete": false,
+    "historicalSourceOnlySnapshot": {
+      "sourceDigests": {
+        "Transit/Transit/Views/TaskDetail/TaskDetailView.swift": "6f310a2c3ff05ce3bd0dfe46a6404e77c4c4bb623b8f92e2939c79f5d675d465",
+        "Transit/Transit/Views/TaskDetail/TaskConsolidationHistorySection.swift": "22db199565c72240ed57518f00ef5c1e63bd54ca23d7ac075e36cc401d6a1e55"
+      },
+      "status": "source_only_uncompiled_unlinted_unexecuted"
+    },
+    "sourceCommit": "7f9a134e252228e3ff130a82e26c4fe2aaef24f5"
+  },
+  "iOSFormRowRepairVerification20261007": {
+    "sourceCommit": "7f9a134e252228e3ff130a82e26c4fe2aaef24f5",
+    "sourceDigests": {
+      "Transit/Transit/Views/TaskDetail/TaskDetailView.swift": "f9bc6741cfd605119cd40d364783347fd5ec51a1c6e99c1c918dafcd4e7b924a",
+      "Transit/Transit/Views/TaskDetail/TaskConsolidationHistorySection.swift": "6a83b3fba5d72bd67e52e4e1748a32b4cde403368b070459ce491bf35fd60175"
+    },
+    "builds": {
+      "ios": {
+        "exit": 0,
+        "log": "/tmp/t2381-ios-row-repair-verification/ios-build.log",
+        "derivedData": "/tmp/t2381-ios-row-repair-derived",
+        "signed": true
+      },
+      "macOS": {
+        "exit": 0,
+        "log": "/tmp/t2381-ios-row-repair-verification/macos-build.log",
+        "derivedData": "/tmp/t2381-macos-row-repair-derived",
+        "signed": true
+      }
+    },
+    "strictLint": {
+      "exit": 0,
+      "violations": 0,
+      "log": "/tmp/t2381-ios-row-repair-verification/lint2.log"
+    },
+    "status": "ipad_and_focused_native_pass_phone_regression_open",
+    "ownedBuildJobDrained": true,
+    "recordedAt": "2026-10-07T02:44:10.418637+00:00",
+    "focusedNative": {
+      "method": "post_run_finalized_execution",
+      "nativeIdentifiers": [
+        "TaskConsolidationEndToEndTests/sixTicketWorkflowPreservesExactOriginalsAndRetainedChains()",
+        "TaskConsolidationEndToEndTests/terminalNoEditGroupRetainsDatesAndRecordedBytesAfterLostResponse()",
+        "TaskConsolidationEndToEndTests/composedRejectionsPreserveSavedOriginalsAndPendingDrafts(fault:)",
+        "TaskConsolidationEndToEndTests/composedOverLimitPreviewPublishesNoReviewOrDomainEffects()",
+        "TaskConsolidationNativeStateTests/unavailableCannotPublishAnotherTask()",
+        "TaskConsolidationNativeStateTests/switchingIdentityInvalidatesBeforeWaiting()",
+        "TaskConsolidationNativeStateTests/sameSourceBurstInvalidatesBeforeWaitAndOnlyLatestProviderRuns()",
+        "TaskConsolidationNativeStateTests/cancelledCaptureCannotPublishAfterPhysicalCompletion()",
+        "TaskConsolidationNativeStateTests/earlierGenerationCannotOverwriteNewSource()"
+      ],
+      "declarationsPassed": 9,
+      "expandedCasesPassed": 10,
+      "skipped": 0,
+      "failed": 0,
+      "preRunInventoryProduced": false,
+      "hostDrained": true,
+      "result": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-direct-native.yjhisxpy/focused/execution.xcresult",
+      "selection": [
+        "TaskConsolidationNativeStateTests/unavailableCannotPublishAnotherTask()",
+        "TaskConsolidationNativeStateTests/switchingIdentityInvalidatesBeforeWaiting()",
+        "TaskConsolidationNativeStateTests/sameSourceBurstInvalidatesBeforeWaitAndOnlyLatestProviderRuns()",
+        "TaskConsolidationNativeStateTests/cancelledCaptureCannotPublishAfterPhysicalCompletion()",
+        "TaskConsolidationNativeStateTests/earlierGenerationCannotOverwriteNewSource()",
+        "TaskConsolidationEndToEndTests/sixTicketWorkflowPreservesExactOriginalsAndRetainedChains()",
+        "TaskConsolidationEndToEndTests/terminalNoEditGroupRetainsDatesAndRecordedBytesAfterLostResponse()",
+        "TaskConsolidationEndToEndTests/composedRejectionsPreserveSavedOriginalsAndPendingDrafts(fault:)",
+        "TaskConsolidationEndToEndTests/composedOverLimitPreviewPublishesNoReviewOrDomainEffects()"
+      ],
+      "startupInputs": {
+        "initialHostInputsVerified": true,
+        "requiredValues": {
+          "TRANSIT_PERSISTENCE_MODE": "unit-test",
+          "TRANSIT_ISOLATION_SMOKE": "1",
+          "TRANSIT_SMOKE_HOST_PATH": "/private/tmp/t2381-macos-row-repair-derived/Build/Products/Debug/Transit.app"
+        },
+        "observations": [
+          {
+            "pid": 84749,
+            "captureExit": 0,
+            "executable": "/private/tmp/t2381-macos-row-repair-derived/Build/Products/Debug/Transit.app/Contents/MacOS/Transit",
+            "values": {
+              "T2381_PLIST_SENTINEL": [
+                "plist-025cc7a329504888bfd0b75c5ecbe09c"
+              ],
+              "T2381_RUNNER_SENTINEL": [
+                "runner-025cc7a329504888bfd0b75c5ecbe09c"
+              ],
+              "TRANSIT_PERSISTENCE_MODE": [
+                "unit-test"
+              ],
+              "TRANSIT_ISOLATION_SMOKE": [
+                "1"
+              ],
+              "TRANSIT_SMOKE_HOST_PATH": [
+                "/private/tmp/t2381-macos-row-repair-derived/Build/Products/Debug/Transit.app"
+              ],
+              "DYLD_INSERT_LIBRARIES": [
+                "/usr/lib/libRPAC.dylib:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/libXCTestBundleInject.dylib:/Applications/Xcode.app/Contents/Developer/usr/lib/libMainThreadChecker.dylib:/usr/lib/libRPAC.dylib:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/libXCTestBundleInject.dylib:/Applications/Xcode.app/Contents/Developer/usr/lib/libMainThreadChecker.dylib:/usr/lib/libRPAC.dylib"
+              ],
+              "DYLD_FRAMEWORK_PATH": [
+                "/tmp/t2381-macos-row-repair-derived/Build/Products/Debug:/tmp/t2381-macos-row-repair-derived/Build/Products/Debug/PackageFrameworks:/Applications/Xcode.app/Contents/SharedFrameworks:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks:/tmp/t2381-macos-row-repair-derived/Build/Products/Debug:/tmp/t2381-macos-row-repair-derived/Build/Products/Debug/PackageFrameworks:/Applications/Xcode.app/Contents/SharedFrameworks:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks"
+              ],
+              "XCTestConfigurationFilePath": [
+                ""
+              ],
+              "XCTestSessionIdentifier": [
+                "4F736BE7-56CD-4C68-90EE-2491B7C53535"
+              ],
+              "XCInjectBundleInto": [
+                "unused"
+              ],
+              "XCInjectBundle": []
+            }
+          }
+        ],
+        "appPreconditions": "AppIsolationSmoke preflight before container; record before coordinator",
+        "snapshotDirectlyAssertedBySelectedCase": false,
+        "qualification": "Delivered opt-in inputs plus retained source preconditions; not an independent snapshot fixture"
+      }
+    },
+    "ui": {
+      "criticalIPad": {
+        "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-ios-row-repair-critical.4ukocr_k",
+        "counts": {
+          "enabledDeclarations": 1,
+          "disabledDeclarations": 26,
+          "summary": {
+            "devicesAndConfigurations": [
+              {
+                "device": {
+                  "architecture": "arm64",
+                  "deviceId": "968827E7-23C1-4C43-AFAD-71E4223FAD21",
+                  "deviceName": "T2381 Plain iPad critical",
+                  "modelName": "iPad Pro 13-inch (M5)",
+                  "osBuildNumber": "24A434",
+                  "osVersion": "27.0",
+                  "platform": "iOS Simulator"
+                },
+                "expectedFailures": 0,
+                "failedTests": 0,
+                "passedTests": 1,
+                "skippedTests": 0,
+                "testPlanConfiguration": {
+                  "configurationId": "1",
+                  "configurationName": "Test Scheme Action"
+                }
+              }
+            ],
+            "environmentDescription": "Transit \u00b7 Built with macOS 27.0",
+            "expectedFailures": 0,
+            "failedTests": 0,
+            "finishTime": 1791340320.561,
+            "passedTests": 1,
+            "result": "Passed",
+            "runtimeWarnings": [],
+            "skippedTests": 0,
+            "startTime": 1791340253.364,
+            "statistics": [],
+            "testFailures": [],
+            "title": "Test - Transit",
+            "topInsights": [],
+            "totalTestCount": 1
+          },
+          "drained": true
+        },
+        "cleanup": {
+          "ownedSimulator": "968827E7-23C1-4C43-AFAD-71E4223FAD21",
+          "shutdownExit": 0,
+          "remaining": {},
+          "drained": true,
+          "cleanupErrors": []
+        },
+        "deletion": {
+          "exit": 0
+        }
+      },
+      "remainingIPad": {
+        "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-ios-row-repair-remaining.v_t5a5d5",
+        "counts": {
+          "enabledDeclarations": 5,
+          "disabledDeclarations": 22,
+          "summary": {
+            "devicesAndConfigurations": [
+              {
+                "device": {
+                  "architecture": "arm64",
+                  "deviceId": "6AB9A427-949C-4564-8ADB-CE7C6217A9A0",
+                  "deviceName": "T2381 row repair remaining",
+                  "modelName": "iPad Pro 13-inch (M5)",
+                  "osBuildNumber": "24A434",
+                  "osVersion": "27.0",
+                  "platform": "iOS Simulator"
+                },
+                "expectedFailures": 0,
+                "failedTests": 0,
+                "passedTests": 5,
+                "skippedTests": 0,
+                "testPlanConfiguration": {
+                  "configurationId": "1",
+                  "configurationName": "Test Scheme Action"
+                }
+              }
+            ],
+            "environmentDescription": "Transit \u00b7 Built with macOS 27.0",
+            "expectedFailures": 0,
+            "failedTests": 0,
+            "finishTime": 1791340678.123,
+            "passedTests": 5,
+            "result": "Passed",
+            "runtimeWarnings": [],
+            "skippedTests": 0,
+            "startTime": 1791340501.539,
+            "statistics": [],
+            "testFailures": [],
+            "title": "Test - Transit",
+            "topInsights": [],
+            "totalTestCount": 5
+          },
+          "drained": true
+        },
+        "cleanup": {
+          "ownedSimulator": "6AB9A427-949C-4564-8ADB-CE7C6217A9A0",
+          "shutdownExit": 0,
+          "remaining": {},
+          "drained": true,
+          "cleanupErrors": []
+        },
+        "deletion": {
+          "exit": 0
+        }
+      },
+      "phoneHistory": {
+        "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-ios-row-repair-phone.2tziphvx",
+        "counts": {
+          "enabledDeclarations": 4,
+          "summary": {
+            "devicesAndConfigurations": [
+              {
+                "device": {
+                  "architecture": "arm64",
+                  "deviceId": "733C3B8B-525D-4906-95B0-630E21895500",
+                  "deviceName": "T2381 row repair phone",
+                  "modelName": "iPhone 17",
+                  "osBuildNumber": "24A434",
+                  "osVersion": "27.0",
+                  "platform": "iOS Simulator"
+                },
+                "expectedFailures": 0,
+                "failedTests": 2,
+                "passedTests": 2,
+                "skippedTests": 0,
+                "testPlanConfiguration": {
+                  "configurationId": "1",
+                  "configurationName": "Test Scheme Action"
+                }
+              }
+            ],
+            "environmentDescription": "Transit \u00b7 Built with macOS 27.0",
+            "expectedFailures": 0,
+            "failedTests": 2,
+            "finishTime": 1791340972.193,
+            "passedTests": 2,
+            "result": "Failed",
+            "runtimeWarnings": [],
+            "skippedTests": 0,
+            "startTime": 1791340836.272,
+            "statistics": [],
+            "testFailures": [
+              {
+                "failureText": "XCTAssertTrue failed",
+                "targetName": "TransitUITests",
+                "testIdentifier": 2,
+                "testIdentifierString": "TaskConsolidationNativeUITests/testRenderedReversedHistory()",
+                "testIdentifierURL": "test://com.apple.xcode/Transit/TransitUITests/TaskConsolidationNativeUITests/testRenderedReversedHistory",
+                "testName": "testRenderedReversedHistory()"
+              },
+              {
+                "failureText": "XCTAssertTrue failed",
+                "targetName": "TransitUITests",
+                "testIdentifier": 4,
+                "testIdentifierString": "TaskConsolidationNativeUITests/testSavedReasonAccountingAndOriginalNavigation()",
+                "testIdentifierURL": "test://com.apple.xcode/Transit/TransitUITests/TaskConsolidationNativeUITests/testSavedReasonAccountingAndOriginalNavigation",
+                "testName": "testSavedReasonAccountingAndOriginalNavigation()"
+              }
+            ],
+            "title": "Test - Transit",
+            "topInsights": [],
+            "totalTestCount": 4
+          },
+          "nativeCases": [
+            {
+              "duration": "59s",
+              "durationInSeconds": 59.55040204524994,
+              "name": "testRenderedMissingAndAmbiguousOriginalReferences()",
+              "nodeIdentifier": "TaskConsolidationNativeUITests/testRenderedMissingAndAmbiguousOriginalReferences()",
+              "nodeIdentifierURL": "test://com.apple.xcode/Transit/TransitUITests/TaskConsolidationNativeUITests/testRenderedMissingAndAmbiguousOriginalReferences",
+              "nodeType": "Test Case",
+              "result": "Passed"
+            },
+            {
+              "children": [
+                {
+                  "name": "XCTAssertTrue failed",
+                  "nodeType": "Failure Message",
+                  "sourceLocation": {
+                    "filePath": "/Users/arjen/Documents/Codex/2026-10-03/task-6/transit/Transit/TransitUITests/TaskConsolidationNativeUITests.swift",
+                    "lineNumber": 64
+                  }
+                }
+              ],
+              "duration": "19s",
+              "durationInSeconds": 19.15135896205902,
+              "name": "testRenderedReversedHistory()",
+              "nodeIdentifier": "TaskConsolidationNativeUITests/testRenderedReversedHistory()",
+              "nodeIdentifierURL": "test://com.apple.xcode/Transit/TransitUITests/TaskConsolidationNativeUITests/testRenderedReversedHistory",
+              "nodeType": "Test Case",
+              "result": "Failed"
+            },
+            {
+              "duration": "30s",
+              "durationInSeconds": 30.73055899143219,
+              "name": "testRenderedUnavailableAndOverLimitHistory()",
+              "nodeIdentifier": "TaskConsolidationNativeUITests/testRenderedUnavailableAndOverLimitHistory()",
+              "nodeIdentifierURL": "test://com.apple.xcode/Transit/TransitUITests/TaskConsolidationNativeUITests/testRenderedUnavailableAndOverLimitHistory",
+              "nodeType": "Test Case",
+              "result": "Passed"
+            },
+            {
+              "children": [
+                {
+                  "name": "XCTAssertTrue failed",
+                  "nodeType": "Failure Message",
+                  "sourceLocation": {
+                    "filePath": "/Users/arjen/Documents/Codex/2026-10-03/task-6/transit/Transit/TransitUITests/TaskConsolidationNativeUITests.swift",
+                    "lineNumber": 20
+                  }
+                }
+              ],
+              "duration": "18s",
+              "durationInSeconds": 18.670766949653625,
+              "name": "testSavedReasonAccountingAndOriginalNavigation()",
+              "nodeIdentifier": "TaskConsolidationNativeUITests/testSavedReasonAccountingAndOriginalNavigation()",
+              "nodeIdentifierURL": "test://com.apple.xcode/Transit/TransitUITests/TaskConsolidationNativeUITests/testSavedReasonAccountingAndOriginalNavigation",
+              "nodeType": "Test Case",
+              "result": "Failed"
+            }
+          ],
+          "acceptancePassed": false
+        },
+        "cleanup": {
+          "ownedSimulator": "733C3B8B-525D-4906-95B0-630E21895500",
+          "shutdownExit": 0,
+          "remaining": {},
+          "drained": true,
+          "cleanupErrors": []
+        },
+        "deletion": {
+          "exit": 0
+        }
+      }
+    },
+    "ownedJobsRemaining": {},
+    "ownedSimulatorsDeleted": true,
+    "heavySlotReleased": true,
+    "acceptanceComplete": false,
+    "remainingGates": [
+      "phone Applied/Reversed labels unavailable immediately after expansion at unchanged assertions lines20/64",
+      "macOS rendered automation initializes before feature execution",
+      "broader full phone UI acceptance and final repository acceptance"
+    ],
+    "tasks17Through20": "open",
+    "controllerPrefixOmittedByExplicitUserApproval": true,
+    "toolPolicyOrMacSecuritySettingsChanged": false,
+    "pr": {
+      "number": 255,
+      "draft": true,
+      "publicHead": "66f5bd5",
+      "newPush": false
+    }
   }
 }
