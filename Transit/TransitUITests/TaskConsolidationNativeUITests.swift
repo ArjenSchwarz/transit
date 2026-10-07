@@ -10,7 +10,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         reveal(reason, in: app)
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
         XCTAssertEqual(reason.label, "Synthetic reviewed history")
-        reason.tap()
+        activate(reason)
         let applied = app.staticTexts["Applied"]
         reveal(applied, in: app)
         XCTAssertTrue(applied.waitForExistence(timeout: 5))
@@ -18,7 +18,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         reveal(accounting, in: app)
         XCTAssertTrue(accounting.waitForExistence(timeout: 5))
         XCTAssertEqual(accounting.label, "Preservation accounting")
-        accounting.tap()
+        activate(accounting)
         XCTAssertEqual(accounting.value as? String, "Expanded")
         let retained = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@",
             "Original description remains available")).firstMatch
@@ -27,7 +27,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         let changes = app.buttons["Saved changes: 00000000-0000-0000-0000-000000238102"]
         reveal(changes, in: app)
         XCTAssertTrue(changes.waitForExistence(timeout: 5))
-        changes.tap()
+        activate(changes)
         let status = app.staticTexts["statusRawValue: idea → abandoned"]
         reveal(status, in: app)
         XCTAssertTrue(status.waitForExistence(timeout: 5))
@@ -42,7 +42,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         reveal(original, in: app, towardEarlierContent: true)
         XCTAssertTrue(original.waitForExistence(timeout: 5))
         XCTAssertEqual(original.label, "Original task: History Original · 00000000-0000-0000-0000-000000238102")
-        original.tap()
+        activate(original)
         let history = app.staticTexts["consolidation.history.00000000-0000-0000-0000-000000238102"]
         reveal(history, in: app, taskID: "00000000-0000-0000-0000-000000238102")
         XCTAssertTrue(history.waitForExistence(timeout: 5))
@@ -56,7 +56,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         reveal(reason, in: app)
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
         XCTAssertEqual(reason.label, "Synthetic reviewed history")
-        reason.tap()
+        activate(reason)
         let reversed = app.staticTexts["Reversed"]
         reveal(reversed, in: app)
         XCTAssertTrue(reversed.waitForExistence(timeout: 5))
@@ -87,7 +87,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
             reveal(reason, in: app)
             XCTAssertTrue(reason.waitForExistence(timeout: 5))
             XCTAssertEqual(reason.label, "Synthetic reviewed history")
-            reason.tap()
+            activate(reason)
             let unresolved = app.staticTexts["Unresolved original task: 00000000-0000-0000-0000-000000238102"]
             reveal(unresolved, in: app)
             XCTAssertTrue(unresolved.waitForExistence(timeout: 5))
@@ -103,12 +103,20 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         app.launch()
         let survivor = app.staticTexts["History Survivor"]
         XCTAssertTrue(survivor.waitForExistence(timeout: 5))
-        survivor.tap()
+        activate(survivor)
         #if os(macOS)
         XCTAssertTrue(historyWindow(in: app).waitForExistence(timeout: 5),
                       "The exact saved survivor detail window must open before history interaction")
         #endif
         return app
+    }
+
+    @MainActor private func activate(_ element: XCUIElement) {
+        #if os(macOS)
+        element.click()
+        #else
+        element.tap()
+        #endif
     }
 
     #if os(macOS)
