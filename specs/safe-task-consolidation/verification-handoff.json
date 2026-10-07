@@ -27,7 +27,7 @@
       19,
       20
     ],
-    "reason": "Current phone27/30 and affected iPad checks pass. Tasks17\u201318 lack Mac rendered acceptance; task19 additionally needs prepared composed raw-byte assertions and focused verification; task20 additionally needs current-source full iOS units and final dependency acceptance."
+    "reason": "Phone27/30 and affected iPad checks pass. Tasks17\u201318 lack Mac rendered acceptance; task19 byte assertions are source-complete but build/lint/focused proof pending; task20 needs full current iOS units and dependency acceptance."
   },
   "builds": {
     "ios": {
@@ -384,7 +384,7 @@
   "remainingWork": [
     "Resolve Mac automation initialization through a separately authorized concrete changed GUI environment; no sole cause established and no blind unchanged retry.",
     "Review the actual bounded single-case Mac probe adapter against the prepared plan, allocate heavy slot and verify exact current signed artifacts before execution; only1/1PASS permits remaining3Mac history declarations.",
-    "Apply the accepted prepared composed-byte proof patch, then build/lint and verify affected6declarations/7cases against actual native results; patch currently unapplied/uncompiled/unexecuted.",
+    "Compile/lint and verify the now-applied composed-byte assertions in affected6declarations/7cases against actual native results; no new runtime proof yet.",
     "Run current-source full iOS units under CLAUDE before-push instructions; preserve older full suites and current focused proof with their source attribution.",
     "Finish tasks17\u201320 dependency/final acceptance without repeating phone27/30, affectediPad/native-state/migration checks if their source hashes remain unchanged.",
     "Keep draftPR255/local work unpushed until remaining acceptance closes; no liveCloudKit/allwriter/production activation gate."
@@ -1298,5 +1298,21 @@
     "sourceWorkingTreeModified": false,
     "skill": "/Users/arjen/.codex/skills/pre-push-review/SKILL.md",
     "scope": "Only source phases requested; no test/lint/build/external review CLI/HTML publication/push or live writes performed"
+  },
+  "composedByteAssertionsApplied20261007": {
+    "status": "source_reviewed_applied_not_compiled_not_executed",
+    "sourceDigests": {
+      "Transit/TransitTests/MCPConsolidationAppCapabilityTests.swift": "fccc3e37dee7f7af680d43decf716afd9b930b0a6704e806c0d978f067cc3088",
+      "Transit/TransitTests/TaskConsolidationEndToEndTests.swift": "3ea89b595cff008f94eafe7ddd551eddfa244ba6f6ff75ea7cf4511e02702f47"
+    },
+    "productAndNativeUITestHashesUnchanged": true,
+    "existingParsedAssertionsRetained": true,
+    "batchPlan": "/private/tmp/t2381-current-acceptance-batch/plan.json",
+    "expectedFocusedDeclarations": 6,
+    "expectedFocusedExpandedCases": 7,
+    "buildsHeld": true,
+    "heavySlotReleased": true,
+    "runtimeVerified": false,
+    "sourceApproval": "Parent explicitly instructed applying the reviewed patch now; implementation deferred no longer"
   }
 }

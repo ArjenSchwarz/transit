@@ -13,7 +13,7 @@ import Testing
         let page = try await workflow.read("query_tasks", ["taskIds": seed.ids.map(\.uuidString),
             "detailLevel": "full", "includeComments": true, "limit": 1, "readPolicy": "cached"])
         let cursor = try #require(page["nextCursor"] as? String)
-        let retainedPage = try await workflow.read("query_tasks", ["cursor": cursor])
+        let retainedPage = try await workflow.readText("query_tasks", ["cursor": cursor])
         let before = try capture(workflow, ids: seed.ids)
         let preview = try await workflow.read("preview_task_consolidation", seed.arguments)
         #expect((preview["originals"] as? [[String: Any]])?.count == 6)
@@ -26,6 +26,7 @@ import Testing
         #expect(try ConsolidationPreviewFixture.sameSavedOriginals(untouched.originals,
             capture(workflow, ids: unselected).originals))
         try await retainedPageUnchanged(workflow, cursor: cursor, before: retainedPage)
+        try historicalReceiptUnchanged(workflow)
         let history = try TaskConsolidationHistoryCodec.history(after.events, operationId: operation).apply
         #expect(history.retainedOccurrences.contains { $0.id == seed.chainId })
         #expect(history.candidateTaskIds.count == 5)
@@ -52,6 +53,7 @@ import Testing
         #expect(try JSONDecoder().decode(PersistentIdentifier.self, from: currentEdge.physicalKey)
             == JSONDecoder().decode(PersistentIdentifier.self, from: untouchedEdge.physicalKey))
         try await retainedPageUnchanged(workflow, cursor: cursor, before: retainedPage)
+        try historicalReceiptUnchanged(workflow)
     }
     @Test func terminalNoEditGroupRetainsDatesAndRecordedBytesAfterLostResponse() async throws {
         let workflow = try ConsolidationAppWorkflowFixture()
@@ -64,11 +66,15 @@ import Testing
         let before = try workflow.fixture.capture()
         let preview = try await workflow.read("preview_task_consolidation", workflow.fixture.arguments)
         let command = reference(preview, key: "terminal-replay", apply: true)
-        let first = try await workflow.write("consolidate_tasks", command)
+        let firstText = try await workflow.writeText("consolidate_tasks", command)
+        let first = try #require(JSONSerialization.jsonObject(with: Data(firstText.utf8)) as? [String: Any])
         #expect(first["outcome"] as? String == "committed")
         workflow.fixture.store.clear()
-        let replay = try await workflow.write("consolidate_tasks", command)
+        let replayText = try await workflow.writeText("consolidate_tasks", command)
+        let replay = try #require(JSONSerialization.jsonObject(with: Data(replayText.utf8)) as? [String: Any])
+        #expect(Data(firstText.utf8) == Data(replayText.utf8))
         #expect(try MCPCanonicalJSON.encode(first) == MCPCanonicalJSON.encode(replay))
+        try historicalReceiptUnchanged(workflow)
         let after = try workflow.fixture.capture()
         for original in before.originals {
             #expect(after.originals.first { $0.id == original.id }?.fields == original.fields)
@@ -129,9 +135,19 @@ import Testing
     }
 
     private func retainedPageUnchanged(_ workflow: ConsolidationAppWorkflowFixture, cursor: String,
-                                       before: [String: Any]) async throws {
-        let after = try await workflow.read("query_tasks", ["cursor": cursor])
-        #expect(try MCPCanonicalJSON.encode(before) == MCPCanonicalJSON.encode(after))
+                                       before: String) async throws {
+        let after = try await workflow.readText("query_tasks", ["cursor": cursor])
+        #expect(Data(before.utf8) == Data(after.utf8))
+        let beforeValue = try #require(JSONSerialization.jsonObject(with: Data(before.utf8)) as? [String: Any])
+        let afterValue = try #require(JSONSerialization.jsonObject(with: Data(after.utf8)) as? [String: Any])
+        #expect(try MCPCanonicalJSON.encode(beforeValue) == MCPCanonicalJSON.encode(afterValue))
+    }
+
+    private func historicalReceiptUnchanged(_ workflow: ConsolidationAppWorkflowFixture) throws {
+        let base = workflow.fixture.base.base
+        let observer = try base.observer()
+        let json = try #require(base.historicReceipt(in: observer.context).resultJSON)
+        #expect(Data(json.utf8) == Data(base.historicJSON.utf8))
     }
 
     private func advertisedTools(_ workflow: ConsolidationAppWorkflowFixture) async throws {

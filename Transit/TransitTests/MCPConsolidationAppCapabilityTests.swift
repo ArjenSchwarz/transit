@@ -69,6 +69,11 @@ import Testing
     }
 
     func read(_ tool: String, _ arguments: [String: Any]) async throws -> [String: Any] {
+        let content = try await readText(tool, arguments)
+        return try #require(JSONSerialization.jsonObject(with: Data(content.utf8)) as? [String: Any])
+    }
+
+    func readText(_ tool: String, _ arguments: [String: Any]) async throws -> String {
         let rpc = request(tool, arguments)
         let classified = try #require(MCPBoundedReadDispatcher.classify(rpc))
         let bytes = try await MCPBoundedReadDispatcher.response(for: classified, rpc: rpc, handler: handler,
@@ -76,13 +81,17 @@ import Testing
         let response = try #require(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
         let result = try #require(response["result"] as? [String: Any])
         let content = try #require((result["content"] as? [[String: Any]])?.first?["text"] as? String)
-        return try #require(JSONSerialization.jsonObject(with: Data(content.utf8)) as? [String: Any])
+        return content
     }
 
     func write(_ tool: String, _ arguments: [String: Any]) async throws -> [String: Any] {
-        let result = await handler.protectedWriteResult(tool: tool, arguments: arguments)
-        let text = try #require(result.content.first?.text)
+        let text = try await writeText(tool, arguments)
         return try #require(JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
+    }
+
+    func writeText(_ tool: String, _ arguments: [String: Any]) async throws -> String {
+        let result = await handler.protectedWriteResult(tool: tool, arguments: arguments)
+        return try #require(result.content.first?.text)
     }
 
     private func request(_ tool: String, _ arguments: [String: Any]) -> JSONRPCRequest {
