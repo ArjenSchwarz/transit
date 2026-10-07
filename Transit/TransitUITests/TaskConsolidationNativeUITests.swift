@@ -4,18 +4,8 @@ final class TaskConsolidationNativeUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
     @MainActor func testSavedReasonAccountingAndOriginalNavigation() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["TRANSIT_PERSISTENCE_MODE"] = "ui-test"
-        app.launchEnvironment["TRANSIT_UI_TEST_SCENARIO"] = "consolidationHistory"
-        app.launch()
+        let app = launchHistory("consolidationHistory")
         defer { app.terminate() }
-        let survivor = app.staticTexts["History Survivor"]
-        XCTAssertTrue(survivor.waitForExistence(timeout: 5))
-        survivor.tap()
-        #if os(macOS)
-        XCTAssertTrue(historyWindow(in: app).waitForExistence(timeout: 5),
-                      "The exact saved survivor detail window must open before history interaction")
-        #endif
         let reason = app.buttons["Synthetic reviewed history"]
         reveal(reason, in: app)
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
@@ -123,7 +113,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
 
     #if os(macOS)
     @MainActor private func historyWindow(in app: XCUIApplication,
-                                         taskID: String = "00000000-0000-0000-0000-000000238101") -> XCUIElement {
+                                        taskID: String = "00000000-0000-0000-0000-000000238101") -> XCUIElement {
         app.windows.containing(.staticText, identifier: "consolidation.history.\(taskID)").firstMatch
     }
     #endif
