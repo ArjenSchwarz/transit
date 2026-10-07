@@ -27,7 +27,7 @@
       19,
       20
     ],
-    "reason": "Current composed byte proof6/7 and full iOS units1352/1456 pass; phone27/30 and iPad passes retain unchanged hashes. Tasks17\u201320 remain open for Mac rendered acceptance and dependencies. Mac automation writer requests native Enable UI Automation authentication before timing out; no completion observed.",
+    "reason": "Current units/composed/phone/iPad proofs remain satisfied with unchanged hashes. User-authorized interactive Mac retry initializes automation successfully and executes one real feature declaration/case, failing at reason-button visibility. Remaining three withheld; tasks17\u201320 remain in progress for Mac/dependency acceptance.",
     "inProgress": [
       17,
       18,
@@ -457,10 +457,10 @@
   "activeBuildOrTestJobs": [],
   "allOwnedSimulatorsDeleted": true,
   "remainingWork": [
-    "Obtain user confirmation of native Enable UI Automation authentication, or readiness to handle a newly requested prompt if the old prompt has disappeared. Saved logs cannot determine current prompt visibility. A newly authorized standard XCTest one-case probe is the supported request path and may recreate the prompt; do not use standalone authentication APIs, credentials or security-setting changes.",
-    "Wait for user confirmation and a new exclusive heavy allocation (T2404 currently owns heavy checks). Record truthful current authentication/readiness evidence; do not reuse the prior resource-recovery allocation as authorization. Revalidate unchanged source74 signed artifacts, run only Mac one-case probe120seconds, then remaining3history declarations360seconds only after finalized1/1PASS/drain.",
-    "Close tasks17\u201320 in dependency order when Mac rendered acceptance is finalized. Composed bytes and current full iOS units are now verified; do not repeat those or phone/iPad/state/migration gates with unchanged hashes/artifacts.",
-    "Keep draftPR255/local work unpushed while Mac acceptance remains open; no liveCloudKit/allwriter/production activation gate."
+    "Triage the saved real Mac UI assertion failure at TaskConsolidationNativeUITests.swift:17 using interactive probe evidence; automation initialized and the test interacted with the app. Do not infer current prompt visibility or credential mechanism. No blind native retry.",
+    "Prepare a bounded source correction if saved evidence supports it. Any rebuild or further native run needs separate heavy allocation; this allocation allowed only the one interactive probe. Remaining three Mac history cases still require finalized probe1/1PASS/drain.",
+    "Close tasks17\u201320 in dependency order after Mac acceptance. Do not replay satisfied unit/composed/phone/iPad/migration gates with unchanged relevant source/artifacts.",
+    "Keep local work unpushed and draftPR255 unchanged while Mac acceptance remains open; no live Transit writes or production activation."
   ],
   "limits": [
     "No final-head full-unit-suite or complete phone UI pass is claimed.",
@@ -1686,5 +1686,33 @@
     "execution": "read-only; no new runtime checks",
     "packet": "/tmp/t2381-pre-push-final-preparation",
     "pushReadiness": "blocked by Mac rendered acceptance"
+  },
+  "interactiveMacProbe20261007": {
+    "sourceCommit": "74b299cd364204881dd4e4792a4515765220f8ec",
+    "root": "/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-macos-ui-probe.bircgqhl",
+    "authorization": "User Sentinel_19b83bd15a988191a062e2259c26cd6f; parent short interactive probe only",
+    "existingArtifactsValidated": true,
+    "newBuild": false,
+    "featureDeclarationsExecuted": 1,
+    "featureCasesExecuted": 1,
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0,
+    "expectedFailures": 0,
+    "automationInitialization": "succeeded; test interacted with development app",
+    "authenticationCompletionMechanism": "not asserted; no credentials/settings handled",
+    "failure": "TaskConsolidationNativeUITests.swift:17 Synthetic reviewed history Button waitForExistence assertion",
+    "outcome": {
+      "exitCode": 65,
+      "timedOut": false,
+      "stalledHosts": {},
+      "hostPIDs": [
+        35073,
+        35081
+      ],
+      "hostDrained": true
+    },
+    "remainingThree": "not started",
+    "next": "Read-only saved failure triage; no blind retry or broader suite; T2404 heavy batch remains separate"
   }
 }

@@ -158,7 +158,7 @@ metadata:
   - References: design.md, requirements.md, decision_log.md
 
 - [-] 17. Red: test native saved history presentation and safe navigation <!-- id:eiyvabx -->
-  - Local acceptance: implemented; phone 27 declarations/30 cases and iPad/native checks are source-qualified PASS. Mac probe executed zero feature cases while native automation authentication was pending; all four Mac rendered declarations remain open.
+  - Local acceptance: implemented; phone 27 declarations/30 cases and iPad/native checks are source-qualified PASS. Earlier Mac probe executed zero feature cases while native authentication was pending. User-authorized interactive retry initializes automation and executes one declaration/case, failing at reason-button visibility (line 17); remaining three withheld. All four Mac rendered declarations remain open.
   - Write TaskConsolidationNativeStateTests.swift and automated task-detail UI tests for reason, original/survivor references, changes/dispositions, reversal state and explicit unavailable/over-limit history in every existing detail layout.
   - Exercise the shared saved value provider/physical admission with source changes, cancellation, save/import notification bursts and 100-ms coalescing; stale values must not publish, listener restart must not suppress native reads.
   - Use deterministic history-bearing UI fixtures; exact unique saved navigation works and missing/duplicate physical task references remain diagnostics. Assert no native consolidation editing/apply/undo controls.
