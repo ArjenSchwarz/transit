@@ -1,8 +1,8 @@
-#if os(macOS)
 import Foundation
 
 extension MCPReadCoordinator {
     nonisolated final class Entry: @unchecked Sendable {
+        let owner: MCPReadAdmissionOwner
         let id: UUID
         let generation: UInt64
         let deadline: ContinuousClock.Instant
@@ -19,8 +19,9 @@ extension MCPReadCoordinator {
         var timer: DispatchSourceTimer?
 
         init(id: UUID, generation: UInt64, deadline: ContinuousClock.Instant, timeout: Data,
-             admittedAt: ContinuousClock.Instant, diagnosticTool: String,
+             admittedAt: ContinuousClock.Instant, diagnosticTool: String, owner: MCPReadAdmissionOwner = .application,
              physicalCompletion: @escaping @Sendable () -> Void = {}) {
+            self.owner = owner
             self.id = id
             self.generation = generation
             self.deadline = deadline
@@ -33,4 +34,3 @@ extension MCPReadCoordinator {
     }
 
 }
-#endif

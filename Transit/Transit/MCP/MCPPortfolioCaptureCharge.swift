@@ -23,6 +23,10 @@ nonisolated enum MCPPortfolioCaptureCharge {
             try MCPPortfolioReadEncoding.check(operation)
             try add(graph.retainedBytes, to: &count)
         }
+        if let evidence = view.consolidationEvidence {
+            try MCPPortfolioReadEncoding.check(operation)
+            try add(evidence.encodedByteCount, to: &count)
+        }
         return count
     }
 

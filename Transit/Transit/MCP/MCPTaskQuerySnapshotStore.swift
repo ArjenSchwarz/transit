@@ -35,11 +35,14 @@ final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
         let descriptor: MCPPublicationIndexDescriptor
         let pages: [String: MCPRetainedQueryPage]
         let modernRoots: [String: ModernRoot]
+        let reviews: [String: ConsolidationReviewEntry]
         init(roots: [MCPPublicationRoot] = [], pages: [String: MCPRetainedQueryPage] = [:],
-             modernRoots: [String: ModernRoot] = [:]) throws {
+             modernRoots: [String: ModernRoot] = [:],
+             reviews: [String: ConsolidationReviewEntry] = [:]) throws {
             descriptor = try MCPPublicationIndexDescriptor(roots: roots)
             self.pages = pages
             self.modernRoots = modernRoots
+            self.reviews = reviews
         }
     }
 
@@ -79,6 +82,8 @@ final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
         guard let replacement = try? Index(roots: roots, pages: index.pages.filter { tokens.contains($0.key) },
                                            modernRoots: index.modernRoots.filter { key, _ in
                                                roots.contains { $0.id == key }
+                                           }, reviews: index.reviews.filter { key, _ in
+                                               roots.contains { $0.id == key }
                                            }) else {
             return
         }
@@ -112,7 +117,7 @@ final class MCPTaskQuerySnapshotStore: MCPReadPublicationParticipant {
             mapping[token] = MCPRetainedQueryPage(text: text, metadataBytes: metadataBytes, policy: policy)
         }
         let candidate = try Index(roots: Array(original.descriptor.roots.values) + [root], pages: mapping,
-                                  modernRoots: original.modernRoots)
+                                  modernRoots: original.modernRoots, reviews: original.reviews)
         do {
             return try domain.reserve(storeID: publicationStoreID, operationID: operationID,
                 expectedVersion: base.version, expectedTokenVersion: base.tokenVersion, index: candidate,

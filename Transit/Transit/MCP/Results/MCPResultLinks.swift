@@ -1,6 +1,5 @@
 #if os(macOS)
 import Foundation
-
 /// Positions are explicit public shapes; no recursive search through unknown data.
 nonisolated enum MCPResultLinks {
     static func build(_ source: MCPResultSource, context: MCPResultContext,
@@ -34,7 +33,6 @@ nonisolated enum MCPResultLinks {
         try checkpoint()
         return candidates.map(\.link)
     }
-
     private static func identity(_ value: MCPJSONValue, type: MCPResultEntityType,
                                  checkpoint: @Sendable () throws -> Void) throws -> UUID? {
         let token: String?
@@ -46,10 +44,13 @@ nonisolated enum MCPResultLinks {
         }
         return token.flatMap(UUID.init(uuidString:))
     }
-
     private static func builtins(tool: String, value: MCPJSONValue,
                                  checkpoint: @Sendable () throws -> Void) throws -> [MCPResultEntityPosition] {
         switch tool {
+        case "preview_task_consolidation", "preview_task_consolidation_undo":
+            return try consolidationPositions(value, field: "originals", checkpoint: checkpoint)
+        case "consolidate_tasks", "undo_task_consolidation":
+            return try consolidationPositions(value, field: "participants", checkpoint: checkpoint)
         case "query_tasks": return try taskQueryPositions(value, checkpoint: checkpoint)
         case "get_projects":
             return try projectArrayPositions(value, suffix: "", checkpoint: checkpoint)
@@ -69,7 +70,16 @@ nonisolated enum MCPResultLinks {
         default: return []
         }
     }
-
+    private static func consolidationPositions(_ value: MCPJSONValue, field: String,
+                                               checkpoint: @Sendable () throws -> Void) throws
+        -> [MCPResultEntityPosition] {
+        guard case .array(let records) = try MCPResultInspection.member(field, in: value,
+            checkpoint: checkpoint) else { return [] }
+        return try records.indices.flatMap { index in
+            try checkpoint()
+            return taskPositions("/\(field)/\(index)")
+        }
+    }
     private static func projectArrayPositions(_ value: MCPJSONValue, suffix: String,
                                               checkpoint: @Sendable () throws -> Void) throws
         -> [MCPResultEntityPosition] {
@@ -82,7 +92,6 @@ nonisolated enum MCPResultLinks {
         }
         return positions
     }
-
     private static func taskQueryPositions(_ value: MCPJSONValue,
                                            checkpoint: @Sendable () throws -> Void) throws
         -> [MCPResultEntityPosition] {
@@ -110,11 +119,9 @@ nonisolated enum MCPResultLinks {
         }
         return positions
     }
-
     private static func taskPositions(_ path: String) -> [MCPResultEntityPosition] {
         [.init(entityType: .task, sourcePath: path), .init(entityType: .project, sourcePath: path + "/projectId")]
     }
-
     private static func precedes(_ lhs: MCPResultLinkCandidate, _ rhs: MCPResultLinkCandidate) -> Bool {
         for (left, right) in zip(lhs.order, rhs.order) where left != right {
             switch (left, right) {
@@ -131,12 +138,10 @@ nonisolated enum MCPResultLinks {
         return lhs.link.entityId.uuidString < rhs.link.entityId.uuidString
     }
 }
-
 nonisolated private struct MCPResultLinkCandidate {
     let link: MCPUnavailableLink
     let order: [MCPResultPointerOrder]
 }
-
 nonisolated private struct MCPResultLinkKey: Hashable {
     let path: [UInt8]
     let type: String

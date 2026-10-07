@@ -31,12 +31,14 @@ nonisolated struct CapturedReadView: Sendable {
     let comments: [ReadCommentEvidence]
     /// Nil is explicit missing coverage for legacy/provider fixtures, never empty incidence.
     let taskLinkGraph: TaskLinkGraphView?
+    /// Nil marks retained legacy/provider coverage; current full captures always supply evidence.
+    let consolidationEvidence: ConsolidationSavedEvidence?
 
     // A capture retains one declared scope and its complete immutable value payload.
     init(completeness: CaptureCompleteness, captureScope: ReadCaptureScope, metadata: ReadCaptureMetadata,
          createdAt: ContinuousClock.Instant, retentionDeadline: ContinuousClock.Instant,
          projects: [ReadProject], tasks: [ReadTask], milestones: [ReadMilestone], comments: [ReadCommentEvidence],
-         taskLinkGraph: TaskLinkGraphView? = nil) {
+         taskLinkGraph: TaskLinkGraphView? = nil, consolidationEvidence: ConsolidationSavedEvidence? = nil) {
         self.completeness = completeness
         self.captureScope = captureScope
         self.metadata = metadata
@@ -47,6 +49,7 @@ nonisolated struct CapturedReadView: Sendable {
         self.milestones = milestones
         self.comments = comments
         self.taskLinkGraph = taskLinkGraph
+        self.consolidationEvidence = consolidationEvidence
     }
 }
 
@@ -204,6 +207,7 @@ nonisolated struct ReadCaptureRequest: Sendable {
     let includeComments: Bool
     let taskLinkBudget: TaskLinkGraphBudget?
     let taskLinkOptions: TaskLinkQueryOptions?
+    let consolidationTarget: ConsolidationCaptureTarget?
     /// Runs inside the fence before dependent entity fetches; no relationship values escape.
     let validateProjects: (@MainActor @Sendable ([ReadProjectIdentity]) throws -> Void)?
 
@@ -220,17 +224,27 @@ nonisolated struct ReadCaptureRequest: Sendable {
          validateMilestones: (@MainActor @Sendable ([ReadMilestoneIdentity]) throws -> Bool)? = nil,
          selectTaskBodies: ReadTaskBodySelection? = nil,
          selectMilestoneBodies: ReadMilestoneBodySelection? = nil,
-         taskLinkBudget: TaskLinkGraphBudget? = nil, taskLinkOptions: TaskLinkQueryOptions? = nil) {
+         taskLinkBudget: TaskLinkGraphBudget? = nil, taskLinkOptions: TaskLinkQueryOptions? = nil,
+         consolidationTarget: ConsolidationCaptureTarget? = nil) {
         self.projectSelectors = projectSelectors
         self.selection = selection
         self.completeness = completeness
         self.includeComments = includeComments
         self.taskLinkBudget = taskLinkBudget
         self.taskLinkOptions = taskLinkOptions
+        self.consolidationTarget = consolidationTarget
         self.validateProjects = validateProjects
         self.validateMilestones = validateMilestones
         self.selectTaskBodies = selectTaskBodies
         self.selectMilestoneBodies = selectMilestoneBodies
+    }
+
+    func captureScope(selectedKeys: Set<LocalRecordKey>) -> ReadCaptureScope {
+        guard completeness == .completePortfolio else { return .selectedQuery }
+        guard projectSelectors != nil else { return .wholePortfolio }
+        return .projects(selectedKeys.sorted {
+            $0.encodedIdentifier.lexicographicallyPrecedes($1.encodedIdentifier)
+        })
     }
 
     func withTaskLinkBudget(_ budget: TaskLinkGraphBudget) -> ReadCaptureRequest {
@@ -238,7 +252,7 @@ nonisolated struct ReadCaptureRequest: Sendable {
             includeComments: includeComments, validateProjects: validateProjects,
             validateMilestones: validateMilestones,
             selectTaskBodies: selectTaskBodies, selectMilestoneBodies: selectMilestoneBodies, taskLinkBudget: budget,
-            taskLinkOptions: taskLinkOptions)
+            taskLinkOptions: taskLinkOptions, consolidationTarget: consolidationTarget)
     }
 }
 

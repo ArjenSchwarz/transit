@@ -1,7 +1,8 @@
 # MCP write contract
 
 Transit protects `create_task`, `create_project`, `create_milestone`, `add_comment`, `update_task`,
-`update_task_status`, `update_milestone` and `delete_milestone`. Each requires `idempotencyKey`.
+`update_task_status`, `update_milestone`, `delete_milestone`, `consolidate_tasks` and
+`undo_task_consolidation`. Each requires `idempotencyKey`.
 The four update/deletion tools also require the target's `expectedRevision` from a full read response.
 Unknown fields and malformed inputs are rejected before accepting a key. Maintenance tools and App
 Intents retain their existing input contracts.
@@ -28,7 +29,7 @@ If the response is lost, repeat those exact arguments with that same key. A reta
 replays the original saved record, revision and metadata even after editing or deleting the target.
 Reusing a retained key with different arguments returns `IDEMPOTENCY_KEY_REUSED` without mutation.
 
-Protected responses retain JSON in MCP `content[0].text` and expose the same complete logical JSON, when interpretable, at `structuredContent.source.payload`. Retained malformed or over-limit JSON preserves raw text with unreadable structured evidence. Supplemental presentation lives separately; see the [versioned result contract](mcp-result-contract.md). Committed responses include `contractVersion:1`,
+Protected responses retain JSON in MCP `content[0].text` and expose the same complete logical JSON, when interpretable, at `structuredContent.source.payload`. Retained malformed or over-limit JSON preserves raw text with unreadable structured evidence. Supplemental presentation lives separately; see the [versioned result contract](mcp-result-contract.md). Single-record committed responses include `contractVersion:1`,
 `tool`, `idempotencyKey`, `outcome:"committed"`, `accepted:true`, `entityId`, the full saved `record`,
 `completedAt` and `replayExpiresAt`. The record contains its `revision`. Status with a comment also
 returns the full saved `comment`; both persist together. Milestone deletion returns `deleted:true`
@@ -44,9 +45,11 @@ Malformed protocol envelopes and unknown/disabled tools continue to use JSON-RPC
 | `uncertain` | Storage cannot establish the whole operation's commitment. | `reconcile`; never automatically issue a fresh-key retry. |
 
 `accepted` is true for a confirmed durable payload binding, false for proven non-acceptance, and null
-when retry storage cannot determine earlier acceptance. `REVISION_CONFLICT` is a retained no-effect
-rejection containing `currentRecord` and its revision. Inspect that record before writing with a new
-key. `INTERRUPTED_BEFORE_COMMIT` proves that an accepted operation's atomic domain/result save did
+when retry storage cannot determine earlier acceptance. For single-record tools, `REVISION_CONFLICT`
+is a retained no-effect rejection containing `currentRecord` and its revision. Consolidation group
+conflicts carry bounded `currentRevisions` and `affectedTaskIds`; group success uses participant and
+operation evidence as described below. Inspect the corresponding current evidence before writing
+with a new key. `INTERRUPTED_BEFORE_COMMIT` proves that an accepted operation's atomic domain/result save did
 not complete; it is retained as a rejection rather than rerunning the operation.
 
 Completed outcomes are retained for seven days from completion. Their absolute `replayExpiresAt`
@@ -72,6 +75,72 @@ An addition supplies `action:add`, `type` and `targetTaskId`. A removal supplies
 Whole input shape is validated before key acceptance. Saved reference/precondition/cycle/selector failures are accepted domain outcomes after exact retained replay lookup. The final phase resolves fresh saved state and applies task fields, physical link changes, separate removal evidence and terminal receipt in one owned local-context save. Participating MCP operations cannot interleave that synchronous phase; independent containers or sync/import writers may race, and projections diagnose available conflicts. This provides no global CloudKit atomicity or all-writer fence. UI drafts are neither returned by saved reads nor included in owned writes. Retained replay remains byte-identical and performs no repair or save.
 
 `mutate_tasks` rejects `linkChanges` and `endpointPreconditions` throughout its whole-shape preflight, before any item is accepted. Existing non-link items still use graph-covered revisions and the participating owned-save policy. There is no link editor, automatic duplicate merge, relationship closure operation or deletion shortcut.
+
+## Reviewed task consolidation
+
+The four consolidation tools operate on saved local content. Select one survivor UUID and one to
+five distinct candidate UUIDs from the same uniquely resolved project. The survivor must be the
+terminal canonical task. An existing candidate chain is retained only when it already resolves to
+that survivor; incompatible, dangling, cyclic or ambiguous canonical evidence fails closed.
+
+1. Call `preview_task_consolidation` with `survivorTaskId`, ordered `candidateTaskIds`, a nonblank
+   `reason` and candidate-keyed `preservation`. Every candidate must have a nonblank
+   `retainedExplanation`, a nonempty `incorporated` list, or both. Each incorporated entry supplies
+   `sourceDetail` and `survivorField` (`description` or `metadata`) and references an actual proposed
+   survivor field change. Optional `survivorEdits` supplies a description replacement/explicit null
+   or complete string-valued metadata replacement. Omission leaves that field unchanged.
+2. Inspect the complete originals, preservation accounting and proposed field/link changes. The
+   preview returns `reviewId`, `reviewRevision` (`p1:`) and `reviewExpiresAt`. It performs no domain,
+   history or receipt write, key acceptance or display-ID allocation. Reviews share the ordinary
+   eight-root retention capacity and 16 MiB complete representation limit, expire after five minutes,
+   and are not extended or consumed by reads. Listener shutdown or clearing the retained index can
+   retire the review earlier.
+3. Call `consolidate_tasks` with the exact review reference, `preservationAcknowledged:true` and a
+   fresh `idempotencyKey`. The server-held immutable review supplies all selected IDs and edits;
+   the write does not accept an editable plan. Acknowledgment is required even for retention-only
+   accounting. Saved participating evidence is revalidated before effects; a stale review requires
+   a fresh preview and corrected new request.
+4. To reverse, call `preview_task_consolidation_undo` with the original `operationId`. Inspect
+   history and current whole-reversal availability. If available, call `undo_task_consolidation`
+   with `operationId`, the exact undo `reviewId`/`reviewRevision` and a fresh key.
+
+Apply abandons only unfinished candidates using the existing status/date rules. Done/Abandoned
+candidates and survivor status/dates stay unchanged. Only the explicitly edited survivor description
+and metadata change. Original tasks, assignments and comments remain in place. Compatible existing
+chains and incoming links are preserved; new duplicate occurrences use the existing typed graph.
+
+The committed protected result has `entityId=operationId` and group evidence including
+`operationId`, `operationRevision` (`o1:`), `reason`, full saved `participants`, canonical `mappings`,
+immutable `history` and `undoAvailable`/`undoUnavailableReason`. A reversal also identifies its
+`reversalId`. Task participants retain their existing `r1` coverage; operation history has separate
+`o1` coverage. Modern presentation uses task UUID references without inventing navigation URLs.
+
+Whole reversal restores only the operation's recorded changed raw fields and removes only its exact
+created occurrences. Current applied revisions, raw changed fields, history content and physical
+multiplicity must match. Pre-existing links remain. There is no force/selective reversal and no
+monotonic edit-history/ABA detector. Valid saved inverse history permits an already-reversed
+assessment without another inverse event, even when the old temporary review has expired.
+
+Apply or reversal effects, immutable event and terminal receipt share one owned local-context save
+through the existing protected coordinator. Participating writers cannot interleave that phase;
+independent contexts/imports may race. This is a local commitment guarantee, not a distributed
+CloudKit transaction or global writer fence. Pending UI drafts are excluded.
+
+Retry a lost response with the original tool, arguments and key. Retained receipt replay precedes
+current review/content checks and preserves historical bytes. A wrapper failure after a possible
+commit uses prepared compact recovery evidence; never infer no effect or rotate keys automatically.
+Review expiry and seven-day receipt retention are separate from immutable operation history, which
+has no independent time expiry. Encoded history is capped at 256 KiB, and complete evidence/results
+are bounded rather than truncated. Missing/ambiguous/malformed evidence yields explicit unavailable
+outcomes; incomplete saved history cannot be treated as an empty history.
+
+Fresh full `query_tasks` includes saved consolidation history and current reversal assessment even
+when comment bodies are omitted. Legacy retained pages and receipts keep their original bytes and
+coverage. Native macOS/iPhone/iPad task details present saved reason, accounting, changes, paths and
+reversal state read-only, with exact unique saved UUID navigation.
+
+`mutate_tasks` does not accept consolidation operations. Installed-client validation, live CloudKit
+schema verification and production activation are separate from this local feature.
 
 ## Application batch task mutations
 

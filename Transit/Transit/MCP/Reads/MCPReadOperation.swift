@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 nonisolated struct MCPReadOperation: Sendable {
@@ -39,4 +38,3 @@ extension MCPReadCoordinator {
     }
 
 }
-#endif

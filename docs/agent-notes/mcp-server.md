@@ -2,7 +2,7 @@
 
 ## Overview
 
-Embedded MCP server in the Transit macOS app using Hummingbird HTTP server. Exposes task management tools to Claude Code and other MCP clients via Streamable HTTP transport (`POST /mcp`). All code behind `#if os(macOS)` guards.
+Embedded MCP server in the Transit macOS app using Hummingbird HTTP server. Exposes task management tools to Claude Code and other MCP clients via Streamable HTTP transport (`POST /mcp`). Server, transport and MCP wire/provider adapters are behind `#if os(macOS)` guards. The Foundation read lifecycle is cross-platform; native consolidation history shares the app-owned read coordinator on macOS, iPhone and iPad.
 
 ## Architecture
 
@@ -41,7 +41,7 @@ Key challenge: Hummingbird runs on SwiftNIO event loops (nonisolated), but servi
 
 ## Tools Exposed
 
-All eight write tools require `idempotencyKey`; updates and milestone deletion also require `expectedRevision`. Their saved records and structured retry/conflict outcomes follow [the write contract](../mcp-write-contract.md). Read tools and gated maintenance tools retain their separate dispatch paths.
+All ten standalone write tools require `idempotencyKey`; updates and milestone deletion also require `expectedRevision`. Consolidation writes use exact retained reviewId/reviewRevision rather than a client-authored plan; apply additionally requires explicit preservation acknowledgment. Their saved records and structured retry/conflict outcomes follow [the write contract](../mcp-write-contract.md). Read tools and gated maintenance tools retain their separate dispatch paths.
 
 | Tool | Description |
 |------|-------------|
@@ -52,12 +52,16 @@ All eight write tools require `idempotencyKey`; updates and milestone deletion a
 | `update_task` | Update a task's mutable fields — any combination of `name`, `description`, `type`, `priority`, `metadata`, and milestone assignment (`milestone` / `milestoneDisplayId` / `clearMilestone`) — in a single atomic call. Priority is non-clearable: omit to leave unchanged. Identify task by displayId or taskId. |
 | `query_tasks` | Required detailLevel, includeComments, and limit (1–100); returns frozen {results,nextCursor,expiresAt} pages. Existing filters or single displayId; taskIds/displayIds batches reject filters. Continuations send cursor and optional identical retained readPolicy. |
 | `add_comment` | Add a comment to a task (by displayId or taskId); always sets `isAgent: true` |
+| `preview_task_consolidation` | Saved bounded review of one survivor and one to five same-project candidates, with explicit preservation accounting; no write key or domain effects. |
+| `consolidate_tasks` | Commit the exact retained review with preservationAcknowledged:true and one protected key; original tasks/comments remain. |
+| `preview_task_consolidation_undo` | Inspect immutable operation history and current whole-reversal availability; retain an undo review when available. |
+| `undo_task_consolidation` | Whole reversal against the exact retained review/current evidence, or saved already-reversed reconciliation. |
 
 ### Task query snapshots (T-2379)
 
 `MCPTaskQueryRequest` validates initial options and cursor continuation (cursor plus optional identical retained readPolicy). The admitted `MCPReadService` captures saved values, then prepares projected pages, frozen tool fragments and capture metadata through the common result seam before atomic publication. Full queries fetch child-side comments for a complete revision even when bodies are omitted; summary queries without comments can skip that fetch. Repeated selector IDs reuse captured evidence. Continuations retain frozen revisions/text/metadata and add only a newly correlated RPC wrapper, without fetching live records.
 
-`MCPTaskQuerySnapshotStore` retains encoded pages for five minutes with monotonic expiry, at most eight multi-page snapshots and16MiB charged retained data. Capacity rejection preserves existing cursors; reads do not extend lifetime. One-page results are byte-limited but need no retained snapshot. Listener shutdown closes admission and clears indexes before awaiting listener teardown; unfinished physical read workers retain their slots until finalizers complete; canceled or failed publication cannot expose cursor success. The bounded coordinator retains unfinished physical slots across restart.
+`MCPTaskQuerySnapshotStore` retains encoded pages for five minutes with monotonic expiry, at most eight multi-page snapshots and16MiB charged retained data. Capacity rejection preserves existing cursors; reads do not extend lifetime. One-page results are byte-limited but need no retained snapshot. Listener shutdown closes its own admission and clears retained MCP indexes before awaiting listener teardown; unfinished physical read workers retain their slots until finalizers complete; canceled or failed publication cannot expose cursor success. The bounded coordinator retains unfinished physical slots across restart.
 
 ### Maintenance tools (gated, default off)
 

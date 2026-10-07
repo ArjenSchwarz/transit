@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 extension MCPReadPublicationDomain {
@@ -165,4 +164,3 @@ extension MCPReadPublicationDomain {
         }) else { throw PublicationRejection.busy }
     }
 }
-#endif

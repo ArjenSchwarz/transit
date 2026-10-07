@@ -3,8 +3,8 @@ import Foundation
 import SwiftData
 
 @MainActor enum MCPReadAppDependencies {
-    static func make(container: ModelContainer, syncActive: Bool) -> MCPReadService {
-        let domain = MCPReadPublicationDomain()
+    static func make(container: ModelContainer, syncActive: Bool,
+                     domain: MCPReadPublicationDomain = MCPReadPublicationDomain()) -> MCPReadService {
         let snapshots = MCPTaskQuerySnapshotStore(domain: domain)
         let monitor = MCPImportEvidenceMonitor(syncActive: syncActive, storeIdentifier: storeIdentifier(container))
         monitor.start()

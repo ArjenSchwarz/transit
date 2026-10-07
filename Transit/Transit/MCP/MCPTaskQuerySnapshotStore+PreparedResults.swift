@@ -49,7 +49,7 @@ extension MCPTaskQuerySnapshotStore {
                 metadataBytes: metadataBytes, policy: policy, preparedResultPage: owner)
         }
         let candidate = try Index(roots: Array(original.descriptor.roots.values) + [root],
-                                  pages: mapping, modernRoots: modernRoots)
+                                  pages: mapping, modernRoots: modernRoots, reviews: original.reviews)
         try Self.check(operation)
         do {
             return try domain.reserve(storeID: publicationStoreID, operationID: operationID,
@@ -82,6 +82,7 @@ extension MCPTaskQuerySnapshotStore {
         var roots = index.descriptor.roots
         var pages = index.pages
         var modernRoots = index.modernRoots
+        var reviews = index.reviews
         var children: [MCPPublicationReservation] = []
         var pins: [MCPOrdinaryQueryReadPin] = []
         for publication in publications {
@@ -103,6 +104,7 @@ extension MCPTaskQuerySnapshotStore {
                 guard roots[key] == nil else { throw PublicationRejection.busy }
                 roots[key] = root
                 if let modern = candidate.modernRoots[key] { modernRoots[key] = modern }
+                if let review = candidate.reviews[key] { reviews[key] = review }
             }
             for (token, page) in candidate.pages where index.pages[token] == nil {
                 try Self.check(operation)
@@ -131,7 +133,7 @@ extension MCPTaskQuerySnapshotStore {
             }
             guard roots[id]?.encodedByteCount == bytes else { throw PublicationRejection.busy }
         }
-        let candidate = try Index(roots: Array(roots.values), pages: pages, modernRoots: modernRoots)
+        let candidate = try Index(roots: Array(roots.values), pages: pages, modernRoots: modernRoots, reviews: reviews)
         try Self.check(operation)
         if let operation {
             if children.count == 1, let child = children.first {
@@ -152,8 +154,8 @@ extension MCPTaskQuerySnapshotStore {
 
     /// Sharing inside one bundle is intentional. Different roots must own disjoint new page and
     /// metadata allocations, or fixed root charges/retirement would double-charge a shared owner.
-    nonisolated private static func validateModernOwners(_ roots: [String: ModernRoot],
-                                                         operation: MCPReadOperation?) throws {
+    nonisolated static func validateModernOwners(_ roots: [String: ModernRoot],
+                                                 operation: MCPReadOperation?) throws {
         var previous: Set<ObjectIdentifier> = []
         for root in roots.values {
             try check(operation)

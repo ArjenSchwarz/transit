@@ -57,7 +57,7 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
 
 ### Data Model
 
-Eight SwiftData entities:
+Nine SwiftData entities:
 - **Project** → has many **Tasks** and many **Milestones**
 - **TransitTask** → belongs to one Project, optionally belongs to one Milestone, has many Comments
 - **Milestone** → belongs to one Project, has many Tasks. Statuses: open / done / abandoned
@@ -66,6 +66,7 @@ Eight SwiftData entities:
 - **MCPWriteReceipt** → same-store accepted/terminal write state and saved replay result, scoped to the originating local store even when synced
 - **TaskLinkOccurrence** → immutable scalar UUID/kind/endpoints/time for each physical active relationship; no task relationships or delete cascades
 - **TaskLinkRemovalEvidence** → separate immutable occurrence fingerprint and removal time, recognized for seven days; no automatic task consolidation
+- **TaskConsolidationEvent** → immutable scalar consolidation/reversal history with fixed participant slots and a bounded versioned payload; no relationships, unique constraints, cascades or independent expiry
 
 Both tasks and milestones have a UUID and a separate `permanentDisplayId` integer for human-facing use (T-1, M-3), allocated via CloudKit counter records with optimistic locking and provisional fallback when offline.
 
@@ -110,6 +111,7 @@ All business logic lives in `Services/`, not in views:
 - **ConnectivityMonitor** — NWPathMonitor wrapper, triggers display ID promotion for both tasks and milestones on connectivity restore
 - **QuickActionService** — home screen quick action handling
 - **Task links** (`Services/TaskLinks/`) — saved value graph projection, direct blocker/duplicate assessments, proposed delta validation, exact repair evidence and bounded cleanup. Physical UUID collisions and dangling occurrences remain visible; task deletion does not silently cascade links.
+- **Task consolidation** (`Services/TaskConsolidation/`) — saved value capture, bounded reviewed planning, owned apply/whole reversal, immutable history validation and shared native history reads.
 - **EditMerge** (`EditMerge.swift`, plus `TaskEditMerge`/`ProjectEditMerge`/`MilestoneEditMerge`) — three-way merge (load-time baseline vs. form vs. live model) used by the task, project, and milestone editors so a save writes only the fields the user changed and same-field conflicts are surfaced instead of silently resolved. The merge retains the original, edited, and live snapshots so conflict consent is scoped to the exact values the alert showed and is re-validated when the button is pressed. Each editor supplies a field enum, a snapshot (including per-field `replacing(_:withValueFrom:)`), an applier, and load-once draft state (a value-type form where appropriate).
 
 ### Navigation
@@ -141,9 +143,9 @@ Shared intent infrastructure lives in `Intents/Shared/`: entities (`ProjectEntit
 
 ### MCP Server (macOS only)
 
-HTTP-based JSON-RPC 2.0 server using **Hummingbird**, gated behind `#if os(macOS)`. Configured via `MCPSettings` (UserDefaults-backed toggle and port). Exposes 13 normal tools:
+HTTP-based JSON-RPC 2.0 server using **Hummingbird**, gated behind `#if os(macOS)`. Configured via `MCPSettings` (UserDefaults-backed toggle and port). Exposes 17 normal tools:
 
-`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `query_project_summaries`, `mutate_tasks`
+`create_task`, `update_task_status`, `query_tasks`, `update_task`, `add_comment`, `get_projects`, `create_project`, `create_milestone`, `query_milestones`, `update_milestone`, `delete_milestone`, `query_project_summaries`, `mutate_tasks`, `preview_task_consolidation`, `consolidate_tasks`, `preview_task_consolidation_undo`, `undo_task_consolidation`
 
 Key implementation files:
 - `MCP/MCPServer.swift` — Hummingbird router, lifecycle management
@@ -152,6 +154,7 @@ Key implementation files:
 - `MCP/MCPTypes.swift` — shared JSON-RPC types; exposed transport is latest-only `2026-07-28` via `MCP/Protocol` and `MCPServer+Routing.swift`
 - `MCP/BatchWrites/` — saved-only mutation previews and ordered per-item protected writes; no whole-batch receipt or transaction
 - `MCP/Links/` — typed relationship query options and saved graph result projection; protected standalone wire/owned-apply adapters live in `MCP/Writes/TaskLink*`.
+- `MCP/Consolidation/` — strict preview/apply/undo contracts, retained review authority, bounded result encoding and app-owned capability adapters.
 - `MCP/Results/` — immutable source/presentation, output schemas and complete response/fallback encoding
 - `MCP/Reads/` — bounded capture/admission/deadline/publication services
 - `MCP/MCPHelperTypes.swift` — query filter logic (`MCPQueryFilters`)
@@ -212,11 +215,11 @@ Services follow a consistent pattern: mutate in memory, then `save()`, rolling b
 ## Test Infrastructure
 
 - **Swift Testing** framework (not XCTest) for unit tests
-- **TestModelContainer** fixture (`TransitTests/TestModelContainer.swift`) — creates an isolated in-memory container with `cloudKitDatabase: .none` and an explicit `Schema` including all eight current entities (Project, TransitTask, Comment, Milestone, SyncHeartbeat, MCPWriteReceipt, TaskLinkOccurrence and TaskLinkRemovalEvidence). All three properties (schema, in-memory, no CloudKit) are required to avoid conflicts.
+- **TestModelContainer** fixture (`TransitTests/TestModelContainer.swift`) — creates an isolated in-memory container with `cloudKitDatabase: .none` and an explicit `Schema` including all nine current entities (Project, TransitTask, Comment, Milestone, SyncHeartbeat, MCPWriteReceipt, TaskLinkOccurrence, TaskLinkRemovalEvidence and TaskConsolidationEvent). All three properties (schema, in-memory, no CloudKit) are required to avoid conflicts.
 - Each test constructs `let testContainer = try TestModelContainer()` and derives `testContainer.context`; helpers that create SwiftData storage should return or store the owning fixture rather than only a context/service
 - Custom-schema and multi-context tests use `TestModelContainer(schema:configurations:)`; direct `ModelContainer` construction and raw container/context factories in test sources are rejected by the ownership guard run from `make lint`
 - SwiftData test suites must use `@Suite(.serialized)` to prevent concurrent access issues
-- UI tests use `TRANSIT_UI_TEST_SCENARIO` environment variable (`empty`, `board`, `duplicateDisplayIds`, `taskLinks` or `taskLinksAmbiguous`) for deterministic seeded data
+- UI tests use `TRANSIT_UI_TEST_SCENARIO` environment variable (`empty`, `board`, `duplicateDisplayIds`, `taskLinks`, `taskLinksAmbiguous`, `consolidationHistory`, `consolidationHistoryReversed`, `consolidationHistoryUnavailable`, `consolidationHistoryOverLimit`, `consolidationHistoryMissing` or `consolidationHistoryAmbiguous`) for deterministic seeded data
 - MCP tool handler tests use `MCPTestHelpers.swift` for common setup patterns
 
 ## Key Design Decisions

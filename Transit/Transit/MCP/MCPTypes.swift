@@ -240,20 +240,49 @@ nonisolated struct JSONSchemaItems: Encodable, Sendable {
     }
 }
 
+nonisolated enum JSONSchemaAdditionalProperties: Encodable, Sendable, ExpressibleByBooleanLiteral {
+    case allowed(Bool)
+    case schema(JSONSchema)
+
+    init(booleanLiteral value: Bool) { self = .allowed(value) }
+
+    func encode(to encoder: any Encoder) throws {
+        switch self {
+        case .allowed(let value):
+            var container = encoder.singleValueContainer()
+            try container.encode(value)
+        case .schema(let value): try value.encode(to: encoder)
+        }
+    }
+}
+
 nonisolated struct JSONSchemaProperty: Encodable, Sendable {
     let type: String?
     let description: String?
     let enumValues: [String]?
-    let items: JSONSchemaItems?
+    var items: JSONSchemaItems?
     var pattern: String?
     var minimum: Int?
     var maximum: Int?
     var const: Bool?
     var defaultValue: String?
     var maxItems: Int?
+    var minItems: Int?
+    var properties: [String: JSONSchemaProperty]?
+    var required: [String]?
+    var additionalProperties: JSONSchemaAdditionalProperties?
+    var oneOf: [JSONSchema]?
+    var anyOf: [JSONSchema]?
+    var patternProperties: [String: JSONSchemaProperty]?
+    var minProperties: Int?
+    var maxProperties: Int?
+    var minLength: Int?
+    var uniqueItems: Bool?
 
     nonisolated enum CodingKeys: String, CodingKey {
-        case type, description, items, pattern, minimum, maximum, const, maxItems
+        case type, description, items, pattern, minimum, maximum, const, maxItems, minItems
+        case properties, required, additionalProperties, oneOf, anyOf, patternProperties
+        case minProperties, maxProperties, minLength, uniqueItems
         case enumValues = "enum"
         case defaultValue = "default"
     }

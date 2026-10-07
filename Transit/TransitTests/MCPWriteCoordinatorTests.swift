@@ -226,7 +226,7 @@ struct MCPWriteCoordinatorTests {
         try #require(try JSONSerialization.jsonObject(with: Data(result.content[0].text.utf8)) as? [String: Any])
     }
 }
-private actor MCPWritePreparationGate {
+actor MCPWritePreparationGate {
     private var parked: CheckedContinuation<Void, Never>?
     private var waiter: CheckedContinuation<Void, Never>?
     private var started = false

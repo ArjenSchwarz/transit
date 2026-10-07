@@ -79,6 +79,14 @@ enum MCPReadProjection {
             }
             let detail = try TaskLinkQueryProjection.detail(task.id, graph: view.taskLinkGraph, budget: budget)
             record.merge(detail) { _, new in new }
+            if let evidence = view.consolidationEvidence {
+                let history = evidence.history.filter {
+                    $0.apply.survivorTaskId == task.id || $0.apply.candidateTaskIds.contains(task.id)
+                }
+                try budget.check()
+                record["consolidationHistory"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(history))
+                record["consolidationHistoryCoverage"] = "complete"
+            }
             if (record["metadata"] as? [String: String])?.isEmpty == true { record.removeValue(forKey: "metadata") }
             return record
         }

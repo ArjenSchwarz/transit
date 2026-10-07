@@ -120,7 +120,16 @@ extension MCPWriteReceiptStore {
         guard let entity = envelope["entityId"] as? String, let id = UUID(uuidString: entity) else {
             throw Error.inconsistentReceipt
         }
-        switch receipt.tool {
+        try validateCommitted(envelope, tool: receipt.tool, id: id, request: request)
+    }
+
+    fileprivate func validateCommitted(_ envelope: [String: Any], tool: String, id: UUID,
+                                       request: [String: Any]) throws {
+        switch tool {
+        case "consolidate_tasks":
+            try validateConsolidation(envelope, id: id)
+            try validateConsolidationHistory(envelope, id: id, requiresReversal: false)
+        case "undo_task_consolidation": try validateUndoTerminal(envelope, id: id, request: request)
         case "create_project": try validateRecord(envelope["record"], kind: "project", id: id)
         case "add_comment": try validateRecord(envelope["record"], kind: "comment", id: id)
         case "create_milestone", "update_milestone":
@@ -132,7 +141,7 @@ extension MCPWriteReceiptStore {
             try validateRecord(envelope["recordBeforeDeletion"], kind: "milestone", id: id)
         case "create_task", "update_task", "update_task_status":
             try validateRecord(envelope["record"], kind: "task", id: id)
-            if receipt.tool == "update_task_status" {
+            if tool == "update_task_status" {
                 try validateStatusComment(envelope["comment"], taskID: id, request: request)
             }
         default: throw Error.inconsistentReceipt
@@ -145,11 +154,50 @@ extension MCPWriteReceiptStore {
             error["message"] is String,
             envelope["retryAction"] as? String == "new_request_new_key"
         else { throw Error.inconsistentReceipt }
-        if code == "REVISION_CONFLICT" || envelope["currentRecord"] != nil {
+        let group = ["consolidate_tasks", "undo_task_consolidation"].contains(tool)
+        if group && code == "REVISION_CONFLICT" {
+            try validateGroupConflict(envelope)
+        }
+        if (code == "REVISION_CONFLICT" && !group) || envelope["currentRecord"] != nil {
             let kind = ["update_milestone", "delete_milestone"].contains(tool) ? "milestone" : "task"
             try validateRecord(envelope["currentRecord"], kind: kind)
         }
 
+    }
+
+    func validateConsolidation(_ envelope: [String: Any], id: UUID) throws {
+        guard (envelope["operationId"] as? String).flatMap(UUID.init(uuidString:)) == id,
+              let revision = envelope["operationRevision"] as? String,
+              revision.range(of: "^o1:[0-9a-f]{64}$", options: .regularExpression)
+                == revision.startIndex..<revision.endIndex,
+              let reason = envelope["reason"] as? String,
+              !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let participants = envelope["participants"] as? [[String: Any]], (2...6).contains(participants.count),
+              let undo = envelope["undoAvailable"],
+              ["true", "false"].contains(try MCPCanonicalJSON.encode(undo)) else {
+            throw Error.inconsistentReceipt
+        }
+        if try MCPCanonicalJSON.encode(undo) == "false" {
+            guard let unavailable = envelope["undoUnavailableReason"] as? String, !unavailable.isEmpty else {
+                throw Error.inconsistentReceipt
+            }
+        } else if envelope["undoUnavailableReason"] != nil { throw Error.inconsistentReceipt }
+        var ids = Set<UUID>()
+        for participant in participants {
+            try validateRecord(participant, kind: "task")
+            guard let raw = participant["taskId"] as? String, let id = UUID(uuidString: raw),
+                  ids.insert(id).inserted else { throw Error.inconsistentReceipt }
+        }
+    }
+
+    fileprivate func validateGroupConflict(_ envelope: [String: Any]) throws {
+        guard let ids = envelope["affectedTaskIds"] as? [String], (1...6).contains(ids.count),
+              ids.allSatisfy({ UUID(uuidString: $0) != nil }), Set(ids).count == ids.count,
+              let revisions = envelope["currentRevisions"] as? [String: String], Set(revisions.keys) == Set(ids),
+              revisions.values.allSatisfy({ revision in
+                  revision.range(of: "^r1:[0-9a-f]{64}$", options: .regularExpression)
+                    == revision.startIndex..<revision.endIndex
+              }), envelope["currentRecord"] == nil else { throw Error.inconsistentReceipt }
     }
 
     fileprivate func validateStatusComment(_ value: Any?, taskID: UUID, request: [String: Any]) throws {

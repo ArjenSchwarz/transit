@@ -1,3 +1,4 @@
+import CoreData
 import SwiftData
 import SwiftUI
 
@@ -8,6 +9,9 @@ struct TaskDetailView: View {
     var embeddedNavigation: Bool
     @Environment(\.openWindow) private var openWindow
     @State private var linkedTask: TransitTask?
+    @State private var consolidationState = TaskConsolidationNativeState()
+    @State private var historyVersion: UInt64 = 0
+    @Environment(\.consolidationHistoryReader) private var historyReader
     @Environment(TaskService.self) private var taskService
     @Environment(\.dismiss) private var dismiss
     @Environment(\.resolvedTheme) private var resolvedTheme
@@ -32,6 +36,13 @@ struct TaskDetailView: View {
         Group {
             if embeddedNavigation { detailContent } else { NavigationStack { detailContent } }
         }
+        .task(id: HistoryRefreshKey(id: task.id, version: historyVersion)) {
+            await refreshConsolidationHistory()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { _ in historyVersion &+= 1 }
+        .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)) { _ in
+            historyVersion &+= 1
+        }
         #if os(iOS)
         .presentationDetents([.medium, .large])
         #endif
@@ -50,14 +61,12 @@ struct TaskDetailView: View {
         #endif
     }
 
-    private var relationships: some View {
-        TaskLinksSection(taskID: task.id) { destination in
-            #if os(macOS)
-            openWindow(id: "task-detail", value: destination.id)
-            #else
-            linkedTask = destination
-            #endif
-        }
+    private func selectLinkedTask(_ destination: TransitTask) {
+        #if os(macOS)
+        openWindow(id: "task-detail", value: destination.id)
+        #else
+        linkedTask = destination
+        #endif
     }
 
     // MARK: - iOS Layout
@@ -271,5 +280,40 @@ struct TaskDetailView: View {
                 }
             }
         }
+    }
+}
+
+private extension TaskDetailView {
+    var relationships: some View {
+        #if os(iOS)
+        Group {
+            TaskLinksSection(taskID: task.id, onSelect: selectLinkedTask)
+            TaskConsolidationHistorySection(taskID: task.id, onSelect: selectLinkedTask,
+                                           state: consolidationState, onRefresh: { historyVersion &+= 1 })
+        }
+        .buttonStyle(.borderless)
+        #else
+        VStack(alignment: .leading, spacing: 16) {
+            TaskLinksSection(taskID: task.id, onSelect: selectLinkedTask)
+            TaskConsolidationHistorySection(taskID: task.id, onSelect: selectLinkedTask,
+                                           state: consolidationState, onRefresh: { historyVersion &+= 1 })
+        }
+        .buttonStyle(.borderless)
+        #endif
+    }
+
+    struct HistoryRefreshKey: Hashable { let id: UUID; let version: UInt64 }
+
+    func refreshConsolidationHistory() async {
+        let debounce = consolidationState.sourceID == task.id
+        await consolidationState.refresh(source: task.id, wait: {
+            if debounce { try await Task.sleep(for: .milliseconds(100)) }
+        }, provider: { id in
+            guard let historyReader else {
+                return TaskConsolidationNativeObservation(taskId: id, history: [], tasks: [],
+                    problem: "Saved consolidation history is unavailable.")
+            }
+            return await historyReader.read(id)
+        })
     }
 }

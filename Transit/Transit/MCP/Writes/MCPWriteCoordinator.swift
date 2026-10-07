@@ -21,6 +21,8 @@ import SwiftData
     private let reservations: MCPLocalReservationStore?
     private let receipts: MCPWriteReceiptStore?
     private let startupFailure: MCPWriteFailure?
+    var localScopeId: String? { reservations?.scopeID }
+
     private var active: [String: String] = [:]
     init(
         services: MCPWriteCommandServices, sidecarDirectory: URL,
@@ -108,7 +110,7 @@ import SwiftData
                 command, .init("OPERATION_IN_PROGRESS", "Retry the same request after completion"),
                 accepted: true, outcome: "in_progress", retry: "retry_same_request")
         }
-        if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
+        if (batchPolicy != nil || command.hasLinkInput || command.isConsolidation) && services.context.hasChanges {
             return inspectRetainedWhileDirty(
                 command, payload: payload, reservations: reservations, receipts: receipts,
                 now: clock(), batchPolicy: batchPolicy)
@@ -186,7 +188,7 @@ extension MCPWriteCoordinator {
         reservations: MCPLocalReservationStore, receipts: MCPWriteReceiptStore,
         batchPolicy: MCPBatchWritePolicy?
     ) -> Acceptance {
-        if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
+        if (batchPolicy != nil || command.hasLinkInput || command.isConsolidation) && services.context.hasChanges {
             return .result(inspectRetainedWhileDirty(
                 command, payload: payload, reservations: reservations, receipts: receipts,
                 now: clock(), batchPolicy: batchPolicy))
@@ -196,10 +198,8 @@ extension MCPWriteCoordinator {
                                           batchPolicy: batchPolicy) {
             return .result(existing)
         }
-        if command.hasLinkInput && batchPolicy?.taskLinkCapability == nil {
-            return .result(transient(command,
-                .init("PERSISTENCE_UNAVAILABLE", "Typed-link owned plan/apply policy is not installed"),
-                accepted: false))
+        if let failure = missingOwnedCapability(command, policy: batchPolicy) {
+            return .result(transient(command, failure, accepted: false))
         }
         do {
             if services.context.hasChanges { try save(services.context, .baseline) }
@@ -240,6 +240,16 @@ extension MCPWriteCoordinator {
         return .ready(guardRecord, receipt)
     }
 
+    private func missingOwnedCapability(_ command: MCPWriteCommand, policy: MCPBatchWritePolicy?) -> MCPWriteFailure? {
+        if command.isConsolidation && policy?.makeCommitServices == nil {
+            return .init("CONSOLIDATION_UNAVAILABLE", "Clean owned group execution is not installed")
+        }
+        if command.hasLinkInput && policy?.taskLinkCapability == nil {
+            return .init("PERSISTENCE_UNAVAILABLE", "Typed-link owned plan/apply policy is not installed")
+        }
+        return nil
+    }
+
     fileprivate func runAccepted(
         _ command: MCPWriteCommand, guardRecord: MCPLocalReservation, receipt: MCPWriteReceipt,
         reservations: MCPLocalReservationStore,
@@ -248,14 +258,14 @@ extension MCPWriteCoordinator {
         let prepared: PreparedMCPWrite
         do {
             try await preparationHook(command)
-            if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
+            if (batchPolicy != nil || command.hasLinkInput || command.isConsolidation) && services.context.hasChanges {
                 return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
             }
             prepared = try await command.prepare(using: services, newTaskID: newTaskID)
             try Task.checkCancellation()
         } catch {
             // Return before a rejection phase can save or roll back UI edits.
-            if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
+            if (batchPolicy != nil || command.hasLinkInput || command.isConsolidation) && services.context.hasChanges {
                 return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
             }
             // Validate a fresh scope after suspension, before retaining rejection.
@@ -272,7 +282,7 @@ extension MCPWriteCoordinator {
                 }
             } catch { return uncertain(command) }
         }
-        if (batchPolicy != nil || command.hasLinkInput) && services.context.hasChanges {
+        if (batchPolicy != nil || command.hasLinkInput || command.isConsolidation) && services.context.hasChanges {
             return dirtyUnavailable(command, accepted: true, batchPolicy: batchPolicy)
         }
         do {
@@ -448,6 +458,7 @@ extension MCPWriteCoordinator {
         envelope["completedAt"] = MCPRecordSnapshot.timestamp(completed)
         envelope["replayExpiresAt"] = MCPRecordSnapshot.timestamp(expiry)
         let json = try encode(envelope)
+        try MCPConsolidationTerminalBudget.validate(json, receipt: receipt)
         receipt.stateRawValue = rejected ? "rejected" : "committed"
         receipt.completedAt = completed
         receipt.expiresAt = expiry

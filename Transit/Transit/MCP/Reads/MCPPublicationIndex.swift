@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 nonisolated struct MCPPublicationRoot: Sendable {
@@ -92,4 +91,3 @@ nonisolated final class MCPPublicationReservation: MCPPreparedPublication, @unch
     func commitLocked(in domain: MCPReadPublicationDomain) { domain.commitLocked(self) }
     func discardLocked(in domain: MCPReadPublicationDomain) { domain.discardLocked(self) }
 }
-#endif

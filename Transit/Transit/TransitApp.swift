@@ -7,11 +7,9 @@ import UIKit
 #endif
 @main
 struct TransitApp: App {
-
     #if os(iOS)
     @UIApplicationDelegateAdaptor private var appDelegate: QuickActionAppDelegate
     #endif
-
     private let container: ModelContainer
     /// Non-nil when the primary ModelContainer failed and an in-memory fallback is in use.
     private let containerError: (any Error)?
@@ -24,33 +22,29 @@ struct TransitApp: App {
     private let milestoneIDAllocator: DisplayIDAllocator
     private let syncManager: SyncManager
     private let connectivityMonitor: ConnectivityMonitor
-
+    private let consolidationHistoryReader: TaskConsolidationNativeReader
+    private let readCoordinator: MCPReadCoordinator
     #if os(macOS)
     private let mcpSettings: MCPSettings
     private let mcpServer: MCPServer
     private let mcpWriteCoordinator: MCPWriteCoordinator
     #endif
-
     #if os(iOS)
     private let quickActionService: QuickActionService
     #endif
-
     /// Resolve before constructing SyncManager, a container, or receipt sidecars.
     private static let persistenceMode = AppPersistencePolicy.current
-
     private static var uiTestScenario: UITestScenario? {
         UITestScenario(rawValue: ProcessInfo.processInfo.environment["TRANSIT_UI_TEST_SCENARIO"] ?? "")
     }
-
     // swiftlint:disable:next function_body_length
     init() {
         let mode = Self.persistenceMode
         let syncManager = SyncManager(cloudSyncAllowed: mode.permitsCloudSync)
         self.syncManager = syncManager
-
         let schema = Schema([
             Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self,
-            TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self
+            TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self, TaskConsolidationEvent.self
         ])
         let config: ModelConfiguration
         if mode != .production {
@@ -76,38 +70,30 @@ struct TransitApp: App {
         self.container = container
         self.containerError = containerResult.error
         _showContainerError = State(initialValue: containerResult.error != nil)
-
         // Single persistence-availability signal, derived once from the container outcome and
         // consulted by both automation surfaces. The in-app alert above only reaches an
         // interactive user; MCP clients and Shortcuts/CLI callers rely on this flag to learn
         // that their writes would not survive a restart [T-1818, T-1836].
         let persistence = PersistenceAvailability.shared
         persistence.update(from: containerResult)
-
         if mode.permitsCloudSync && containerResult.error == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
-
         let context = container.mainContext
         TaskLinkEvidenceMaintenance.atStartup(container: container, mode: mode, persistence: persistence)
         let allocators = AppDisplayIDAllocators.make(mode: mode, syncActive: cloudSyncActive)
         let allocator = allocators.tasks
         self.displayIDAllocator = allocator
-
         let milestoneAllocator = allocators.milestones
         self.milestoneIDAllocator = milestoneAllocator
-
         let taskService = TaskService(modelContext: context, displayIDAllocator: allocator)
         let projectService = ProjectService(modelContext: context)
         self.taskService = taskService
         self.projectService = projectService
-
         let milestoneService = MilestoneService(modelContext: context, displayIDAllocator: milestoneAllocator)
         self.milestoneService = milestoneService
-
         let connectivityMonitor = ConnectivityMonitor()
         self.connectivityMonitor = connectivityMonitor
-
         if mode.permitsCloudSync {
             // Wire up connectivity restore to trigger display ID promotion.
             // The closure is @MainActor @Sendable, and context (container.mainContext)
@@ -123,10 +109,8 @@ struct TransitApp: App {
             }
             connectivityMonitor.start()
         }
-
         let commentService = CommentService(modelContext: context)
         self.commentService = commentService
-
         let maintenanceService = DisplayIDMaintenanceService(
             modelContext: context,
             taskAllocator: allocator,
@@ -134,19 +118,21 @@ struct TransitApp: App {
             commentService: commentService
         )
         self.maintenanceService = maintenanceService
-
         AppDependencyManager.shared.add(dependency: taskService)
         AppDependencyManager.shared.add(dependency: projectService)
         AppDependencyManager.shared.add(dependency: commentService)
         AppDependencyManager.shared.add(dependency: milestoneService)
         AppDependencyManager.shared.add(dependency: maintenanceService)
-
+        let readDomain = MCPReadPublicationDomain()
+        let readCoordinator = MCPReadCoordinator(domain: readDomain, diagnostics: .application)
+        self.readCoordinator = readCoordinator
+        self.consolidationHistoryReader = TaskConsolidationNativeReader(
+            container: container, coordinator: readCoordinator)
         #if os(iOS)
         let quickActionService = QuickActionService()
         self.quickActionService = quickActionService
         appDelegate.quickActionService = quickActionService
         #endif
-
         #if os(macOS)
         let mcpSettings = MCPSettings()
         self.mcpSettings = mcpSettings
@@ -163,29 +149,28 @@ struct TransitApp: App {
             sidecarDirectory: sidecar, persistence: persistence)
         self.mcpWriteCoordinator = writeCoordinator
         try? writeCoordinator.cleanupExpiredOutcomes()
-        let reads = MCPReadAppDependencies.make(container: container, syncActive: cloudSyncActive)
-        let readCoordinator = MCPReadCoordinator(domain: reads.snapshots.domain, diagnostics: reads.diagnostics)
+        let reads = MCPReadAppDependencies.make(container: container, syncActive: cloudSyncActive, domain: readDomain)
+        let consolidation = MCPConsolidationAppCapability(container: container, reads: reads,
+            coordinator: writeCoordinator, taskAllocator: allocator, milestoneAllocator: milestoneAllocator)
         let mcpToolHandler = MCPToolHandler(
             taskService: taskService, projectService: projectService,
             commentService: commentService, milestoneService: milestoneService,
             maintenanceService: maintenanceService, settings: mcpSettings,
             persistence: persistence, taskQuerySnapshots: reads.snapshots, writeCoordinator: writeCoordinator,
-            readService: reads, readCoordinator: readCoordinator, batchContainer: container,
+            readService: reads, consolidationPreviewAdapter: consolidation?.previews,
+            consolidationWriteAdapter: consolidation?.writes, readCoordinator: readCoordinator,
+                batchContainer: container,
             taskLinkWriteAdapter: TaskLinkWriteAdapter(taskAllocator: allocator, milestoneAllocator: milestoneAllocator)
         )
         self.mcpServer = MCPServer(toolHandler: mcpToolHandler, readCoordinator: readCoordinator)
         #endif
-
     }
-
     @State private var showContainerError: Bool
     @AppStorage("appTheme") private var appTheme: String = AppTheme.followSystem.rawValue
     @Environment(\.colorScheme) private var colorScheme
-
     private var currentTheme: AppTheme {
         AppTheme(rawValue: appTheme) ?? .followSystem
     }
-
     var body: some Scene {
         WindowGroup {
             NavigationStack {
@@ -224,6 +209,7 @@ struct TransitApp: App {
             .environment(commentService)
             .environment(milestoneService)
             .environment(maintenanceService)
+            .environment(\.consolidationHistoryReader, consolidationHistoryReader)
             .environment(syncManager)
             .environment(connectivityMonitor)
             #if os(iOS)
@@ -256,7 +242,6 @@ struct TransitApp: App {
             SettingsCommand()
         }
         #endif
-
         #if os(macOS)
         Window("Settings", id: "settings") {
             withCoreEnvironments(
@@ -271,7 +256,6 @@ struct TransitApp: App {
         .windowToolbarStyle(.unified)
         .defaultSize(width: 780, height: 500)
         .windowResizability(.contentSize)
-
         WindowGroup("Task Detail", id: "task-detail", for: UUID.self) { $taskID in
             if let taskID {
                 withCoreEnvironments(TaskDetailWindowView(taskID: taskID))
@@ -280,7 +264,6 @@ struct TransitApp: App {
         .modelContainer(container)
         .windowToolbarStyle(.unified)
         .defaultSize(width: 600, height: 700)
-
         Window("New Task", id: "add-task") {
             withCoreEnvironments(AddTaskSheet())
         }
@@ -289,12 +272,9 @@ struct TransitApp: App {
         .defaultSize(width: 600, height: 500)
         #endif
     }
-
 }
-
 extension TransitApp {
     // MARK: - Shared Environment
-
     private func withCoreEnvironments<V: View>(_ view: V) -> some View {
         view
             .preferredColorScheme(currentTheme.preferredColorScheme)
@@ -304,19 +284,16 @@ extension TransitApp {
             .environment(commentService)
             .environment(milestoneService)
             .environment(maintenanceService)
+            .environment(\.consolidationHistoryReader, consolidationHistoryReader)
     }
-
     // MARK: - UI Test Support
-
     private func seedUITestDataIfNeeded() {
         guard let scenario = Self.uiTestScenario else { return }
         scenario.seed(into: container.mainContext)
     }
 }
-
 extension TransitApp {
     // MARK: - MCP Server
-
     #if os(macOS)
     private func startMCPServerIfEnabled() async {
         // Skip MCP server in unit test host to avoid port conflicts across test runs
@@ -325,76 +302,4 @@ extension TransitApp {
         syncManager.startHeartbeat(container: container)
     }
     #endif
-
 }
-
-// MARK: - macOS Commands
-
-#if os(macOS)
-private struct NewTaskCommand: Commands {
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some Commands {
-        CommandGroup(replacing: .newItem) {
-            Button("New Task") {
-                openWindow(id: "add-task")
-            }
-            .keyboardShortcut("n", modifiers: .command)
-        }
-    }
-}
-
-private struct SettingsCommand: Commands {
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some Commands {
-        CommandGroup(replacing: .appSettings) {
-            Button("Settings…") {
-                openWindow(id: "settings")
-            }
-            .keyboardShortcut(",", modifiers: .command)
-        }
-    }
-}
-#endif
-
-// MARK: - Quick Action App Delegate
-
-#if os(iOS)
-final class QuickActionAppDelegate: NSObject, UIApplicationDelegate {
-    var quickActionService: QuickActionService?
-
-    func application(
-        _ application: UIApplication,
-        configurationForConnecting connectingSceneSession: UISceneSession,
-        options: UIScene.ConnectionOptions
-    ) -> UISceneConfiguration {
-        if let shortcut = options.shortcutItem, shortcut.type == QuickActionService.newTaskActionType {
-            quickActionService?.requestNewTask(
-                forSceneSession: connectingSceneSession.persistentIdentifier
-            )
-        }
-        let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
-        // Always register scene delegate so warm-start quick actions are delivered
-        // via windowScene(_:performActionFor:completionHandler:).
-        config.delegateClass = QuickActionSceneDelegate.self
-        return config
-    }
-}
-
-final class QuickActionSceneDelegate: NSObject, UIWindowSceneDelegate {
-    func windowScene(
-        _ windowScene: UIWindowScene,
-        performActionFor shortcutItem: UIApplicationShortcutItem,
-        completionHandler: @escaping (Bool) -> Void
-    ) {
-        let handled = shortcutItem.type == QuickActionService.newTaskActionType
-        if handled, let appDelegate = UIApplication.shared.delegate as? QuickActionAppDelegate {
-            appDelegate.quickActionService?.requestNewTask(
-                forSceneSession: windowScene.session.persistentIdentifier
-            )
-        }
-        completionHandler(handled)
-    }
-}
-#endif

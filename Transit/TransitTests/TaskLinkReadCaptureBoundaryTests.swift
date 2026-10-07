@@ -112,7 +112,8 @@ struct TaskLinkReadCaptureBoundaryTests {
         #expect(!graph.diagnostics.isEmpty)
         let without = CapturedReadView(completeness: view.completeness, captureScope: view.captureScope,
             metadata: view.metadata, createdAt: view.createdAt, retentionDeadline: view.retentionDeadline,
-            projects: view.projects, tasks: view.tasks, milestones: view.milestones, comments: view.comments)
+            projects: view.projects, tasks: view.tasks, milestones: view.milestones, comments: view.comments,
+            consolidationEvidence: view.consolidationEvidence)
         let metadata = try JSONEncoder().encode(view.metadata)
         let capsule = MCPPreparedReadCapture(view: view, frozenMetadataBytes: metadata)
         let legacy = MCPPreparedReadCapture(view: without, frozenMetadataBytes: metadata)

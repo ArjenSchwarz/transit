@@ -12,6 +12,7 @@ nonisolated enum MCPBoundedReadDispatcher {
         guard rpc.jsonrpc == "2.0", !rpc.isNotification, rpc.id != nil, rpc.method == "tools/call",
               let params = rpc.params?.value as? [String: Any], let tool = params["name"] as? String,
               ["query_tasks", "query_milestones", "get_projects", "query_project_summaries"].contains(tool)
+                || MCPConsolidationToolDefinitions.previewTools.contains(tool)
         else { return nil }
         let arguments = params["arguments"] as? [String: Any]
         return MCPClassifiedRead(request: MCPReadToolRequest(tool: tool,
@@ -22,13 +23,14 @@ nonisolated enum MCPBoundedReadDispatcher {
     @concurrent static func response(
         for read: MCPClassifiedRead, rpc: JSONRPCRequest, handler: MCPToolHandler,
         coordinator: MCPReadCoordinator, admittedAt: ContinuousClock.Instant,
+        admissionOwner: MCPReadAdmissionOwner = .application,
         encode: @escaping @Sendable (MCPPreparedToolRead, JSONRPCId) throws -> Data = encodeResult,
         encodeWithOperation: (@Sendable (MCPPreparedToolRead, JSONRPCId, MCPReadOperation) throws -> Data)? = nil,
         encodeConstantToolFailure: (@Sendable (MCPPreparedToolRead, JSONRPCId) throws -> Data)? = nil
     ) async throws -> Data {
         guard let id = rpc.id else { throw MCPReadCaptureError.serializationFailure }
         let constantEncoder = encodeConstantToolFailure ?? encodeResult
-        let admission = MCPReadAdmission()
+        let admission = MCPReadAdmission(owner: admissionOwner)
         let policy = (read.request.arguments["readPolicy"]?.value as? String).flatMap(MCPReadPolicy.init(rawValue:))
             ?? .refreshIfNeeded
         let timeout = try failure(id: id, operationID: admission.operationID, policy: policy,

@@ -29,6 +29,7 @@ final class MCPServer {
     private var activeServer: ActiveServer?
     private var nextRunID = 0
     private var serverGeneration = 0
+    private var listenerScope: UUID?
     var isRunning: Bool { activeServer != nil }
     var activePort: Int? { activeServer?.port }
 
@@ -133,7 +134,8 @@ extension MCPServer {
     }
 
     private func tearDownCurrentServer() async {
-        readCoordinator.stop()
+        if let listenerScope { readCoordinator.stopListener(listenerScope) }
+        listenerScope = nil
         toolHandler.setTaskQueryAdmission(open: false)
         toolHandler.finishToolListChangeSessions()
         guard let currentServer = activeServer else { return }
@@ -155,7 +157,8 @@ extension MCPServer {
     /// Ignore completion from a listener replaced by a newer generation.
     func listenerDidExit(generation: Int, failure: String?) {
         guard serverGeneration == generation else { return }
-        readCoordinator.stop()
+        if let listenerScope { readCoordinator.stopListener(listenerScope) }
+        listenerScope = nil
         toolHandler.setTaskQueryAdmission(open: false)
         activeServer = nil
         toolHandler.finishToolListChangeSessions()
@@ -169,13 +172,16 @@ extension MCPServer {
 
         toolHandler.openToolListSubscriptions()
         toolHandler.setTaskQueryAdmission(open: true)
-        readCoordinator.start()
+        let scope = UUID()
+        listenerScope = scope
+        readCoordinator.startListener(scope)
         let handler = toolHandler
         let setNotRunning = { @MainActor [weak self] (failure: String?) in
             self?.listenerDidExit(generation: currentGeneration, failure: failure)
         }
         let app = Application(
-            router: Self.makeRouter(handler: handler, readCoordinator: readCoordinator),
+            router: Self.makeRouter(handler: handler, readCoordinator: readCoordinator,
+                admissionOwner: .listener(scope)),
             configuration: .init(
                 address: .hostname("127.0.0.1", port: port)
             )
