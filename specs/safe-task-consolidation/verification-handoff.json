@@ -27,7 +27,13 @@
       19,
       20
     ],
-    "reason": "Current composed byte proof6/7 and full iOS units1352/1456 pass; phone27/30 and iPad passes retain unchanged hashes. Tasks17\u201320 remain open for Mac rendered acceptance and dependencies. Mac automation writer requests native Enable UI Automation authentication before timing out; no completion observed."
+    "reason": "Current composed byte proof6/7 and full iOS units1352/1456 pass; phone27/30 and iPad passes retain unchanged hashes. Tasks17\u201320 remain open for Mac rendered acceptance and dependencies. Mac automation writer requests native Enable UI Automation authentication before timing out; no completion observed.",
+    "inProgress": [
+      17,
+      18,
+      19,
+      20
+    ]
   },
   "builds": {
     "ios": {
@@ -451,8 +457,8 @@
   "activeBuildOrTestJobs": [],
   "allOwnedSimulatorsDeleted": true,
   "remainingWork": [
-    "Complete native macOS Enable UI Automation authentication under authorized environment setup; bounded logs show the writer authentication request but no completion. No blind unchanged retry or specific DeveloperMode/TCC setting fix is prescribed.",
-    "After an observed changed condition, revalidate exact current signed artifacts/source and heavy allocation; run only Mac one-case probe120seconds, then remaining3history declarations360seconds only after finalized1/1PASS/drain.",
+    "Obtain user confirmation of native Enable UI Automation authentication, or readiness to handle a newly requested prompt if the old prompt has disappeared. Saved logs cannot determine current prompt visibility. A newly authorized standard XCTest one-case probe is the supported request path and may recreate the prompt; do not use standalone authentication APIs, credentials or security-setting changes.",
+    "Wait for user confirmation and a new exclusive heavy allocation (T2404 currently owns heavy checks). Record truthful current authentication/readiness evidence; do not reuse the prior resource-recovery allocation as authorization. Revalidate unchanged source74 signed artifacts, run only Mac one-case probe120seconds, then remaining3history declarations360seconds only after finalized1/1PASS/drain.",
     "Close tasks17\u201320 in dependency order when Mac rendered acceptance is finalized. Composed bytes and current full iOS units are now verified; do not repeat those or phone/iPad/state/migration gates with unchanged hashes/artifacts.",
     "Keep draftPR255/local work unpushed while Mac acceptance remains open; no liveCloudKit/allwriter/production activation gate."
   ],
@@ -1666,5 +1672,19 @@
     "pushed": false,
     "draftPR": "https://github.com/ArjenSchwarz/transit/pull/255",
     "publicPRHead": "66f5bd5"
+  },
+  "finalSourceReview20261007": {
+    "base": "91ff72ad",
+    "reviewedHead": "3d962787e1438e07451656f57e2499a945f0343a",
+    "roles": {
+      "codeReuse": "accepted",
+      "codeQuality": "accepted",
+      "efficiency": "accepted",
+      "specDocumentation": "accepted"
+    },
+    "findings": [],
+    "execution": "read-only; no new runtime checks",
+    "packet": "/tmp/t2381-pre-push-final-preparation",
+    "pushReadiness": "blocked by Mac rendered acceptance"
   }
 }
