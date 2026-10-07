@@ -27,7 +27,7 @@
       19,
       20
     ],
-    "reason": "Current e8634d7 phone coverage passes all 27 declarations/30 expanded cases across six scoped runs; affected iPad checks pass. macOS rendered acceptance still has zero feature executions because automation initialization times out. Tasks 17\u201320 remain open through their approved dependencies."
+    "reason": "Current phone27/30 and affected iPad checks pass. Tasks17\u201318 lack Mac rendered acceptance; task19 additionally needs prepared composed raw-byte assertions and focused verification; task20 additionally needs current-source full iOS units and final dependency acceptance."
   },
   "builds": {
     "ios": {
@@ -198,7 +198,8 @@
       "soleCauseEstablished": false,
       "boundedLog": "/private/tmp/t2381-phone-viewport-verification/macos-automation-bounded.log",
       "backendLog": "/private/tmp/t2381-phone-viewport-verification/macos-automation-backend.log"
-    }
+    },
+    "nextPreparedProbe": "/tmp/t2381-macos-automation-nextstep/probe-plan.json"
   },
   "fullPhoneUI": {
     "status": "incomplete",
@@ -381,10 +382,12 @@
   "activeBuildOrTestJobs": [],
   "allOwnedSimulatorsDeleted": true,
   "remainingWork": [
-    "Resolve macOS automation initialization in a separately authorized working environment; bounded logs establish request-to-timeout but no sole cause. No blind unchanged retry or global settings change authorized.",
-    "Run exact macOS rendered acceptance only after an authorized changed environment and heavy-slot allocation.",
-    "Finish tasks 17\u201320 dependency and final repository acceptance; keep older full-unit evidence source-qualified.",
-    "Keep draft PR 255 and local source/evidence unpushed while broader acceptance remains open."
+    "Resolve Mac automation initialization through a separately authorized concrete changed GUI environment; no sole cause established and no blind unchanged retry.",
+    "Review the actual bounded single-case Mac probe adapter against the prepared plan, allocate heavy slot and verify exact current signed artifacts before execution; only1/1PASS permits remaining3Mac history declarations.",
+    "Apply the accepted prepared composed-byte proof patch, then build/lint and verify affected6declarations/7cases against actual native results; patch currently unapplied/uncompiled/unexecuted.",
+    "Run current-source full iOS units under CLAUDE before-push instructions; preserve older full suites and current focused proof with their source attribution.",
+    "Finish tasks17\u201320 dependency/final acceptance without repeating phone27/30, affectediPad/native-state/migration checks if their source hashes remain unchanged.",
+    "Keep draftPR255/local work unpushed until remaining acceptance closes; no liveCloudKit/allwriter/production activation gate."
   ],
   "limits": [
     "No final-head full-unit-suite or complete phone UI pass is claimed.",
@@ -1242,5 +1245,58 @@
     "pushed": false,
     "draftPR": "https://github.com/ArjenSchwarz/transit/pull/255",
     "publicPRHead": "66f5bd5"
+  },
+  "prePushSourceReview20261007": {
+    "status": "source_review_complete_final_pre_push_acceptance_incomplete",
+    "reviewBase": "66f5bd5e8235b2832e343ef510d0cf98eea1c545",
+    "reviewHead": "91ff72ad1ae146d097892c7b63c86ea948c23137",
+    "reviewedCommits": [
+      "6f36b782",
+      "65794762",
+      "1258f5e0",
+      "7f9a134e",
+      "14be2442",
+      "e8634d75",
+      "91ff72ad"
+    ],
+    "sourceReviewRoles": {
+      "codeReuse": "implementation_stream: no blocking findings; optional saved-field rendering duplication deferred",
+      "codeQuality": "design_peer_correctness: accepted",
+      "efficiency": "design_peer_integration: accepted",
+      "specDocumentation": "requirements_peer_correctness: composed raw-byte test gap and current full iOS unit gate identified"
+    },
+    "findings": [
+      {
+        "area": "Task19 composed byte proof",
+        "severity": "required_acceptance",
+        "resolution": "Prepared patch accepted, not applied or compiled/run",
+        "patch": "/tmp/t2381-macos-automation-nextstep/composed-byte-proof.patch"
+      },
+      {
+        "area": "Old Mac enumeration gate",
+        "severity": "runner_correctness",
+        "resolution": "Prepared exact error/identity rejection before dependent full run; next direct probe omits optional enum",
+        "patch": "/tmp/t2381-macos-automation-nextstep/reject-invalid-mac-enumeration.patch"
+      }
+    ],
+    "runtimeEvidence": "/tmp/t2381-phone-viewport-verification/final-checkpoint.json",
+    "tasks": {
+      "17": "Mac rendered4declarations pending; native state/shared capture and iOS layouts verified",
+      "18": "History implementation/fixtures present and iOS verified; Mac paired acceptance pending17",
+      "19": "Selected composed9/10 source-qualified proof includes NativeState5 and EndToEnd4decl/5cases; rawpage/historicalreceipt/replay bytes in composed flow need prepared patch+focusedMac execution; depends18",
+      "20": "Construction/advertisement/routes have focused proof; final current iOS full units+Mac rendered+task19 strengthened byte proof remain. No full Macunit repeat required solely by CLAUDE beforepush."
+    },
+    "alreadySatisfied": [
+      "Phone27decl/30cases scopedunion finalexactsource e8634d7, zero failures/skips",
+      "Current affectediPad2PASS; remainingiPad2history+2navigation product-identical7fPASS",
+      "Build/lintcurrentiOSPASS; focusedMacnative9/10+signedMacbuild7fPASS",
+      "Historical fullMac2630decl/3431expanded6intentional skips at484dd2; fulliOS1351/1455zero skips atffbf62cf preserved",
+      "Closed-store migration proof remains; no liveCloudKit requirement"
+    ],
+    "verificationNotRunDuringThisReview": true,
+    "pushAllowed": false,
+    "sourceWorkingTreeModified": false,
+    "skill": "/Users/arjen/.codex/skills/pre-push-review/SKILL.md",
+    "scope": "Only source phases requested; no test/lint/build/external review CLI/HTML publication/push or live writes performed"
   }
 }
