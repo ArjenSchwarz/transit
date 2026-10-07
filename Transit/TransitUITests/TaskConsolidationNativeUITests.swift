@@ -112,8 +112,10 @@ final class TaskConsolidationNativeUITests: XCTestCase {
     }
 
     #if os(macOS)
-    @MainActor private func historyWindow(in app: XCUIApplication,
-                                        taskID: String = "00000000-0000-0000-0000-000000238101") -> XCUIElement {
+    @MainActor private func historyWindow(
+        in app: XCUIApplication,
+        taskID: String = "00000000-0000-0000-0000-000000238101"
+    ) -> XCUIElement {
         app.windows.containing(.staticText, identifier: "consolidation.history.\(taskID)").firstMatch
     }
     #endif
