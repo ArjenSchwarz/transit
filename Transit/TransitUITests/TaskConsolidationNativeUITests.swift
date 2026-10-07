@@ -149,7 +149,12 @@ final class TaskConsolidationNativeUITests: XCTestCase {
 
     @MainActor private func activate(_ element: XCUIElement) {
         #if os(macOS)
-        element.click()
+        if element.elementType == .disclosureTriangle {
+            element.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
+                .withOffset(CGVector(dx: 8, dy: 0)).click()
+        } else {
+            element.click()
+        }
         #else
         element.tap()
         #endif
