@@ -12,6 +12,10 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         let survivor = app.staticTexts["History Survivor"]
         XCTAssertTrue(survivor.waitForExistence(timeout: 5))
         survivor.tap()
+        #if os(macOS)
+        XCTAssertTrue(historyWindow(in: app).waitForExistence(timeout: 5),
+                      "The exact saved survivor detail window must open before history interaction")
+        #endif
         let reason = app.buttons["Synthetic reviewed history"]
         reveal(reason, in: app)
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
@@ -50,7 +54,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         XCTAssertEqual(original.label, "Original task: History Original · 00000000-0000-0000-0000-000000238102")
         original.tap()
         let history = app.staticTexts["consolidation.history.00000000-0000-0000-0000-000000238102"]
-        reveal(history, in: app)
+        reveal(history, in: app, taskID: "00000000-0000-0000-0000-000000238102")
         XCTAssertTrue(history.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["Undo consolidation"].exists)
     }
@@ -110,14 +114,30 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         let survivor = app.staticTexts["History Survivor"]
         XCTAssertTrue(survivor.waitForExistence(timeout: 5))
         survivor.tap()
+        #if os(macOS)
+        XCTAssertTrue(historyWindow(in: app).waitForExistence(timeout: 5),
+                      "The exact saved survivor detail window must open before history interaction")
+        #endif
         return app
     }
 
+    #if os(macOS)
+    @MainActor private func historyWindow(in app: XCUIApplication,
+                                         taskID: String = "00000000-0000-0000-0000-000000238101") -> XCUIElement {
+        app.windows.containing(.staticText, identifier: "consolidation.history.\(taskID)").firstMatch
+    }
+    #endif
+
     @MainActor private func reveal(_ element: XCUIElement, in app: XCUIApplication,
-                                   towardEarlierContent: Bool = false) {
+                                   towardEarlierContent: Bool = false,
+                                   taskID: String = "00000000-0000-0000-0000-000000238101") {
         for _ in 0..<8 where !element.isHittable {
             #if os(macOS)
-            app.scrollViews.firstMatch.scroll(byDeltaX: 0, deltaY: towardEarlierContent ? 300 : -300)
+            let window = historyWindow(in: app, taskID: taskID)
+            XCTAssertTrue(window.waitForExistence(timeout: 5),
+                          "The exact saved task detail window must exist before scrolling")
+            guard window.exists else { return }
+            window.scrollViews.firstMatch.scroll(byDeltaX: 0, deltaY: towardEarlierContent ? 300 : -300)
             #else
             if towardEarlierContent { app.swipeDown() } else { app.swipeUp() }
             #endif

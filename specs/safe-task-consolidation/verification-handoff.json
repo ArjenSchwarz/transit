@@ -457,8 +457,8 @@
   "activeBuildOrTestJobs": [],
   "allOwnedSimulatorsDeleted": true,
   "remainingWork": [
-    "Triage the saved real Mac UI assertion failure at TaskConsolidationNativeUITests.swift:17 using interactive probe evidence; automation initialized and the test interacted with the app. Do not infer current prompt visibility or credential mechanism. No blind native retry.",
-    "Prepare a bounded source correction if saved evidence supports it. Any rebuild or further native run needs separate heavy allocation; this allocation allowed only the one interactive probe. Remaining three Mac history cases still require finalized probe1/1PASS/drain.",
+    "Verify reviewed Mac test precondition/scroll-scoping correction in next exclusive slot: strict lint and fresh signed Mac UI test build, then exact one-case probe. No underlying missing-window product cause is proven; use saved hierarchy/recording if new precondition fails. Automation initialized on interactive retry, so native authentication is not a current open blocker.",
+    "Exact probe1/1PASS/drain permits remaining3 only. Preserve failures and continue evidenced source triage; no blind replay or speculative product/fixture changes. Actual launch adapter needs truthful fresh Mac source/build binding; no old binary or fabricated current iOS build proof.",
     "Close tasks17\u201320 in dependency order after Mac acceptance. Do not replay satisfied unit/composed/phone/iPad/migration gates with unchanged relevant source/artifacts.",
     "Keep local work unpushed and draftPR255 unchanged while Mac acceptance remains open; no live Transit writes or production activation."
   ],
@@ -1714,5 +1714,26 @@
     },
     "remainingThree": "not started",
     "next": "Read-only saved failure triage; no blind retry or broader suite; T2404 heavy batch remains separate"
+  },
+  "savedMacFailureTriage20261007": {
+    "packet": "/tmp/t2381-mac-ui-failure-triage",
+    "diagnosis": "/tmp/t2381-mac-ui-failure-triage/diagnosis.md",
+    "plan": "/tmp/t2381-mac-ui-failure-triage/minimal-rerun-plan.json",
+    "savedEvidence": "interactiveMacProbe20261007",
+    "causeEstablished": false,
+    "finding": "Only dashboard remains after survivor tap; test scrolls unscoped first app scroll view without detail-window precondition",
+    "correction": "Mac exact UUID history-heading window precondition and scoped scrolling; original navigation uses original UUID",
+    "sourceChanged": [
+      "Transit/TransitUITests/TaskConsolidationNativeUITests.swift"
+    ],
+    "productOrFixtureChanged": false,
+    "reviewRoles": {
+      "correctness": "accepted",
+      "requirements": "accepted"
+    },
+    "compiled": false,
+    "runtimeVerified": false,
+    "authenticationBlocker": "not currently demonstrated; interactive automation initialized",
+    "heavyExecution": "none; T2404 owns heavy batch"
   }
 }
