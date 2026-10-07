@@ -16,7 +16,7 @@ Review: [Claude comment 6032874164](https://github.com/ArjenSchwarz/transit/pull
 
 Source review caught and fixed a test-only false-failure risk: opaque JSON bytes for a persistent identifier are not stable across captures. New concurrency assertions compare decoded `PersistentIdentifier` plus full occurrence revisions, removal scalar fields and exact date bits. Event payload and receipt replay checks remain byte-exact. Gate release and blocked-task completion are preserved if winner capture throws.
 
-## Prepared verification
+## Prepared verification (historical checkpoint)
 
 Exact plan: `/tmp/t2381-pr-review-followup/verification-plan.json`. Frozen source digests accompany the plan. Anticipated counts derive only from declarations, not compiled or executed results:
 
@@ -25,3 +25,11 @@ Exact plan: `/tmp/t2381-pr-review-followup/verification-plan.json`. Frozen sourc
 - iOS focus: the exact new constructor boundary declaration, expected one declaration/one case, using a fresh owned simulator with finalized result and shutdown/drain/deletion.
 
 No build, test, lint, typecheck or external review CLI ran during this follow-up. The earlier acceptance at `f18251e` remains historical proof; it does not verify this new source. No new push or main merge is ready until current-source verification passes. Pulsar publication remains paused.
+
+## 2026-10-07 — verified PR-review follow-up
+
+Source `4663f0f212e238d85e5bcdb6d051b3d1a1a4e3d6` passes fresh signed macOS and iOS test builds and strict lint across 721 files with zero violations. These builds refresh the exact completed owned caches, rather than claiming new empty DerivedData roots. Mac focused execution finalizes **11 declarations / 17 expanded cases**, zero failures/skips/expected failures, including both `apply`/`undo` winning orders and all six existing fault arguments. iOS finalizes the constructor boundary **1 declaration / 1 case**, zero failures/skips/expected failures. Exact native identities, device/count bindings, build/source digests, initial isolated unit-host inputs and owned cleanup are verified. The iOS simulator is shut down, drained and deleted; no owned build/controller/app/runner jobs remain. Selected cases do not independently assert a smoke snapshot.
+
+The first Mac post-validator rejected argument labels because the prepared manifest represented single values as arrays. Native execution itself exited zero and finalized all selected cases passing. A source-reviewed retained-artifact validator requires the exact known scalar values, all identities/counts/device bindings, saved startup observations and current owned-PID absence. It passes without rerunning tests. The original `failure.json`, manifest and result bundle remain unchanged; `revalidated-checkpoint.json` records the correction separately. This is a validator-format correction, not a relabelled failing native case.
+
+Evidence: `/tmp/t2381-pr-review-followup/final-checkpoint.json`; Mac `/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-pr-followup-macos.0n58yg45`; iOS `/var/folders/11/v0tnfm294kd9c6zll_ncmpkh0000gn/T/t2381-pr-followup-ios-constructor.7m8xm38_`. The eleven exact Mac identifiers and scalar arguments are retained in the checkpoint. These focused current-source results supplement the earlier source-qualified acceptance; no new full-suite, rendered UI, migration or live CloudKit invocation is claimed. The constructor change does not change schema/defaults or the supported one-to-five-candidate policy. Four source review roles and launch-chain review accepted the follow-up. Main merge, Pulsar publication and live Transit bookkeeping remain paused.
