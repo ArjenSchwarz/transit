@@ -141,7 +141,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
 
     @MainActor private func assertExpanded(_ element: XCUIElement) {
         #if os(macOS)
-        XCTAssertEqual(element.value as? String, "1")
+        XCTAssertEqual((element.value as? NSNumber)?.intValue, 1)
         #else
         XCTAssertEqual(element.value as? String, "Expanded")
         #endif
