@@ -11,7 +11,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
         XCTAssertEqual(reason.label, "Synthetic reviewed history")
         activate(reason)
-        let applied = app.staticTexts["Applied"]
+        let applied = historyContainer(in: app).staticTexts["Applied"]
         reveal(applied, in: app)
         XCTAssertTrue(applied.waitForExistence(timeout: 5))
         let accounting = disclosure("Preservation accounting", in: app)
@@ -20,7 +20,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         XCTAssertEqual(accounting.label, "Preservation accounting")
         activate(accounting)
         assertExpanded(accounting)
-        let retained = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@",
+        let retained = historyContainer(in: app).staticTexts.containing(NSPredicate(format: "label CONTAINS %@",
             "Original description remains available")).firstMatch
         reveal(retained, in: app)
         XCTAssertTrue(retained.waitForExistence(timeout: 5))
@@ -28,22 +28,23 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         reveal(changes, in: app)
         XCTAssertTrue(changes.waitForExistence(timeout: 5))
         activate(changes)
-        let status = app.staticTexts["statusRawValue: idea → abandoned"]
+        let status = historyContainer(in: app).staticTexts["statusRawValue: idea → abandoned"]
         reveal(status, in: app)
         XCTAssertTrue(status.waitForExistence(timeout: 5))
         XCTAssertEqual(status.label, "statusRawValue: idea → abandoned")
-        let recordedSurvivor = app.buttons[
+        let recordedSurvivor = historyContainer(in: app).buttons[
             "Recorded canonical task: History Survivor · 00000000-0000-0000-0000-000000238101"].firstMatch
         reveal(recordedSurvivor, in: app)
         XCTAssertTrue(recordedSurvivor.waitForExistence(timeout: 5))
         XCTAssertEqual(recordedSurvivor.label,
             "Recorded canonical task: History Survivor · 00000000-0000-0000-0000-000000238101")
-        let original = app.buttons["Original task: History Original · 00000000-0000-0000-0000-000000238102"]
+        let original = historyContainer(in: app).buttons["Original task: History Original · 00000000-0000-0000-0000-000000238102"]
         reveal(original, in: app, towardEarlierContent: true)
         XCTAssertTrue(original.waitForExistence(timeout: 5))
         XCTAssertEqual(original.label, "Original task: History Original · 00000000-0000-0000-0000-000000238102")
         activate(original)
-        let history = app.staticTexts["consolidation.history.00000000-0000-0000-0000-000000238102"]
+        let history = historyContainer(in: app, taskID: "00000000-0000-0000-0000-000000238102")
+            .staticTexts["consolidation.history.00000000-0000-0000-0000-000000238102"]
         reveal(history, in: app, taskID: "00000000-0000-0000-0000-000000238102")
         XCTAssertTrue(history.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["Undo consolidation"].exists)
@@ -57,10 +58,10 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
         XCTAssertEqual(reason.label, "Synthetic reviewed history")
         activate(reason)
-        let reversed = app.staticTexts["Reversed"]
+        let reversed = historyContainer(in: app).staticTexts["Reversed"]
         reveal(reversed, in: app)
         XCTAssertTrue(reversed.waitForExistence(timeout: 5))
-        let unavailable = app.staticTexts["Whole reversal unavailable: already_reversed"]
+        let unavailable = historyContainer(in: app).staticTexts["Whole reversal unavailable: already_reversed"]
         reveal(unavailable, in: app)
         XCTAssertTrue(unavailable.exists)
         XCTAssertFalse(app.buttons["Undo consolidation"].exists)
@@ -72,7 +73,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
             ("consolidationHistoryOverLimit", "Complete saved consolidation history exceeds the 16 MiB read limit.")
         ] {
             let app = launchHistory(scenario)
-            let problem = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", message)).firstMatch
+            let problem = historyContainer(in: app).staticTexts.containing(NSPredicate(format: "label CONTAINS %@", message)).firstMatch
             reveal(problem, in: app)
             XCTAssertTrue(problem.waitForExistence(timeout: 5))
             XCTAssertFalse(disclosure("Synthetic reviewed history", in: app).exists)
@@ -88,7 +89,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
             XCTAssertTrue(reason.waitForExistence(timeout: 5))
             XCTAssertEqual(reason.label, "Synthetic reviewed history")
             activate(reason)
-            let unresolved = app.staticTexts["Unresolved original task: 00000000-0000-0000-0000-000000238102"]
+            let unresolved = historyContainer(in: app).staticTexts["Unresolved original task: 00000000-0000-0000-0000-000000238102"]
             reveal(unresolved, in: app)
             XCTAssertTrue(unresolved.waitForExistence(timeout: 5))
             XCTAssertFalse(app.buttons["Original task: History Original · 00000000-0000-0000-0000-000000238102"].exists)
@@ -101,7 +102,12 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         app.launchEnvironment["TRANSIT_PERSISTENCE_MODE"] = "ui-test"
         app.launchEnvironment["TRANSIT_UI_TEST_SCENARIO"] = scenario
         app.launch()
+        #if os(macOS)
+        let survivor = app.windows.containing(.button, identifier: "dashboard.addButton")
+            .firstMatch.staticTexts["History Survivor"]
+        #else
         let survivor = app.staticTexts["History Survivor"]
+        #endif
         XCTAssertTrue(survivor.waitForExistence(timeout: 5))
         activate(survivor)
         #if os(macOS)
@@ -111,9 +117,20 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         return app
     }
 
+    @MainActor private func historyContainer(
+        in app: XCUIApplication,
+        taskID: String = "00000000-0000-0000-0000-000000238101"
+    ) -> XCUIElement {
+        #if os(macOS)
+        historyWindow(in: app, taskID: taskID)
+        #else
+        app
+        #endif
+    }
+
     @MainActor private func disclosure(_ title: String, in app: XCUIApplication) -> XCUIElement {
         #if os(macOS)
-        app.disclosureTriangles[title]
+        historyWindow(in: app).disclosureTriangles[title]
         #else
         app.buttons[title]
         #endif
