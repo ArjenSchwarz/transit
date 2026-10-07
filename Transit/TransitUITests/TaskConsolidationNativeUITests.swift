@@ -75,10 +75,17 @@ final class TaskConsolidationNativeUITests: XCTestCase {
             ("consolidationHistoryOverLimit", "Complete saved consolidation history exceeds the 16 MiB read limit.")
         ] {
             let app = launchHistory(scenario)
+            #if os(macOS)
+            let problem = historyContainer(in: app).staticTexts[message]
+            #else
             let problem = historyContainer(in: app).staticTexts
                 .containing(NSPredicate(format: "label CONTAINS %@", message)).firstMatch
+            #endif
             reveal(problem, in: app)
             XCTAssertTrue(problem.waitForExistence(timeout: 5))
+            #if os(macOS)
+            XCTAssertEqual(problem.value as? String, message)
+            #endif
             XCTAssertFalse(disclosure("Synthetic reviewed history", in: app).exists)
             app.terminate()
         }
