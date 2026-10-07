@@ -1,0 +1,27 @@
+# PR 255 partial review reconciliation
+
+Review: [Claude comment 6032874164](https://github.com/ArjenSchwarz/transit/pull/255#issuecomment-6032874164). Baseline: `f18251e8804098d95adcef8420bc7e7010c2e593`. The reviewer examined the model, owned service/undo and schema registration only, without builds or tests. These are source-reconciled leads, not a full independent runtime review.
+
+| Lead | Exact baseline finding | Follow-up |
+| --- | --- | --- |
+| Entity/tool counts | CLAUDE.md already says nine entities, all nine test entities and 17 tools. | No count edit. The two directory pointers were actually absent; add only those descriptions. |
+| Raw kind/tool strings | HistoryCodec validates known apply/undo kinds; retained review kind and protected command routing are checked before effects. Unknown imported values fail closed. | No demonstrated typo or runtime defect; keep existing persisted/wire representations. |
+| Five candidate columns | The approved group cap is one to five candidates. Planner and codec reject overflow before supported writes. The initializer itself silently omitted sixth and later IDs. | Constructor now throws `TaskConsolidationHistoryError.malformed` for more than five IDs. Five retain order. Zero-slot malformed import fixtures remain constructible and still fail history decoding; schema/defaults are unchanged. |
+| Dictionary force unwraps | Codec requires unique participants and changes belonging to them; `validateReviewChanges` binds owned changes to those deltas; `resolve` fetches exactly one saved row for each participant. The local dictionary is not altered while task fields are mutated. | No supported missing-key path found. No optional skipping or unrelated lookup refactor. Existing missing/ambiguous participant and malformed history tests retain coverage. |
+| Partial mutation on throw | Coordinator `commit` catches validation/apply/stage/save failures together, removes pending insertions and rolls back its fresh owned context. Existing encode/save fault cases happen after real domain staging and verify a reopened store, receipts and historical content. | Document ownership explicitly. Add a lower-seam test: execute real apply staging inside a test policy callback, then call internal `stage` with a throwing existing budget checkpoint. Assert the exact injected path, zero commit saves, unchanged reopened task revisions/domain counts and a rejected receipt. This injects into a second explicit stage call, not the original apply call. No production hook added. |
+| Raw undo status/date restore | Approved whole reversal restores exact saved raw values/dates, rather than creating a new transition. Existing whole-undo tests compare saved originals. | Add the short explanatory comment; no status behavior change. |
+| Dense guards | Conditions enforce reviewed identity and the apply/undo link direction after known-kind validation. | No logical defect found; no unrelated service refactor. |
+| PR size | Existing published feature spans the approved integrated model/service/MCP/native work. | Treat splitting future work as a process suggestion; do not rewrite this branch's history or create parallel feature PRs. |
+| Concurrent apply/undo | Existing tests cover competing applies, stale undo, replay and already-reversed recognition. They do not name both winning orders for competing apply/undo on shared participants. | Add deterministic two-argument coverage using one existing coordinator and the existing async preparation gate. Apply B proposes a distinct survivor edit while undo targets operation A. Park the loser after acceptance, commit the winner, then release it. Check rejection/no loser effects and byte-identical replay of both original keys. New apply creates operation B; this is shared-participant conflict coverage, not two applies of the same operation ID. |
+
+Source review caught and fixed a test-only false-failure risk: opaque JSON bytes for a persistent identifier are not stable across captures. New concurrency assertions compare decoded `PersistentIdentifier` plus full occurrence revisions, removal scalar fields and exact date bits. Event payload and receipt replay checks remain byte-exact. Gate release and blocked-task completion are preserved if winner capture throws.
+
+## Prepared verification
+
+Exact plan: `/tmp/t2381-pr-review-followup/verification-plan.json`. Frozen source digests accompany the plan. Anticipated counts derive only from declarations, not compiled or executed results:
+
+- Fresh signed macOS and iOS test builds, and strict lint, after Halo releases the heavy slot.
+- Mac focus: eleven declared methods/seventeen expanded cases, including constructor overflow, both conflict orders, lower-seam staging rollback, existing six fault arguments, original gate regression and affected apply/undo/capture/import consumers. Confirm compiled inventory, actual selected identities/arguments, zero failures/skips and owned cleanup before claiming PASS.
+- iOS focus: the exact new constructor boundary declaration, expected one declaration/one case, using a fresh owned simulator with finalized result and shutdown/drain/deletion.
+
+No build, test, lint, typecheck or external review CLI ran during this follow-up. The earlier acceptance at `f18251e` remains historical proof; it does not verify this new source. No new push or main merge is ready until current-source verification passes. Pulsar publication remains paused.

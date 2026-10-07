@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceSHA": "c8d7131955e74a7d0153cb2583f95c6adb908517",
-  "acceptance": "complete_local_scope",
+  "sourceSHA": "4663f0f212e238d85e5bcdb6d051b3d1a1a4e3d6",
+  "acceptance": "previous_head_verified_source_followup_runtime_pending",
   "tasks": {
     "completed": [
       1,
@@ -27,7 +27,8 @@
     ],
     "incomplete": [],
     "inProgress": [],
-    "reason": "Mac rendered acceptance now passed across qualified runs; close17 then18 then19 then20. Other satisfied proofs retain source attribution."
+    "reason": "Original approved tasks completed with source-qualified acceptance at f18251e. Subsequent PR-review constructor hardening and new regressions are source-reviewed only and await the prepared current-source checks; no new runtime PASS is claimed.",
+    "acceptanceSourceCommit": "f18251e8804098d95adcef8420bc7e7010c2e593"
   },
   "builds": {
     "ios": {
@@ -412,7 +413,8 @@
   "activeBuildOrTestJobs": [],
   "allOwnedSimulatorsDeleted": true,
   "remainingWork": [
-    "Authorized normal feature push and draftPR255 update after final pre-push artifacts; no main merge."
+    "After exclusive heavy allocation: freeze/check source digests, fresh signed both-platform test builds and strict lint, then exact prepared Mac11decl/17case and iOS1/1 focus; actual inventory/results and owned cleanup required. No runtime result is inferred from source counts.",
+    "Only after source-qualified follow-up checks pass: pre-push workflow and authorized feature/PR update. Preserve previous f18251e acceptance and failed evidence; no main merge or Pulsar retry."
   ],
   "limits": [
     "No final-head full-unit-suite or single full-phone/MacUI invocation is claimed; actual native counts and source-qualified disjoint coverage are explicit.",
@@ -2204,5 +2206,45 @@
     "keepPRDraft": true,
     "mainMergeAuthorized": false,
     "ownedNativeJobsRemaining": []
-  }
+  },
+  "sourceReviewFollowup20261007": {
+    "baseCommit": "f18251e8804098d95adcef8420bc7e7010c2e593",
+    "reviewComment": "https://github.com/ArjenSchwarz/transit/pull/255#issuecomment-6032874164",
+    "status": "source_review_accepted_runtime_pending",
+    "document": "specs/safe-task-consolidation/pr-review-followup.md",
+    "verificationPlan": "/tmp/t2381-pr-review-followup/verification-plan.json",
+    "roles": {
+      "codeReuse": "accepted",
+      "codeQuality": "accepted",
+      "efficiency": "accepted",
+      "specDocumentation": "accepted"
+    },
+    "changes": "Constructor overflow throws; two missing directory pointers and lifecycle comments; targeted constructor, staging rollback and competing apply/undo tests. No schema or supported-input policy change.",
+    "sourceOnly": true,
+    "runtimeVerified": false,
+    "sourceCommit": "4663f0f212e238d85e5bcdb6d051b3d1a1a4e3d6",
+    "heavyOwner": "Halo",
+    "jobsLaunchedOrQueued": false,
+    "pushed": false,
+    "mainMerged": false,
+    "pulsarRetry": false,
+    "sourceDigests": {
+      "Transit/Transit/Models/TaskConsolidationEvent.swift": "859fbd8496c948b6cfd0eddcd0fc9a67bc0362e2e1ee66dec88bbcb147470f44",
+      "Transit/Transit/Services/TaskConsolidation/TaskConsolidationService+Undo.swift": "501047db11e7562e79a2a8b07eae876962c20370bd092112197f372cd51852be",
+      "Transit/Transit/Services/TaskConsolidation/TaskConsolidationService.swift": "fec449de5ea6edcca60ea354c5daa62da157894836e2a9bdac7d79cad033fd13",
+      "Transit/Transit/UITestScenario+Consolidation.swift": "1de6b66c23c40ec9d13eab7331b1718d041489cdd193ac81884369fc343e9264",
+      "Transit/Transit/UITestScenario+ConsolidationVariants.swift": "ee589c3c77ed88133b56d42ba6bdd563e55c1d5ea31b0d117bf7b928524a921e",
+      "Transit/TransitTests/ConsolidationPreviewPublicationTests.swift": "71b391253901fefb1f4563d4158e252fa3fabeb848f27dac30d86d64f042dfa8",
+      "Transit/TransitTests/MCPWriteCoordinatorTests.swift": "5bcdfa6ad6d3d48c5d771561401b9c35d78cf5305b37bb5fa64150a0a1136b6c",
+      "Transit/TransitTests/TaskConsolidationApplyTests.swift": "c89c2642058751b69d470618f9de594d4044237b07e7ad09efde11eaa71fe01c",
+      "Transit/TransitTests/TaskConsolidationCaptureBatchTests.swift": "89c2f3fac584df5616c020018101f4bafad33a8dcd70444565c5758d7aae4bcd",
+      "Transit/TransitTests/TaskConsolidationCaptureTests.swift": "00c7839dc7695ad6198882977f43f98f7d9e874cfd2085a5fdd1ba4bb6c5a8a7",
+      "Transit/TransitTests/TaskConsolidationCodecTests.swift": "4cf09710b2d16069a9e145ddd91ab3b9a220a7964e3efdc4bf8613ca0bcf06c3",
+      "Transit/TransitTests/TaskConsolidationImportedHistoryTests.swift": "dad56613a8f058f521ce64866fcc0558f9d6dd184bf7d3418282ff9c57e431ce",
+      "Transit/TransitTests/TaskConsolidationOwnedCommitTests.swift": "f95c397cb7946e72287b4045c5767d5ceed6ec1cc4ba5474891bf0d7b08bd0b8",
+      "Transit/TransitTests/TaskConsolidationConcurrencyTests.swift": "a06c1ae7063057d255757bfec3a062ec2d32bcb291612af8435ec71f26f47e50",
+      "Transit/TransitTests/TaskConsolidationStageRollbackTests.swift": "9ba83839b1efd55a4edbbca73c0f87014bb959d5b3d43eca1efcf64e78fd214c"
+    }
+  },
+  "previousVerifiedSourceSHA": "c8d7131955e74a7d0153cb2583f95c6adb908517"
 }
