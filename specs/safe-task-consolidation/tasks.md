@@ -157,8 +157,8 @@ metadata:
   - Requirements: [2.2](requirements.md#2.2), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [7.1](requirements.md#7.1), [7.2](requirements.md#7.2), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 17. Red: test native saved history presentation and safe navigation <!-- id:eiyvabx -->
-  - Local acceptance: implemented; phone 27 declarations/30 cases and iPad/native checks are source-qualified PASS. Earlier Mac probe executed zero feature cases while native authentication was pending. User-authorized interactive retry initializes automation and executes one declaration/case, failing at reason-button visibility (line 17); remaining three withheld. All four Mac rendered declarations remain open.
+- [x] 17. Red: test native saved history presentation and safe navigation <!-- id:eiyvabx -->
+  - Local acceptance: All four Mac rendered declarations now PASS across source-qualified probe, remaining and failed-case recovery runs, zero skips. Phone 27 declarations/30 cases and iPad proofs retain exact sources. See finalMacAcceptance20261007 in verification-handoff.json.
   - Write TaskConsolidationNativeStateTests.swift and automated task-detail UI tests for reason, original/survivor references, changes/dispositions, reversal state and explicit unavailable/over-limit history in every existing detail layout.
   - Exercise the shared saved value provider/physical admission with source changes, cancellation, save/import notification bursts and 100-ms coalescing; stale values must not publish, listener restart must not suppress native reads.
   - Use deterministic history-bearing UI fixtures; exact unique saved navigation works and missing/duplicate physical task references remain diagnostics. Assert no native consolidation editing/apply/undo controls.
@@ -167,8 +167,8 @@ metadata:
   - Requirements: [3.3](requirements.md#3.3), [6.4](requirements.md#6.4), [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 18. Green: add native read-only consolidation history and deterministic fixtures <!-- id:eiyvaby -->
-  - Local acceptance: implementation and iOS presentation evidence are complete. Remains in progress until task 17 Mac rendered acceptance passes; no completion claim.
+- [x] 18. Green: add native read-only consolidation history and deterministic fixtures <!-- id:eiyvaby -->
+  - Local acceptance: Native history presentation and deterministic fixture acceptance complete after task 17. Product/fixture code unchanged through the Mac consumer corrections.
   - Implement TaskConsolidationHistorySection beside TaskLinksSection in all TaskDetailView layouts, using shared saved capture/value state, existing source/generation invalidation/coalescing and TaskLinkNavigationResolver.
   - Show history details/current unavailable assessments using existing link diagnostics/reference affordances; keep original UUID navigation and no guessed URLs or mutation controls.
   - Add the deterministic consolidation history UITestScenario and fixture records needed by paired automated tests, preserving default app startup and user data. Wire native provider to app-owned coordinator on all platforms.
@@ -177,8 +177,8 @@ metadata:
   - Requirements: [3.3](requirements.md#3.3), [6.4](requirements.md#6.4), [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [8.1](requirements.md#8.1)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 19. Red: test the fully composed six-ticket application workflow <!-- id:eiyvabz -->
-  - Local acceptance: composed raw UTF-8 page/receipt/replay assertions pass six declarations/seven cases at source 74b299c. Remains in progress for the task 18 dependency; no focused rerun needed with unchanged source/artifacts.
+- [x] 19. Red: test the fully composed six-ticket application workflow <!-- id:eiyvabz -->
+  - Local acceptance: Composed raw UTF-8 page/receipt/replay assertions PASS six declarations/seven cases at `74b299c`; task 18 dependency now satisfied. No unnecessary focused rerun.
   - Add TaskConsolidationEndToEndTests.swift against the real TransitApp-style handler/service factory and advertised tool list, not injected registration: preview a survivor plus five same-project candidates with conflicting descriptions/metadata, mixed statuses/comments and retained canonical chains, then apply/read/undo-preview/undo.
   - Assert every unique detail has explicit accounting, originals/history remain inspectable, resulting mappings/actual dates/raw fields round-trip, unselected tasks/relationships and original receipt/page bytes remain unchanged. Include no-edit/terminal groups, stale review, over-limit and lost-response original-key recovery.
   - Exercise composed native/MCP admission and listener restart, physical cleanup, all current schema registrations and pending-draft isolation. These tests are RED until final production construction/registration uses the completed feature; no live service or CloudKit fixture.
@@ -187,8 +187,8 @@ metadata:
   - Requirements: [1.1](requirements.md#1.1), [1.2](requirements.md#1.2), [1.3](requirements.md#1.3), [1.4](requirements.md#1.4), [2.1](requirements.md#2.1), [2.2](requirements.md#2.2), [2.3](requirements.md#2.3), [2.4](requirements.md#2.4), [3.1](requirements.md#3.1), [3.2](requirements.md#3.2), [3.3](requirements.md#3.3), [4.1](requirements.md#4.1), [4.2](requirements.md#4.2), [4.3](requirements.md#4.3), [4.4](requirements.md#4.4), [5.1](requirements.md#5.1), [5.2](requirements.md#5.2), [5.3](requirements.md#5.3), [5.4](requirements.md#5.4), [6.1](requirements.md#6.1), [6.2](requirements.md#6.2), [6.3](requirements.md#6.3), [6.4](requirements.md#6.4), [7.1](requirements.md#7.1), [7.2](requirements.md#7.2), [7.3](requirements.md#7.3), [8.1](requirements.md#8.1), [8.2](requirements.md#8.2)
   - References: design.md, requirements.md, decision_log.md
 
-- [-] 20. Green: wire the completed feature into application and advertised MCP tools <!-- id:eiyvac0 -->
-  - Local acceptance: application construction is exercised; fresh signed platform builds, strict lint (719 files, zero violations) and current full iOS units (1,352 declarations/1,456 cases, zero skips) pass at source 74b299c. Final Mac/dependency acceptance remains open.
+- [x] 20. Green: wire the completed feature into application and advertised MCP tools <!-- id:eiyvac0 -->
+  - Local acceptance: Production capability construction, signed builds, strict lint (719 files, zero violations) and full iOS 1,352 declarations/1,456 cases at `74b299c` PASS; Mac/dependency acceptance now satisfied. Local scope complete; no live CloudKit or main-merge claim.
   - Connect TransitApp/app-owned coordinator, complete consolidation service/review source, MCPReadAppDependencies, MCPToolHandler routing/allowlist and MCPToolDefinitions.coreTools to the four completed contracts; preserve listener-scoped lifecycle and current schemas.
   - Use actual application construction in paired composed tests so absent capabilities fail unavailable rather than expose fixture-only or bypass execution. Finish any concrete integration defects shown by those tests; all components must have real consumers.
   - Run appropriate focused and final repository-required automated checks only after implementation authorization and an available heavy slot; failures require code fixes, not test weakening. No deployment, production schema promotion, live ticket mutations, client activation or all-writer proof is part of completion.
