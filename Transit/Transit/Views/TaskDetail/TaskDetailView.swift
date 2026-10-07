@@ -40,7 +40,9 @@ struct TaskDetailView: View {
             await refreshConsolidationHistory()
         }
         .onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { _ in historyVersion &+= 1 }
-        .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)) { _ in historyVersion &+= 1 }
+        .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)) { _ in
+            historyVersion &+= 1
+        }
         #if os(iOS)
         .presentationDetents([.medium, .large])
         #endif

@@ -150,7 +150,7 @@ private extension TaskConsolidationHistorySection {
         let taskID: UUID
     }
     @ViewBuilder func iOSHistory(_ entry: ConsolidationHistoryProjection,
-                                observation: TaskConsolidationNativeObservation) -> some View {
+                                 observation: TaskConsolidationNativeObservation) -> some View {
         let operationID = entry.operationId
         rowDisclosure(entry.apply.reason, identifier: "consolidation.reason.\(operationID.uuidString)",
                       expanded: expandedOperations.contains(operationID)) {
