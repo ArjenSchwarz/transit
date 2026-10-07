@@ -6,7 +6,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
     @MainActor func testSavedReasonAccountingAndOriginalNavigation() throws {
         let app = launchHistory("consolidationHistory")
         defer { app.terminate() }
-        let reason = app.buttons["Synthetic reviewed history"]
+        let reason = disclosure("Synthetic reviewed history", in: app)
         reveal(reason, in: app)
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
         XCTAssertEqual(reason.label, "Synthetic reviewed history")
@@ -14,17 +14,17 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         let applied = app.staticTexts["Applied"]
         reveal(applied, in: app)
         XCTAssertTrue(applied.waitForExistence(timeout: 5))
-        let accounting = app.buttons["Preservation accounting"]
+        let accounting = disclosure("Preservation accounting", in: app)
         reveal(accounting, in: app)
         XCTAssertTrue(accounting.waitForExistence(timeout: 5))
         XCTAssertEqual(accounting.label, "Preservation accounting")
         activate(accounting)
-        XCTAssertEqual(accounting.value as? String, "Expanded")
+        assertExpanded(accounting)
         let retained = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@",
             "Original description remains available")).firstMatch
         reveal(retained, in: app)
         XCTAssertTrue(retained.waitForExistence(timeout: 5))
-        let changes = app.buttons["Saved changes: 00000000-0000-0000-0000-000000238102"]
+        let changes = disclosure("Saved changes: 00000000-0000-0000-0000-000000238102", in: app)
         reveal(changes, in: app)
         XCTAssertTrue(changes.waitForExistence(timeout: 5))
         activate(changes)
@@ -52,7 +52,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
     @MainActor func testRenderedReversedHistory() throws {
         let app = launchHistory("consolidationHistoryReversed")
         defer { app.terminate() }
-        let reason = app.buttons["Synthetic reviewed history"]
+        let reason = disclosure("Synthetic reviewed history", in: app)
         reveal(reason, in: app)
         XCTAssertTrue(reason.waitForExistence(timeout: 5))
         XCTAssertEqual(reason.label, "Synthetic reviewed history")
@@ -75,7 +75,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
             let problem = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", message)).firstMatch
             reveal(problem, in: app)
             XCTAssertTrue(problem.waitForExistence(timeout: 5))
-            XCTAssertFalse(app.buttons["Synthetic reviewed history"].exists)
+            XCTAssertFalse(disclosure("Synthetic reviewed history", in: app).exists)
             app.terminate()
         }
     }
@@ -83,7 +83,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
     @MainActor func testRenderedMissingAndAmbiguousOriginalReferences() throws {
         for scenario in ["consolidationHistoryMissing", "consolidationHistoryAmbiguous"] {
             let app = launchHistory(scenario)
-            let reason = app.buttons["Synthetic reviewed history"]
+            let reason = disclosure("Synthetic reviewed history", in: app)
             reveal(reason, in: app)
             XCTAssertTrue(reason.waitForExistence(timeout: 5))
             XCTAssertEqual(reason.label, "Synthetic reviewed history")
@@ -109,6 +109,22 @@ final class TaskConsolidationNativeUITests: XCTestCase {
                       "The exact saved survivor detail window must open before history interaction")
         #endif
         return app
+    }
+
+    @MainActor private func disclosure(_ title: String, in app: XCUIApplication) -> XCUIElement {
+        #if os(macOS)
+        app.disclosureTriangles[title]
+        #else
+        app.buttons[title]
+        #endif
+    }
+
+    @MainActor private func assertExpanded(_ element: XCUIElement) {
+        #if os(macOS)
+        XCTAssertEqual(element.value as? String, "1")
+        #else
+        XCTAssertEqual(element.value as? String, "Expanded")
+        #endif
     }
 
     @MainActor private func activate(_ element: XCUIElement) {
