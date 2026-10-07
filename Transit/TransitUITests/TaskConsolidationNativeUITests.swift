@@ -76,7 +76,10 @@ final class TaskConsolidationNativeUITests: XCTestCase {
         ] {
             let app = launchHistory(scenario)
             #if os(macOS)
-            let problem = historyContainer(in: app).staticTexts[message]
+            let expectedValue = scenario == "consolidationHistoryUnavailable"
+                ? message + " Retry after the current read finishes." : message
+            let problem = historyContainer(in: app).staticTexts
+                .containing(NSPredicate(format: "value == %@", expectedValue)).firstMatch
             #else
             let problem = historyContainer(in: app).staticTexts
                 .containing(NSPredicate(format: "label CONTAINS %@", message)).firstMatch
@@ -84,7 +87,7 @@ final class TaskConsolidationNativeUITests: XCTestCase {
             reveal(problem, in: app)
             XCTAssertTrue(problem.waitForExistence(timeout: 5))
             #if os(macOS)
-            XCTAssertEqual(problem.value as? String, message)
+            XCTAssertEqual(problem.value as? String, expectedValue)
             #endif
             XCTAssertFalse(disclosure("Synthetic reviewed history", in: app).exists)
             app.terminate()
