@@ -4,8 +4,11 @@ import SwiftData
 /// Coordinates milestone creation, status changes, task assignment, and lookups.
 /// Uses DisplayIDAllocator for display ID assignment with a separate counter
 /// from tasks.
+///
+/// The NSObject-backed representation resolves the reproduced iOS Release
+/// environment-injection crash while retaining the same observable service.
 @MainActor @Observable
-final class MilestoneService {
+final class MilestoneService: NSObject {
 
     private let modelContext: ModelContext
     private let displayIDAllocator: DisplayIDAllocator
@@ -30,6 +33,7 @@ final class MilestoneService {
         self.fetcher = fetcher ?? modelContext
         self.usedDisplayIDs = UsedDisplayIDs(modelContext: modelContext, liveFetcher: self.fetcher)
         self.mutationSave = mutationSave
+        super.init()
     }
 
     // MARK: - CRUD
