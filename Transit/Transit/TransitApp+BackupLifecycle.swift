@@ -8,7 +8,8 @@ extension TransitApp {
         guard !AppPersistencePolicy.current.usesMemoryStore else { return }
         DatabaseMaintenanceGate.shared.install(container: container,
             prepare: { try coordinator.databaseReplacementSnapshot() },
-            authorize: { _ = try coordinator.databaseReplacementSnapshot(requireQuiescent: true) },
+            authorize: { try coordinator.prepareDatabaseReplacement() },
+            cancel: { try coordinator.cancelDatabaseReplacement() },
             finish: {
                 server.stop()
                 syncManager.stopHeartbeat()

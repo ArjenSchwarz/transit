@@ -21,6 +21,7 @@ nonisolated struct TransitBackupDocument: FileDocument {
 struct DatabaseBackupView: View {
     @Environment(\.modelContext) private var context
     @Environment(SyncManager.self) private var syncManager
+    @State private var exportedArchive: DatabaseArchive?
     @State private var document: TransitBackupDocument?
     @State private var exporting = false
     @State private var importing = false
@@ -36,6 +37,8 @@ struct DatabaseBackupView: View {
     @AppStorage("backup.scheduleEnabled") private var scheduled = false
     @AppStorage("backup.hour") private var hour = 2
     @AppStorage("backup.minute") private var minute = 0
+    @AppStorage("backup.lastError") private var scheduleError = ""
+    @AppStorage("backup.lastSuccessfulExport") private var lastScheduledExport = "No successful scheduled export yet"
     @AppStorage("backup.folderName") private var folderName = "No folder selected"
     #endif
 
@@ -93,7 +96,7 @@ struct DatabaseBackupView: View {
                 let url = try result.get()
                 let access = url.startAccessingSecurityScopedResource()
                 defer { if access { url.stopAccessingSecurityScopedResource() } }
-                incoming = try service.decodeAndVerify(Data(contentsOf: url))
+                incoming = try service.decodeAndVerify(DurableBackupFile.read(url))
             } catch { message = error.localizedDescription }
         }
         .confirmationDialog(
@@ -137,6 +140,8 @@ struct DatabaseBackupView: View {
                     options: [.withSecurityScope], includingResourceValuesForKeys: nil,
                     relativeTo: nil)
                 UserDefaults.standard.set(bookmark, forKey: "backup.directoryBookmark")
+                UserDefaults.standard.removeObject(forKey: "backup.nextAttempt")
+                scheduleError = ""
                 folderName = url.lastPathComponent
             } catch { message = error.localizedDescription }
         }
@@ -161,6 +166,11 @@ struct DatabaseBackupView: View {
             }
             Button("Choose Backup Folder…") { folderPicker = true }
             Text(folderName).foregroundStyle(.secondary)
+            Text("Last scheduled export: " + lastScheduledExport).font(.caption)
+            if !scheduleError.isEmpty {
+                Text(scheduleError + " Retry in up to one hour, or choose the folder again.")
+                    .foregroundStyle(.red).accessibilityIdentifier("backup.scheduleError")
+            }
             Text(
                 """
                 Uses this Mac's local time while Transit is running. If the Mac sleeps or Transit is
@@ -176,7 +186,9 @@ struct DatabaseBackupView: View {
     private func export() {
         do {
             guard !context.hasChanges else { throw DatabaseBackupError.changed }
-            document = TransitBackupDocument(data: try service.encoded(service.capture()))
+            let archive = try service.capture()
+            exportedArchive = archive
+            document = TransitBackupDocument(data: try service.encoded(archive))
             exporting = true
         } catch {
             preparingWipe = false
@@ -190,8 +202,9 @@ struct DatabaseBackupView: View {
             let url = try result.get()
             let access = url.startAccessingSecurityScopedResource()
             defer { if access { url.stopAccessingSecurityScopedResource() } }
-            let verified = try service.decodeAndVerify(Data(contentsOf: url))
-            guard verified == (try service.decodeAndVerify(document?.data ?? Data())) else {
+            try DurableBackupFile.synchronize(url)
+            let verified = try service.decodeAndVerify(DurableBackupFile.read(url))
+            guard verified == exportedArchive else {
                 throw DatabaseBackupError.changed
             }
             message = "Backup saved and its complete restore verified: \(url.lastPathComponent)"
@@ -239,7 +252,7 @@ struct DatabaseBackupView: View {
             defer { if access { url.stopAccessingSecurityScopedResource() } }
             do {
                 guard wipeConfirmation == "WIPE" else { throw DatabaseBackupError.confirmationRequired }
-                let archive = try service.decodeAndVerify(Data(contentsOf: url))
+                let archive = try service.decodeAndVerify(DurableBackupFile.read(url))
                 if syncManager.cloudSyncAllowed && !syncManager.isCloudSyncActive {
                     throw DatabaseBackupError.invalidArchive(
                         "Enable iCloud sync and restart Transit before wiping iCloud data.")

@@ -68,6 +68,8 @@ import SwiftData
     /// Refuse replacement while an accepted operation still needs reconciliation.
     func databaseReplacementSnapshot(requireQuiescent: Bool = false) throws -> [String] {
         guard active.isEmpty, let reservations, let receipts else { throw DatabaseBackupError.unavailable }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
         return try reservations.all().map { binding in
             if requireQuiescent {
                 guard let receipt = try receipts.lookup(tool: binding.tool, key: binding.key),
@@ -76,11 +78,21 @@ import SwiftData
                         "An MCP write needs reconciliation before database replacement.")
                 }
             }
-            guard let json = String(data: try JSONEncoder().encode(binding), encoding: .utf8) else {
+            guard let json = String(data: try encoder.encode(binding), encoding: .utf8) else {
                 throw DatabaseBackupError.invalidArchive("Retry binding could not be encoded.")
             }
             return json
         }.sorted()
+    }
+
+    func prepareDatabaseReplacement() throws {
+        _ = try databaseReplacementSnapshot(requireQuiescent: true)
+        guard let reservations else { throw DatabaseBackupError.unavailable }
+        try reservations.stageDatabaseReplacement()
+    }
+
+    func cancelDatabaseReplacement() throws {
+        try reservations?.cancelDatabaseReplacement()
     }
 
     func finishDatabaseReplacement() throws {

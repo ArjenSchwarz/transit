@@ -1,12 +1,10 @@
 import CloudKit
 import Foundation
 import SwiftData
-
 /// Allocates sequential display IDs (T-1, T-2, ...) using a CloudKit counter
 /// record with optimistic locking. Falls back to provisional IDs when offline.
 @Observable
 final class DisplayIDAllocator: @unchecked Sendable {
-
     /// Snapshot of the counter state used for optimistic locking.
     nonisolated struct CounterSnapshot: Sendable {
         let nextDisplayID: Int
@@ -246,6 +244,7 @@ final class DisplayIDAllocator: @unchecked Sendable {
             let newID: Int
             do {
                 newID = try await allocateNextID(excluding: usedIDs)
+                try DatabaseMaintenanceGate.shared.requireMutationAvailable(in: context.container)
                 // Allocation suspends, so re-read committed state through a transient
                 // context before mutating the stale registered object (T-2020).
                 // Missing or unreadable records fail closed.

@@ -38,7 +38,7 @@ extension DatabaseArchive {
 
     // One ordered restoration establishes every inverse relationship before the single save.
     // swiftlint:disable:next function_body_length
-    @MainActor func insert(into context: ModelContext) throws {
+    @MainActor func insert(into context: ModelContext) throws -> [String: [any PersistentModel]] {
         try validate()
         let placeholderProject = Project(name: "", description: "", gitRepo: nil, colorHex: "")
         let placeholderTask = TransitTask(
@@ -156,10 +156,16 @@ extension DatabaseArchive {
             context.insert(model)
             return model
         }
-        _ = [
-            projects.count, milestones.count, transitTasks.count, comments.count,
-            syncHeartbeats.count, mCPWriteReceipts.count, taskLinkOccurrences.count,
-            taskLinkRemovalEvidences.count, taskConsolidationEvents.count
+        return [
+            "Project": projects.map { $0 as any PersistentModel },
+            "Milestone": milestones.map { $0 as any PersistentModel },
+            "TransitTask": transitTasks.map { $0 as any PersistentModel },
+            "Comment": comments.map { $0 as any PersistentModel },
+            "SyncHeartbeat": syncHeartbeats.map { $0 as any PersistentModel },
+            "MCPWriteReceipt": mCPWriteReceipts.map { $0 as any PersistentModel },
+            "TaskLinkOccurrence": taskLinkOccurrences.map { $0 as any PersistentModel },
+            "TaskLinkRemovalEvidence": taskLinkRemovalEvidences.map { $0 as any PersistentModel },
+            "TaskConsolidationEvent": taskConsolidationEvents.map { $0 as any PersistentModel }
         ]
     }
 

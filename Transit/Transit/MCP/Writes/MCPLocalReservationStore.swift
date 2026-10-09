@@ -34,6 +34,7 @@ nonisolated struct MCPLocalReservation: Codable, Equatable, Sendable {
         }
         self.lockDescriptor = descriptor
         do {
+            try Self.completeReplacement(in: directory)
             let identityURL = directory.appendingPathComponent("scope")
             if FileManager.default.fileExists(atPath: identityURL.path) {
                 let value = try String(contentsOf: identityURL, encoding: .utf8)
@@ -80,6 +81,11 @@ nonisolated struct MCPLocalReservation: Codable, Equatable, Sendable {
     }
 
     func lookup(tool: String, key: String) throws -> MCPLocalReservation? {
+        let retiredURL = directory.appendingPathComponent("retired")
+        if FileManager.default.fileExists(atPath: retiredURL.path) {
+            let retired = try JSONDecoder().decode([String].self, from: Data(contentsOf: retiredURL))
+            guard !retired.contains(file(tool: tool, key: key).lastPathComponent) else { throw Error.inconsistent }
+        }
         if let phaseBindings { return phaseBindings[BindingKey(tool: tool, key: key)] }
         // Standalone calls still validate the complete scope, never just a target file.
         return try all().first { $0.tool == tool && $0.key == key }
@@ -153,14 +159,46 @@ nonisolated struct MCPLocalReservation: Codable, Equatable, Sendable {
         }
     }
 
-    /// Called only after a verified backup and successful database replacement.
-    func rotateAfterDatabaseReplacement() throws {
-        let files = try FileManager.default.contentsOfDirectory(at: guardsDirectory, includingPropertiesForKeys: nil)
-        for file in files { try FileManager.default.removeItem(at: file) }
-        try Self.durableReplace(Data(UUID().uuidString.lowercased().utf8),
-                                at: directory.appendingPathComponent("scope"))
-        try Self.syncDirectory(guardsDirectory)
+    private struct ReplacementMarker: Codable {
+        var newScope: String
+        var retiredNames: [String]
+    }
+
+    /// Durable intent precedes the database save. All old keys are hashed tombstones.
+    func stageDatabaseReplacement() throws {
+        let names = try FileManager.default.contentsOfDirectory(at: guardsDirectory, includingPropertiesForKeys: nil)
+            .filter { !$0.lastPathComponent.hasPrefix(".pending-") }.map(\.lastPathComponent)
+        let marker = ReplacementMarker(newScope: UUID().uuidString.lowercased(), retiredNames: names)
+        try Self.durableReplace(JSONEncoder().encode(marker), at: directory.appendingPathComponent("replacement"))
+    }
+
+    func cancelDatabaseReplacement() throws {
+        try FileManager.default.removeItem(at: directory.appendingPathComponent("replacement"))
         try Self.syncDirectory(directory)
+    }
+
+    /// Startup resumes this publication if the process stopped after the database save.
+    func rotateAfterDatabaseReplacement() throws { try Self.completeReplacement(in: directory) }
+
+    private static func completeReplacement(in directory: URL) throws {
+        let markerURL = directory.appendingPathComponent("replacement")
+        guard FileManager.default.fileExists(atPath: markerURL.path) else { return }
+        let marker = try JSONDecoder().decode(ReplacementMarker.self, from: Data(contentsOf: markerURL))
+        guard UUID(uuidString: marker.newScope)?.uuidString.lowercased() == marker.newScope else {
+            throw Error.inconsistent
+        }
+        let retiredURL = directory.appendingPathComponent("retired")
+        let existing = FileManager.default.fileExists(atPath: retiredURL.path)
+            ? try JSONDecoder().decode([String].self, from: Data(contentsOf: retiredURL)) : []
+        try durableReplace(JSONEncoder().encode(Array(Set(existing + marker.retiredNames)).sorted()), at: retiredURL)
+        let guards = directory.appendingPathComponent("guards")
+        for file in try FileManager.default.contentsOfDirectory(at: guards, includingPropertiesForKeys: nil) {
+            try FileManager.default.removeItem(at: file)
+        }
+        try syncDirectory(guards)
+        try durableReplace(Data(marker.newScope.utf8), at: directory.appendingPathComponent("scope"))
+        try FileManager.default.removeItem(at: markerURL)
+        try syncDirectory(directory)
     }
 
     struct BindingKey: Hashable {

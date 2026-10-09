@@ -177,7 +177,8 @@ final class ProjectService {
     /// all task/milestone relationships. Returns the number of records renamed.
     @discardableResult
     func reconcileDuplicateNames() throws -> Int {
-        try ProjectNameReconciler(modelContext: modelContext).reconcile()
+        try DatabaseMaintenanceGate.shared.requireMutationAvailable(in: modelContext.container)
+        return try ProjectNameReconciler(modelContext: modelContext).reconcile()
     }
 
     // MARK: - Queries

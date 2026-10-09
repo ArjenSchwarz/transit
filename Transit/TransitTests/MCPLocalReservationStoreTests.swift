@@ -117,4 +117,31 @@ struct MCPLocalReservationStoreTests {
                                              requestJSON: "{}", acceptedAt: Date()))
         #expect(throws: (any Error).self) { try store.lookup(tool: "create_task", key: "key") }
     }
+    @Test func replacementJournalResumesAndRetiresOldKeysAfterRestart() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var store: MCPLocalReservationStore? = try MCPLocalReservationStore(directory: directory)
+        let originalScope = try #require(store).scopeID
+        _ = try store!.reserve(tool: "create_task", key: "old", requestJSON: "{}")
+        try store!.stageDatabaseReplacement()
+        store = nil
+        let reopened = try MCPLocalReservationStore(directory: directory)
+        #expect(reopened.scopeID != originalScope)
+        #expect(throws: (any Error).self) { try reopened.reserve(tool: "create_task", key: "old", requestJSON: "{}") }
+        _ = try reopened.reserve(tool: "create_task", key: "new", requestJSON: "{}")
+        #expect(!FileManager.default.fileExists(atPath: directory.appendingPathComponent("replacement").path))
+    }
+
+    @Test func canceledReplacementKeepsOriginalRetryScope() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var store: MCPLocalReservationStore? = try MCPLocalReservationStore(directory: directory)
+        let original = try store!.reserve(tool: "create_task", key: "old", requestJSON: "{}")
+        try store!.stageDatabaseReplacement()
+        try store!.cancelDatabaseReplacement()
+        store = nil
+        let reopened = try MCPLocalReservationStore(directory: directory)
+        #expect(try reopened.lookup(tool: "create_task", key: "old") == original)
+    }
+
 }

@@ -112,137 +112,153 @@ nonisolated struct DatabaseArchive: Codable, Equatable, Sendable {
 extension DatabaseArchive {
     // Explicit coverage of every persisted entity is kept together for review.
     // swiftlint:disable:next function_body_length
-    @MainActor static func capture(_ context: ModelContext, now: Date = .now) throws
+    @MainActor static func capture(
+        _ context: ModelContext, now: Date = .now,
+        ordering: [String: [PersistentIdentifier]]? = nil
+    ) throws
         -> DatabaseArchive {
-        let projects = try context.fetch(FetchDescriptor<Project>())
-            .sorted { left, right in
-                func key(_ row: Project) -> String {
-                    let value = ProjectRow(
-                        id: row.id, name: row.name, projectDescription: row.projectDescription,
-                        gitRepo: row.gitRepo, colorHex: row.colorHex)
-                    let encoder = JSONEncoder()
-                    encoder.outputFormatting = [.sortedKeys]
-                    return (try? encoder.encode(value).base64EncodedString()) ?? ""
+        let persistent = !context.container.configurations.allSatisfy(\.isStoredInMemoryOnly)
+        let before = persistent ? try SavedReadBoundary.watermark(context.container) : nil
+        func ordered<T: PersistentModel>(_ rows: [T], type: String, key: (T) -> String) throws -> [T] {
+            if let ids = ordering?[type] {
+                let byID = Dictionary(uniqueKeysWithValues: rows.map { ($0.persistentModelID, $0) })
+                guard ids.count == rows.count else { throw DatabaseBackupError.changed }
+                return try ids.map { id in
+                    guard let row = byID[id] else { throw DatabaseBackupError.changed }
+                    return row
                 }
-                return key(left) < key(right)
             }
-        let milestones = try context.fetch(FetchDescriptor<Milestone>())
-            .sorted { left, right in
-                func key(_ row: Milestone) -> String {
-                    let value = MilestoneRow(
-                        id: row.id, permanentDisplayId: row.permanentDisplayId, name: row.name,
-                        milestoneDescription: row.milestoneDescription, statusRawValue: row.statusRawValue,
-                        creationDate: row.creationDate, lastStatusChangeDate: row.lastStatusChangeDate,
-                        completionDate: row.completionDate, projectRow: nil)
-                    let encoder = JSONEncoder()
-                    encoder.outputFormatting = [.sortedKeys]
-                    return (try? encoder.encode(value).base64EncodedString()) ?? ""
+            let decorated: [(row: T, key: String)] = rows.map { (row: $0, key: key($0)) }
+            let sorted = decorated.sorted { left, right in
+                if left.key == right.key {
+                    let first = String(describing: left.row.persistentModelID)
+                    let second = String(describing: right.row.persistentModelID)
+                    return first < second
                 }
-                return key(left) < key(right)
+                return left.key < right.key
             }
-        let transitTasks = try context.fetch(FetchDescriptor<TransitTask>())
-            .sorted { left, right in
-                func key(_ row: TransitTask) -> String {
-                    let value = TransitTaskRow(
-                        id: row.id, permanentDisplayId: row.permanentDisplayId, name: row.name,
-                        taskDescription: row.taskDescription, statusRawValue: row.statusRawValue,
-                        typeRawValue: row.typeRawValue, priorityRawValue: row.priorityRawValue,
-                        creationDate: row.creationDate, lastStatusChangeDate: row.lastStatusChangeDate,
-                        completionDate: row.completionDate, metadataJSON: row.metadataJSON, projectRow: nil,
-                        milestoneRow: nil)
-                    let encoder = JSONEncoder()
-                    encoder.outputFormatting = [.sortedKeys]
-                    return (try? encoder.encode(value).base64EncodedString()) ?? ""
-                }
-                return key(left) < key(right)
-            }
-        let comments = try context.fetch(FetchDescriptor<Comment>())
-            .sorted { left, right in
-                func key(_ row: Comment) -> String {
-                    let value = CommentRow(
-                        id: row.id, content: row.content, authorName: row.authorName, isAgent: row.isAgent,
-                        creationDate: row.creationDate, taskRow: nil)
-                    let encoder = JSONEncoder()
-                    encoder.outputFormatting = [.sortedKeys]
-                    return (try? encoder.encode(value).base64EncodedString()) ?? ""
-                }
-                return key(left) < key(right)
-            }
-        let syncHeartbeats = try context.fetch(FetchDescriptor<SyncHeartbeat>())
-            .sorted { left, right in
-                func key(_ row: SyncHeartbeat) -> String {
-                    let value = SyncHeartbeatRow(id: row.id, lastBeat: row.lastBeat)
-                    let encoder = JSONEncoder()
-                    encoder.outputFormatting = [.sortedKeys]
-                    return (try? encoder.encode(value).base64EncodedString()) ?? ""
-                }
-                return key(left) < key(right)
-            }
-        let mCPWriteReceipts = try context.fetch(FetchDescriptor<MCPWriteReceipt>())
-            .sorted { left, right in
-                func key(_ row: MCPWriteReceipt) -> String {
-                    let value = MCPWriteReceiptRow(
-                        id: row.id, localScopeID: row.localScopeID, tool: row.tool, key: row.key,
-                        formatVersion: row.formatVersion, requestJSON: row.requestJSON,
-                        stateRawValue: row.stateRawValue, acceptedAt: row.acceptedAt,
-                        completedAt: row.completedAt, expiresAt: row.expiresAt, resultJSON: row.resultJSON,
-                        resultIsError: row.resultIsError)
-                    let encoder = JSONEncoder()
-                    encoder.outputFormatting = [.sortedKeys]
-                    return (try? encoder.encode(value).base64EncodedString()) ?? ""
-                }
-                return key(left) < key(right)
-            }
-        let taskLinkOccurrences = try context.fetch(FetchDescriptor<TaskLinkOccurrence>())
-            .sorted { left, right in
-                func key(_ row: TaskLinkOccurrence) -> String {
-                    let value = TaskLinkOccurrenceRow(
-                        id: row.id, kindRawValue: row.kindRawValue, sourceTaskID: row.sourceTaskID,
-                        targetTaskID: row.targetTaskID, createdAt: row.createdAt)
-                    let encoder = JSONEncoder()
-                    encoder.outputFormatting = [.sortedKeys]
-                    return (try? encoder.encode(value).base64EncodedString()) ?? ""
-                }
-                return key(left) < key(right)
-            }
-        let taskLinkRemovalEvidences = try context.fetch(FetchDescriptor<TaskLinkRemovalEvidence>())
-            .sorted { left, right in
-                func key(_ row: TaskLinkRemovalEvidence) -> String {
-                    let value = TaskLinkRemovalEvidenceRow(
-                        id: row.id, edgeId: row.edgeId, kindRawValue: row.kindRawValue,
-                        sourceTaskID: row.sourceTaskID, targetTaskID: row.targetTaskID,
-                        createdAt: row.createdAt, occurrenceRevision: row.occurrenceRevision,
-                        removedAt: row.removedAt)
-                    let encoder = JSONEncoder()
-                    encoder.outputFormatting = [.sortedKeys]
-                    return (try? encoder.encode(value).base64EncodedString()) ?? ""
-                }
-                return key(left) < key(right)
-            }
-        let taskConsolidationEvents = try context.fetch(FetchDescriptor<TaskConsolidationEvent>())
-            .sorted { left, right in
-                func key(_ row: TaskConsolidationEvent) -> String {
-                    let value = TaskConsolidationEventRow(
-                        id: row.id, operationId: row.operationId, kindRawValue: row.kindRawValue,
-                        createdAt: row.createdAt, originScopeId: row.originScopeId,
-                        survivorTaskId: row.survivorTaskId, candidate1: row.candidate1,
-                        candidate2: row.candidate2, candidate3: row.candidate3, candidate4: row.candidate4,
-                        candidate5: row.candidate5, payloadJSON: row.payloadJSON)
-                    let encoder = JSONEncoder()
-                    encoder.outputFormatting = [.sortedKeys]
-                    return (try? encoder.encode(value).base64EncodedString()) ?? ""
-                }
-                return key(left) < key(right)
-            }
+            return sorted.map { $0.row }
+        }
+        let projects = try ordered(context.fetch(FetchDescriptor<Project>()), type: "Project") { row in
+
+            let value = ProjectRow(
+                id: row.id, name: row.name, projectDescription: row.projectDescription,
+                gitRepo: row.gitRepo, colorHex: row.colorHex)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            return (try? encoder.encode(value).base64EncodedString()) ?? ""
+        }
+        let milestones = try ordered(context.fetch(FetchDescriptor<Milestone>()), type: "Milestone") { row in
+
+            let value = MilestoneRow(
+                id: row.id, permanentDisplayId: row.permanentDisplayId, name: row.name,
+                milestoneDescription: row.milestoneDescription, statusRawValue: row.statusRawValue,
+                creationDate: row.creationDate, lastStatusChangeDate: row.lastStatusChangeDate,
+                completionDate: row.completionDate, projectRow: nil)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            return (try? encoder.encode(value).base64EncodedString()) ?? ""
+        }
+        let transitTasks = try ordered(context.fetch(FetchDescriptor<TransitTask>()), type: "TransitTask") { row in
+
+            let value = TransitTaskRow(
+                id: row.id, permanentDisplayId: row.permanentDisplayId, name: row.name,
+                taskDescription: row.taskDescription, statusRawValue: row.statusRawValue,
+                typeRawValue: row.typeRawValue, priorityRawValue: row.priorityRawValue,
+                creationDate: row.creationDate, lastStatusChangeDate: row.lastStatusChangeDate,
+                completionDate: row.completionDate, metadataJSON: row.metadataJSON, projectRow: nil,
+                milestoneRow: nil)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            return (try? encoder.encode(value).base64EncodedString()) ?? ""
+        }
+        let comments = try ordered(context.fetch(FetchDescriptor<Comment>()), type: "Comment") { row in
+
+            let value = CommentRow(
+                id: row.id, content: row.content, authorName: row.authorName, isAgent: row.isAgent,
+                creationDate: row.creationDate, taskRow: nil)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            return (try? encoder.encode(value).base64EncodedString()) ?? ""
+        }
+        let syncHeartbeats = try ordered(
+            context.fetch(FetchDescriptor<SyncHeartbeat>()), type: "SyncHeartbeat"
+        ) { row in
+
+            let value = SyncHeartbeatRow(id: row.id, lastBeat: row.lastBeat)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            return (try? encoder.encode(value).base64EncodedString()) ?? ""
+        }
+        let mCPWriteReceipts = try ordered(
+            context.fetch(FetchDescriptor<MCPWriteReceipt>()), type: "MCPWriteReceipt"
+        ) { row in
+
+            let value = MCPWriteReceiptRow(
+                id: row.id, localScopeID: row.localScopeID, tool: row.tool, key: row.key,
+                formatVersion: row.formatVersion, requestJSON: row.requestJSON,
+                stateRawValue: row.stateRawValue, acceptedAt: row.acceptedAt,
+                completedAt: row.completedAt, expiresAt: row.expiresAt, resultJSON: row.resultJSON,
+                resultIsError: row.resultIsError)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            return (try? encoder.encode(value).base64EncodedString()) ?? ""
+        }
+        let taskLinkOccurrences = try ordered(
+            context.fetch(FetchDescriptor<TaskLinkOccurrence>()), type: "TaskLinkOccurrence"
+        ) { row in
+
+            let value = TaskLinkOccurrenceRow(
+                id: row.id, kindRawValue: row.kindRawValue, sourceTaskID: row.sourceTaskID,
+                targetTaskID: row.targetTaskID, createdAt: row.createdAt)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            return (try? encoder.encode(value).base64EncodedString()) ?? ""
+        }
+        let taskLinkRemovalEvidences = try ordered(
+            context.fetch(FetchDescriptor<TaskLinkRemovalEvidence>()), type: "TaskLinkRemovalEvidence"
+        ) { row in
+
+            let value = TaskLinkRemovalEvidenceRow(
+                id: row.id, edgeId: row.edgeId, kindRawValue: row.kindRawValue,
+                sourceTaskID: row.sourceTaskID, targetTaskID: row.targetTaskID,
+                createdAt: row.createdAt, occurrenceRevision: row.occurrenceRevision,
+                removedAt: row.removedAt)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            return (try? encoder.encode(value).base64EncodedString()) ?? ""
+        }
+        let taskConsolidationEvents = try ordered(
+            context.fetch(FetchDescriptor<TaskConsolidationEvent>()), type: "TaskConsolidationEvent"
+        ) { row in
+
+            let value = TaskConsolidationEventRow(
+                id: row.id, operationId: row.operationId, kindRawValue: row.kindRawValue,
+                createdAt: row.createdAt, originScopeId: row.originScopeId,
+                survivorTaskId: row.survivorTaskId, candidate1: row.candidate1,
+                candidate2: row.candidate2, candidate3: row.candidate3, candidate4: row.candidate4,
+                candidate5: row.candidate5, payloadJSON: row.payloadJSON)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            return (try? encoder.encode(value).base64EncodedString()) ?? ""
+        }
+        let physicalIndexes: [String: [PersistentIdentifier: Int]] = [
+            "Project": Dictionary(
+                uniqueKeysWithValues: projects.enumerated().map { ($0.element.persistentModelID, $0.offset) }),
+            "Milestone": Dictionary(
+                uniqueKeysWithValues: milestones.enumerated().map { ($0.element.persistentModelID, $0.offset) }),
+            "TransitTask": Dictionary(
+                uniqueKeysWithValues: transitTasks.enumerated().map { ($0.element.persistentModelID, $0.offset) })
+        ]
         func index<T: PersistentModel>(_ value: T?, in rows: [T]) throws -> Int? {
             guard let value else { return nil }
-            guard let index = rows.firstIndex(where: { $0.persistentModelID == value.persistentModelID })
+            guard let index = physicalIndexes[String(describing: T.self)]?[value.persistentModelID]
             else {
                 throw DatabaseBackupError.invalidArchive("Relationship points outside the saved database.")
             }
             return index
         }
-        return try DatabaseArchive(
+        let archive = try DatabaseArchive(
             createdAt: now,
             projectRows: projects.map { row in
                 ProjectRow(
@@ -301,5 +317,10 @@ extension DatabaseArchive {
                     candidate2: row.candidate2, candidate3: row.candidate3, candidate4: row.candidate4,
                     candidate5: row.candidate5, payloadJSON: row.payloadJSON)
             })
+        let after = persistent ? try SavedReadBoundary.watermark(context.container) : nil
+        guard before?.token == after?.token, before?.storeIdentifier == after?.storeIdentifier else {
+            throw DatabaseBackupError.changed
+        }
+        return archive
     }
 }

@@ -8,16 +8,19 @@ final class DatabaseMaintenanceGate {
     static let shared = DatabaseMaintenanceGate()
     private var installedContainer: ObjectIdentifier?
     private var prepare: (() throws -> [String])?
+    private var cancel: (() throws -> Void)?
     private var authorize: (() throws -> Void)?
     private var finish: (() throws -> Void)?
     private(set) var requiresRestart = false
 
     func install(
         container: ModelContainer, prepare: @escaping () throws -> [String],
-        authorize: @escaping () throws -> Void = {}, finish: @escaping () throws -> Void
+        authorize: @escaping () throws -> Void = {}, cancel: @escaping () throws -> Void = {},
+        finish: @escaping () throws -> Void
     ) {
         installedContainer = ObjectIdentifier(container)
         self.prepare = prepare
+        self.cancel = cancel
         self.authorize = authorize
         self.finish = finish
     }
@@ -33,8 +36,20 @@ final class DatabaseMaintenanceGate {
         try authorize?()
     }
 
+    func cancelReplacement(of container: ModelContainer) throws {
+        guard installedContainer == ObjectIdentifier(container) else { return }
+        try cancel?()
+    }
+
+    func requireMutationAvailable(in container: ModelContainer) throws {
+        guard installedContainer != ObjectIdentifier(container) || !requiresRestart else {
+            throw DatabaseBackupError.unavailable
+        }
+    }
+
     func didReplace(_ container: ModelContainer, availability: PersistenceAvailability) throws {
         guard installedContainer == ObjectIdentifier(container) else { return }
+        container.mainContext.autosaveEnabled = false
         requiresRestart = true
         availability.requireRestartAfterReplacement()
         try finish?()

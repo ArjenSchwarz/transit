@@ -66,9 +66,10 @@ final class DatabaseBackupService {
         let scratch = try ModelContainer(for: schema, configurations: [configuration])
         let context = ModelContext(scratch)
         context.autosaveEnabled = false
-        try archive.insert(into: context)
+        let inserted = try archive.insert(into: context)
         try context.save()
-        var restored = try DatabaseArchive.capture(ModelContext(scratch), now: archive.createdAt)
+        let order = inserted.mapValues { $0.map(\.persistentModelID) }
+        var restored = try DatabaseArchive.capture(ModelContext(scratch), now: archive.createdAt, ordering: order)
         restored.archivedReservationJSON = archive.archivedReservationJSON
         guard restored == archive else {
             throw DatabaseBackupError.invalidArchive(
@@ -81,7 +82,8 @@ final class DatabaseBackupService {
     func export(to url: URL) throws -> DatabaseArchive {
         let archive = try capture()
         try encoded(archive).write(to: url, options: [.atomic])
-        let verified = try decodeAndVerify(Data(contentsOf: url))
+        try DurableBackupFile.synchronize(url)
+        let verified = try decodeAndVerify(DurableBackupFile.read(url))
         guard verified == archive else { throw DatabaseBackupError.changed }
         return verified
     }
@@ -98,11 +100,12 @@ final class DatabaseBackupService {
         context.autosaveEnabled = false
         do {
             try DatabaseArchive.deleteAll(in: context)
-            try archive.insert(into: context)
+            _ = try archive.insert(into: context)
             try save(context)
 
         } catch {
             context.rollback()
+            try DatabaseMaintenanceGate.shared.cancelReplacement(of: container)
             throw error
         }
         do { try DatabaseMaintenanceGate.shared.didReplace(container, availability: availability) } catch {
@@ -114,7 +117,7 @@ final class DatabaseBackupService {
     func wipe(backupURL: URL, confirmation: String) throws {
         guard confirmation == "WIPE" else { throw DatabaseBackupError.confirmationRequired }
         try requireStorage()
-        let archive = try decodeAndVerify(Data(contentsOf: backupURL))
+        let archive = try decodeAndVerify(DurableBackupFile.read(backupURL))
         try requireUnchanged(archive)
         try DatabaseMaintenanceGate.shared.authorizeReplacement(of: container)
         let context = ModelContext(container)
@@ -125,6 +128,7 @@ final class DatabaseBackupService {
 
         } catch {
             context.rollback()
+            try DatabaseMaintenanceGate.shared.cancelReplacement(of: container)
             throw error
         }
         do { try DatabaseMaintenanceGate.shared.didReplace(container, availability: availability) } catch {

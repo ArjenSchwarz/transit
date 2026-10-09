@@ -8,11 +8,8 @@ struct CloudBackupCoverage {
     let database: CKDatabase
 
     func verify(_ archive: DatabaseArchive) async throws {
-        let zones = try await database.allRecordZones()
+        let zones = try Self.transitZones(await database.allRecordZones())
         for zone in zones {
-            guard zone.zoneID.zoneName == "com.apple.coredata.cloudkit.zone" else {
-                throw DatabaseBackupError.invalidArchive("An unexpected iCloud zone prevents a safe wipe.")
-            }
             var token: CKServerChangeToken?
             var savedRecords: [CKRecord.ID: CKRecord] = [:]
             var more = true
@@ -34,9 +31,26 @@ struct CloudBackupCoverage {
         }
     }
 
+    /// CloudKit always includes its default zone; Transit writes only to the Core Data custom zone.
+    static func transitZones(_ zones: [CKRecordZone]) throws -> [CKRecordZone] {
+        let custom = zones.filter { $0.zoneID != CKRecordZone.default().zoneID }
+        guard custom.allSatisfy({ $0.zoneID.zoneName == "com.apple.coredata.cloudkit.zone" }) else {
+            throw DatabaseBackupError.invalidArchive("An unexpected iCloud zone prevents a safe wipe.")
+        }
+        return custom
+    }
+
     static func verifyRecords(_ records: [CKRecord], archive: DatabaseArchive) throws {
+        try archive.validate()
         let expected = try archive.cloudRows()
-        let byRecordID = Dictionary(uniqueKeysWithValues: records.map { ($0.recordID, $0) })
+        let relationships = archive.cloudRelationshipRows()
+        var byRecordID: [CKRecord.ID: CKRecord] = [:]
+        for record in records {
+            guard byRecordID.updateValue(record, forKey: record.recordID) == nil else {
+                throw DatabaseBackupError.invalidArchive("Duplicate physical cloud records prevent a safe wipe.")
+            }
+        }
+        var seen: Set<String> = []
         for record in records {
             // CloudKit mirror records and ID allocation are infrastructure, not user content.
             if record.recordType == "CDMR" || record.recordType == "DisplayIDCounter"
@@ -50,6 +64,9 @@ struct CloudBackupCoverage {
                 throw DatabaseBackupError.invalidArchive(
                     "iCloud contains data absent from this backup. Allow sync to finish, then retry.")
             }
+            guard seen.insert(record.recordType + uuid.uuidString).inserted else {
+                throw DatabaseBackupError.invalidArchive("Duplicate physical iCloud identities prevent a safe wipe.")
+            }
             for (field, value) in fields where field != "id" && !field.hasSuffix("Row") {
                 let cloudValue = record["CD_" + field]
                 guard Self.matches(value, cloudValue) else {
@@ -57,8 +74,7 @@ struct CloudBackupCoverage {
                         "iCloud has a different version of a saved record. Allow sync to finish, then retry.")
                 }
             }
-            for (relationship, targetID) in archive.cloudRelationships(
-                type: record.recordType, id: uuid) {
+            for (relationship, targetID) in relationships[record.recordType]?[uuid] ?? [] {
                 let reference = record["CD_" + relationship] as? CKRecord.Reference
                 let actual = reference.flatMap { byRecordID[$0.recordID]?["CD_id"] as? String }.flatMap(
                     UUID.init(uuidString:))
@@ -70,7 +86,7 @@ struct CloudBackupCoverage {
         }
     }
 
-    private static func matches(_ local: Any, _ cloud: (any CKRecordValueProtocol)?) -> Bool {
+    private static func matches(_ local: Any, _ cloud: Any?) -> Bool {
         if local is NSNull { return cloud == nil }
         if let string = local as? String {
             guard let remote = cloud as? String else { return false }
@@ -125,21 +141,26 @@ extension DatabaseArchive {
         ]
     }
 
-    func cloudRelationships(type: String, id: UUID) -> [(String, UUID?)] {
-        switch type {
-        case "CD_TransitTask":
-            guard let row = transitTaskRows.first(where: { $0.id == id }) else { return [] }
-            return [
-                ("project", row.projectRow.map { projectRows[$0].id }),
-                ("milestone", row.milestoneRow.map { milestoneRows[$0].id })
-            ]
-        case "CD_Milestone":
-            guard let row = milestoneRows.first(where: { $0.id == id }) else { return [] }
-            return [("project", row.projectRow.map { projectRows[$0].id })]
-        case "CD_Comment":
-            guard let row = commentRows.first(where: { $0.id == id }) else { return [] }
-            return [("task", row.taskRow.map { transitTaskRows[$0].id })]
-        default: return []
+    func cloudRelationshipRows() -> [String: [UUID: [(String, UUID?)]]] {
+        let tasks = transitTaskRows.map { row in
+            (
+                row.id,
+                [
+                    ("project", row.projectRow.map { projectRows[$0].id }),
+                    ("milestone", row.milestoneRow.map { milestoneRows[$0].id })
+                ]
+            )
         }
+        let milestones = milestoneRows.map { row in
+            (row.id, [("project", row.projectRow.map { projectRows[$0].id })])
+        }
+        let comments = commentRows.map { row in
+            (row.id, [("task", row.taskRow.map { transitTaskRows[$0].id })])
+        }
+        return [
+            "CD_TransitTask": Dictionary(uniqueKeysWithValues: tasks),
+            "CD_Milestone": Dictionary(uniqueKeysWithValues: milestones),
+            "CD_Comment": Dictionary(uniqueKeysWithValues: comments)
+        ]
     }
 }

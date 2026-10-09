@@ -127,6 +127,11 @@ struct DatabaseBackupTests {
         let fixture = try TestModelContainer()
         try populated(fixture)
         let archive = try DatabaseBackupService(container: fixture.container).capture()
+        let custom = CKRecordZone(zoneName: "com.apple.coredata.cloudkit.zone")
+        #expect(try CloudBackupCoverage.transitZones([.default(), custom]).map(\.zoneID) == [custom.zoneID])
+        #expect(throws: (any Error).self) {
+            try CloudBackupCoverage.transitZones([CKRecordZone(zoneName: "unexpected")])
+        }
         let row = try #require(archive.projectRows.first)
         let record = CKRecord(recordType: "CD_Project")
         record["CD_id"] = row.id.uuidString
@@ -135,6 +140,11 @@ struct DatabaseBackupTests {
         record["CD_gitRepo"] = row.gitRepo
         record["CD_colorHex"] = row.colorHex
         try CloudBackupCoverage.verifyRecords([record], archive: archive)
+        let duplicate = CKRecord(recordType: "CD_Project")
+        for key in record.allKeys() { duplicate[key] = record[key] }
+        #expect(throws: (any Error).self) {
+            try CloudBackupCoverage.verifyRecords([record, duplicate], archive: archive)
+        }
         record["CD_name"] = "Remote edit"
         #expect(throws: (any Error).self) { try CloudBackupCoverage.verifyRecords([record], archive: archive) }
         record["CD_id"] = UUID().uuidString
@@ -146,7 +156,7 @@ struct DatabaseBackupTests {
     @Test func duplicateUUIDsRetainPhysicalRelationshipTargets() throws {
         let fixture = try TestModelContainer()
         let first = Project(name: "First", description: "", gitRepo: nil, colorHex: "aaa")
-        let second = Project(name: "Second", description: "", gitRepo: nil, colorHex: "bbb")
+        let second = Project(name: "First", description: "", gitRepo: nil, colorHex: "aaa")
         second.id = first.id
         fixture.context.insert(first)
         fixture.context.insert(second)
@@ -159,7 +169,6 @@ struct DatabaseBackupTests {
         #expect(throws: (any Error).self) { try archive.cloudRows() }
     }
 
-    #if os(macOS)
     @Test func scheduleUsesLocalTimeAndOneCatchUp() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try #require(TimeZone(identifier: "America/New_York"))
@@ -170,6 +179,28 @@ struct DatabaseBackupTests {
         #expect(!schedule.isDue(now: start, lastSuccess: nil, enabledAt: start, calendar: calendar))
         #expect(schedule.isDue(now: late, lastSuccess: nil, enabledAt: start, calendar: calendar))
         #expect(!schedule.isDue(now: late, lastSuccess: late, enabledAt: start, calendar: calendar))
+        calendar.timeZone = try #require(TimeZone(identifier: "America/New_York"))
+        let formatter = ISO8601DateFormatter()
+        let spring = try #require(formatter.date(from: "2026-03-08T08:00:00Z"))
+        #expect(schedule.latestDue(before: spring, calendar: calendar) == formatter.date(from: "2026-03-08T07:00:00Z"))
+        let autumn = try #require(formatter.date(from: "2026-11-01T08:00:00Z"))
+        #expect(
+            BackupSchedule(hour: 1, minute: 30).latestDue(before: autumn, calendar: calendar)
+                == formatter.date(from: "2026-11-01T05:30:00Z"))
     }
-    #endif
+    @Test func persistentStoreBackupUsesSavedHistoryFence() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let schema = DatabaseArchive.schema
+        let configuration = ModelConfiguration(
+            schema: schema, url: directory.appendingPathComponent("fixture.store"),
+            cloudKitDatabase: .none)
+        let fixture = try TestModelContainer(schema: schema, configurations: [configuration])
+        try populated(fixture)
+        let service = DatabaseBackupService(container: fixture.container)
+        let archive = try service.capture()
+        #expect(try service.decodeAndVerify(service.encoded(archive)) == archive)
+    }
+
 }
