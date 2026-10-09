@@ -2,15 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>TransitDevelopmentCloudSync</key>
+	<string>$(TRANSIT_DEVELOPMENT_CLOUD_SYNC)</string>
 	<key>UIApplicationShortcutItems</key>
 	<array>
 		<dict>
-			<key>UIApplicationShortcutItemType</key>
-			<string>com.arjen.transit.new-task</string>
-			<key>UIApplicationShortcutItemTitle</key>
-			<string>New Task</string>
 			<key>UIApplicationShortcutItemIconSymbolName</key>
 			<string>plus.square</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>New Task</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.arjen.transit.new-task</string>
 		</dict>
 	</array>
 </dict>

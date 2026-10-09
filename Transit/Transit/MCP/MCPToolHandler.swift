@@ -274,7 +274,8 @@ final class MCPToolHandler {
         let result = MCPInitializeResult(
             protocolVersion: protocolVersion,
             capabilities: MCPServerCapabilities(tools: MCPToolsCapability(listChanged: true)),
-            serverInfo: MCPServerInfo(name: "transit", version: version)
+            serverInfo: MCPServerInfo(
+                name: AppPersistencePolicy.serverName, version: version)
         )
         return JSONRPCResponse.success(id: id, result: result)
     }

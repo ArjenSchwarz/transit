@@ -19,6 +19,11 @@ struct MCPModernRouterIntegrationTests {
             #expect(result["resultType"] as? String == "complete")
             #expect(result["ttlMs"] as? Int == 0)
             #expect(result["cacheScope"] as? String == "public")
+            if method == "server/discover" {
+                let metadata = try #require(result["_meta"] as? [String: Any])
+                let identity = try #require(metadata["io.modelcontextprotocol/serverInfo"] as? [String: Any])
+                #expect(identity["name"] as? String == "transit-debug")
+            }
             if method == "tools/list" {
                 let tools = try #require(result["tools"] as? [[String: Any]])
                 let names = tools.compactMap { $0["name"] as? String }

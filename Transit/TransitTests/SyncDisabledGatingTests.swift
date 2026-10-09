@@ -26,7 +26,7 @@ struct SyncDisabledGatingTests {
     }
 
     /// Saves and restores the "syncEnabled" default around a body that mutates it.
-    private func withSavedDefaults(_ body: () -> Void) {
+    private func withSavedDefaults(_ body: () throws -> Void) rethrows {
         let key = "syncEnabled"
         let previous = UserDefaults.standard.object(forKey: key)
         defer {
@@ -36,7 +36,7 @@ struct SyncDisabledGatingTests {
                 UserDefaults.standard.removeObject(forKey: key)
             }
         }
-        body()
+        try body()
     }
 
     // MARK: - T-1797: allocator never reaches the counter store
@@ -251,15 +251,15 @@ struct SyncDisabledGatingTests {
     // MARK: - T-1857: preference vs. active mode
 
     @Test
-    func makeModelConfiguration_recordsTheModeTheContainerWasBuiltWith() {
-        withSavedDefaults {
+    func makeModelConfiguration_recordsTheModeTheContainerWasBuiltWith() throws {
+        try withSavedDefaults {
             UserDefaults.standard.set(false, forKey: "syncEnabled")
             let manager = SyncManager()
             let schema = Schema([
                 Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
             ])
 
-            _ = manager.makeModelConfiguration(schema: schema)
+            _ = try manager.makeModelConfiguration(schema: schema)
 
             #expect(manager.isCloudSyncActive == false)
             #expect(manager.syncChangeRequiresRestart == false)
@@ -267,14 +267,14 @@ struct SyncDisabledGatingTests {
     }
 
     @Test
-    func setSyncEnabled_doesNotChangeTheActiveMode_andFlagsRestartRequired() {
-        withSavedDefaults {
+    func setSyncEnabled_doesNotChangeTheActiveMode_andFlagsRestartRequired() throws {
+        try withSavedDefaults {
             UserDefaults.standard.set(true, forKey: "syncEnabled")
             let manager = SyncManager()
             let schema = Schema([
                 Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
             ])
-            _ = manager.makeModelConfiguration(schema: schema)
+            _ = try manager.makeModelConfiguration(schema: schema)
             #expect(manager.isCloudSyncActive == true)
 
             manager.setSyncEnabled(false)

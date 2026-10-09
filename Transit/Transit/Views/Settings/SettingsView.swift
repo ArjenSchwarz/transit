@@ -109,6 +109,7 @@ struct SettingsView: View {
         Section("General") {
             TextField("Your Name", text: $userDisplayName)
             LabeledContent("About Transit", value: appVersion)
+            environmentDetails
             VStack(alignment: .leading, spacing: 4) {
                 Toggle("iCloud Sync", isOn: syncPreference)
                     .disabled(!syncManager.cloudSyncAllowed)
@@ -180,6 +181,20 @@ struct SettingsView: View {
             Spacer()
             Text("\(projectService.activeTaskCount(for: project))")
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    private var environmentDetails: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(syncManager.mode.displayName)
+                .accessibilityIdentifier("settings.environment")
+            Text(syncManager.isCloudSyncActive
+                 ? syncManager.mode.cloudKitContainerID
+                    + (syncManager.mode == .development ? " · Development" : "")
+                 : "Local storage · iCloud inactive")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
         }
     }
 
@@ -393,7 +408,8 @@ extension SettingsView {
                     ) {
                         FormRow("Setup", labelWidth: Self.labelWidth) {
                             let command =
-                                "claude mcp add transit --transport http http://localhost:\(setupPort)/mcp"
+                                "claude mcp add \(syncManager.mode == .production ? "transit" : "transit-debug") "
+                                + "--transport http http://localhost:\(setupPort)/mcp"
                             Text(command)
                                 .font(.caption.monospaced())
                                 .textSelection(.enabled)
@@ -445,6 +461,9 @@ extension SettingsView {
     fileprivate var macOSGeneralSection: some View {
         LiquidGlassSection {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 14) {
+                FormRow("Environment", labelWidth: Self.labelWidth) {
+                    environmentDetails
+                }
                 FormRow("Your Name", labelWidth: Self.labelWidth) {
                     TextField("", text: $userDisplayName)
                 }

@@ -139,7 +139,7 @@ def main():
         unit["EnvironmentVariables"].pop(flag, None)
     unit["EnvironmentVariables"][environment_flag] = "1"
     roots = {str(original), str(products), str(products).removeprefix("/private")}
-    executables = {root + "/Debug/Transit.app/Contents/MacOS/Transit" for root in roots}
+    executables = {root + "/Debug/TransitDevelopment.app/Contents/MacOS/TransitDevelopment" for root in roots}
     bundles = {root + "/Debug/TransitTests.xctest" for root in roots}
     require(not host_processes(processes(), executables, bundles), "Existing build host; no launch allowed")
     with derived.open("xb") as stream:

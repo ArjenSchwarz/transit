@@ -1,3 +1,4 @@
+import CloudKit
 import Foundation
 
 /// Selects counter adapters before any CloudKit container is constructed.
@@ -10,8 +11,8 @@ enum AppDisplayIDAllocators {
     static func make(
         mode: AppPersistencePolicy.Mode,
         syncActive: Bool,
-        cloudFactory: (String) -> DisplayIDAllocator = {
-            DisplayIDAllocator(counterRecordName: $0, isCloudSyncActive: true)
+        cloudFactory: (String, String) -> DisplayIDAllocator = {
+            DisplayIDAllocator(container: CKContainer(identifier: $1), counterRecordName: $0, isCloudSyncActive: true)
         }
     ) -> Pair {
         guard mode.permitsCloudSync && syncActive else {
@@ -20,7 +21,8 @@ enum AppDisplayIDAllocators {
                 milestones: DisplayIDAllocator(store: DisabledCounterStore(), isCloudSyncActive: false)
             )
         }
-        return Pair(tasks: cloudFactory("global-counter"), milestones: cloudFactory("milestone-counter"))
+        return Pair(tasks: cloudFactory("global-counter", mode.cloudKitContainerID),
+                    milestones: cloudFactory("milestone-counter", mode.cloudKitContainerID))
     }
 }
 

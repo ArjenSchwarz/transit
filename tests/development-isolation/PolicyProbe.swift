@@ -32,7 +32,11 @@ struct PolicyProbe {
             try expect(mode(development, Policy.developmentBundleID,
                                   ["XCTestConfigurationFilePath": "/synthetic/test-config"]), .unitTest)
         }
-        precondition(!Policy.Mode.development.permitsCloudSync)
+        precondition(Policy.Mode.development.permitsCloudSync)
+        precondition(!Policy.Mode.unitTest.permitsCloudSync && !Policy.Mode.uiTest.permitsCloudSync)
+        precondition(Policy.Mode.development.cloudKitContainerID != Policy.Mode.production.cloudKitContainerID)
+        precondition(Policy.Mode.production.defaultMCPPort == 3141)
+        precondition(Policy.Mode.development.defaultMCPPort == 3142)
         precondition(!Policy.Mode.unitTest.permitsBackgroundServices)
         precondition(Policy.Mode.uiTest.usesMemoryStore)
         print("Persistence policy checks passed")

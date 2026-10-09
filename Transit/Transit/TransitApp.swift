@@ -40,21 +40,19 @@ struct TransitApp: App {
     // swiftlint:disable:next function_body_length
     init() {
         let mode = Self.persistenceMode
-        let syncManager = SyncManager(cloudSyncAllowed: mode.permitsCloudSync)
+        let debugCloudEnabled = AppPersistencePolicy.developmentCloudSyncEnabled
+        let cloudAllowed = mode.permitsCloudSync && (mode == .production || debugCloudEnabled)
+        let syncManager = SyncManager(cloudSyncAllowed: cloudAllowed, mode: mode)
         self.syncManager = syncManager
         let schema = Schema([
             Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self,
             TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self, TaskConsolidationEvent.self
         ])
         let config: ModelConfiguration
-        if mode != .production {
-            do {
-                config = try IsolatedPersistenceConfiguration.make(mode: mode, schema: schema)
-            } catch {
-                fatalError("Unable to create isolated storage: \(error)")
-            }
-        } else {
-            config = syncManager.makeModelConfiguration(schema: schema)
+        do {
+            config = try syncManager.makeModelConfiguration(schema: schema)
+        } catch {
+            fatalError("Unable to create isolated storage: \(error)")
         }
         AppIsolationSmoke.preflight(mode: mode, configuration: config)
         let containerResult = ContainerFactory.makeContainer(schema: schema, configuration: config)
@@ -134,7 +132,7 @@ struct TransitApp: App {
         appDelegate.quickActionService = quickActionService
         #endif
         #if os(macOS)
-        let mcpSettings = MCPSettings()
+        let mcpSettings = MCPSettings(mode: mode)
         self.mcpSettings = mcpSettings
         let writeServices = MCPWriteCommandServices(
             tasks: taskService, projects: projectService,

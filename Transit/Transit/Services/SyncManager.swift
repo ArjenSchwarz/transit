@@ -24,7 +24,8 @@ final class SyncManager {
 
     /// Matches the @AppStorage key used in SettingsView.
     private static let syncEnabledKey = "syncEnabled"
-    private static let cloudKitContainerID = "iCloud.me.nore.ig.Transit"
+    let mode: AppPersistencePolicy.Mode
+    private let defaults: UserDefaults
     private static let logger = Logger(subsystem: "me.nore.ig.Transit", category: "SyncManager")
 
     private(set) var isSyncEnabled: Bool
@@ -56,6 +57,8 @@ final class SyncManager {
 
     init(
         cloudSyncAllowed: Bool = true,
+        mode: AppPersistencePolicy.Mode = .production,
+        defaults: UserDefaults = .standard,
         heartbeatFetcher: @escaping HeartbeatFetcher = { context, descriptor in
             try context.fetch(descriptor)
         },
@@ -64,7 +67,8 @@ final class SyncManager {
         }
     ) {
         // Default to enabled if never set
-        let defaults = UserDefaults.standard
+        self.mode = mode
+        self.defaults = defaults
         if cloudSyncAllowed && defaults.object(forKey: Self.syncEnabledKey) == nil {
             defaults.set(true, forKey: Self.syncEnabledKey)
         }
@@ -86,7 +90,7 @@ final class SyncManager {
     func setSyncEnabled(_ enabled: Bool) {
         guard cloudSyncAllowed else { return }
         isSyncEnabled = enabled
-        UserDefaults.standard.set(enabled, forKey: Self.syncEnabledKey)
+        defaults.set(enabled, forKey: Self.syncEnabledKey)
     }
 
     /// Records the CloudKit mode the live `ModelContainer` was actually created with.
@@ -101,12 +105,18 @@ final class SyncManager {
 
     /// Creates a ModelConfiguration based on the current sync preference, and records
     /// that mode as the active one.
-    func makeModelConfiguration(schema: Schema) -> ModelConfiguration {
+    func makeModelConfiguration(schema: Schema) throws -> ModelConfiguration {
         recordActiveCloudSync(isSyncEnabled)
+        if mode != .production {
+            return try IsolatedPersistenceConfiguration.make(
+                mode: mode, schema: schema,
+                cloudKitContainerID: isCloudSyncActive ? mode.cloudKitContainerID : nil
+            )
+        }
         if isSyncEnabled {
             return ModelConfiguration(
                 schema: schema,
-                cloudKitDatabase: .private(Self.cloudKitContainerID)
+                cloudKitDatabase: .private(mode.cloudKitContainerID)
             )
         } else {
             return ModelConfiguration(
