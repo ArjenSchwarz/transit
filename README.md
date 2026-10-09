@@ -81,10 +81,10 @@ The ten standalone write tools require an `idempotencyKey`. Task/milestone updat
 - `specs/transit-v1/` — requirements, design, architecture, tasks, and decision log
 - `docs/transit-design-doc.md` — full design document
 - `docs/agent-notes/` — implementation notes on architecture and technical constraints
-- `CLAUDE.md` — guidance for Claude Code when working in this repository
+- `AGENTS.md` — canonical guidance for agents working in this repository
 
 ## Debug and Release coexistence
 
 See [environment setup](docs/environments.md) for separate app identities, local stores and defaults, the dedicated Debug iCloud opt-in, and MCP defaults (Debug 3142, Release 3141). The existing Release CloudKit Development dataset is preserved.
 
-Database export/import, Mac daily backup scheduling and verified-backup-required wipe are described in [database backups](docs/database-backups.md). The [retrospective implementation record](specs/full-database-backups/implementation.md) captures behavior, rationale, history and verification limits; [scope approval](specs/full-database-backups/scope-assessment.md) for the retrospective spec is pending.
+Database export/import, Mac daily backup scheduling and verified-backup-required wipe are described in [database backups](docs/database-backups.md). The [retrospective implementation record](specs/full-database-backups/implementation.md) captures behavior, rationale, history and verification limits; [requirements](specs/full-database-backups/requirements.md), [design](specs/full-database-backups/design.md), and [gap assessment](specs/full-database-backups/gap-assessment.md) record the authorized retrospective audit.

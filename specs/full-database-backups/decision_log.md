@@ -1,6 +1,6 @@
 # Full database backups — observed decision history
 
-Recorded retrospectively on 2026-10-09 for T-2431 / PR #258. These are decisions evidenced by code, comments, the backup guide and branch commits. They were not approved through a prospective spec workflow. Retrospective scope approval remains pending in [scope-assessment.md](scope-assessment.md).
+Recorded retrospectively on 2026-10-09 for T-2431 / PR #258. These are decisions evidenced by code, comments, the backup guide and branch commits. They were not approved through a prospective spec workflow. The user subsequently authorized requirements/design and gap-audit work; exact workflow authorization is recorded below and in [scope-assessment.md](scope-assessment.md).
 
 | Observed choice | Reason and consequence | Evidence |
 |-----------------|------------------------|----------|
@@ -18,4 +18,35 @@ Recorded retrospectively on 2026-10-09 for T-2431 / PR #258. These are decisions
 
 ## Process correction
 
-The initial implementation omitted a repository spec and implementation record. On 2026-10-09 the user required a spec for every substantial feature, routed through `starwave:creating-spec`. That policy is recorded in `CLAUDE.md`. This retrospective corrects repository history without inventing prior phase approvals. New approvals must be recorded when actually received.
+The initial implementation omitted a repository spec and implementation record. On 2026-10-09 the user required a spec for every substantial feature, routed through `starwave:creating-spec`. That policy was initially recorded in `CLAUDE.md` and is now preserved in canonical `AGENTS.md`; the duplicate instruction file is removed. This retrospective corrects repository history without inventing prior phase approvals. New approvals must be recorded when actually received.
+
+## Quick decisions
+
+| Date | Decision | Authority and rationale |
+|------|----------|-------------------------|
+| 2026-10-09 | Author retrospective requirements/design and audit the implemented feature. | User: “do the requirements and design and use that to see if you missed any important parts.” This authorizes current work, not fictional earlier approvals. |
+| 2026-10-09 | Skip peer reviews for this documentation/audit pass. | User: “You can skip the peer reviews though.” Self-review and source/evidence traceability remain required. |
+| 2026-10-09 | Keep the existing `full-database-backups` spec path and PR branch. | The user continued this exact feature/spec task; a new name or branch would fragment history. |
+| 2026-10-09 | Use `AGENTS.md` as the sole repository instruction source. | Explicit user standard relayed by the coordinator; preserve all unique guidance and redirect existing readers. |
+
+## ADR 1: Exact physical-row versioned recovery
+
+Status: observed delivered design, recorded retrospectively; not a claimed prospective approval.
+
+A UUID-upsert archive would collapse existing duplicate identities; business-rule cleanup would alter raw history. Version 1 therefore stores scalar row arrays and physical relationship indexes, validating full isolated restoration before acceptance. The consequence is a compatibility obligation for exported files and an explicit schema registry, rather than automatic arbitrary-schema recovery.
+
+## ADR 2: Replacement import with recovery and restart
+
+Status: observed delivered design, recorded retrospectively.
+
+Merge import would require conflict and history policies beyond whole-database recovery. Replacement preserves the file exactly, first saves the current dataset recoverably, then performs one owned-context save. Registered editor models and old executable MCP keys cannot safely remain active afterward, so mutation admission closes and restart/namespace rotation protects recovery. This costs a restart and retains a separate recovery file.
+
+## ADR 3: Covered cloud deletion through normal synchronization
+
+Status: observed delivered design, recorded retrospectively.
+
+A remote zone reset could delete unseen records and break mirror/counter infrastructure without proving the local backup covers them. Wipe instead requires online coverage and deletes saved application entities through ordinary synchronization. It deliberately refuses unknown or differing cloud data; other devices must be quiescent and offline edits can reappear. This provides recoverable deletion without claiming immediate globally atomic cloud purge.
+
+## Audit outcome
+
+[gap-assessment.md](gap-assessment.md) maps current requirements to implementation and qualified evidence. No important source omission was observed; documentation and canonical instruction gaps are corrected. Live-cloud compatibility, near-limit measurements and a few targeted boundary fixtures remain verification limits rather than claimed passes.

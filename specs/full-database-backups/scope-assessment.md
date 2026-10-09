@@ -22,8 +22,8 @@ The branch implements versioned archives of all nine SwiftData entities, replace
 
 Recommendation: **full retrospective spec**, with concise requirements, design, decision history and implementation/task mapping. The persisted format and destructive-operation boundary justify full depth independently of code size.
 
-## Review boundary
+## Workflow authorization
 
-Scope approval is pending. The requested `starwave:creating-spec` workflow says, “Each phase builds on the previous one and requires explicit user approval before proceeding.” Requirements, design and task planning are not marked approved or complete. Independently requested implementation documentation and pre-push review can proceed while this decision is pending.
+On 2026-10-09 the user explicitly authorized requirements/design work and an implementation gap audit, and waived peer reviews. The requested `starwave:creating-spec` workflow says, “Each phase builds on the previous one and requires explicit user approval before proceeding.” The current requirements/design and gap assessment are authored under that authorization. No pre-implementation or final artifact approval is claimed, and task-planning approval is not invented.
 
-The existing `feature/full-database-backups` branch and draft PR remain the implementation branch; no second branch or fictional ready-for-implementation handoff is needed. Tracker connectivity currently prevents a verified status update; no uncertain write is repeated.
+The existing `feature/full-database-backups` branch and draft PR remain the implementation branch; no second branch or fictional ready-for-implementation handoff is needed. The last tracker read timed out. This documentation audit does not claim a new verified status transition or repeat an uncertain write.

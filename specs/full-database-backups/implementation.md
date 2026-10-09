@@ -1,6 +1,6 @@
 # Full database backups — implementation record
 
-Recorded retrospectively on 2026-10-09. T-2431, [draft PR #258](https://github.com/ArjenSchwarz/transit/pull/258). Implemented source baseline: `18858071e56ca615f6bc4719f24e4a8ec4b8c594`, based on merged environment-isolation PR #257 (`58f2cd20`). This document records existing behavior; it is not evidence of prospective spec approval. See [scope-assessment.md](scope-assessment.md) and [decision_log.md](decision_log.md).
+Recorded retrospectively on 2026-10-09. T-2431, [draft PR #258](https://github.com/ArjenSchwarz/transit/pull/258). Implemented source baseline: `18858071e56ca615f6bc4719f24e4a8ec4b8c594`, based on merged environment-isolation PR #257 (`58f2cd20`). This document records existing behavior; it is not evidence of prospective spec approval. See [requirements.md](requirements.md), [design.md](design.md), [gap-assessment.md](gap-assessment.md), [scope-assessment.md](scope-assessment.md) and [decision_log.md](decision_log.md).
 
 ## Beginner level
 
@@ -56,7 +56,7 @@ Implemented: complete current-schema round-trip, replacement import, configurabl
 
 Platform limits: no iOS automated schedule, no closed-app exact 02:00 execution, no immediate remote cloud purge, no global all-device transaction, and no automatic published-backup retention. These limits are explicit in the product guide. Offline device changes can reappear.
 
-Verification limits: destructive checks use synthetic stores only. Actual private cloud wipe/import, deployment, production launch and account/signing changes were not exercised. Native Mac test-host execution previously stalled before main in OS sandbox startup; final Mac validation was compilation only. The retrospective spec workflow is not yet approved/completed.
+Verification limits: destructive checks use synthetic stores only. Actual private cloud wipe/import, deployment, production launch and account/signing changes were not exercised. Native Mac test-host execution previously stalled before main in OS sandbox startup; final Mac validation was compilation only. Retrospective requirements/design and the gap audit are authored under current user authorization; no prospective or final artifact approval is claimed.
 
 ## Verification and review evidence
 
@@ -65,7 +65,7 @@ Verification limits: destructive checks use synthetic stores only. Actual privat
 - Supporting earlier evidence: 24 post-rebase backup/environment/sync/Settings checks passed. The earlier full simulator run reached 1,391 unique passing tests after one targeted retry of an unrelated consolidation UI failure. These are prior runs, not newly rerun evidence.
 - Exact source-head automated [review run](https://github.com/ArjenSchwarz/transit/actions/runs/37936160612) succeeded. Its [review content](https://github.com/ArjenSchwarz/transit/pull/258#issuecomment-6081749030) was inspected; no material blocker remained. Optional suggestions concern capture timing, diagnostics and future hardening. Retention and memory limits are documented.
 - Documentation-only retrospective changes reuse this evidence because application/test/build sources remain unchanged. No extra heavy suite is run merely to record history.
-- The requested retrospective pre-push review checked reuse, quality, efficiency and spec/documentation accuracy. No material source issue was found. The record was corrected to credit the user's explicit Mac-only scheduling decision. Relative documentation links and whitespace were checked; the source/test/build tree was compared with the tested baseline.
+- The requested retrospective pre-push review checked reuse, quality, efficiency and spec/documentation accuracy. No material source issue was found. The record was corrected to credit the user's explicit Mac-only scheduling decision. This earlier review preceded the current peer-review waiver; no peer reviews were run for the requirements/design audit. Relative documentation links and whitespace were checked; the source/test/build tree was compared with the tested baseline.
 
 ## Implementation history
 
