@@ -6,63 +6,38 @@ import SwiftData
 @MainActor @Observable
 final class DatabaseBackupService {
     let container: ModelContainer
+    private let maintenance: DatabaseMaintenanceGate
     private let availability: PersistenceAvailability
     private let save: (ModelContext) throws -> Void
 
     init(
         container: ModelContainer, availability: PersistenceAvailability = .shared,
+        maintenance: DatabaseMaintenanceGate = .shared,
         save: @escaping (ModelContext) throws -> Void = { try $0.save() }
     ) {
         self.container = container
         self.availability = availability
+        self.maintenance = maintenance
         self.save = save
     }
 
     func capture() throws -> DatabaseArchive {
         try requireStorage()
         var archive = try DatabaseArchive.capture(ModelContext(container))
-        archive.archivedReservationJSON = try DatabaseMaintenanceGate.shared.reservationSnapshot(for: container)
+        archive.archivedReservationJSON = try maintenance.reservationSnapshot(for: container)
         return archive
     }
 
     func encoded(_ archive: DatabaseArchive) throws -> Data {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        return try encoder.encode(archive)
+        try DatabaseBackupIO.encoded(archive)
     }
 
     func decodeAndVerify(_ data: Data) throws -> DatabaseArchive {
-        guard data.count <= 128 * 1024 * 1024 else {
-            throw DatabaseBackupError.invalidArchive("Backup exceeds the 128 MB safety limit.")
-        }
-        let archive = try JSONDecoder().decode(DatabaseArchive.self, from: data)
-        try archive.validate()
-        let schema = DatabaseArchive.schema
-        let configuration = ModelConfiguration(
-            schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
-        let scratch = try ModelContainer(for: schema, configurations: [configuration])
-        let context = ModelContext(scratch)
-        context.autosaveEnabled = false
-        let inserted = try archive.insert(into: context)
-        try context.save()
-        let order = inserted.mapValues { $0.map(\.persistentModelID) }
-        var restored = try DatabaseArchive.capture(ModelContext(scratch), now: archive.createdAt, ordering: order)
-        restored.archivedReservationJSON = archive.archivedReservationJSON
-        guard restored == archive else {
-            throw DatabaseBackupError.invalidArchive(
-                "Backup did not pass the full database restore check.")
-        }
-        return archive
+        try DatabaseBackupIO.verify(data)
     }
 
-    /// Writes atomically, reads the actual destination back, then restores it into an isolated store.
     func export(to url: URL) throws -> DatabaseArchive {
-        let archive = try capture()
-        try encoded(archive).write(to: url, options: [.atomic])
-        try DurableBackupFile.synchronize(url)
-        let verified = try decodeAndVerify(DurableBackupFile.read(url))
-        guard verified == archive else { throw DatabaseBackupError.changed }
-        return verified
+        try DatabaseBackupIO.export(capture(), to: url)
     }
 
     /// Replace semantics are deliberate: no deduplication, ID allocation or raw-value normalization.
@@ -72,20 +47,17 @@ final class DatabaseBackupService {
         _ = try decodeAndVerify(encoded(archive))
         let before = try export(to: recoveryURL)
         try requireUnchanged(before)
-        try DatabaseMaintenanceGate.shared.authorizeReplacement(of: container)
+        try maintenance.authorizeReplacement(of: container)
         let context = ModelContext(container)
         context.autosaveEnabled = false
         do {
             try DatabaseArchive.deleteAll(in: context)
             _ = try archive.insert(into: context)
             try save(context)
-
         } catch {
-            context.rollback()
-            try DatabaseMaintenanceGate.shared.cancelReplacement(of: container)
-            throw error
+            try rollback(context, original: error)
         }
-        do { try DatabaseMaintenanceGate.shared.didReplace(container, availability: availability) } catch {
+        do { try maintenance.didReplace(container, availability: availability) } catch {
             throw DatabaseBackupError.cleanupAfterCommit
         }
     }
@@ -96,26 +68,36 @@ final class DatabaseBackupService {
         try requireStorage()
         let archive = try decodeAndVerify(DurableBackupFile.read(backupURL))
         try requireUnchanged(archive)
-        try DatabaseMaintenanceGate.shared.authorizeReplacement(of: container)
+        try maintenance.authorizeReplacement(of: container)
         let context = ModelContext(container)
         context.autosaveEnabled = false
         do {
             try DatabaseArchive.deleteAll(in: context)
             try save(context)
-
         } catch {
-            context.rollback()
-            try DatabaseMaintenanceGate.shared.cancelReplacement(of: container)
-            throw error
+            try rollback(context, original: error)
         }
-        do { try DatabaseMaintenanceGate.shared.didReplace(container, availability: availability) } catch {
+        do { try maintenance.didReplace(container, availability: availability) } catch {
             throw DatabaseBackupError.cleanupAfterCommit
         }
     }
 
+    private func rollback(_ context: ModelContext, original: any Error) throws -> Never {
+        context.rollback()
+        do {
+            try maintenance.cancelReplacement(of: container)
+        } catch {
+            // A retry journal with uncertain cleanup must not accept more edits before restart.
+            try? maintenance.didReplace(container, availability: availability)
+            throw DatabaseBackupError.rollbackCleanupFailed(
+                original: original.localizedDescription, cleanup: error.localizedDescription)
+        }
+        throw original
+    }
+
     private func requireUnchanged(_ archive: DatabaseArchive) throws {
         var current = try DatabaseArchive.capture(ModelContext(container), now: archive.createdAt)
-        current.archivedReservationJSON = try DatabaseMaintenanceGate.shared.reservationSnapshot(for: container)
+        current.archivedReservationJSON = try maintenance.reservationSnapshot(for: container)
         guard current == archive else { throw DatabaseBackupError.changed }
         guard !container.mainContext.hasChanges else { throw DatabaseBackupError.changed }
     }

@@ -112,7 +112,7 @@ nonisolated struct DatabaseArchive: Codable, Equatable, Sendable {
 extension DatabaseArchive {
     // Explicit coverage of every persisted entity is kept together for review.
     // swiftlint:disable:next function_body_length
-    @MainActor static func capture(
+    nonisolated static func capture(
         _ context: ModelContext, now: Date = .now,
         ordering: [String: [PersistentIdentifier]]? = nil
     ) throws

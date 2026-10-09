@@ -3,7 +3,7 @@ import SwiftData
 
 /// Immutable operation evidence survives task deletion and receipt expiration.
 @Model
-final class TaskConsolidationEvent {
+nonisolated final class TaskConsolidationEvent {
     private(set) var id: UUID = UUID()
     private(set) var operationId: UUID = UUID()
     private(set) var kindRawValue: String = ""

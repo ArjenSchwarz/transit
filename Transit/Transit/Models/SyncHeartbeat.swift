@@ -8,7 +8,7 @@ import SwiftData
 /// force CloudKit to pull remote changes — keeping the MCP server's query
 /// results fresh even when macOS throttles push delivery.
 @Model
-final class SyncHeartbeat {
+nonisolated final class SyncHeartbeat {
     static let singletonID = "sync-heartbeat"
 
     var id: String = "sync-heartbeat"

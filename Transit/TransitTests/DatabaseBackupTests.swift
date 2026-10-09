@@ -1,6 +1,7 @@
 @preconcurrency import CloudKit
 import Foundation
 import SwiftData
+import Synchronization
 import Testing
 
 @testable import Transit
@@ -123,6 +124,41 @@ struct DatabaseBackupTests {
             try DatabaseArchive.capture(ModelContext(fixture.container), now: before.createdAt) == before)
     }
 
+    @Test func failedRollbackCleanupPreservesOriginalErrorAndSealsWrites() throws {
+        let fixture = try TestModelContainer()
+        try populated(fixture)
+        let maintenance = DatabaseMaintenanceGate()
+        let availability = PersistenceAvailability()
+        maintenance.install(container: fixture.container, prepare: { [] }, cancel: {
+            throw NSError(domain: "SyntheticCleanup", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "synthetic journal cleanup failed"])
+        }, finish: {})
+        let service = DatabaseBackupService(
+            container: fixture.container, availability: availability, maintenance: maintenance,
+            save: { _ in
+                throw NSError(domain: "SyntheticSave", code: 1,
+                              userInfo: [NSLocalizedDescriptionKey: "synthetic database save failed"])
+            })
+        let before = try service.capture()
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let exported = try service.export(to: url)
+        do {
+            try service.wipe(backupURL: url, confirmation: "WIPE")
+            Issue.record("Expected failed save and cleanup")
+        } catch {
+            #expect(error.localizedDescription.contains("synthetic database save failed"))
+            #expect(error.localizedDescription.contains("synthetic journal cleanup failed"))
+        }
+        var after = try DatabaseArchive.capture(ModelContext(fixture.container), now: before.createdAt)
+        after.archivedReservationJSON = before.archivedReservationJSON
+        #expect(after == before)
+        #expect(maintenance.requiresRestart)
+        #expect(availability.areWritesUnavailable)
+        #expect(throws: (any Error).self) { try service.capture() }
+        #expect(try DatabaseBackupIO.verify(Data(contentsOf: url)) == exported)
+    }
+
     @Test func cloudCoverageRejectsUnbackedAndDifferentRecords() throws {
         let fixture = try TestModelContainer()
         try populated(fixture)
@@ -201,6 +237,54 @@ struct DatabaseBackupTests {
         let service = DatabaseBackupService(container: fixture.container)
         let archive = try service.capture()
         #expect(try service.decodeAndVerify(service.encoded(archive)) == archive)
+    }
+
+}
+
+@MainActor
+extension DatabaseBackupTests {
+    @Test func backgroundWriterRoundTripsWithoutUsingUIExecutor() async throws {
+        let fixture = try TestModelContainer()
+        try populated(fixture)
+        let archive = try DatabaseBackupService(container: fixture.container).capture()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let usedMainThread = Mutex(false)
+        let writer = DatabaseBackupWriter { archive, url in
+            usedMainThread.withLock { $0 = Thread.isMainThread }
+            return try DatabaseBackupIO.export(archive, to: url)
+        }
+        let url = directory.appendingPathComponent("complete.transitbackup")
+        let restored = try await writer.export(archive, to: url)
+        #expect(!usedMainThread.withLock { $0 })
+        #expect(restored == archive)
+        #expect(try DatabaseBackupIO.verify(Data(contentsOf: url)) == archive)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path) == [url.lastPathComponent])
+    }
+
+    @Test func failedVerificationCleansStagingAndPreservesPublishedDestination() throws {
+        let fixture = try TestModelContainer()
+        let archive = try DatabaseBackupService(container: fixture.container).capture()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("complete.transitbackup")
+        #expect(throws: (any Error).self) {
+            try DatabaseBackupIO.export(archive, to: url, verify: { _ in throw DatabaseBackupError.changed })
+        }
+        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty)
+        let previous = Data("previous recoverable backup".utf8)
+        try previous.write(to: url)
+        #expect(throws: (any Error).self) {
+            try DatabaseBackupIO.export(archive, to: url, verify: { _ in
+                var different = archive
+                different.createdAt = archive.createdAt.addingTimeInterval(1)
+                return different
+            })
+        }
+        #expect(try Data(contentsOf: url) == previous)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path) == [url.lastPathComponent])
     }
 
 }

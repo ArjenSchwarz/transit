@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 extension DatabaseArchive {
-    static var schema: Schema {
+    nonisolated static var schema: Schema {
         Schema([
             Project.self, Milestone.self, TransitTask.self, Comment.self, SyncHeartbeat.self,
             MCPWriteReceipt.self, TaskLinkOccurrence.self, TaskLinkRemovalEvidence.self,
@@ -10,7 +10,7 @@ extension DatabaseArchive {
         ])
     }
 
-    func validate() throws {
+    nonisolated func validate() throws {
         guard formatVersion == 1, application == "Transit" else {
             throw DatabaseBackupError.invalidArchive("Unsupported Transit backup version.")
         }
@@ -38,7 +38,7 @@ extension DatabaseArchive {
 
     // One ordered restoration establishes every inverse relationship before the single save.
     // swiftlint:disable:next function_body_length
-    @MainActor func insert(into context: ModelContext) throws -> [String: [any PersistentModel]] {
+    nonisolated func insert(into context: ModelContext) throws -> [String: [any PersistentModel]] {
         try validate()
         let placeholderProject = Project(name: "", description: "", gitRepo: nil, colorHex: "")
         let placeholderTask = TransitTask(

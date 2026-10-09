@@ -28,9 +28,25 @@ nonisolated enum DurableBackupFile {
             throw DatabaseBackupError.invalidArchive(
                 "The backup destination could not confirm a durable save. Choose a local folder.")
         }
+        try synchronizeDirectory(for: url)
+    }
+
+    /// Same-directory rename atomically replaces the destination only after verification.
+    static func publish(_ staging: URL, to destination: URL) throws {
+        guard rename(staging.path, destination.path) == 0 else {
+            throw DatabaseBackupError.invalidArchive("The verified backup could not be saved at this destination.")
+        }
+        try synchronizeDirectory(for: destination)
+    }
+
+    private static func synchronizeDirectory(for url: URL) throws {
         let directory = open(url.deletingLastPathComponent().path, O_RDONLY)
-        guard directory >= 0 else { throw DatabaseBackupError.unavailable }
+        guard directory >= 0 else {
+            throw DatabaseBackupError.invalidArchive("The backup folder could not be opened for durable save.")
+        }
         defer { close(directory) }
-        guard fsync(directory) == 0 else { throw DatabaseBackupError.unavailable }
+        guard fsync(directory) == 0 else {
+            throw DatabaseBackupError.invalidArchive("The backup folder could not confirm a durable save.")
+        }
     }
 }

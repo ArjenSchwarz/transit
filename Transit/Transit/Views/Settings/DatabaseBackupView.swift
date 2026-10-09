@@ -183,12 +183,17 @@ struct DatabaseBackupView: View {
     }
     #endif
 
+}
+
+extension DatabaseBackupView {
     private func export() {
         do {
             guard !context.hasChanges else { throw DatabaseBackupError.changed }
             let archive = try service.capture()
+            let data = try service.encoded(archive)
+            _ = try service.decodeAndVerify(data)
             exportedArchive = archive
-            document = TransitBackupDocument(data: try service.encoded(archive))
+            document = TransitBackupDocument(data: data)
             exporting = true
         } catch {
             preparingWipe = false
