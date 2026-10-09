@@ -1,10 +1,12 @@
 import Foundation
 import Observation
+import OSLog
 import SwiftData
 
 /// All mutation uses an owned context. Validation never touches the installed store.
 @MainActor @Observable
 final class DatabaseBackupService {
+    private static let logger = Logger(subsystem: "me.nore.ig.Transit", category: "Backups")
     let container: ModelContainer
     private let maintenance: DatabaseMaintenanceGate
     private let availability: PersistenceAvailability
@@ -91,7 +93,9 @@ final class DatabaseBackupService {
             try maintenance.cancelReplacement(of: container)
         } catch {
             // A retry journal with uncertain cleanup must not accept more edits before restart.
-            try? maintenance.didReplace(container, availability: availability)
+            do { try maintenance.didReplace(container, availability: availability) } catch {
+                Self.logger.error("Backup rollback cleanup remains incomplete; writes are blocked until restart.")
+            }
             throw DatabaseBackupError.rollbackCleanupFailed(
                 original: original.localizedDescription, cleanup: error.localizedDescription)
         }

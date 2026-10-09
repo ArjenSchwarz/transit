@@ -243,6 +243,25 @@ struct DatabaseBackupTests {
 
 @MainActor
 extension DatabaseBackupTests {
+    @Test func historicalCrossProjectMilestoneRoundTripsWithoutNormalization() throws {
+        let fixture = try TestModelContainer()
+        let first = Project(name: "First", description: "", gitRepo: nil, colorHex: "aaa")
+        let second = Project(name: "Second", description: "", gitRepo: nil, colorHex: "bbb")
+        fixture.context.insert(first)
+        fixture.context.insert(second)
+        let milestone = Milestone(name: "Historical", project: second, displayID: .permanent(1))
+        fixture.context.insert(milestone)
+        let task = TransitTask(name: "Historical", type: .feature, project: first, displayID: .permanent(2))
+        task.milestone = milestone
+        fixture.context.insert(task)
+        try fixture.context.save()
+        let archive = try DatabaseBackupService(container: fixture.container).capture()
+        let row = try #require(archive.transitTaskRows.first)
+        let milestoneIndex = try #require(row.milestoneRow)
+        #expect(row.projectRow != archive.milestoneRows[milestoneIndex].projectRow)
+        #expect(try DatabaseBackupIO.verify(DatabaseBackupIO.encoded(archive)) == archive)
+    }
+
     @Test func backgroundWriterRoundTripsWithoutUsingUIExecutor() async throws {
         let fixture = try TestModelContainer()
         try populated(fixture)

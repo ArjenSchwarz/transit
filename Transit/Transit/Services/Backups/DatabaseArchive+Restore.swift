@@ -11,6 +11,8 @@ extension DatabaseArchive {
     }
 
     nonisolated func validate() throws {
+        // This is restoration, not new-record validation. Preserve stored duplicate IDs,
+        // unknown raw values and historical cross-project relationships using physical row indices.
         guard formatVersion == 1, application == "Transit" else {
             throw DatabaseBackupError.invalidArchive("Unsupported Transit backup version.")
         }
@@ -43,6 +45,7 @@ extension DatabaseArchive {
         let placeholderProject = Project(name: "", description: "", gitRepo: nil, colorHex: "")
         let placeholderTask = TransitTask(
             name: "", type: .feature, project: placeholderProject, displayID: .provisional)
+        // Initializers supply required defaults/placeholders; explicit assignments restore exact raw history.
         let projects = projectRows.map { row in
             let model = Project(
                 name: row.name, description: row.projectDescription, gitRepo: row.gitRepo,

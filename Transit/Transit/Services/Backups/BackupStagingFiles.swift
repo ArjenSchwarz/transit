@@ -10,13 +10,15 @@ nonisolated enum BackupStagingFiles {
         let url = directory.appendingPathComponent(".Transit-" + UUID().uuidString + ".pending")
         let descriptor = open(url.path, O_CREAT | O_EXCL | O_RDWR | O_NOFOLLOW, S_IRUSR | S_IWUSR)
         guard descriptor >= 0 else {
-            throw DatabaseBackupError.invalidArchive("The backup staging file could not be created.")
+            let reason = String(cString: strerror(errno))
+            throw DatabaseBackupError.invalidArchive("The backup staging file could not be created: \(reason).")
         }
         let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         guard flock(descriptor, LOCK_EX | LOCK_NB) == 0 else {
+            let reason = String(cString: strerror(errno))
             try? handle.close()
             try? FileManager.default.removeItem(at: url)
-            throw DatabaseBackupError.invalidArchive("The backup staging file could not be locked.")
+            throw DatabaseBackupError.invalidArchive("The backup staging file could not be locked: \(reason).")
         }
         return (url, handle)
     }

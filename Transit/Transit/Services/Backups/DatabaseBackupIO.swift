@@ -41,9 +41,11 @@ nonisolated enum DatabaseBackupIO {
     /// An invalid archive never replaces the destination or appears as a published backup.
     static func export(
         _ archive: DatabaseArchive, to url: URL,
-        verify: (Data) throws -> DatabaseArchive = Self.verify
+        verify verifier: (Data) throws -> DatabaseArchive = Self.verify,
+        cleanupStaging: (URL) throws -> Void = { try BackupStagingFiles.removeStale(in: $0) }
     ) throws -> DatabaseArchive {
-        try BackupStagingFiles.removeStale(in: url.deletingLastPathComponent())
+        // Cleanup is auxiliary: even listing failure must not block a new recoverable backup.
+        try? cleanupStaging(url.deletingLastPathComponent())
         let data = try encoded(archive)
         let staging = try BackupStagingFiles.create(in: url.deletingLastPathComponent())
         defer {
@@ -52,7 +54,7 @@ nonisolated enum DatabaseBackupIO {
         }
         try staging.handle.write(contentsOf: data)
         try DurableBackupFile.synchronize(staging.url)
-        let restored = try verify(DurableBackupFile.read(staging.url))
+        let restored = try verifier(DurableBackupFile.read(staging.url))
         guard restored == archive else { throw DatabaseBackupError.changed }
         try DurableBackupFile.publish(staging.url, to: url)
         return restored

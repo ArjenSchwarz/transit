@@ -36,6 +36,36 @@ nonisolated private final class PausedBackupExport: Sendable {
 
 @MainActor @Suite(.serialized)
 struct DatabaseBackupAsyncTests {
+    @Test(arguments: ["{\"formatVersion\":", "not JSON"])
+    func malformedImportFileCannotChangeStore(_ contents: String) async throws {
+        let fixture = try TestModelContainer()
+        fixture.context.insert(Project(name: "Keep", description: "", gitRepo: nil, colorHex: "abcdef"))
+        try fixture.context.save()
+        let service = DatabaseBackupService(container: fixture.container)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: url) }
+        try Data(contents.utf8).write(to: url)
+        await #expect(throws: (any Error).self) { _ = try await service.readAndVerify(url) }
+        let saved = try ModelContext(fixture.container).fetch(FetchDescriptor<Project>())
+        #expect(saved.count == 1)
+        #expect(saved.first?.name == "Keep")
+    }
+
+    @Test func cancelledWipePreservesVerifiedDataset() async throws {
+        let fixture = try TestModelContainer()
+        fixture.context.insert(Project(name: "Keep", description: "", gitRepo: nil, colorHex: "abcdef"))
+        try fixture.context.save()
+        let service = DatabaseBackupService(container: fixture.container)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let exported = try await service.export(to: url)
+        let operation = Task { try await service.wipe(backupURL: url, confirmation: "WIPE") }
+        operation.cancel()
+        await #expect(throws: CancellationError.self) { try await operation.value }
+        #expect(try ModelContext(fixture.container).fetchCount(FetchDescriptor<Project>()) == 1)
+        #expect(try DatabaseBackupIO.verify(Data(contentsOf: url)) == exported)
+    }
+
     @Test(arguments: BackupInterruption.allCases)
     private func replacementRechecksAfterBackgroundRecovery(_ interruption: BackupInterruption) async throws {
         let fixture = try TestModelContainer()

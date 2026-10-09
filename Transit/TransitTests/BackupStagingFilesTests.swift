@@ -1,10 +1,38 @@
 import Foundation
+import Darwin
 import Testing
 
 @testable import Transit
 
 @MainActor @Suite(.serialized)
 struct BackupStagingFilesTests {
+    @Test func listingFailureCannotPreventVerifiedPublication() throws {
+        let fixture = try TestModelContainer()
+        let archive = try DatabaseBackupService(container: fixture.container).capture()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("complete.transitbackup")
+        let restored = try DatabaseBackupIO.export(archive, to: url, cleanupStaging: { _ in
+            throw CocoaError(.fileReadNoPermission)
+        })
+        #expect(restored == archive)
+        #expect(try DatabaseBackupIO.verify(Data(contentsOf: url)) == archive)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path) == [url.lastPathComponent])
+    }
+
+    @Test func stagingCreationReportsOperatingSystemReason() throws {
+        let parentFile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: parentFile) }
+        try Data("synthetic".utf8).write(to: parentFile)
+        do {
+            _ = try BackupStagingFiles.create(in: parentFile)
+            Issue.record("Expected a non-directory parent to refuse creation")
+        } catch {
+            #expect(error.localizedDescription.contains(String(cString: strerror(ENOTDIR))))
+        }
+    }
+
     @Test func sweepRemovesOnlyOldUnlockedRegularTransitStages() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
