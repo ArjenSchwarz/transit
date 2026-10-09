@@ -54,12 +54,12 @@ struct DatabaseBackupTests {
         try context.save()
     }
 
-    @Test func fullDatabaseRoundTripAndReplace() throws {
+    @Test func fullDatabaseRoundTripAndReplace() async throws {
         let source = try TestModelContainer()
         try populated(source)
         let service = DatabaseBackupService(container: source.container)
         let archive = try service.capture()
-        let verified = try service.decodeAndVerify(service.encoded(archive))
+        let verified = try DatabaseBackupIO.verify(DatabaseBackupIO.encoded(archive))
         #expect(verified == archive)
         #expect(archive.taskConsolidationEventRows.first?.candidate1 == nil)
         #expect(archive.taskConsolidationEventRows.first?.candidate2 != nil)
@@ -67,7 +67,7 @@ struct DatabaseBackupTests {
         let recovery = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: recovery) }
         let destination = DatabaseBackupService(container: target.container)
-        try destination.replace(with: verified, recoveryURL: recovery)
+        try await destination.replace(with: verified, recoveryURL: recovery)
         let result = try DatabaseArchive.capture(ModelContext(target.container), now: archive.createdAt)
         #expect(result == archive)
         #expect(FileManager.default.fileExists(atPath: recovery.path))
@@ -79,52 +79,52 @@ struct DatabaseBackupTests {
         let service = DatabaseBackupService(container: fixture.container)
         var archive = try service.capture()
         archive.transitTaskRows[0].projectRow = 999
-        #expect(throws: (any Error).self) { try service.decodeAndVerify(service.encoded(archive)) }
+        #expect(throws: (any Error).self) { try DatabaseBackupIO.verify(DatabaseBackupIO.encoded(archive)) }
         archive = try service.capture()
         archive.formatVersion = 99
-        #expect(throws: (any Error).self) { try service.decodeAndVerify(service.encoded(archive)) }
+        #expect(throws: (any Error).self) { try DatabaseBackupIO.verify(DatabaseBackupIO.encoded(archive)) }
         #expect(try fixture.context.fetchCount(FetchDescriptor<TransitTask>()) == 2)
     }
 
-    @Test func wipeRequiresConfirmationAndUnchangedVerifiedFile() throws {
+    @Test func wipeRequiresConfirmationAndUnchangedVerifiedFile() async throws {
         let fixture = try TestModelContainer()
         try populated(fixture)
         let service = DatabaseBackupService(container: fixture.container)
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: url) }
-        _ = try service.export(to: url)
-        #expect(throws: (any Error).self) { try service.wipe(backupURL: url, confirmation: "") }
+        _ = try await service.export(to: url)
+        await #expect(throws: (any Error).self) { try await service.wipe(backupURL: url, confirmation: "") }
         let task = try #require(fixture.context.fetch(FetchDescriptor<TransitTask>()).first)
         task.name = "Changed"
         try fixture.context.save()
-        #expect(throws: (any Error).self) { try service.wipe(backupURL: url, confirmation: "WIPE") }
-        _ = try service.export(to: url)
-        try service.wipe(backupURL: url, confirmation: "WIPE")
+        await #expect(throws: (any Error).self) { try await service.wipe(backupURL: url, confirmation: "WIPE") }
+        _ = try await service.export(to: url)
+        try await service.wipe(backupURL: url, confirmation: "WIPE")
         #expect(try fixture.context.fetchCount(FetchDescriptor<Project>()) == 0)
         #expect(try fixture.context.fetchCount(FetchDescriptor<TransitTask>()) == 0)
         #expect(try fixture.context.fetchCount(FetchDescriptor<TaskConsolidationEvent>()) == 0)
-        _ = try service.decodeAndVerify(Data(contentsOf: url))
+        _ = try DatabaseBackupIO.verify(Data(contentsOf: url))
     }
 
-    @Test func saveFailurePreservesAllOriginalData() throws {
+    @Test func saveFailurePreservesAllOriginalData() async throws {
         let fixture = try TestModelContainer()
         try populated(fixture)
         let service = DatabaseBackupService(container: fixture.container)
         let before = try service.capture()
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: url) }
-        _ = try service.export(to: url)
+        _ = try await service.export(to: url)
         let failing = DatabaseBackupService(
             container: fixture.container, save: { _ in throw DatabaseBackupError.unavailable })
-        #expect(throws: (any Error).self) { try failing.wipe(backupURL: url, confirmation: "WIPE") }
+        await #expect(throws: (any Error).self) { try await failing.wipe(backupURL: url, confirmation: "WIPE") }
         let after = try DatabaseArchive.capture(ModelContext(fixture.container), now: before.createdAt)
         #expect(after == before)
-        #expect(throws: (any Error).self) { try failing.replace(with: before, recoveryURL: url) }
+        await #expect(throws: (any Error).self) { try await failing.replace(with: before, recoveryURL: url) }
         #expect(
             try DatabaseArchive.capture(ModelContext(fixture.container), now: before.createdAt) == before)
     }
 
-    @Test func failedRollbackCleanupPreservesOriginalErrorAndSealsWrites() throws {
+    @Test func failedRollbackCleanupPreservesOriginalErrorAndSealsWrites() async throws {
         let fixture = try TestModelContainer()
         try populated(fixture)
         let maintenance = DatabaseMaintenanceGate()
@@ -142,9 +142,9 @@ struct DatabaseBackupTests {
         let before = try service.capture()
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: url) }
-        let exported = try service.export(to: url)
+        let exported = try await service.export(to: url)
         do {
-            try service.wipe(backupURL: url, confirmation: "WIPE")
+            try await service.wipe(backupURL: url, confirmation: "WIPE")
             Issue.record("Expected failed save and cleanup")
         } catch {
             #expect(error.localizedDescription.contains("synthetic database save failed"))
@@ -201,7 +201,7 @@ struct DatabaseBackupTests {
         try fixture.context.save()
         let service = DatabaseBackupService(container: fixture.container)
         let archive = try service.capture()
-        #expect(try service.decodeAndVerify(service.encoded(archive)) == archive)
+        #expect(try DatabaseBackupIO.verify(DatabaseBackupIO.encoded(archive)) == archive)
         #expect(throws: (any Error).self) { try archive.cloudRows() }
     }
 
@@ -236,7 +236,7 @@ struct DatabaseBackupTests {
         try populated(fixture)
         let service = DatabaseBackupService(container: fixture.container)
         let archive = try service.capture()
-        #expect(try service.decodeAndVerify(service.encoded(archive)) == archive)
+        #expect(try DatabaseBackupIO.verify(DatabaseBackupIO.encoded(archive)) == archive)
     }
 
 }

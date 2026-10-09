@@ -80,6 +80,7 @@ struct DatabaseBackupView: View {
                     export()
                 }.accessibilityIdentifier("backup.prepareWipe")
             }
+            if busy { Section { ProgressView("Working with backup…") } }
             if let message { Section { Text(message).textSelection(.enabled) } }
         }
         .formStyle(.grouped)
@@ -92,12 +93,7 @@ struct DatabaseBackupView: View {
             handleExport(result)
         }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json, .data]) { result in
-            do {
-                let url = try result.get()
-                let access = url.startAccessingSecurityScopedResource()
-                defer { if access { url.stopAccessingSecurityScopedResource() } }
-                incoming = try service.decodeAndVerify(DurableBackupFile.read(url))
-            } catch { message = error.localizedDescription }
+            handleImport(result)
         }
         .confirmationDialog(
             "Replace the saved database?",
@@ -186,39 +182,52 @@ struct DatabaseBackupView: View {
 }
 
 extension DatabaseBackupView {
+    private func runBackupOperation(_ operation: @escaping @MainActor () async throws -> Void) {
+        guard !busy else { return }
+        busy = true
+        Task { @MainActor in
+            defer { busy = false }
+            do { try await operation() } catch {
+                preparingWipe = false
+                message = error.localizedDescription
+            }
+        }
+    }
+
     private func export() {
-        do {
+        runBackupOperation {
             guard !context.hasChanges else { throw DatabaseBackupError.changed }
-            let archive = try service.capture()
-            let data = try service.encoded(archive)
-            _ = try service.decodeAndVerify(data)
-            exportedArchive = archive
-            document = TransitBackupDocument(data: data)
+            let prepared = try await service.preparedExport()
+            exportedArchive = prepared.archive
+            document = TransitBackupDocument(data: prepared.data)
             exporting = true
-        } catch {
-            preparingWipe = false
-            message = error.localizedDescription
         }
     }
 
     private func handleExport(_ result: Result<URL, any Error>) {
-        defer { preparingWipe = false }
-        do {
+        runBackupOperation {
+            defer { preparingWipe = false }
             let url = try result.get()
             let access = url.startAccessingSecurityScopedResource()
             defer { if access { url.stopAccessingSecurityScopedResource() } }
-            try DurableBackupFile.synchronize(url)
-            let verified = try service.decodeAndVerify(DurableBackupFile.read(url))
-            guard verified == exportedArchive else {
-                throw DatabaseBackupError.changed
-            }
+            let verified = try await service.readAndVerify(url, synchronize: true)
+            guard verified == exportedArchive else { throw DatabaseBackupError.changed }
             message = "Backup saved and its complete restore verified: \(url.lastPathComponent)"
             if preparingWipe {
                 wipeBackupURL = url
                 wipeConfirmation = ""
                 confirmingWipe = true
             }
-        } catch { message = error.localizedDescription }
+        }
+    }
+
+    private func handleImport(_ result: Result<URL, any Error>) {
+        runBackupOperation {
+            let url = try result.get()
+            let access = url.startAccessingSecurityScopedResource()
+            defer { if access { url.stopAccessingSecurityScopedResource() } }
+            incoming = try await service.readAndVerify(url)
+        }
     }
 
     private func recoveryURL() throws -> URL {
@@ -233,53 +242,50 @@ extension DatabaseBackupView {
     private func performImport() {
         guard let archive = incoming else { return }
         incoming = nil
-        do {
+        runBackupOperation {
             let recovery = try recoveryURL()
-            try service.replace(with: archive, recoveryURL: recovery)
+            try await service.replace(with: archive, recoveryURL: recovery)
             message =
                 """
                 Database imported. Recovery backup: \(recovery.path). Quit and reopen Transit
                 before editing restored records.
                 """
-        } catch { message = error.localizedDescription }
+        }
     }
 
     private func performWipe() {
         guard let url = wipeBackupURL else { return }
-        busy = true
-        Task { @MainActor in
+        let confirmation = wipeConfirmation
+        runBackupOperation {
             defer {
-                busy = false
                 wipeBackupURL = nil
                 wipeConfirmation = ""
             }
             let access = url.startAccessingSecurityScopedResource()
             defer { if access { url.stopAccessingSecurityScopedResource() } }
-            do {
-                guard wipeConfirmation == "WIPE" else { throw DatabaseBackupError.confirmationRequired }
-                let archive = try service.decodeAndVerify(DurableBackupFile.read(url))
-                if syncManager.cloudSyncAllowed && !syncManager.isCloudSyncActive {
-                    throw DatabaseBackupError.invalidArchive(
-                        "Enable iCloud sync and restart Transit before wiping iCloud data.")
+            guard confirmation == "WIPE" else { throw DatabaseBackupError.confirmationRequired }
+            let archive = try await service.readAndVerify(url)
+            if syncManager.cloudSyncAllowed && !syncManager.isCloudSyncActive {
+                throw DatabaseBackupError.invalidArchive(
+                    "Enable iCloud sync and restart Transit before wiping iCloud data.")
+            }
+            if syncManager.isCloudSyncActive {
+                guard let identifier = context.container.configurations.first?.cloudKitContainerIdentifier
+                else {
+                    throw DatabaseBackupError.unavailable
                 }
-                if syncManager.isCloudSyncActive {
-                    guard let identifier = context.container.configurations.first?.cloudKitContainerIdentifier
-                    else {
-                        throw DatabaseBackupError.unavailable
-                    }
-                    try await CloudBackupCoverage(
-                        database: CKContainer(identifier: identifier).privateCloudDatabase
-                    ).verify(archive)
-                }
-                try service.wipe(backupURL: url, confirmation: wipeConfirmation)
-                message =
-                    syncManager.isCloudSyncActive
-                    ? """
-                    All saved data deleted. iCloud deletions will propagate as sync completes. Quit
-                    and reopen Transit. Keep your backup.
-                    """
-                    : "All saved data deleted. Quit and reopen Transit. Keep your backup."
-            } catch { message = error.localizedDescription }
+                try await CloudBackupCoverage(
+                    database: CKContainer(identifier: identifier).privateCloudDatabase
+                ).verify(archive)
+            }
+            try await service.wipe(backupURL: url, confirmation: confirmation, expectedArchive: archive)
+            message =
+                syncManager.isCloudSyncActive
+                ? """
+                All saved data deleted. iCloud deletions will propagate as sync completes. Quit
+                and reopen Transit. Keep your backup.
+                """
+                : "All saved data deleted. Quit and reopen Transit. Keep your backup."
         }
     }
 }

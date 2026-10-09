@@ -43,15 +43,18 @@ nonisolated enum DatabaseBackupIO {
         _ archive: DatabaseArchive, to url: URL,
         verify: (Data) throws -> DatabaseArchive = Self.verify
     ) throws -> DatabaseArchive {
+        try BackupStagingFiles.removeStale(in: url.deletingLastPathComponent())
         let data = try encoded(archive)
-        let staging = url.deletingLastPathComponent()
-            .appendingPathComponent(".Transit-" + UUID().uuidString + ".pending")
-        defer { try? FileManager.default.removeItem(at: staging) }
-        try data.write(to: staging, options: [.atomic])
-        try DurableBackupFile.synchronize(staging)
-        let restored = try verify(DurableBackupFile.read(staging))
+        let staging = try BackupStagingFiles.create(in: url.deletingLastPathComponent())
+        defer {
+            try? staging.handle.close()
+            try? FileManager.default.removeItem(at: staging.url)
+        }
+        try staging.handle.write(contentsOf: data)
+        try DurableBackupFile.synchronize(staging.url)
+        let restored = try verify(DurableBackupFile.read(staging.url))
         guard restored == archive else { throw DatabaseBackupError.changed }
-        try DurableBackupFile.publish(staging, to: url)
+        try DurableBackupFile.publish(staging.url, to: url)
         return restored
     }
 }
@@ -68,5 +71,16 @@ actor DatabaseBackupWriter {
 
     func export(_ archive: DatabaseArchive, to url: URL) throws -> DatabaseArchive {
         try operation(archive, url)
+    }
+
+    func preparedData(for archive: DatabaseArchive) throws -> Data {
+        let data = try DatabaseBackupIO.encoded(archive)
+        _ = try DatabaseBackupIO.verify(data)
+        return data
+    }
+
+    func readAndVerify(_ url: URL, synchronize: Bool = false) throws -> DatabaseArchive {
+        if synchronize { try DurableBackupFile.synchronize(url) }
+        return try DatabaseBackupIO.verify(DurableBackupFile.read(url))
     }
 }
