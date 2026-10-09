@@ -23,7 +23,16 @@ for target in objects.values():
         isolated = name == "TransitDevelopment" or configuration["name"] == "Debug"
         if isolated:
             assert settings["PRODUCT_BUNDLE_IDENTIFIER"] == "me.nore.ig.Transit.development"
-            entitlements = plistlib.loads((root / "Transit" / settings["CODE_SIGN_ENTITLEMENTS"]).read_bytes())
+            assert settings["TRANSIT_DEVELOPMENT_CLOUD_SYNC"] == "NO"
+            assert settings["CODE_SIGN_ENTITLEMENTS"] == "$(TRANSIT_DEVELOPMENT_ENTITLEMENTS_$(TRANSIT_DEVELOPMENT_CLOUD_SYNC))"
+            entitlements = plistlib.loads((root / "Transit" / settings["TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO"]).read_bytes())
+            for suffix, push_key in [("", "aps-environment"), ("[sdk=macosx*]", "com.apple.developer.aps-environment")]:
+                cloud = plistlib.loads((root / "Transit" / settings["TRANSIT_DEVELOPMENT_ENTITLEMENTS_YES" + suffix]).read_bytes())
+                assert cloud["com.apple.developer.icloud-container-identifiers"] == ["iCloud.me.nore.ig.Transit.development"]
+                assert cloud["com.apple.developer.icloud-container-environment"] == "Development"
+                assert cloud[push_key] == "development"
+                assert not cloud.get("com.apple.security.application-groups")
+                assert ("aps-environment" if suffix else "com.apple.developer.aps-environment") not in cloud
             assert not any("icloud" in key or "aps-environment" in key or "application-groups" in key
                            for key in entitlements), entitlements
             assert settings["REGISTER_APP_GROUPS"] == "NO"

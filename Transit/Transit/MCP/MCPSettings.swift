@@ -15,7 +15,11 @@ final class MCPSettings {
     @MainActor var subscriptionBroadcaster: MCPToolListChangeBroadcaster {
         toolListChangeBroadcaster
     }
-    static let defaultPort = 3141
+    static var defaultPort: Int {
+        let mode: AppPersistencePolicy.Mode = AppPersistencePolicy.isDevelopmentBuild ? .development : .production
+        return mode.defaultMCPPort
+    }
+    private let defaults: UserDefaults
 
     /// Valid TCP port range. Port 0 means "any available port" to the OS and is
     /// not a usable fixed address for the MCP server, so it is excluded.
@@ -31,11 +35,11 @@ final class MCPSettings {
     }
 
     var isEnabled: Bool {
-        didSet { UserDefaults.standard.set(isEnabled, forKey: Self.enabledKey) }
+        didSet { defaults.set(isEnabled, forKey: Self.enabledKey) }
     }
 
     var port: Int {
-        didSet { UserDefaults.standard.set(port, forKey: Self.portKey) }
+        didSet { defaults.set(port, forKey: Self.portKey) }
     }
 
     /// Availability reads never hop to MainActor or inspect preferences.
@@ -47,7 +51,7 @@ final class MCPSettings {
         didSet {
             let enabled = maintenanceToolsEnabled
             maintenanceAvailability.withLockedValue { $0 = enabled }
-            UserDefaults.standard.set(maintenanceToolsEnabled, forKey: Self.maintenanceToolsKey)
+            defaults.set(maintenanceToolsEnabled, forKey: Self.maintenanceToolsKey)
             guard maintenanceToolsEnabled != oldValue else { return }
             toolListChangeBroadcaster.notifyToolsListChanged()
         }
@@ -61,11 +65,12 @@ final class MCPSettings {
         toolListChangeBroadcaster.activeStreamCount
     }
 
-    init() {
-        self.isEnabled = UserDefaults.standard.bool(forKey: Self.enabledKey)
-        let stored = UserDefaults.standard.integer(forKey: Self.portKey)
-        self.port = stored > 0 ? stored : Self.defaultPort
-        let maintenanceEnabled = UserDefaults.standard.bool(forKey: Self.maintenanceToolsKey)
+    init(mode: AppPersistencePolicy.Mode? = nil, defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        self.isEnabled = defaults.bool(forKey: Self.enabledKey)
+        let stored = defaults.integer(forKey: Self.portKey)
+        self.port = Self.isValidPort(stored) ? stored : (mode?.defaultMCPPort ?? Self.defaultPort)
+        let maintenanceEnabled = defaults.bool(forKey: Self.maintenanceToolsKey)
         self.maintenanceToolsEnabled = maintenanceEnabled
         maintenanceAvailability.withLockedValue { $0 = maintenanceEnabled }
     }

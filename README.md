@@ -82,3 +82,7 @@ The ten standalone write tools require an `idempotencyKey`. Task/milestone updat
 - `docs/transit-design-doc.md` — full design document
 - `docs/agent-notes/` — implementation notes on architecture and technical constraints
 - `CLAUDE.md` — guidance for Claude Code when working in this repository
+
+## Debug and Release coexistence
+
+See [environment setup](docs/environments.md) for separate app identities, local stores and defaults, the dedicated Debug iCloud opt-in, and MCP defaults (Debug 3142, Release 3141). The existing Release CloudKit Development dataset is preserved.

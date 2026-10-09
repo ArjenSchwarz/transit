@@ -33,7 +33,7 @@ def drained(products, stage_pid=None):
                                     capture_output=True, text=True, check=True)
         roots = {str(products), str(products).removeprefix("/private")}
         paths = [root + suffix for root in roots for suffix in
-                 ("/Debug/Transit.app/Contents/MacOS/Transit", "/Debug/TransitTests.xctest")]
+                 ("/Debug/TransitDevelopment.app/Contents/MacOS/TransitDevelopment", "/Debug/TransitTests.xctest")]
         owned = [line for line in inspection.stdout.splitlines()
                  if any(path in line for path in paths)
                  or (stage_pid is not None and line.strip().split(maxsplit=1)[0] == str(stage_pid))]

@@ -12,7 +12,7 @@ Claude Code ←→ HTTP POST + request-scoped POST/SSE /mcp (localhost:3141) ←
 
 - **Transport**: Latest-only MCP `2026-07-28` at `POST /mcp`: server/discover, tools/list, tools/call and request-scoped subscriptions/listen SSE. No initialize, session ID, GET listener or wire arrays. Required metadata/headers and result schemas are documented in [the result contract](../mcp-result-contract.md).
 - **HTTP server**: Hummingbird 2.x (SwiftNIO-based), binds to `127.0.0.1` only
-- **Lifecycle**: Opt-in via Settings toggle. Default port 3141.
+- **Lifecycle**: Opt-in via Settings toggle. Default ports: Release 3141, Debug 3142. See [environment setup](../environments.md) for separate client names and signing.
 
 ## Files
 

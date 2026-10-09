@@ -75,7 +75,7 @@ extension MCPServer {
         case .discover:
             let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
             return encodedResponse(try MCPModernDiscovery.encodeDiscovery(id: modern.id,
-                identity: MCPModernServerIdentity(name: "transit", version: version)))
+                identity: MCPModernServerIdentity(name: AppPersistencePolicy.serverName, version: version)))
         case .listTools:
             return encodedResponse(try MCPModernDiscovery.encodeTools(id: modern.id,
                 tools: MCPToolDefinitions.modernTools(includingMaintenance: maintenanceEnabled,

@@ -3,6 +3,7 @@ import SwiftData
 
 @main
 struct BootstrapProbe {
+    // swiftlint:disable:next function_body_length
     @MainActor static func main() async throws {
         let schema = Schema([Project.self, TransitTask.self, Comment.self, Milestone.self,
                              SyncHeartbeat.self, MCPWriteReceipt.self])
@@ -18,12 +19,12 @@ struct BootstrapProbe {
         context.insert(task)
         try context.save()
         var calls: [String] = []
-        let factory: (String) -> DisplayIDAllocator = { name in
-            calls.append(name)
+        let factory: (String, String) -> DisplayIDAllocator = { name, container in
+            calls.append(container + ":" + name)
             return DisplayIDAllocator(store: DisabledCounterStore(), isCloudSyncActive: true)
         }
         for mode in [AppPersistencePolicy.Mode.development, .unitTest, .uiTest, .production] {
-            for active in [false, true] where mode != .production || !active {
+            for active in [false, true] where !mode.permitsCloudSync || !active {
                 let pair = AppDisplayIDAllocators.make(mode: mode, syncActive: active, cloudFactory: factory)
                 for allocator in [pair.tasks, pair.milestones] {
                     precondition(!allocator.isCloudSyncActive)
@@ -51,7 +52,13 @@ struct BootstrapProbe {
         let production = AppDisplayIDAllocators.make(mode: .production, syncActive: true,
                                                      cloudFactory: factory)
         precondition(production.tasks.isCloudSyncActive && production.milestones.isCloudSyncActive)
-        precondition(calls == ["global-counter", "milestone-counter"])
+        precondition(calls == ["iCloud.me.nore.ig.Transit:global-counter",
+                               "iCloud.me.nore.ig.Transit:milestone-counter"])
+        calls.removeAll()
+        let development = AppDisplayIDAllocators.make(mode: .development, syncActive: true, cloudFactory: factory)
+        precondition(development.tasks.isCloudSyncActive && development.milestones.isCloudSyncActive)
+        precondition(calls == ["iCloud.me.nore.ig.Transit.development:global-counter",
+                               "iCloud.me.nore.ig.Transit.development:milestone-counter"])
         print("Bootstrap passed: isolated factory calls=0; active production counter names preserved")
     }
 }

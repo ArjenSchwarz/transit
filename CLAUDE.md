@@ -12,7 +12,7 @@ Transit is a native Apple task tracker (iOS 26 / iPadOS 26 / macOS 26) for a sin
 - **`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`** — every type is `@MainActor` by default (see gotchas below)
 - **SwiftData** with **CloudKit** (private database) for cross-device sync
 - **App Intents** framework for CLI/automation integration via Shortcuts
-- **MCP server** (macOS only) — HTTP-based JSON-RPC server using Hummingbird, configurable port (default 3141)
+- **MCP server** (macOS only) — HTTP-based JSON-RPC server using Hummingbird, configurable port (Release default 3141, Debug default 3142)
 - **Liquid Glass** design language: `.glassEffect()`, `.buttonStyle(.glass)` / `.buttonStyle(.glassProminent)`
 - **Xcode File System Sync** enabled — Xcode auto-discovers files from disk, no need to edit pbxproj
 
@@ -52,6 +52,8 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
 - **During development**: Use `make test-quick` — runs unit tests on macOS without the simulator, fast feedback loop
 - **Before pushing (pre-push-review)**: Use `make test` and `make test-ui` — runs the full test suite on iOS Simulator
 - **For commits**: No tests required — lint only (`make lint`)
+
+See [docs/environments.md](docs/environments.md) for isolated Debug/Release identities and the explicit dedicated Debug CloudKit signing setup. Routine Debug is local-only; Release retains its existing CloudKit Development backend.
 
 ## Architecture Overview
 

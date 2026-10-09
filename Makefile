@@ -6,7 +6,9 @@ SHELL = /bin/bash
 SCHEME = Transit
 PROJECT = Transit/Transit.xcodeproj
 CONFIG ?= Debug
-BUNDLE_ID = $(if $(filter Debug,$(CONFIG)),me.nore.ig.Transit.development,me.nore.ig.Transit)
+IS_DEVELOPMENT = $(if $(filter TransitDevelopment,$(SCHEME)),YES,$(if $(filter Debug,$(CONFIG)),YES,NO))
+BUNDLE_ID = $(if $(filter YES,$(IS_DEVELOPMENT)),me.nore.ig.Transit.development,me.nore.ig.Transit)
+APP_PRODUCT = $(if $(filter YES,$(IS_DEVELOPMENT)),TransitDevelopment,Transit)
 
 # Pipe through xcbeautify if available, otherwise raw output
 XCBEAUTIFY := $(shell command -v xcbeautify 2>/dev/null)
@@ -323,7 +325,7 @@ install: prepare-cache-dirs
 	@echo "Installing on device..."
 	xcrun devicectl device install app \
 		--device $(DEVICE_ID) \
-		$(DERIVED_DATA)/Build/Products/$(CONFIG)-iphoneos/Transit.app
+		$(DERIVED_DATA)/Build/Products/$(CONFIG)-iphoneos/$(APP_PRODUCT).app
 
 .PHONY: run
 run: install

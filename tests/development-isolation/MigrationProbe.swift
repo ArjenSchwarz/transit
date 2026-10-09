@@ -99,6 +99,15 @@ struct MigrationProbe {
         let expected = url.deletingLastPathComponent()
             .appendingPathComponent("TransitDevelopment/development.store")
         precondition(configuration.url == expected && !configuration.isStoredInMemoryOnly)
+        precondition(configuration.cloudKitContainerIdentifier == nil)
+        precondition(configuration.groupAppContainerIdentifier == nil)
+        let cloud = try IsolatedPersistenceConfiguration.make(mode: .development, schema: schema,
+            applicationSupportDirectory: url.deletingLastPathComponent(),
+            cloudKitContainerID: AppPersistencePolicy.Mode.development.cloudKitContainerID)
+        precondition(cloud.url == configuration.url && cloud.groupAppContainerIdentifier == nil)
+        precondition(cloud.cloudKitContainerIdentifier == "iCloud.me.nore.ig.Transit.development")
+        // Inspect the configuration only; never construct a cloud-backed container.
+
         for mode in [AppPersistencePolicy.Mode.unitTest, .uiTest] {
             let memory = try IsolatedPersistenceConfiguration.make(mode: mode, schema: schema)
             precondition(memory.isStoredInMemoryOnly)
