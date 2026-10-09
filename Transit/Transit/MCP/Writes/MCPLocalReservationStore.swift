@@ -153,6 +153,16 @@ nonisolated struct MCPLocalReservation: Codable, Equatable, Sendable {
         }
     }
 
+    /// Called only after a verified backup and successful database replacement.
+    func rotateAfterDatabaseReplacement() throws {
+        let files = try FileManager.default.contentsOfDirectory(at: guardsDirectory, includingPropertiesForKeys: nil)
+        for file in files { try FileManager.default.removeItem(at: file) }
+        try Self.durableReplace(Data(UUID().uuidString.lowercased().utf8),
+                                at: directory.appendingPathComponent("scope"))
+        try Self.syncDirectory(guardsDirectory)
+        try Self.syncDirectory(directory)
+    }
+
     struct BindingKey: Hashable {
         let tool: String
         let key: String

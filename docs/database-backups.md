@@ -1,0 +1,25 @@
+# Database backups (T-2431)
+
+Settings → Backups is available in normal Release and development builds on Mac, iPhone and iPad. Scheduled exports are Mac-only.
+
+## Archive and import
+
+A `.transitbackup` file is versioned JSON. Version 1 covers every stored scalar field of Project, TransitTask, Milestone, Comment, SyncHeartbeat, MCPWriteReceipt, TaskLinkOccurrence, TaskLinkRemovalEvidence and TaskConsolidationEvent. Raw enum strings, malformed metadata/history payloads, optional values, timestamps, UUIDs and display IDs are preserved. Relationships refer to physical archive row indexes; duplicate application UUIDs do not collapse distinct rows. Inverse relationships are rebuilt by SwiftData. There are no attachment entities or external-storage attributes in the current schema. Future schema additions must update the explicit archive registry and round-trip fixture.
+
+Exports read a fresh saved context, excluding unsaved editor drafts. The actual saved destination is read back, decoded, restored into a retained CloudKit-free in-memory container, and compared against the full original snapshot. A successful share-sheet presentation or picker cancellation is not backup success. The safety limit is 128 MB; larger archives are refused rather than partially imported.
+
+Import is **replacement**, not merge or UUID upsert. It validates and test-restores the selected archive, writes and verifies a new recovery backup under the app's Application Support/Backups directory, checks that saved data and the shared context have not changed, then replaces all entities in one owned-context save. Failure before the save leaves the original dataset intact. The failed context is rolled back and discarded. Recovery backups are retained and the UI gives their path. With active iCloud sync, replacement propagates to other devices; it is not an account-wide transaction and another device can introduce later changes.
+
+Receipts remain historical data. Mac exports also archive local retry reservations as recovery evidence, without reinstalling them as executable requests. Replacement refuses active or unresolved MCP writes, then rotates the local retry namespace after the database commit. The app pauses its listener, heartbeat and connectivity callbacks and requires a restart after successful replacement. Native controls and automation writes are blocked until restart, protecting cached editors and replay scopes. Cleanup failure after a committed replacement is explicitly reported as a committed operation requiring restart, not as a rolled-back import.
+
+## Mac schedule
+
+Choose a folder and enable daily exports; the initial example time is 02:00 in the Mac's current local time zone. Folder access uses a persisted security-scoped bookmark. No launch agent, privileged helper, device deployment or external scheduler is installed. While Transit is running it checks every minute. If the Mac sleeps or the app closes, one missed export runs when Transit next runs; there is no promise of an export while the app is closed. Daylight-saving gaps use the next valid local time and repeated hours use the first occurrence. Files are unique and retained until the user removes them. Failed exports do not advance the successful-export timestamp.
+
+## Wipe and iCloud
+
+The wipe flow first saves a new export to a user-selected destination and verifies the actual file with a complete isolated restore. It then requires typing `WIPE` and pressing the destructive confirmation. The final saved dataset must still match the exact backup. Cancellation, an unreadable file, a failed restore, changed data or a failed save prevents deletion.
+
+For an iCloud-capable app, sync must be active before wipe. An online preflight reads the app's private Core Data zone through paginated CloudKit changes and refuses unknown entities, cloud-only rows, differing stored fields or uncovered relationships. Duplicate physical application IDs refuse cloud wipe because cloud recovery coverage cannot be certified. The current Core Data CloudKit field mapping is checked conservatively; unexpected mapping fails closed. CloudKit mirror metadata, heartbeat traffic and display-ID counters are infrastructure rather than recoverable user content.
+
+Deletion uses ordinary SwiftData entity deletions and its CloudKit export path. The UI states that iCloud deletion propagates as synchronization completes; this is not an immediate remote zone purge. CloudKit zones and schemas are never reset. Display-ID allocation infrastructure is retained to avoid reusing IDs on stale other devices. Quit Transit on other devices first: unseen concurrent/offline edits can later reintroduce data, and CloudKit offers no global all-device transaction. No live wipe, import, production launch or CloudKit mutation was exercised by automated verification; destructive checks use synthetic stores only.

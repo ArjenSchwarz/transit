@@ -5,7 +5,7 @@ import SwiftData
     /// Startup alone invokes maintenance; unit/UI memory hosts stay inactive.
     static func atStartup(container: ModelContainer, mode: AppPersistencePolicy.Mode,
                           persistence: PersistenceAvailability) {
-        guard !mode.usesMemoryStore, !persistence.isFallbackStorageActive else { return }
+        guard !mode.usesMemoryStore, !persistence.areWritesUnavailable else { return }
         _ = try? cleanup(container: container, instant: Date(), limit: 128, budget: TaskLinkGraphBudget())
     }
 

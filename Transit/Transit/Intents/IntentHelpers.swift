@@ -112,7 +112,7 @@ nonisolated enum IntentHelpers {
     /// did. Reusing it keeps the error vocabulary unchanged for existing CLI callers [T-1836].
     @MainActor
     static func fallbackStorageErrorJSON(_ persistence: PersistenceAvailability) -> String? {
-        guard persistence.isFallbackStorageActive else { return nil }
+        guard persistence.areWritesUnavailable else { return nil }
         return IntentError.internalError(hint: PersistenceAvailability.unavailableHint).json
     }
 

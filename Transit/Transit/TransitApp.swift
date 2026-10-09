@@ -6,6 +6,8 @@ import SwiftUI
 import UIKit
 #endif
 @main
+// App composition retains lifetime-owned services and scene wiring together.
+// swiftlint:disable:next type_body_length
 struct TransitApp: App {
     #if os(iOS)
     @UIApplicationDelegateAdaptor private var appDelegate: QuickActionAppDelegate
@@ -20,6 +22,9 @@ struct TransitApp: App {
     private let maintenanceService: DisplayIDMaintenanceService
     private let displayIDAllocator: DisplayIDAllocator
     private let milestoneIDAllocator: DisplayIDAllocator
+    #if os(macOS)
+    private let backupScheduler: BackupScheduler
+    #endif
     private let syncManager: SyncManager
     private let connectivityMonitor: ConnectivityMonitor
     private let consolidationHistoryReader: TaskConsolidationNativeReader
@@ -77,6 +82,9 @@ struct TransitApp: App {
         if mode.permitsCloudSync && containerResult.error == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
+        #if os(macOS)
+        self.backupScheduler = BackupScheduler(service: DatabaseBackupService(container: container))
+        #endif
         let context = container.mainContext
         TaskLinkEvidenceMaintenance.atStartup(container: container, mode: mode, persistence: persistence)
         let allocators = AppDisplayIDAllocators.make(mode: mode, syncActive: cloudSyncActive)
@@ -147,6 +155,7 @@ struct TransitApp: App {
             sidecarDirectory: sidecar, persistence: persistence)
         self.mcpWriteCoordinator = writeCoordinator
         try? writeCoordinator.cleanupExpiredOutcomes()
+
         let reads = MCPReadAppDependencies.make(container: container, syncActive: cloudSyncActive, domain: readDomain)
         let consolidation = MCPConsolidationAppCapability(container: container, reads: reads,
             coordinator: writeCoordinator, taskAllocator: allocator, milestoneAllocator: milestoneAllocator)
@@ -160,7 +169,13 @@ struct TransitApp: App {
                 batchContainer: container,
             taskLinkWriteAdapter: TaskLinkWriteAdapter(taskAllocator: allocator, milestoneAllocator: milestoneAllocator)
         )
-        self.mcpServer = MCPServer(toolHandler: mcpToolHandler, readCoordinator: readCoordinator)
+        let server = MCPServer(toolHandler: mcpToolHandler, readCoordinator: readCoordinator)
+        self.mcpServer = server
+        Self.installBackupMaintenance(container: container, syncManager: syncManager,
+            connectivityMonitor: connectivityMonitor, server: server, coordinator: writeCoordinator)
+        #else
+        Self.installBackupMaintenance(container: container, syncManager: syncManager,
+            connectivityMonitor: connectivityMonitor)
         #endif
     }
     @State private var showContainerError: Bool
@@ -189,11 +204,14 @@ struct TransitApp: App {
                             AcknowledgmentsView()
                         case .licenseText:
                             LicenseTextView()
+                        case .backups:
+                            DatabaseBackupView()
                         case .dataMaintenance:
                             DataMaintenanceView()
                         }
                     }
             }
+            .disabled(DatabaseMaintenanceGate.shared.requiresRestart)
             .preferredColorScheme(currentTheme.preferredColorScheme)
             .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
             .modifier(ScenePhaseModifier(
@@ -207,6 +225,7 @@ struct TransitApp: App {
             .environment(commentService)
             .environment(milestoneService)
             .environment(maintenanceService)
+            .disabled(DatabaseMaintenanceGate.shared.requiresRestart)
             .environment(\.consolidationHistoryReader, consolidationHistoryReader)
             .environment(syncManager)
             .environment(connectivityMonitor)
@@ -217,7 +236,10 @@ struct TransitApp: App {
             #if os(macOS)
             .environment(mcpSettings)
             .environment(mcpServer)
-            .task { await startMCPServerIfEnabled() }
+            .task {
+                if Self.persistenceMode.permitsBackgroundServices { backupScheduler.start() }
+                await startMCPServerIfEnabled()
+            }
             #endif
             .task { seedUITestDataIfNeeded() }
             .alert(
@@ -275,6 +297,7 @@ extension TransitApp {
     // MARK: - Shared Environment
     private func withCoreEnvironments<V: View>(_ view: V) -> some View {
         view
+            .disabled(DatabaseMaintenanceGate.shared.requiresRestart)
             .preferredColorScheme(currentTheme.preferredColorScheme)
             .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
             .environment(taskService)
@@ -282,6 +305,7 @@ extension TransitApp {
             .environment(commentService)
             .environment(milestoneService)
             .environment(maintenanceService)
+            .disabled(DatabaseMaintenanceGate.shared.requiresRestart)
             .environment(\.consolidationHistoryReader, consolidationHistoryReader)
     }
     // MARK: - UI Test Support

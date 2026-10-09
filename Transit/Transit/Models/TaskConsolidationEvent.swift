@@ -18,7 +18,8 @@ final class TaskConsolidationEvent {
     private(set) var payloadJSON: String = ""
 
     init(id: UUID, operationId: UUID, kindRawValue: String, createdAt: Date,
-         originScopeId: String, survivorTaskId: UUID, candidateTaskIds: [UUID], payloadJSON: String) throws {
+         originScopeId: String, survivorTaskId: UUID, candidateTaskIds: [UUID], payloadJSON: String,
+         archivedCandidateSlots: [UUID?]? = nil) throws {
         // Imported malformed rows remain diagnosable; construction must never drop participant IDs.
         guard candidateTaskIds.count <= 5 else { throw TaskConsolidationHistoryError.malformed }
         self.id = id
@@ -32,6 +33,14 @@ final class TaskConsolidationEvent {
         self.candidate3 = candidateTaskIds.indices.contains(2) ? candidateTaskIds[2] : nil
         self.candidate4 = candidateTaskIds.indices.contains(3) ? candidateTaskIds[3] : nil
         self.candidate5 = candidateTaskIds.indices.contains(4) ? candidateTaskIds[4] : nil
+        if let slots = archivedCandidateSlots {
+            guard slots.count == 5 else { throw TaskConsolidationHistoryError.malformed }
+            self.candidate1 = slots[0]
+            self.candidate2 = slots[1]
+            self.candidate3 = slots[2]
+            self.candidate4 = slots[3]
+            self.candidate5 = slots[4]
+        }
         self.payloadJSON = payloadJSON
     }
 }

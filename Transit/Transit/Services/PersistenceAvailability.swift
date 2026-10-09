@@ -24,6 +24,12 @@ final class PersistenceAvailability {
     /// True when the in-memory fallback container is in use, meaning writes are lost on relaunch.
     private(set) var isFallbackStorageActive: Bool
 
+    private(set) var replacementRequiresRestart = false
+
+    var areWritesUnavailable: Bool { isFallbackStorageActive || replacementRequiresRestart }
+
+    func requireRestartAfterReplacement() { replacementRequiresRestart = true }
+
     /// Hint returned verbatim to automation callers whose mutation was rejected. Kept as a
     /// single stable string so scripted callers can match on it across both surfaces.
     nonisolated static let unavailableHint = """
