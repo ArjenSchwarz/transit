@@ -11,7 +11,8 @@ extension TransitApp {
             authorize: { try coordinator.prepareDatabaseReplacement() },
             cancel: { try coordinator.cancelDatabaseReplacement() },
             finish: {
-                server.stop()
+                // The mutation gate is already closed; listener shutdown then drains asynchronously.
+                Task { await server.stop() }
                 syncManager.stopHeartbeat()
                 connectivityMonitor.stop()
                 try coordinator.finishDatabaseReplacement()
