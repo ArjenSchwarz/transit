@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Transit is a native Apple task tracker (iOS 26 / iPadOS 26 / macOS 26) for a single user. It provides a kanban-style dashboard for tracking tasks across projects, with CLI integration via App Intents and agent integration via a built-in MCP server (macOS). It sits alongside Orbit (orchestrator), Starwave (spec workflow), and other project tools.
 
+## Feature workflow
+
+Every substantial feature requires a committed repository spec. Start with `starwave:creating-spec` to assess scope and choose the full workflow or smolspec; follow its actual review boundaries and record decisions as they occur. Complete the spec before implementation, keep its implementation record current, and commit that record with the feature. Retrospective documentation must be labelled as such and must not invent earlier approvals. This requirement was established by the user on 2026-10-09.
+
 ## Tech Stack
 
 - **Swift 6.4** (Xcode 27), **SwiftUI**, targeting **iOS/iPadOS/macOS 26 exclusively** — no backwards compatibility
@@ -165,6 +169,10 @@ Key implementation files:
 - `MCP/Writes/MCPRecordSnapshot.swift` — normalized records and content revision coverage
 
 The MCP server reuses the same service instances as the UI (shared `mainContext`), so changes from MCP calls appear immediately in the app. `TransitApp` retains one write coordinator and store-scoped sidecar for its lifetime; listener restarts do not release accepted operations or their lock. Protected writes require keys, and updates/deletion require revision preconditions; MCP results wrap full saved records rather than matching App Intent response envelopes. See [docs/mcp-write-contract.md](docs/mcp-write-contract.md) and [docs/mcp-result-contract.md](docs/mcp-result-contract.md) before changing schemas or examples. Domain changes and their terminal receipt share one synchronous save; guards remain durable when outcome recovery is uncertain.
+
+### Database backups
+
+`Services/Backups/` implements versioned full-database archives, isolated restore verification, guarded replacement/wipe, durable staging and Mac runtime scheduling. `Views/Settings/DatabaseBackupView.swift` exposes Settings → Backups in normal Release. Read [docs/database-backups.md](docs/database-backups.md) and [specs/full-database-backups/implementation.md](specs/full-database-backups/implementation.md) before changing recovery semantics or the archive format.
 
 ### Reports
 
