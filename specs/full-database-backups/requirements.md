@@ -69,3 +69,10 @@ Transit needs recoverable copies of all stored application data before a user re
 2. <a name="5.2"></a>IF service-export verification fails before publication, Transit SHALL preserve any existing destination; IF the system picker is cancelled or saved-file verification fails, it SHALL not report successful backup or authorize wipe.  
 3. <a name="5.3"></a>WHEN exporting to a destination containing orphan stages, cleanup SHALL preserve published backups, symlinks, unknown files and active/recent writers; cleanup failure SHALL not block a new otherwise successful backup.  
 4. <a name="5.4"></a>WHEN controls operate, they SHALL use the container and preferences selected by current Debug/Release isolation without accessing another environment's data.  
+
+### 6. Completion and document-provider recovery (2026-10-10 correction)
+
+1. AFTER replacement or uncertain rollback seals editing, Transit SHALL provide an interactive completion screen with restart guidance and Save Recovery Copy controls outside the editing lock.
+2. Settings SHALL expose existing feature-owned recovery files; cancelling or failing a copy SHALL preserve the original and allow another copy attempt.
+3. Import SHALL report verification, recovery creation and application stages honestly; final atomic saved-data replacement MAY temporarily occupy the UI executor.
+4. Wipe SHALL require a newly created, fully verified, durably published app-owned recovery file and a verified user-selected copy. Document-provider readback SHALL not require parent-folder permission or imply remote upload durability.

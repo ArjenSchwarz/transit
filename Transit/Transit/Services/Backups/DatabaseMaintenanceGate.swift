@@ -12,6 +12,8 @@ final class DatabaseMaintenanceGate {
     private var authorize: (() throws -> Void)?
     private var finish: (() throws -> Void)?
     private(set) var requiresRestart = false
+    private(set) var replacementCommitted = false
+    private(set) var recoveryBackupURL: URL?
 
     func install(
         container: ModelContainer, prepare: @escaping () throws -> [String],
@@ -47,10 +49,13 @@ final class DatabaseMaintenanceGate {
         }
     }
 
-    func didReplace(_ container: ModelContainer, availability: PersistenceAvailability) throws {
+    func didReplace(_ container: ModelContainer, availability: PersistenceAvailability,
+                    recoveryBackupURL: URL? = nil, committed: Bool = true) throws {
         guard installedContainer == ObjectIdentifier(container) else { return }
         container.mainContext.autosaveEnabled = false
         requiresRestart = true
+        replacementCommitted = committed
+        self.recoveryBackupURL = recoveryBackupURL
         availability.requireRestartAfterReplacement()
         try finish?()
     }

@@ -26,7 +26,7 @@ Recorded retrospectively on 2026-10-09 for T-2431 / PR #258. Self-audit against 
 
 ## Findings
 
-No important implementation omission was found against this scoped requirement set. No application/test/build source change is needed for this audit. The missing requirements/design and canonical instruction file were repository-history gaps; this change supplies them and transfers all unique guidance into `AGENTS.md`, updating its readers and removing the duplicate `CLAUDE.md`.
+At the initial source-baseline audit, no important implementation omission was found against that scoped requirement set. The subsequent user-tested usability/provider defects are recorded below. No application/test/build source change is needed for this audit. The missing requirements/design and canonical instruction file were repository-history gaps; this change supplies them and transfers all unique guidance into `AGENTS.md`, updating its readers and removing the duplicate `CLAUDE.md`.
 
 Remaining verification gaps are explicit rather than treated as passes:
 
@@ -49,3 +49,9 @@ Beginner: a file must prove it can recreate the saved data before Transit accept
 Intermediate: saved contexts produce immutable archives; the serial writer validates durable files in a separate store; final unsuspended mutation gates reject changes across asynchronous work. Runtime scheduling and restart admission share the selected environment.
 
 Expert: physical-index equality, saved-history fencing, atomic publication, cloud coverage and durable retry-namespace rotation address different consistency boundaries. They do not create a global cloud transaction or a memory-capacity guarantee. Explaining the design at these three levels exposed no additional core omission; qualified verification gaps above remain.
+
+## User-tested follow-up — 2026-10-10
+
+Build 4 import was confirmed functional after restart, but its post-import editing lock made completion look frozen and recovery paths were not practically accessible on iOS. Wipe preparation also wrongly required parent-folder access after a document-picker save. Requirements/design section 6 now corrects these omissions. The correction preserves restart admission and app-owned durable verification, exposes only feature-owned recovery files, and makes no remote-provider upload promise. New focused synthetic and UI evidence is recorded in implementation.md; live import/wipe and new phone deployment remain unperformed.
+
+Section 6 traceability: independent window roots and file-only recovery controls cover 6.1–6.2; staged import reporting and the bounded 300-task fixture cover 6.3; document-only readback plus separately durable private publication and denied-parent/failing-writer fixtures cover 6.4. App-owned UI controls are targeted separately. Native Files copy/cancellation/retry remains a manual verification gap; presentation screenshots are not treated as proof of those outcomes.

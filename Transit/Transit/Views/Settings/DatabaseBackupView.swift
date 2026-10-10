@@ -32,6 +32,8 @@ struct DatabaseBackupView: View {
     @State private var confirmingWipe = false
     @State private var message: String?
     @State private var busy = false
+    @State private var recoveryRefresh = UUID()
+    @State private var importStage: DatabaseBackupService.ImportStage?
     @State private var folderPicker = false
     #if os(macOS)
     @AppStorage("backup.scheduleEnabled") private var scheduled = false
@@ -80,18 +82,25 @@ struct DatabaseBackupView: View {
                     export()
                 }.accessibilityIdentifier("backup.prepareWipe")
             }
-            if busy { Section { ProgressView("Working with backup…") } }
+            Section { BackupRecoveryView().id(recoveryRefresh) }
+            if busy { Section { ProgressView(importStage?.title ?? "Working with backup…") } }
             if let message { Section { Text(message).textSelection(.enabled) } }
         }
         .formStyle(.grouped)
         .navigationTitle("Backups")
         .disabled(busy)
         .fileExporter(
-            isPresented: $exporting, document: document, contentType: .json,
-            defaultFilename: "Transit-\(Int(Date.now.timeIntervalSince1970)).transitbackup"
-        ) { result in
-            handleExport(result)
-        }
+            isPresented: $exporting, document: document, contentTypes: [.json],
+            defaultFilename: "Transit-\(Int(Date.now.timeIntervalSince1970)).transitbackup",
+            onCompletion: handleExport,
+            onCancellation: {
+                preparingWipe = false
+                exportedArchive = nil
+                document = nil
+                wipeBackupURL = nil
+                message = nil
+            }
+        )
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json, .data]) { result in
             handleImport(result)
         }
@@ -121,7 +130,8 @@ struct DatabaseBackupView: View {
         } message: {
             Text(
                 """
-                Your verified backup is saved. This deletes the saved database and, with sync
+                A verified recovery backup is kept by Transit, and your selected copy was checked.
+                File-provider upload completion cannot be guaranteed. This deletes the saved database and, with sync
                 active, its iCloud data. Type WIPE to continue.
                 """
             )
@@ -186,7 +196,11 @@ extension DatabaseBackupView {
         guard !busy else { return }
         busy = true
         Task { @MainActor in
-            defer { busy = false }
+            defer {
+                busy = false
+                importStage = nil
+                recoveryRefresh = UUID()
+            }
             do { try await operation() } catch {
                 preparingWipe = false
                 message = error.localizedDescription
@@ -210,14 +224,17 @@ extension DatabaseBackupView {
             let url = try result.get()
             let access = url.startAccessingSecurityScopedResource()
             defer { if access { url.stopAccessingSecurityScopedResource() } }
-            let verified = try await service.readAndVerify(url, synchronize: true)
-            guard verified == exportedArchive else { throw DatabaseBackupError.changed }
-            message = "Backup saved and its complete restore verified: \(url.lastPathComponent)"
+            guard let expected = exportedArchive else { throw DatabaseBackupError.changed }
             if preparingWipe {
-                wipeBackupURL = url
+                let recovery = try BackupRecoveryFiles.newURL(beforeWipe: true)
+                try await service.retainWipeRecovery(selectedURL: url, expected: expected, recoveryURL: recovery)
+                wipeBackupURL = recovery
                 wipeConfirmation = ""
                 confirmingWipe = true
+            } else {
+                guard try await service.readAndVerify(url) == expected else { throw DatabaseBackupError.changed }
             }
+            message = "Backup saved and its complete restore verified: \(url.lastPathComponent)"
         }
     }
 
@@ -231,12 +248,7 @@ extension DatabaseBackupView {
     }
 
     private func recoveryURL() throws -> URL {
-        let directory = try FileManager.default.url(
-            for: .applicationSupportDirectory, in: .userDomainMask,
-            appropriateFor: nil, create: true
-        ).appendingPathComponent("Backups")
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        return directory.appendingPathComponent("BeforeImport-\(UUID().uuidString).transitbackup")
+        try BackupRecoveryFiles.newURL()
     }
 
     private func performImport() {
@@ -244,11 +256,11 @@ extension DatabaseBackupView {
         incoming = nil
         runBackupOperation {
             let recovery = try recoveryURL()
-            try await service.replace(with: archive, recoveryURL: recovery)
+            try await service.replace(with: archive, recoveryURL: recovery) { importStage = $0 }
             message =
                 """
-                Database imported. Recovery backup: \(recovery.path). Quit and reopen Transit
-                before editing restored records.
+                Database imported. Save recovery copies from the completion screen, then quit
+                and reopen Transit before editing restored records.
                 """
         }
     }

@@ -50,3 +50,9 @@ A remote zone reset could delete unseen records and break mirror/counter infrast
 ## Audit outcome
 
 [gap-assessment.md](gap-assessment.md) maps current requirements to implementation and qualified evidence. No important source omission was observed; documentation and canonical instruction gaps are corrected. Live-cloud compatibility, near-limit measurements and a few targeted boundary fixtures remain verification limits rather than claimed passes.
+
+## 2026-10-10 user-tested corrections
+
+User confirmed development build 4 imports work after restart; the frozen-looking locked UI and inaccessible private recovery path are usability defects. User then reported wipe preparation failing with “The backup folder could not be opened for durable save.” Source traces this to parent-directory fsync after document-picker save. Retain strict app-owned durable recovery as wipe authority and verify selected-document contents independently. Remote provider upload is outside this guarantee. The authorized fix updates PR #258; no new phone deployment or live destructive operation is authorized.
+
+Testing correction: the first picker UI test incorrectly assumed a Cancel button on the initial On My iPhone screen. Screenshot inspection showed the actual native sheet. The simulator did not expose the remote Files controls in Transit’s accessibility tree, so app-owned UI coverage is separated from unverified native save/cancellation instead of relying on brittle coordinate assertions. No native-copy outcome is claimed from presentation alone.

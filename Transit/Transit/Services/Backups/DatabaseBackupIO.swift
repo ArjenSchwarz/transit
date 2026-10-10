@@ -85,4 +85,11 @@ actor DatabaseBackupWriter {
         if synchronize { try DurableBackupFile.synchronize(url) }
         return try DatabaseBackupIO.verify(DurableBackupFile.read(url))
     }
+
+    /// Copy the original recovery bytes, without accessing or recapturing the installed store.
+    func verifiedFileData(_ url: URL) throws -> Data {
+        let data = try DurableBackupFile.read(url)
+        _ = try DatabaseBackupIO.verify(data)
+        return data
+    }
 }

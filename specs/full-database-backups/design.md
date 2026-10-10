@@ -25,7 +25,7 @@ Only Sendable archive DTOs, bytes and URLs cross to `DatabaseBackupWriter`. Enco
 
 Bound encoded files and incremental reads to 128 MB. Service exports create an exclusive non-followed stage in the destination directory, hold its advisory lock, write and fully synchronize it, read/restore/compare, then rename atomically and synchronize the directory. Verification failure leaves the destination untouched. A post-rename directory failure reports failure conservatively even if a valid file is already visible.
 
-Manual exports prevalidate before the system document picker and verify/synchronize its saved destination before success. Picker output is outside the service's staged-publication guarantee; a failed output may require removal but cannot authorize mutation. Security-scoped access stays open through asynchronous work.
+Manual exports prevalidate before the system document picker and read back and test-restore its saved document before success. Picker output is outside the service's staged-publication guarantee; a failed output may require removal but cannot authorize mutation. Security-scoped access stays open through asynchronous work. A separate app-owned durable copy is required for wipe; selected-document access neither permits parent-directory synchronization nor guarantees provider upload.
 
 Sweep only exact `.Transit-<UUID>.pending` regular files older than 24 hours. Acquire a nonblocking lock, recheck device/inode before removal, and skip symlinks, active/recent writers and unknown entries. Directory and per-file cleanup failures are best effort. Never prune published backups.
 
@@ -47,7 +47,7 @@ Persist the toggle, local hour/minute, enable timestamp, bookmark, last success 
 |---------|--------|
 | Invalid/oversized/unrestorable input | Show failure; installed data untouched. |
 | Capture changed, drafts present, cancellation or unavailable storage | Refuse mutation; retain any completed recovery file. |
-| Unsupported full synchronization | Refuse success and request a local destination. |
+| Unsupported full synchronization for service/app-owned recovery | Refuse publication and wipe; selected provider copies are only readback verified. |
 | Offline/uncovered/differing cloud records | Refuse wipe; user can allow sync to finish and retry. |
 | Database save failure | Original saved dataset retained; discard failed context. |
 | Cleanup uncertainty | Block writes until restart; distinguish pre-commit failure from committed replacement. |
@@ -65,3 +65,9 @@ Risk: Core Data cloud field mapping may differ on deployed schemas | Verify: com
 ## Research constraints
 
 Apple's [SwiftData synchronization documentation](https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices) establishes CloudKit-backed automatic synchronization; [TN3163](https://developer.apple.com/documentation/technotes/tn3163-understanding-the-synchronization-of-nspersistentcloudkitcontainer) describes scheduled setup/import/export events. This supports treating remote completion as asynchronous. Apple's [BGTaskRequest.earliestBeginDate](https://developer.apple.com/documentation/backgroundtasks/bgtaskrequest/earliestbegindate) is a scheduling request, not an exact execution promise; the confirmed Mac-only runtime scope avoids adding an iOS background contract.
+
+## Completion and picker boundary correction — 2026-10-10
+
+The editing admission lock remains sealed until restart. A pure recovery screen replaces editing views at each window root and can export verified original recovery bytes without querying or changing the installed database. Feature-owned BeforeImport/BeforeWipe UUID files remain discoverable after restart; arbitrary private files and symlinks are excluded. Import reports stages and yields before the final revalidated synchronous transaction, without introducing suspension into mutation.
+
+A document-picker URL authorizes the selected document, not its directory. Manual copies receive bounded readback/full restore verification without parent-directory flushes. Wipe additionally publishes the same exact archive in app-owned storage using existing full file sync, verified staging, rename and directory sync. Final wipe rereads this durable private copy and rechecks saved-state equality. The selected provider copy is extra recovery access; its upload/remote durability is not guaranteed. No broader folder permission is requested and durability failures still refuse wipe.
