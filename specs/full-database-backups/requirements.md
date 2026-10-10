@@ -76,3 +76,9 @@ Transit needs recoverable copies of all stored application data before a user re
 2. Settings SHALL expose existing feature-owned recovery files; cancelling or failing a copy SHALL preserve the original and allow another copy attempt.
 3. Import SHALL report verification, recovery creation and application stages honestly; final atomic saved-data replacement MAY temporarily occupy the UI executor.
 4. Wipe SHALL require a newly created, fully verified, durably published app-owned recovery file and a verified user-selected copy. Document-provider readback SHALL not require parent-folder permission or imply remote upload durability.
+
+### 2026-10-10 Mac schedule usability and access correction
+
+- Folder selection must obtain persistent read/write access through the normal user-selected-folder grant, validate creation/flush/removal of its own disposable file, and leave the previous saved folder unchanged on failure. No Full Disk Access or global folder permission is requested. Scheduled work must retain security scope across asynchronous publication and restore it from the bookmark after relaunch.
+- Daily time uses a native Mac time-only field with keyboard entry, an accessible label, and system-locale 12/24-hour formatting. Existing saved hour/minute values, local-time DST handling, running-app limits and catch-up behavior remain unchanged.
+- Native folder selection and bookmark use after process termination must be verified separately from injected bookmark fixtures; any unavailable native acceptance remains explicitly reported.

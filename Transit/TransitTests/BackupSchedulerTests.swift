@@ -5,6 +5,32 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct BackupSchedulerTests {
+    @Test func pickerPreservesEveryWallClockMinute() {
+        for hour in 0..<24 {
+            for minute in 0..<60 {
+                let schedule = BackupSchedule(hour: hour, minute: minute)
+                #expect(BackupSchedule(pickerDate: schedule.pickerDate) == schedule)
+            }
+        }
+    }
+
+    #if os(macOS)
+    @Test func folderWriteCheckLeavesExistingFilesUntouched() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let existing = directory.appendingPathComponent("keep.txt")
+        let data = Data("existing contents".utf8)
+        try data.write(to: existing)
+        try BackupDirectoryAccess.verifyWritable(directory)
+        #expect(try Data(contentsOf: existing) == data)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path) == ["keep.txt"])
+        let missing = directory.appendingPathComponent("missing")
+        #expect(throws: (any Error).self) { try BackupDirectoryAccess.verifyWritable(missing) }
+        #expect(!FileManager.default.fileExists(atPath: missing.path))
+    }
+    #endif
+
     @Test func missingFolderIsObservableAndBackedOff() async throws {
         let fixture = try TestModelContainer()
         let domain = "TransitBackupTests-" + UUID().uuidString

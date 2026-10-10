@@ -138,18 +138,15 @@ struct DatabaseBackupView: View {
         }
         #if os(macOS)
         .fileImporter(isPresented: $folderPicker, allowedContentTypes: [.folder]) { result in
-            do {
+            runBackupOperation {
                 let url = try result.get()
-                let access = url.startAccessingSecurityScopedResource()
-                defer { if access { url.stopAccessingSecurityScopedResource() } }
-                let bookmark = try url.bookmarkData(
-                    options: [.withSecurityScope], includingResourceValuesForKeys: nil,
-                    relativeTo: nil)
+                let bookmark = try await BackupDirectoryAccess.prepareBookmark(for: url)
                 UserDefaults.standard.set(bookmark, forKey: "backup.directoryBookmark")
                 UserDefaults.standard.removeObject(forKey: "backup.nextAttempt")
                 scheduleError = ""
                 folderName = url.lastPathComponent
-            } catch { message = error.localizedDescription }
+                message = "Backup folder access checked. Scheduled exports will use this folder."
+            }
         }
         #endif
     }
@@ -162,14 +159,9 @@ struct DatabaseBackupView: View {
                     if enabled { UserDefaults.standard.set(Date.now, forKey: "backup.enabledAt") }
                 }
                 .accessibilityIdentifier("backup.schedule")
-            HStack {
-                Picker("Hour", selection: $hour) {
-                    ForEach(0..<24, id: \.self) { Text(String(format: "%02d", $0)).tag($0) }
-                }
-                Picker("Minute", selection: $minute) {
-                    ForEach(0..<60, id: \.self) { Text(String(format: "%02d", $0)).tag($0) }
-                }
-            }
+            BackupScheduleTimePicker(hour: $hour, minute: $minute)
+            Text("Time format follows your Mac’s region settings. You can type the hour and minute.")
+                .font(.caption).foregroundStyle(.secondary)
             Button("Choose Backup Folder…") { folderPicker = true }
             Text(folderName).foregroundStyle(.secondary)
             Text("Last scheduled export: " + lastScheduledExport).font(.caption)
