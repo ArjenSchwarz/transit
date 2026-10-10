@@ -98,6 +98,10 @@ struct SettingsView: View {
 
     private var iOSDataMaintenanceSection: some View {
         Section("Data Maintenance") {
+            NavigationLink(value: NavigationDestination.backups) {
+                Label("Backups", systemImage: "externaldrive")
+            }
+            .accessibilityIdentifier("backup.settingsRow")
             NavigationLink(value: NavigationDestination.dataMaintenance) {
                 Label("Data Maintenance", systemImage: "wrench.and.screwdriver")
             }
@@ -277,6 +281,8 @@ extension SettingsView {
                 settingsDetailWrapper { macOSProjectsSection }
             case .mcpServer:
                 settingsDetailWrapper { macOSMCPSection }
+            case .backups:
+                DatabaseBackupView()
             case .dataMaintenance:
                 DataMaintenanceView()
             case .acknowledgments:

@@ -10,13 +10,11 @@ final class TaskService {
     private let displayIDAllocator: DisplayIDAllocator
     private let createSave: (ModelContext) throws -> Void
     private let statusSave: (ModelContext) throws -> Void
-
     /// Store reads for direct task lookups and display-ID collision guards. Tests
     /// inject a failing fetcher while retaining a writable model context, so
     /// automation surfaces can prove storage failures are not caller errors.
     private let fetcher: any ModelFetching
     private let usedDisplayIDs: UsedDisplayIDs
-
     init(
         modelContext: ModelContext,
         displayIDAllocator: DisplayIDAllocator,
@@ -34,7 +32,6 @@ final class TaskService {
         self.createSave = createSave
         self.statusSave = statusSave
     }
-
     // MARK: - Task Creation
 
     /// Creates a new task in `.idea` status, looking up the project by UUID.
@@ -361,6 +358,7 @@ extension TaskService {
             displayID = .provisional
         }
 
+        try DatabaseMaintenanceGate.shared.requireMutationAvailable(in: modelContext.container)
         try Task.checkCancellation()
         return PreparedCreation(
             name: trimmedName, description: description, type: type, projectID: projectID,
@@ -374,6 +372,7 @@ extension TaskService {
         _ prepared: PreparedCreation, taskID: UUID? = nil,
         save: ((ModelContext) throws -> Void)? = nil
     ) throws -> TransitTask {
+        try DatabaseMaintenanceGate.shared.requireMutationAvailable(in: modelContext.container)
         try Task.checkCancellation()
         let projectID = prepared.projectID
         let projectDescriptor = FetchDescriptor<Project>(predicate: #Predicate { $0.id == projectID })

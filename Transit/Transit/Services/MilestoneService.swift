@@ -8,6 +8,7 @@ import SwiftData
 /// The NSObject-backed representation resolves the reproduced iOS Release
 /// environment-injection crash while retaining the same observable service.
 @MainActor @Observable
+// swiftlint:disable:next type_body_length
 final class MilestoneService: NSObject {
 
     private let modelContext: ModelContext
@@ -90,6 +91,7 @@ final class MilestoneService: NSObject {
             displayID = .provisional
         }
 
+        try DatabaseMaintenanceGate.shared.requireMutationAvailable(in: modelContext.container)
         try Task.checkCancellation()
         return PreparedCreation(name: trimmedName, description: description, projectID: projectID, displayID: displayID)
     }
@@ -100,6 +102,7 @@ final class MilestoneService: NSObject {
         _ prepared: PreparedCreation,
         save: ((ModelContext) throws -> Void)? = nil
     ) throws -> Milestone {
+        try DatabaseMaintenanceGate.shared.requireMutationAvailable(in: modelContext.container)
         try Task.checkCancellation()
         let projectID = prepared.projectID
         let descriptor = FetchDescriptor<Project>(predicate: #Predicate { $0.id == projectID })
@@ -232,6 +235,7 @@ final class MilestoneService: NSObject {
                 newID = try await displayIDAllocator.allocateNextID(
                     excluding: { try self.usedDisplayIDs.milestones() }
                 )
+                try DatabaseMaintenanceGate.shared.requireMutationAvailable(in: modelContext.container)
                 // After suspension, transiently re-read committed state before
                 // mutating the stale object; missing/unreadable records fail closed (T-2020).
                 guard try recordLookup.milestoneIsStillProvisional(id: milestone.id) else {
@@ -314,7 +318,8 @@ final class MilestoneService: NSObject {
     /// same names independently. Returns the number of records renamed.
     @discardableResult
     func reconcileDuplicateNames() throws -> Int {
-        try MilestoneNameReconciler(modelContext: modelContext).reconcile()
+        try DatabaseMaintenanceGate.shared.requireMutationAvailable(in: modelContext.container)
+        return try MilestoneNameReconciler(modelContext: modelContext).reconcile()
     }
 
     func milestonesForProject(_ project: Project, status: MilestoneStatus? = nil) throws -> [Milestone] {

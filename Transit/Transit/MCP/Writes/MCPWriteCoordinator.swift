@@ -43,7 +43,7 @@ import SwiftData
         self.newTaskID = newTaskID
         self.preparationHook = preparationHook
         self.recoveryHook = recoveryHook
-        if persistence.isFallbackStorageActive {
+        if persistence.areWritesUnavailable {
             reservations = nil
             receipts = nil
             startupFailure = .init("PERSISTENCE_UNAVAILABLE", PersistenceAvailability.unavailableHint)
@@ -63,6 +63,41 @@ import SwiftData
                 startupFailure = .init("OUTCOME_UNCERTAIN", "Local retry binding storage cannot be read")
             }
         }
+    }
+
+    /// Refuse replacement while an accepted operation still needs reconciliation.
+    func databaseReplacementSnapshot(requireQuiescent: Bool = false) throws -> [String] {
+        guard active.isEmpty, let reservations, let receipts else { throw DatabaseBackupError.unavailable }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return try reservations.all().map { binding in
+            if requireQuiescent {
+                guard let receipt = try receipts.lookup(tool: binding.tool, key: binding.key),
+                  receipt.stateRawValue == "committed" || receipt.stateRawValue == "rejected" else {
+                    throw DatabaseBackupError.invalidArchive(
+                        "An MCP write needs reconciliation before database replacement.")
+                }
+            }
+            guard let json = String(data: try encoder.encode(binding), encoding: .utf8) else {
+                throw DatabaseBackupError.invalidArchive("Retry binding could not be encoded.")
+            }
+            return json
+        }.sorted()
+    }
+
+    func prepareDatabaseReplacement() throws {
+        _ = try databaseReplacementSnapshot(requireQuiescent: true)
+        guard let reservations else { throw DatabaseBackupError.unavailable }
+        try reservations.stageDatabaseReplacement()
+    }
+
+    func cancelDatabaseReplacement() throws {
+        try reservations?.cancelDatabaseReplacement()
+    }
+
+    func finishDatabaseReplacement() throws {
+        guard let reservations else { throw DatabaseBackupError.unavailable }
+        try reservations.rotateAfterDatabaseReplacement()
     }
 
     /// Startup maintenance retains the same app-owned lock used by listener restarts.
@@ -86,7 +121,7 @@ import SwiftData
                     failure: MCPWriteFailure.from(error), accepted: false
                 ), isError: true)
         }
-        if persistence.isFallbackStorageActive {
+        if persistence.areWritesUnavailable {
             return transient(
                 command, .init("PERSISTENCE_UNAVAILABLE", PersistenceAvailability.unavailableHint),
                 accepted: false, retry: "retry_same_request")

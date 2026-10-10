@@ -41,7 +41,7 @@ import SwiftData
         container: ModelContainer, persistence: PersistenceAvailability,
         includeComments: Bool = true, reads: Reads = Reads()
     ) throws -> Report {
-        guard !persistence.isFallbackStorageActive else {
+        guard !persistence.areWritesUnavailable else {
             return report(request.items.map { entry($0, state: .unavailable, code: "PERSISTENCE_UNAVAILABLE") })
         }
         return try MCPBatchSavedReadContext.withContext(container: container, persistence: persistence) { context in

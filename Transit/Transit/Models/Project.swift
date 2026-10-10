@@ -2,7 +2,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class Project {
+nonisolated final class Project {
     var id: UUID = UUID()
     var name: String = ""
     var projectDescription: String = ""

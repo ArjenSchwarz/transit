@@ -31,6 +31,7 @@ extension ModelContext {
     ///   Creation paths must use ``insertOrDelete(_:save:)`` instead.
     func saveOrRollback(save shouldSave: Bool = true, _ mutation: () throws -> Void = {}) throws {
         do {
+            try DatabaseMaintenanceGate.shared.requireMutationAvailable(in: container)
             try mutation()
             guard shouldSave else { return }
             try save()
@@ -52,6 +53,7 @@ extension ModelContext {
         _ model: Model,
         save: (ModelContext) throws -> Void = { try $0.save() }
     ) throws {
+        try DatabaseMaintenanceGate.shared.requireMutationAvailable(in: container)
         insert(model)
         do {
             try save(self)
@@ -73,6 +75,7 @@ extension ModelContext {
         _ mutation: () throws -> Void = {}
     ) throws {
         do {
+            try DatabaseMaintenanceGate.shared.requireMutationAvailable(in: container)
             try mutation()
             try save(self)
         } catch {

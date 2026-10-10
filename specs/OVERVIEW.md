@@ -42,6 +42,7 @@
 | [Bounded Read Freshness](#bounded-read-freshness) | 2026-10-03 | Done | Bound MCP read completion and report immutable saved capture/import evidence |
 | [Portfolio Summaries](#portfolio-summaries) | 2026-10-04 | Done | Saved portfolio counts and reusable frozen task views; qualified native verification complete |
 | [Batch Task Mutations](#batch-task-mutations) | 2026-10-04 | Done | Saved-only previews and ordered per-item MCP task writes; fresh native verification complete, publication pending |
+| [Full Database Backups](#full-database-backups) | 2026-10-09 | Draft PR / retrospective audit | Complete database recovery, Mac daily scheduling and verified-backup Release wipe; no important scoped source gap found |
 
 ---
 
@@ -493,3 +494,15 @@ Source-review follow-up: tasks 17–20 still require Mac rendered acceptance, li
 Task 19 follow-up: reviewed composed raw-byte assertions are now applied in two Mac-only test files, retaining logical assertions. Product/UI hashes are unchanged; compilation/lint/runtime verification is pending. A coherent current-source build/lint → affected Mac6/7 → full iOS units → conditional Mac UI probe batch is prepared at `/tmp/t2381-current-acceptance-batch/plan.json`. Builds remain held for cleanup verification; no runtime or push occurred. Tasks 17–20 remain open.
 
 Current acceptance at `74b299c`: fresh signed iOS/macOS builds and strict lint719/0 pass; composed byte checks pass6decl/7cases; full current iOS units pass1,352decl/1,456cases with zero failures/skips and exact inventory/drain. Mac UI still executes zero feature cases: the bounded log shows the automation-mode writer requesting authentication for `Enable UI Automation`, then a60-second initialization timeout, with no observed authentication completion. Native authentication is the next setup action; no specific system toggle is prescribed or changed. Remaining Mac3 were not started. Existing phone27/30 and iPad proofs retain unchanged hashes and were not repeated. All owned jobs/devices drain; heavy slot released, about216GiB free. Tasks17–20 remain open only for Mac rendered acceptance and dependencies; draftPR255 remains unpushed. Exact evidence: `/tmp/t2381-current-acceptance-batch/final-checkpoint.json`.
+
+
+## Full Database Backups
+
+T-2431 / draft PR #258. Retrospective requirements/design and source gap audit, authored under current user authorization without invented prior approvals.
+
+- [scope-assessment.md](full-database-backups/scope-assessment.md)
+- [requirements.md](full-database-backups/requirements.md)
+- [design.md](full-database-backups/design.md)
+- [decision_log.md](full-database-backups/decision_log.md)
+- [implementation.md](full-database-backups/implementation.md)
+- [gap-assessment.md](full-database-backups/gap-assessment.md)

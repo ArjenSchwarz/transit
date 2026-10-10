@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class Comment {
+nonisolated final class Comment {
     var id: UUID = UUID()
     var content: String = ""
     var authorName: String = ""
