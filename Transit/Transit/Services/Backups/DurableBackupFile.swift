@@ -31,9 +31,16 @@ nonisolated enum DurableBackupFile {
         try synchronizeDirectory(for: url)
     }
 
-    /// Same-directory rename atomically replaces the destination only after verification.
+    /// Generated backup names never replace existing files, even if name selection raced.
     static func publish(_ staging: URL, to destination: URL) throws {
-        guard rename(staging.path, destination.path) == 0 else {
+        let generated = BackupFilename.isGenerated(destination.lastPathComponent)
+        let result = generated
+            ? renamex_np(staging.path, destination.path, UInt32(RENAME_EXCL))
+            : rename(staging.path, destination.path)
+        guard result == 0 else {
+            if generated && errno == EEXIST {
+                throw DatabaseBackupError.invalidArchive("A backup already has this name. Try the export again.")
+            }
             throw DatabaseBackupError.invalidArchive("The verified backup could not be saved at this destination.")
         }
         try synchronizeDirectory(for: destination)

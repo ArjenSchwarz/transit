@@ -59,9 +59,9 @@ final class BackupScheduler {
             if let renewed = access.renewedBookmark {
                 defaults.set(renewed, forKey: "backup.directoryBookmark")
             }
-            let name = "Transit-\(Int(now.timeIntervalSince1970))-\(UUID().uuidString).transitbackup"
+            let destination = try await writer.newDestination(in: access.url, at: now)
             let archive = try service.capture()
-            _ = try await writer.export(archive, to: access.url.appendingPathComponent(name))
+            _ = try await writer.export(archive, to: destination)
             lastSuccess = now
             defaults.set(now, forKey: "backup.lastSuccess")
             lastError = nil

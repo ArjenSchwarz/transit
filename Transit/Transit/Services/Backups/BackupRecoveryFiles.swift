@@ -6,11 +6,10 @@ nonisolated enum BackupRecoveryFiles {
                                     appropriateFor: nil, create: true).appendingPathComponent("Backups")
     }
 
-    static func newURL(beforeWipe: Bool = false) throws -> URL {
+    static func newURL() throws -> URL {
         let folder = try directory()
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let prefix = beforeWipe ? "BeforeWipe-" : "BeforeImport-"
-        return folder.appendingPathComponent("\(prefix)\(UUID().uuidString).transitbackup")
+        return try BackupFilename.availableURL(in: folder)
     }
 
     /// Only published recovery files owned by this feature, never arbitrary app-private files.
@@ -23,9 +22,11 @@ nonisolated enum BackupRecoveryFiles {
         } catch CocoaError.fileReadNoSuchFile { return [] }
         return try entries.filter { url in
             let name = url.deletingPathExtension().lastPathComponent
+            let legacy = ["BeforeImport-", "BeforeWipe-"].contains { prefix in
+                name.hasPrefix(prefix) && UUID(uuidString: String(name.dropFirst(prefix.count))) != nil
+            }
             guard url.pathExtension == "transitbackup",
-                  let prefix = ["BeforeImport-", "BeforeWipe-"].first(where: name.hasPrefix),
-                  UUID(uuidString: String(name.dropFirst(prefix.count))) != nil else { return false }
+                  legacy || BackupFilename.isGenerated(url.lastPathComponent) else { return false }
             let values = try url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
             return values.isRegularFile == true && values.isSymbolicLink != true
         }.sorted { $0.lastPathComponent < $1.lastPathComponent }

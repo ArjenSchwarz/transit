@@ -91,7 +91,7 @@ struct DatabaseBackupView: View {
         .disabled(busy)
         .fileExporter(
             isPresented: $exporting, document: document, contentTypes: [.json],
-            defaultFilename: "Transit-\(Int(Date.now.timeIntervalSince1970)).transitbackup",
+            defaultFilename: BackupFilename.name(at: exportedArchive?.createdAt ?? .now),
             onCompletion: handleExport,
             onCancellation: {
                 preparingWipe = false
@@ -218,7 +218,7 @@ extension DatabaseBackupView {
             defer { if access { url.stopAccessingSecurityScopedResource() } }
             guard let expected = exportedArchive else { throw DatabaseBackupError.changed }
             if preparingWipe {
-                let recovery = try BackupRecoveryFiles.newURL(beforeWipe: true)
+                let recovery = try BackupRecoveryFiles.newURL()
                 try await service.retainWipeRecovery(selectedURL: url, expected: expected, recoveryURL: recovery)
                 wipeBackupURL = recovery
                 wipeConfirmation = ""

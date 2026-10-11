@@ -71,6 +71,10 @@ actor DatabaseBackupWriter {
         self.operation = operation
     }
 
+    func newDestination(in directory: URL, at date: Date) throws -> URL {
+        try BackupFilename.availableURL(in: directory, at: date)
+    }
+
     func export(_ archive: DatabaseArchive, to url: URL) throws -> DatabaseArchive {
         try operation(archive, url)
     }

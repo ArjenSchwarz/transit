@@ -33,7 +33,7 @@ struct BackupRecoveryView: View {
     @State private var copying = false
     @State private var presenting = false
     @State private var document: TransitBackupDocument?
-    @State private var filename = "Recovery.transitbackup"
+    @State private var filename = BackupFilename.name()
     private let writer = DatabaseBackupWriter()
 
     var body: some View {
@@ -104,7 +104,7 @@ struct BackupRecoveryView: View {
             defer { if access { url.stopAccessingSecurityScopedResource() } }
             do {
                 document = TransitBackupDocument(data: try await writer.verifiedFileData(url))
-                filename = url.lastPathComponent
+                filename = BackupFilename.name()
                 presenting = true
             } catch { message = error.localizedDescription }
         }
