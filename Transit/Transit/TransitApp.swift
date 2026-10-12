@@ -6,6 +6,7 @@ import SwiftUI
 import UIKit
 #endif
 @main
+// App composition retains lifetime-owned services and scene wiring together.
 struct TransitApp: App {
     #if os(iOS)
     @UIApplicationDelegateAdaptor private var appDelegate: QuickActionAppDelegate
@@ -20,6 +21,9 @@ struct TransitApp: App {
     private let maintenanceService: DisplayIDMaintenanceService
     private let displayIDAllocator: DisplayIDAllocator
     private let milestoneIDAllocator: DisplayIDAllocator
+    #if os(macOS)
+    private let backupScheduler: BackupScheduler
+    #endif
     private let syncManager: SyncManager
     private let connectivityMonitor: ConnectivityMonitor
     private let consolidationHistoryReader: TaskConsolidationNativeReader
@@ -77,6 +81,9 @@ struct TransitApp: App {
         if mode.permitsCloudSync && containerResult.error == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
+        #if os(macOS)
+        self.backupScheduler = BackupScheduler(service: DatabaseBackupService(container: container))
+        #endif
         let context = container.mainContext
         TaskLinkEvidenceMaintenance.atStartup(container: container, mode: mode, persistence: persistence)
         let allocators = AppDisplayIDAllocators.make(mode: mode, syncActive: cloudSyncActive)
@@ -147,6 +154,7 @@ struct TransitApp: App {
             sidecarDirectory: sidecar, persistence: persistence)
         self.mcpWriteCoordinator = writeCoordinator
         try? writeCoordinator.cleanupExpiredOutcomes()
+
         let reads = MCPReadAppDependencies.make(container: container, syncActive: cloudSyncActive, domain: readDomain)
         let consolidation = MCPConsolidationAppCapability(container: container, reads: reads,
             coordinator: writeCoordinator, taskAllocator: allocator, milestoneAllocator: milestoneAllocator)
@@ -160,7 +168,13 @@ struct TransitApp: App {
                 batchContainer: container,
             taskLinkWriteAdapter: TaskLinkWriteAdapter(taskAllocator: allocator, milestoneAllocator: milestoneAllocator)
         )
-        self.mcpServer = MCPServer(toolHandler: mcpToolHandler, readCoordinator: readCoordinator)
+        let server = MCPServer(toolHandler: mcpToolHandler, readCoordinator: readCoordinator)
+        self.mcpServer = server
+        Self.installBackupMaintenance(container: container, syncManager: syncManager,
+            connectivityMonitor: connectivityMonitor, server: server, coordinator: writeCoordinator)
+        #else
+        Self.installBackupMaintenance(container: container, syncManager: syncManager,
+            connectivityMonitor: connectivityMonitor)
         #endif
     }
     @State private var showContainerError: Bool
@@ -171,69 +185,17 @@ struct TransitApp: App {
     }
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
-                DashboardView()
-                    .navigationDestination(for: NavigationDestination.self) { destination in
-                        switch destination {
-                        case .settings:
-                            SettingsView()
-                        case .projectCreate:
-                            ProjectEditView(project: nil)
-                        case .projectEdit(let project):
-                            ProjectEditView(project: project)
-                        case .milestoneEdit(let project, let milestone):
-                            MilestoneEditView(project: project, milestone: milestone)
-                        case .report:
-                            ReportView()
-                        case .acknowledgments:
-                            AcknowledgmentsView()
-                        case .licenseText:
-                            LicenseTextView()
-                        case .dataMaintenance:
-                            DataMaintenanceView()
-                        }
-                    }
+            Group {
+                if DatabaseMaintenanceGate.shared.requiresRestart {
+                    BackupCompletionView(gate: .shared)
+                } else {
+                    primaryContent
+                }
             }
-            .preferredColorScheme(currentTheme.preferredColorScheme)
-            .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
-            .modifier(ScenePhaseModifier(
-                displayIDAllocator: displayIDAllocator,
-                projectService: projectService,
-                milestoneService: milestoneService,
-                modelContext: container.mainContext
-            ))
-            .environment(taskService)
-            .environment(projectService)
-            .environment(commentService)
-            .environment(milestoneService)
-            .environment(maintenanceService)
-            .environment(\.consolidationHistoryReader, consolidationHistoryReader)
-            .environment(syncManager)
-            .environment(connectivityMonitor)
-            #if os(iOS)
-            .environment(quickActionService)
-            .readSceneSession()
-            #endif
-            #if os(macOS)
-            .environment(mcpSettings)
-            .environment(mcpServer)
-            .task { await startMCPServerIfEnabled() }
-            #endif
             .task { seedUITestDataIfNeeded() }
-            .alert(
-                "Unable to Load Data",
-                isPresented: $showContainerError
-            ) {
-                Button("OK") {}
-            } message: {
-                Text(
-                    "Transit couldn't open its database and is running with temporary storage. "
-                    + "Your existing data is not lost — try restarting the app. "
-                    + "If the problem persists, check available device storage."
-                )
-            }
         }
         .modelContainer(container)
+
         #if os(macOS)
         .commands {
             NewTaskCommand()
@@ -272,21 +234,109 @@ struct TransitApp: App {
     }
 }
 extension TransitApp {
+    private var primaryContent: some View {
+        NavigationStack {
+            DashboardView()
+                .navigationDestination(for: NavigationDestination.self) { destination in
+                    switch destination {
+                    case .settings:
+                        SettingsView()
+                    case .projectCreate:
+                        ProjectEditView(project: nil)
+                    case .projectEdit(let project):
+                        ProjectEditView(project: project)
+                    case .milestoneEdit(let project, let milestone):
+                        MilestoneEditView(project: project, milestone: milestone)
+                    case .report:
+                        ReportView()
+                    case .acknowledgments:
+                        AcknowledgmentsView()
+                    case .licenseText:
+                        LicenseTextView()
+                    case .backups:
+                        DatabaseBackupView()
+                    case .dataMaintenance:
+                        DataMaintenanceView()
+                    }
+                }
+        }
+        .disabled(DatabaseMaintenanceGate.shared.requiresRestart)
+        .preferredColorScheme(currentTheme.preferredColorScheme)
+        .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
+        .modifier(ScenePhaseModifier(
+            displayIDAllocator: displayIDAllocator,
+            projectService: projectService,
+            milestoneService: milestoneService,
+            modelContext: container.mainContext
+        ))
+        .environment(taskService)
+        .environment(projectService)
+        .environment(commentService)
+        .environment(milestoneService)
+        .environment(maintenanceService)
+        .disabled(DatabaseMaintenanceGate.shared.requiresRestart)
+        .environment(\.consolidationHistoryReader, consolidationHistoryReader)
+        .environment(syncManager)
+        .environment(connectivityMonitor)
+        #if os(iOS)
+        .environment(quickActionService)
+        .readSceneSession()
+        #endif
+        #if os(macOS)
+        .environment(mcpSettings)
+        .environment(mcpServer)
+        .task {
+            if Self.persistenceMode.permitsBackgroundServices { backupScheduler.start() }
+            await startMCPServerIfEnabled()
+        }
+        #endif
+        .alert(
+            "Unable to Load Data",
+            isPresented: $showContainerError
+        ) {
+            Button("OK") {}
+        } message: {
+            Text(
+                "Transit couldn't open its database and is running with temporary storage. "
+                + "Your existing data is not lost — try restarting the app. "
+                + "If the problem persists, check available device storage."
+            )
+        }
+    }
     // MARK: - Shared Environment
-    private func withCoreEnvironments<V: View>(_ view: V) -> some View {
-        view
-            .preferredColorScheme(currentTheme.preferredColorScheme)
-            .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
-            .environment(taskService)
-            .environment(projectService)
-            .environment(commentService)
-            .environment(milestoneService)
-            .environment(maintenanceService)
-            .environment(\.consolidationHistoryReader, consolidationHistoryReader)
+    @ViewBuilder private func withCoreEnvironments<V: View>(_ view: V) -> some View {
+        if DatabaseMaintenanceGate.shared.requiresRestart {
+            BackupCompletionView(gate: .shared)
+        } else {
+            view
+                .disabled(DatabaseMaintenanceGate.shared.requiresRestart)
+                .preferredColorScheme(currentTheme.preferredColorScheme)
+                .environment(\.resolvedTheme, currentTheme.resolved(with: colorScheme))
+                .environment(taskService)
+                .environment(projectService)
+                .environment(commentService)
+                .environment(milestoneService)
+                .environment(maintenanceService)
+                .disabled(DatabaseMaintenanceGate.shared.requiresRestart)
+                .environment(\.consolidationHistoryReader, consolidationHistoryReader)
+        }
     }
     // MARK: - UI Test Support
     private func seedUITestDataIfNeeded() {
         guard let scenario = Self.uiTestScenario else { return }
+        if scenario == .backupCompletion {
+            guard Self.persistenceMode.usesMemoryStore, !DatabaseMaintenanceGate.shared.requiresRestart else { return }
+            do {
+                let recovery = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("SyntheticRecovery-\(UUID()).transitbackup")
+                let archive = try DatabaseArchive.capture(ModelContext(container))
+                _ = try DatabaseBackupIO.export(archive, to: recovery)
+                DatabaseMaintenanceGate.shared.install(container: container, prepare: { [] }, finish: {})
+                try DatabaseMaintenanceGate.shared.didReplace(
+                    container, availability: .shared, recoveryBackupURL: recovery)
+            } catch { preconditionFailure("Synthetic recovery fixture failed: \(error)") }
+            return
+        }
         scenario.seed(into: container.mainContext)
     }
 }

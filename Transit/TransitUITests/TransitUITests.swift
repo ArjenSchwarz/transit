@@ -29,6 +29,19 @@ final class TransitUITests: XCTestCase {
         XCTAssertTrue(prompt.waitForExistence(timeout: 5))
     }
 
+    @MainActor
+    func testBackupsControlsAreAvailableInSettings() throws {
+        let app = launchApp()
+        app.tapTransitToolbarButton(identifier: "dashboard.settingsButton", overflowLabel: "Settings")
+        let row = app.buttons["backup.settingsRow"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+        XCTAssertTrue(app.buttons["backup.export"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["backup.import"].exists)
+        XCTAssertTrue(app.buttons["backup.prepareWipe"].exists)
+        XCTAssertFalse(app.switches["backup.schedule"].exists, "Scheduled exports are Mac-only")
+    }
+
     // MARK: - Navigation Flows
 
     @MainActor

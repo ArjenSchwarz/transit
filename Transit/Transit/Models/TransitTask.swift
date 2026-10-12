@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class TransitTask {
+nonisolated final class TransitTask {
     var id: UUID = UUID()
     var permanentDisplayId: Int?
     var name: String = ""

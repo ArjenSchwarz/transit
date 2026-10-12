@@ -4,7 +4,7 @@ import SwiftData
 /// Completed outcomes share the domain store's commit boundary. Scope remains
 /// local even when CloudKit imports receipts created by another device.
 @Model
-final class MCPWriteReceipt {
+nonisolated final class MCPWriteReceipt {
     var id: UUID = UUID()
     var localScopeID: String = ""
     var tool: String = ""

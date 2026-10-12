@@ -3,6 +3,7 @@ import SwiftData
 
 enum UITestScenario: String {
     case empty
+    case backupCompletion
     case board
     case duplicateDisplayIds
     case taskLinks
@@ -14,7 +15,7 @@ enum UITestScenario: String {
     // swiftlint:disable:next function_body_length
     func seed(into ctx: ModelContext) {
         switch self {
-        case .empty:
+        case .empty, .backupCompletion:
             return
         case .duplicateDisplayIds:
             seedDuplicateDisplayIds(into: ctx)

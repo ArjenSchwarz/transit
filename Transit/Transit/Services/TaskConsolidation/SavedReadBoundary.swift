@@ -4,7 +4,7 @@ import SwiftData
 nonisolated enum SavedReadBoundaryError: Error { case incoherentCapture }
 
 /// Reused stable-history boundary; purged history is never proof of an empty store.
-@MainActor enum SavedReadBoundary {
+nonisolated enum SavedReadBoundary {
     static func watermark(_ container: ModelContainer) throws -> DefaultHistoryTransaction? {
         guard container.configurations.count == 1 else { throw SavedReadBoundaryError.incoherentCapture }
         let context = ModelContext(container)

@@ -41,6 +41,21 @@ for target in objects.values():
         else:
             assert settings["PRODUCT_BUNDLE_IDENTIFIER"] == "me.nore.ig.Transit"
             assert settings["CODE_SIGN_ENTITLEMENTS"] == "Transit/Transit.entitlements"
+        assert settings["ENABLE_USER_SELECTED_FILES"] == "readwrite"
+        mac_path = (settings["TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO[sdk=macosx*]"] if isolated
+                    else settings["CODE_SIGN_ENTITLEMENTS[sdk=macosx*]"])
+        mac = plistlib.loads((root / "Transit" / mac_path).read_bytes())
+        assert mac["com.apple.security.files.bookmarks.app-scope"] is True
+        assert "aps-environment" not in mac
+        if isolated:
+            assert not any("icloud" in key or "aps-environment" in key for key in mac)
+            cloud_mac = plistlib.loads((root / "Transit" / settings[
+                "TRANSIT_DEVELOPMENT_ENTITLEMENTS_YES[sdk=macosx*]"]).read_bytes())
+            assert cloud_mac["com.apple.security.files.bookmarks.app-scope"] is True
+        # Keep Mac-only bookmark capabilities out of phone signing inputs.
+        phone_path = settings["TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO"] if isolated else settings["CODE_SIGN_ENTITLEMENTS"]
+        phone = plistlib.loads((root / "Transit" / phone_path).read_bytes())
+        assert "com.apple.security.files.bookmarks.app-scope" not in phone
 assert {"Transit", "TransitDevelopment"}.issubset(found)
 scheme = ET.parse(root / "Transit/Transit.xcodeproj/xcshareddata/xcschemes/Transit.xcscheme")
 test_action = scheme.find("TestAction")

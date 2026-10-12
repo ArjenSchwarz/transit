@@ -5,7 +5,7 @@ import SwiftData
 /// ambiguous imported evidence without task relationships or delete cascades.
 /// Storage defaults support additive schema compatibility, not graph validity.
 @Model
-final class TaskLinkOccurrence {
+nonisolated final class TaskLinkOccurrence {
     private(set) var id: UUID = UUID()
     private(set) var kindRawValue: String = ""
     private(set) var sourceTaskID: UUID = UUID()

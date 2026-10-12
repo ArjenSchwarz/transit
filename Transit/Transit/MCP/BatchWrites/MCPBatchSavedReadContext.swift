@@ -10,7 +10,7 @@ import SwiftData
         container: ModelContainer, persistence: PersistenceAvailability,
         _ body: @MainActor (ModelContext) throws -> Result
     ) throws -> Result {
-        guard !persistence.isFallbackStorageActive else {
+        guard !persistence.areWritesUnavailable else {
             throw MCPWriteFailure("PERSISTENCE_UNAVAILABLE", PersistenceAvailability.unavailableHint)
         }
         let context = ModelContext(container)

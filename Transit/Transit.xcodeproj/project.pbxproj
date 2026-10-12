@@ -424,6 +424,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				TRANSIT_DEVELOPMENT_CLOUD_SYNC = NO;
 				TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO = Configuration/Development.entitlements;
+				"TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO[sdk=macosx*]" = Configuration/DevelopmentMac.entitlements;
 				TRANSIT_DEVELOPMENT_ENTITLEMENTS_YES = Configuration/DevelopmentCloud.entitlements;
 				"TRANSIT_DEVELOPMENT_ENTITLEMENTS_YES[sdk=macosx*]" = Configuration/DevelopmentCloudMac.entitlements;
 				CODE_SIGN_ENTITLEMENTS = "$(TRANSIT_DEVELOPMENT_ENTITLEMENTS_$(TRANSIT_DEVELOPMENT_CLOUD_SYNC))";
@@ -435,7 +436,7 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Configuration/DevelopmentInfo.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Transit Development";
@@ -479,6 +480,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Transit/Transit.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Configuration/ReleaseMac.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -486,7 +488,7 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Transit/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Transit;
@@ -754,6 +756,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				TRANSIT_DEVELOPMENT_CLOUD_SYNC = NO;
 				TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO = Configuration/Development.entitlements;
+				"TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO[sdk=macosx*]" = Configuration/DevelopmentMac.entitlements;
 				TRANSIT_DEVELOPMENT_ENTITLEMENTS_YES = Configuration/DevelopmentCloud.entitlements;
 				"TRANSIT_DEVELOPMENT_ENTITLEMENTS_YES[sdk=macosx*]" = Configuration/DevelopmentCloudMac.entitlements;
 				CODE_SIGN_ENTITLEMENTS = "$(TRANSIT_DEVELOPMENT_ENTITLEMENTS_$(TRANSIT_DEVELOPMENT_CLOUD_SYNC))";
@@ -765,7 +768,7 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Configuration/DevelopmentInfo.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Transit Development";
@@ -811,6 +814,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				TRANSIT_DEVELOPMENT_CLOUD_SYNC = NO;
 				TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO = Configuration/Development.entitlements;
+				"TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO[sdk=macosx*]" = Configuration/DevelopmentMac.entitlements;
 				TRANSIT_DEVELOPMENT_ENTITLEMENTS_YES = Configuration/DevelopmentCloud.entitlements;
 				"TRANSIT_DEVELOPMENT_ENTITLEMENTS_YES[sdk=macosx*]" = Configuration/DevelopmentCloudMac.entitlements;
 				CODE_SIGN_ENTITLEMENTS = "$(TRANSIT_DEVELOPMENT_ENTITLEMENTS_$(TRANSIT_DEVELOPMENT_CLOUD_SYNC))";
@@ -822,7 +826,7 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Configuration/DevelopmentInfo.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Transit Development";

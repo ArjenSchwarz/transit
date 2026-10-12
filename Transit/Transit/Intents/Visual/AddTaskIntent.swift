@@ -64,7 +64,7 @@ struct AddTaskIntent: AppIntent {
         persistence: PersistenceAvailability = .shared
     ) async throws -> TaskCreationResult {
         // Refuse to write while the in-memory fallback container is active [T-1836].
-        guard !persistence.isFallbackStorageActive else {
+        guard !persistence.areWritesUnavailable else {
             throw VisualIntentError.persistenceUnavailable
         }
 

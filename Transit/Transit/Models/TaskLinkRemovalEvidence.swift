@@ -5,7 +5,7 @@ import SwiftData
 /// occurrence. Expiry never changes active incidence or platform sync history.
 /// Raw immutable values preserve malformed imports for later diagnostics.
 @Model
-final class TaskLinkRemovalEvidence {
+nonisolated final class TaskLinkRemovalEvidence {
     private(set) var id: UUID = UUID()
     private(set) var edgeId: UUID = UUID()
     private(set) var kindRawValue: String = ""

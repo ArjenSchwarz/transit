@@ -59,7 +59,7 @@ struct AddCommentIntent: AppIntent {
         persistence: PersistenceAvailability = .shared
     ) throws {
         // Refuse to write while the in-memory fallback container is active [T-1836].
-        guard !persistence.isFallbackStorageActive else {
+        guard !persistence.areWritesUnavailable else {
             throw VisualIntentError.persistenceUnavailable
         }
 

@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class Milestone {
+nonisolated final class Milestone {
     var id: UUID = UUID()
     var permanentDisplayId: Int?
     var name: String = ""
