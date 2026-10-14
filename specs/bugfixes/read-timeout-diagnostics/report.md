@@ -37,3 +37,7 @@ The first historical investigation happened before this branch; this report is a
 ## Publication status
 
 Implementation committed locally as b8e07d7 on T-2455/bugfix-read-timeout-diagnostics. Automatic approval review denied the requested git push to ArjenSchwarz/transit, stating that the trusted request did not explicitly authorize that exact remote push/draft PR. No push ran, and draft PR creation was not attempted. No alternate or indirect publication was attempted. Explicit approval is pending; T-2455 remains In Progress. The prepared PR body is in the parent workspace evidence/t2455-pr-body.md. All implementation and verification work is complete; publication is the remaining blocker.
+
+### Publication approval resolved
+
+New trusted verbatim user instructions explicitly authorized personal-repository feature pushes and PRs without personal/secret data. The single instructed retry succeeded; remote head 3e5e3846533beade7379dbe3a26188061065a913 was verified. Draft PR #259 was created and attached: https://github.com/ArjenSchwarz/transit/pull/259. No merge, installation, live app restart or deployment occurred. A bounded full read for the ticket-status update returned READ_TIMEOUT after draft creation; it was preserved as failure, not treated as empty results. The patch is not installed in that process.
