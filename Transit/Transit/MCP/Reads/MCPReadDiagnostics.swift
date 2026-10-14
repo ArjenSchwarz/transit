@@ -3,7 +3,7 @@ import Synchronization
 import OSLog
 
 nonisolated enum MCPReadDiagnosticPhase: Sendable, Equatable {
-    case queue, refresh, capture, transform, serialization, aggregation, terminal, physicalFinish, discard
+    case queue, validation, refresh, capture, transform, serialization, aggregation, terminal, physicalFinish, discard
 }
 
 nonisolated enum MCPReadDiagnosticOutcome: Sendable, Equatable {
@@ -29,6 +29,7 @@ nonisolated struct MCPReadDiagnosticEvent: Sendable {
     let finishedAt: ContinuousClock.Instant
     let outcome: MCPReadDiagnosticOutcome?
     let unfinishedPhysicalCount: Int
+    var failure: MCPReadFailureSnapshot?
 }
 
 /// Bounded active-plus-queued records. The writer never holds either publication or sink lock.
@@ -44,6 +45,7 @@ nonisolated final class MCPReadDiagnosticSink: Sendable {
         var events: [MCPReadDiagnosticEvent] = []
         var unfinished = 0
         var draining = false
+        var dropped: UInt64 = 0
     }
 
     init(capacity: Int = 64, writer: @escaping @Sendable (MCPReadDiagnosticEvent) -> Void) {
@@ -52,12 +54,24 @@ nonisolated final class MCPReadDiagnosticSink: Sendable {
         queue = capacity > 0 ? DispatchQueue(label: "transit.read.diagnostics", qos: .utility) : nil
     }
 
+    var droppedCount: UInt64 { state.withLock { $0.dropped } }
+
     var pendingCount: Int { state.withLock { $0.unfinished } }
 
     @discardableResult func enqueue(_ event: MCPReadDiagnosticEvent) -> Bool {
         guard let queue else { return false }
         let admission = state.withLock { state -> (accepted: Bool, start: Bool) in
-            guard state.unfinished < capacity else { return (false, false) }
+            if state.unfinished >= capacity {
+                // Preserve failure evidence by retiring a queued ordinary debug event.
+                if event.failure != nil, let index = state.events.firstIndex(where: { $0.failure == nil }) {
+                    state.events.remove(at: index)
+                    state.unfinished -= 1
+                } else {
+                    state.dropped &+= 1
+                    return (false, false)
+                }
+                state.dropped &+= 1
+            }
             state.events.append(event)
             state.unfinished += 1
             let start = !state.draining
@@ -75,7 +89,9 @@ nonisolated final class MCPReadDiagnosticSink: Sendable {
                 return state.events.removeFirst()
             }
             guard let event else { return }
-            writer(event)
+            var delivered = event
+            delivered.failure?.droppedEvents = droppedCount
+            writer(delivered)
             state.withLock { $0.unfinished -= 1 }
         }
     }
@@ -83,7 +99,22 @@ nonisolated final class MCPReadDiagnosticSink: Sendable {
 
 nonisolated private enum MCPReadDiagnosticLogging {
     private static let logger = Logger(subsystem: "me.nore.ig.Transit", category: "MCP.Read")
+    private static let journal = MCPReadFailureJournal(url: URL.cachesDirectory
+        .appendingPathComponent(Bundle.main.bundleIdentifier ?? "Transit", isDirectory: true)
+        .appendingPathComponent("MCPReadFailures.json"))
     static func write(_ event: MCPReadDiagnosticEvent) {
+        if let failure = event.failure {
+            do { try journal.append(failure) } catch {
+                logger.error("Bounded MCP read failure journal could not be saved")
+            }
+            logger.notice("""
+                Read failure outcome=\(failure.outcome, privacy: .public) tool=\(failure.tool, privacy: .public) \
+                phase=\(failure.phase, privacy: .public) process_uptime_ms=\(failure.processUptimeMs ?? -1) \
+                admission_elapsed_ms=\(failure.admissionElapsedMs) cutoff_overrun_ms=\(failure.cutoffOverrunMs) \
+                phase_age_ms=\(failure.phaseAgeMs) oldest_worker_ms=\(failure.oldestWorkerAgeMs) \
+                physical=\(failure.physicalCount) dropped=\(failure.droppedEvents)
+                """)
+        }
         let elapsed = event.startedAt.duration(to: event.finishedAt).components
         let milliseconds = Double(elapsed.seconds) * 1_000 + Double(elapsed.attoseconds) / 1e15
         let phase = String(describing: event.phase)

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- T-2455: Persist bounded, content-free MCP timeout and busy diagnostics with process uptime, active phase, current-request elapsed/cutoff overrun, unfinished-worker age and drop accounting. Preserve original read budgets and physical admission; distinguish lifecycle/cancellation from deadline expiry. The reported uptime-related live cause remains unconfirmed.
+
 - T-2381 phase 2: Add four reviewed consolidation/whole-undo MCP tools and saved read-only native history. Explicit preservation accounting keeps originals and comments; current saved evidence guards permitted survivor edits, candidate abandonment and attributable link changes. Apply/history/receipt and inverse restoration reuse one owned local save, bounded retained reviews and existing retry recovery. Shared native/MCP reads retain physical admission through cleanup. Full macOS unit verification passes; rendered macOS automation remains environment-blocked, and final native layout gates remain pending.
 
 - T-2381 phase 1: Add immutable consolidation history and a fixture-backed protected group-save path. Closed-store migration, exact staged/reopened revisions, all-or-none local commitment and recovery are verified. History stores only changed fields and validates exact inverse evidence. Public consolidation tools, previews, undo execution and native history remain in progress.

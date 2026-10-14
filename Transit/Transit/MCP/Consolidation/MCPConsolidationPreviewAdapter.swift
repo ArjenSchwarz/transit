@@ -10,6 +10,7 @@ import Foundation
     func prepare(tool: String, arguments: [String: Any], operation: MCPReadOperation) async throws
         -> MCPPreparedToolRead {
         operation.finishActorQueue()
+        operation.beginPhase(.validation)
         let request: ConsolidationRequest?
         let operationId: UUID?
         let policy: MCPReadPolicy
