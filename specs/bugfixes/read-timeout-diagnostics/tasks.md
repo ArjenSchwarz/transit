@@ -8,6 +8,6 @@ This small diagnostics change has no contested product behavior or schema decisi
 - [x] Persist fixed-schema journal within 64-record/64KiB bounds on the independent diagnostic queue; count diagnostic saturation.
 - [x] Add focused blocking/lifecycle/queue/journal/redaction regressions.
 - [x] Complete final focused checks and four-area source review.
-- [ ] Publish the draft PR after the verified commit.
+- [ ] Remote push/draft PR blocked: automatic approval review rejected git push to ArjenSchwarz/transit because explicit publication authorization was not established. No push executed; draft PR not attempted. Explicit approval requested. Verified implementation commit b8e07d7 remains local.
 
 No restart, deployment, merge, data migration, read schema change or live-cause claim is authorized by this implementation.
