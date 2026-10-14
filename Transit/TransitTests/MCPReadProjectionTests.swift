@@ -18,7 +18,7 @@ struct MCPReadProjectionTests {
         task.name = "Unsaved task"
         project.name = "Unsaved project"
         let source = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
-                                          fetchComments: { _ in throw CocoaError(.fileReadUnknown) })
+                                          fetchComments: { _, _ in throw CocoaError(.fileReadUnknown) })
         let view = try source.capture(request(full: false))
         let results = try MCPReadProjection.tasks(view, request: query(), arguments: [:])
         #expect(try bytes(results[0]) == bytes(expected))

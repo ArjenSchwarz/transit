@@ -156,7 +156,7 @@ struct MCPReadCaptureBuilderTests {
     @Test func requiredCommentFailureIsNotAnEmptySuccess() throws {
         let fixture = try TestModelContainer()
         let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
-                                            fetchComments: { _ in throw CaptureFixtureError.fetchFailed })
+                                            fetchComments: { _, _ in throw CaptureFixtureError.fetchFailed })
         #expect(throws: MCPReadCaptureError.storageFailure) { try builder.capture(portfolioRequest()) }
         let projects = try builder.capture(ReadCaptureRequest(projectSelectors: nil, selection: .projects,
                                                               completeness: .selectedRead, includeComments: true))
@@ -173,7 +173,7 @@ struct MCPReadCaptureBuilderTests {
         fixture.context.insert(comment)
         try fixture.context.save()
         let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
-            fetchComments: { context in
+            fetchComments: { context, _ in
                 let comments = try context.fetch(FetchDescriptor<Transit.Comment>())
                 comments.first?.creationDate = Date(timeIntervalSince1970: .infinity)
                 return comments
