@@ -175,7 +175,8 @@ struct MCPScopedCommentFetchTests {
         let metrics: [String: Any] = ["scopedRows": scopedRows, "baselineRows": oldRows,
                                       "scopedMs": scopedMs, "baselineMs": oldMs]
         let encoded = try JSONSerialization.data(withJSONObject: metrics, options: [.sortedKeys])
-        print("T2455_SCOPED_COST \(String(decoding: encoded, as: UTF8.self))")
+        let text = try #require(String(data: encoded, encoding: .utf8))
+        print("T2455_SCOPED_COST \(text)")
         #expect(!data.owner.context.hasChanges)
     }
 

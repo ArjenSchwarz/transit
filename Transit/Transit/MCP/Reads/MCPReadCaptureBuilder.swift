@@ -307,7 +307,8 @@ private extension MCPReadCaptureBuilder {
         // the full orphan/comment diagnostic domain, including an empty task domain.
         guard request.selection.requiredEntities.0 && needed,
               request.completeness == .completePortfolio || !bodyTasks.isEmpty else { return [] }
-        return try fetchComments(context, FetchDescriptor<Comment>())
+        let ids = request.completeness == .selectedRead ? Array(Set(bodyTasks.map(\.id))) : nil
+        return try fetchComments(context, MCPReadCommentFetch.descriptor(taskIDs: ids))
     }
 
     private func key(_ model: some PersistentModel) throws -> LocalRecordKey {

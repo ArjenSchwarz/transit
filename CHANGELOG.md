@@ -8,8 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- T-2455: Add isolated selected-comment materialization and revision-parity regression fixtures for the observed read timeout hot path.
-
 - T-2455: Persist bounded, content-free MCP timeout and busy diagnostics with process uptime, active phase, current-request elapsed/cutoff overrun, unfinished-worker age and drop accounting. Preserve original read budgets and physical admission; distinguish lifecycle/cancellation from deadline expiry. The reported uptime-related live cause remains unconfirmed.
 
 - T-2381 phase 2: Add four reviewed consolidation/whole-undo MCP tools and saved read-only native history. Explicit preservation accounting keeps originals and comments; current saved evidence guards permitted survivor edits, candidate abandonment and attributable link changes. Apply/history/receipt and inverse restoration reuse one owned local save, bounded retained reviews and existing retry recovery. Shared native/MCP reads retain physical admission through cleanup. Full macOS unit verification passes; rendered macOS automation remains environment-blocked, and final native layout gates remain pending.
@@ -72,6 +70,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - T-1803: `UpdateStatusIntent` now includes a missing requested `displayId` in its `TASK_NOT_FOUND` hint (`No task with displayId N`), while missing UUIDs retain the existing generic lookup hint and malformed identifiers, duplicate IDs, status validation, and atomic mutation behavior remain unchanged.
 ### Fixed
+
+- T-2455: Scope selected-read comment fetches to selected logical task IDs, preserving full revisions, duplicate physical ownership and complete-portfolio orphan coverage. Avoid materializing unrelated store comments without changing read deadlines. Live long-uptime verification remains pending.
 
 - T-63: Align detached publication-test producers with their user-initiated semaphore waiters, eliminating observed fixture priority-inversion warnings while preserving publication, cleanup and timing assertions.
 - T-2380: Reuse validated guard bindings only within synchronous write phases, revalidate after suspension, and discard snapshots on mutation failure. Document safe recovery without deleting uncertain bindings or resetting local scope.
