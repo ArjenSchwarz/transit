@@ -46,3 +46,7 @@ Median total capture: unrestricted134.845ms, scoped31.208ms (approximately76.9% 
 ### Remaining validation and tracking
 
 User-controlled deployment and observation with the existing content-free diagnostics remain necessary. No restart, deployment, live store/settings changes, live probes or ticket mutations were performed during implementation. T-2455 remains the sole tracking ticket; live updates are excluded by this turn's scope. The separate empty-originals task-refetch optimization is not included.
+
+### Publication
+
+Feature PR: https://github.com/ArjenSchwarz/transit/pull/260. The installed release app remains unchanged; the PR is not merged or deployed by this task.

@@ -8,7 +8,7 @@
 - [x] Compare scoped and former whole-store capture output and deterministic materialization work.
 - [x] Complete four targeted source review areas; no blockers found.
 - [x] Record final verification (78 targeted tests, zero failures/skips; lint clean).
-- [ ] Publish a feature PR.
+- [x] Publish feature PR https://github.com/ArjenSchwarz/transit/pull/260.
 - [ ] User-controlled deployment and long-uptime observation; no resolution claim from fixtures alone.
 
 Ticket updates are intentionally omitted in this implementation turn because its authorisation excludes live data mutation. Existing T-2455 remains the tracking item.
