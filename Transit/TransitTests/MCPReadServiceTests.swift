@@ -89,7 +89,7 @@ struct MCPReadServiceTests {
         try fixture.context.save()
         task.name = "Unsaved"
         let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
-                                          fetchComments: { _ in throw CocoaError(.fileReadUnknown) })
+                                          fetchComments: { _, _ in throw CocoaError(.fileReadUnknown) })
         let view = try builder.capture(ReadCaptureRequest(projectSelectors: nil, selection: .projectCatalog,
                                                          completeness: .selectedRead, includeComments: false))
         let projects = try MCPReadProjection.projects(view)
@@ -188,7 +188,7 @@ struct MCPReadServiceTests {
         try fixture.context.save()
         var commentsFetched = false
         let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
-            fetchComments: { _ in commentsFetched = true; throw CocoaError(.fileReadUnknown) })
+            fetchComments: { _, _ in commentsFetched = true; throw CocoaError(.fileReadUnknown) })
         let service = MCPReadService(source: Source(fixture, builder: builder), monitor: MCPImportEvidenceMonitor(
             syncActive: false, storeIdentifier: nil), snapshots: MCPTaskQuerySnapshotStore())
         var arguments: [String: Any] = ["project": "P", "detailLevel": "full", "includeComments": true, "limit": 100]
@@ -266,7 +266,7 @@ extension MCPReadServiceTests {
         try fixture.context.save()
         var commentsFetched = false
         let builder = MCPReadCaptureBuilder(container: fixture.container, fence: .actorOnlyTestFixture,
-            fetchComments: { _ in commentsFetched = true; throw CocoaError(.fileReadUnknown) })
+            fetchComments: { _, _ in commentsFetched = true; throw CocoaError(.fileReadUnknown) })
         let request = ReadCaptureRequest(projectSelectors: scoped ? [.id(project.id)] : nil,
             selection: .portfolio, completeness: .completePortfolio, includeComments: false)
         #expect(throws: MCPReadCaptureError.storageFailure) { try builder.capture(request) }

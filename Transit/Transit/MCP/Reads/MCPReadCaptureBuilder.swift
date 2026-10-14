@@ -26,7 +26,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
     private let metadata: (Date, MCPReadCaptureBoundary) -> ReadCaptureMetadata
     private let fetchTasks: (ModelContext) throws -> [TransitTask]
     private let fetchMilestones: (ModelContext) throws -> [Milestone]
-    private let fetchComments: (ModelContext) throws -> [Comment]
+    private let fetchComments: (ModelContext, FetchDescriptor<Comment>) throws -> [Comment]
     private let afterProjects: () throws -> Void
 
     init(
@@ -42,8 +42,8 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                                          recentImportThresholdMs: 30_000),
                 read: ReadExecutionMetadata(policy: .cached, refreshOutcome: .notRequested, budgetMs: 5_000))
         },
-        fetchComments: @escaping (ModelContext) throws -> [Comment] = {
-            try $0.fetch(FetchDescriptor<Comment>())
+        fetchComments: @escaping (ModelContext, FetchDescriptor<Comment>) throws -> [Comment] = {
+            try $0.fetch($1)
         },
         afterProjects: @escaping () throws -> Void = {},
         fetchTasks: @escaping (ModelContext) throws -> [TransitTask] = {
@@ -307,7 +307,8 @@ private extension MCPReadCaptureBuilder {
         // the full orphan/comment diagnostic domain, including an empty task domain.
         guard request.selection.requiredEntities.0 && needed,
               request.completeness == .completePortfolio || !bodyTasks.isEmpty else { return [] }
-        return try fetchComments(context)
+        let ids = request.completeness == .selectedRead ? Array(Set(bodyTasks.map(\.id))) : nil
+        return try fetchComments(context, MCPReadCommentFetch.descriptor(taskIDs: ids))
     }
 
     private func key(_ model: some PersistentModel) throws -> LocalRecordKey {

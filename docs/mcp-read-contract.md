@@ -4,6 +4,8 @@ Covered macOS reads describe a completed capture of **saved local data**. A capt
 
 The server allows five seconds from the read's original admission through complete response preparation. Import observation, store capture, transformation and encoding share that budget. An internal 4,850 ms selection cutoff reserves time for response completion. Client/network delivery time is outside this server budget. Eight unfinished physical reads are admitted per process; listener restart does not reset that count. A timeout ends delivery, while its physical work retains capacity until cleanup. Native saved consolidation history and macOS MCP reads share this app-lifetime capacity and original deadline. Listener stop/restart closes only that listener's admission and delivery; it does not disable native history or release unfinished workers.
 
+Selected reads fetch comment evidence by the selected tasks’ logical UUIDs, including comments owned by duplicate physical tasks with those UUIDs. Full revisions cover all those comments even when `includeComments:false` hides their payload. Complete-portfolio captures retain the full comment domain needed for orphan and ownership diagnostics. Every new capture resolves saved ownership again within the existing history fence.
+
 ## Policy and import limits
 
 New reads default to `readPolicy: "refresh_if_needed"`. This can observe positively applicable imports already in flight for at most two seconds within the remaining total budget. The current SwiftData integration has no supported force-pull or provable import-to-capture visibility mechanism; it reports `unavailable` refresh and honest `unknown` freshness when applicability cannot be established. Heartbeat writes and notification arrival are not import proof.

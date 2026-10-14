@@ -71,6 +71,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - T-1803: `UpdateStatusIntent` now includes a missing requested `displayId` in its `TASK_NOT_FOUND` hint (`No task with displayId N`), while missing UUIDs retain the existing generic lookup hint and malformed identifiers, duplicate IDs, status validation, and atomic mutation behavior remain unchanged.
 ### Fixed
 
+- T-2455: Scope selected-read comment fetches to selected logical task IDs, preserving full revisions, duplicate physical ownership and complete-portfolio orphan coverage. Avoid materializing unrelated store comments without changing read deadlines. Live long-uptime verification remains pending.
+
 - T-63: Align detached publication-test producers with their user-initiated semaphore waiters, eliminating observed fixture priority-inversion warnings while preserving publication, cleanup and timing assertions.
 - T-2380: Reuse validated guard bindings only within synchronous write phases, revalidate after suspension, and discard snapshots on mutation failure. Document safe recovery without deleting uncertain bindings or resetting local scope.
 - T-2380: Reconcile retry guards in one validated pass, reject incomplete saved outcomes before replay, and preserve exact integer validation. Added malformed-result regressions and corrected MCP safety examples.
