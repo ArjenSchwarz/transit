@@ -13,3 +13,5 @@ This small diagnostics change has no contested product behavior or schema decisi
 No restart, deployment, merge, data migration, read schema change or live-cause claim is authorized by this implementation.
 
 - [x] New trusted standing-instruction evidence resolved publication approval; remote head verified and draft PR #259 created: https://github.com/ArjenSchwarz/transit/pull/259.
+
+- [ ] Transit Ready for Review update: two bounded full reads returned READ_TIMEOUT, so no current revision was obtained. No status write attempted; leave In Progress until readable.
