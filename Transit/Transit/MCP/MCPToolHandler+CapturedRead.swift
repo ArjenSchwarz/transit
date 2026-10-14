@@ -16,6 +16,7 @@ extension MCPToolHandler {
     func prepareCoveredRead(_ request: MCPReadToolRequest,
                             operation: MCPReadOperation) async throws -> MCPPreparedToolRead {
         operation.finishActorQueue()
+        operation.beginPhase(.validation)
         // Retired references preserve their typed no-capture lookup errors.
         guard taskQueryAdmissionOpen || request.hasRetainedReadReference else {
             let metadata = ReadFailureMetadata(requestId: operation.id.uuidString, category: .busy,

@@ -57,6 +57,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
     func prepare(tool: String, arguments: [String: Any],
                  operation: MCPReadOperation) async throws -> MCPPreparedToolRead {
         operation.finishActorQueue()
+        operation.beginPhase(.validation)
         var policy = MCPReadPolicy.refreshIfNeeded
         do {
             guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
@@ -130,6 +131,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
         let view = try await capture(request: request, policy: policy, operation: operation,
                                      context: (observation, applicable.visibleSavedImportProof))
         guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
+        operation.beginPhase(.transform)
         let transformStarted = ContinuousClock.now
         defer { operation.recordDiagnostic(.transform, startedAt: transformStarted) }
         let metadataBytes = try JSONEncoder().encode(view.metadata)
@@ -139,6 +141,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
                          policy: MCPReadPolicy, operation: MCPReadOperation,
                          context: (MCPImportObservationWindow?, MCPImportCaptureProof?))
         async throws -> CapturedReadView {
+        operation.beginPhase(.refresh)
         let refreshStarted = ContinuousClock.now
         let (observation, decisionProof) = context
         // The active window starts before the decision snapshot and remains through metadata freezing.
@@ -161,6 +164,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
         }
         operation.recordDiagnostic(.refresh, startedAt: refreshStarted)
         guard operation.shouldContinue() else { throw ReadExecutionError.timeout }
+        operation.beginPhase(.capture)
         let captureStarted = ContinuousClock.now
         let view: CapturedReadView
         let cutoff = try MCPPortfolioReadEncoding.publicationDeadline(operation)

@@ -18,6 +18,8 @@ nonisolated struct MCPReadOperation: Sendable {
         coordinator.recordDiagnostic(context: diagnosticContext, phase: phase, startedAt: startedAt, outcome: outcome)
     }
 
+    func beginPhase(_ phase: MCPReadDiagnosticPhase) { coordinator.beginPhase(id: id, phase: phase) }
+
     func beginActorQueue() { coordinator.beginActorQueue(id: id) }
     func finishActorQueue() { coordinator.finishActorQueue(id: id) }
 
@@ -29,12 +31,13 @@ nonisolated struct MCPReadOperation: Sendable {
 
 extension MCPReadCoordinator {
     nonisolated func recordDiagnostic(context: MCPReadDiagnosticContext, phase: MCPReadDiagnosticPhase,
-                                      startedAt: ContinuousClock.Instant, outcome: MCPReadDiagnosticOutcome? = nil) {
+                                      startedAt: ContinuousClock.Instant, outcome: MCPReadDiagnosticOutcome? = nil,
+                                      failure: MCPReadFailureSnapshot? = nil) {
         guard diagnostics.capacity > 0 else { return }
         let finished = ContinuousClock.now
         let count = unfinishedCount
         diagnostics.enqueue(MCPReadDiagnosticEvent(context: context, phase: phase, startedAt: startedAt,
-            finishedAt: finished, outcome: outcome, unfinishedPhysicalCount: count))
+            finishedAt: finished, outcome: outcome, unfinishedPhysicalCount: count, failure: failure))
     }
 
 }

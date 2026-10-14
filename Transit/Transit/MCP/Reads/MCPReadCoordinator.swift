@@ -6,14 +6,15 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
     let diagnostics: MCPReadDiagnosticSink
     private let cutoff: Duration
     private let maxOperations: Int
-    private var entries: [UUID: Entry] = [:]
-    private var generation: UInt64 = 1
+    private(set) var entries: [UUID: Entry] = [:]
+    private(set) var generation: UInt64 = 1
     private var admissionOpen = true
     private var activeListener: UUID?
     private let timerQueue = DispatchQueue(label: "transit.read.deadline", qos: .userInitiated, attributes: .concurrent)
 
     init(domain: MCPReadPublicationDomain = MCPReadPublicationDomain(), cutoff: Duration = .milliseconds(4_850),
          maxOperations: Int = 8, diagnostics: MCPReadDiagnosticSink = .disabled) {
+        if diagnostics.capacity > 0 { _ = MCPReadProcessClock.uptimeMilliseconds() }
         self.domain = domain
         self.cutoff = cutoff
         self.maxOperations = maxOperations
@@ -36,13 +37,17 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
     private func reserve(timeout: Data, admittedAt: ContinuousClock.Instant, admission: MCPReadAdmission,
                          tool: String) -> Entry? {
         var rejected: MCPReadDiagnosticContext?
+        var rejectedFailure: MCPReadFailureSnapshot?
         let entry = domain.withLock { () -> Entry? in
             guard admissionOpen, admission.owner.isActive(listener: activeListener), entries.count < maxOperations,
                   entries[admission.operationID] == nil else {
                 if diagnostics.capacity > 0 {
-                    rejected = MCPReadDiagnosticContext(operationID: admission.operationID, tool: tool,
+                    let context = MCPReadDiagnosticContext(operationID: admission.operationID, tool: tool,
                         generation: generation, admittedAt: admittedAt, responseDeadline: admittedAt + .seconds(5),
                         internalCutoff: admittedAt + cutoff)
+                    rejected = context
+                    rejectedFailure = failureSnapshot(context: context, phase: .queue, startedAt: admittedAt,
+                        outcome: .busy, reason: .admission, now: .now)
                 }
                 return nil
             }
@@ -53,7 +58,7 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
             return entry
         }
         if let rejected { recordDiagnostic(context: rejected, phase: .terminal,
-                                            startedAt: admittedAt, outcome: .busy) }
+                                            startedAt: admittedAt, outcome: .busy, failure: rejectedFailure) }
         return entry
     }
 
@@ -61,7 +66,7 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         _ entry: Entry, skipped: (@Sendable () async -> Void)? = nil,
         worker: @escaping @Sendable (MCPReadOperation) async -> PreparedReadResult
     ) async -> Data {
-        if Task.isCancelled { expire(entry) }
+        if Task.isCancelled { expire(entry, reason: .cancellation) }
         let operation = MCPReadOperation(id: entry.id, generation: entry.generation,
                                          context: entry.diagnosticContext, coordinator: self)
         installTimer(entry)
@@ -80,7 +85,7 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
                 if let selected { continuation.resume(returning: selected) }
             }
         } onCancel: {
-            self.expire(entry)
+            self.expire(entry, reason: .cancellation)
         }
     }
 
@@ -125,7 +130,8 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
             }
             let completions = stopped.compactMap { entry in
                 entry.invalidated = true
-                return entry.responseReady ? selectLocked(entry.timeout, entry: entry) : nil
+                entry.invalidationReason = .lifecycle
+                return entry.responseReady ? selectLocked(entry.timeout, entry: entry, reason: .lifecycle) : nil
             }
             return (stopped, completions)
         }
@@ -160,24 +166,30 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         timer.resume()
     }
 
-    private func expire(_ entry: Entry) {
+    private func expire(_ entry: Entry, reason: MCPReadFailureReason = .deadline) {
         let completion = domain.withLock { () -> (CheckedContinuation<Data, Never>, Data)? in
             guard entries[entry.id] === entry else { return nil }
             entry.invalidated = true
-            return entry.responseReady ? selectLocked(entry.timeout, entry: entry) : nil
+            entry.invalidationReason = reason
+            return entry.responseReady ? selectLocked(entry.timeout, entry: entry, reason: reason) : nil
         }
         if let (continuation, data) = completion { continuation.resume(returning: data) }
         flushTerminal(entry)
     }
 
-    private func selectLocked(_ data: Data, entry: Entry, outcome: MCPReadDiagnosticOutcome? = .timeout)
+    private func selectLocked(_ data: Data, entry: Entry, outcome: MCPReadDiagnosticOutcome? = .timeout,
+                              reason: MCPReadFailureReason = .deadline)
         -> (CheckedContinuation<Data, Never>, Data)? {
         guard entry.selected == nil else { return nil }
         entry.selected = data
         if diagnostics.capacity > 0 {
             entry.terminalEvent = MCPReadDiagnosticEvent(context: entry.diagnosticContext, phase: .terminal,
                 startedAt: entry.diagnosticContext.admittedAt, finishedAt: .now, outcome: outcome,
-                unfinishedPhysicalCount: entries.count)
+                unfinishedPhysicalCount: entries.count,
+                failure: outcome == .timeout || outcome == .busy ? failureSnapshot(
+                    context: entry.diagnosticContext, phase: entry.currentPhase,
+                    startedAt: entry.phaseStartedAt, outcome: outcome ?? .timeout,
+                    reason: outcome == .busy ? .admission : reason, now: .now) : nil)
         }
         entry.timer?.cancel()
         entry.timer = nil
@@ -198,8 +210,9 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
                   entry.selected == nil, .now < entry.deadline else {
                 late = true
                 for publication in prepared.publications { publication.discardLocked(in: domain) }
-                if let entry = entries[id] { return selectLocked(entry.timeout, entry: entry) }
-                return nil
+                return entries[id].flatMap {
+                    selectLocked($0.timeout, entry: $0, reason: $0.invalidationReason)
+                }
             }
             let rejection = distinctStores.count != prepared.publications.count ? .busy
                 : prepared.publications.compactMap { $0.validateLocked(in: domain) }.first
@@ -233,7 +246,7 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         let receipt: ((@Sendable () -> Void), MCPReadDiagnosticContext)? = {
             let (retired, completion) = domain.withLock {
                 let entry = entries.removeValue(forKey: id)
-                let completion = entry.flatMap { selectLocked($0.timeout, entry: $0) }
+                let completion = entry.flatMap { selectLocked($0.timeout, entry: $0, reason: $0.invalidationReason) }
                 return (entry, completion)
             }
             if let (continuation, data) = completion { continuation.resume(returning: data) }
@@ -258,20 +271,6 @@ nonisolated final class MCPReadCoordinator: @unchecked Sendable {
         if let event { diagnostics.enqueue(event) }
     }
 
-    func beginActorQueue(id: UUID) {
-        guard diagnostics.capacity > 0 else { return }
-        domain.withLock { entries[id]?.actorQueuedAt = .now }
-    }
-
-    func finishActorQueue(id: UUID) {
-        guard diagnostics.capacity > 0 else { return }
-        let interval = domain.withLock { () -> (MCPReadDiagnosticContext, ContinuousClock.Instant)? in
-            guard let entry = entries[id], let started = entry.actorQueuedAt else { return nil }
-            entry.actorQueuedAt = nil
-            return (entry.diagnosticContext, started)
-        }
-        if let (context, started) = interval { recordDiagnostic(context: context, phase: .queue, startedAt: started) }
-    }
 }
 
 #if os(macOS)
@@ -323,6 +322,7 @@ extension MCPReadCoordinator {
                 MCPReadBatchUtilities.discard(completed.compactMap { $0 }.flatMap(\.publications), in: self.domain)
                 return MCPReadBatchUtilities.result(fallback ?? Data())
             }
+            operation.beginPhase(.aggregation)
             let assemblyStarted = ContinuousClock.now
             defer { operation.recordDiagnostic(.aggregation, startedAt: assemblyStarted) }
             do { return try await assemble(completed) } catch {
@@ -351,7 +351,7 @@ extension MCPReadCoordinator {
             entry.responseReady = true
             if entry.invalidated || !admissionOpen || entry.generation != generation
                 || .now >= entry.deadline {
-                _ = selectLocked(entry.timeout, entry: entry)
+                _ = selectLocked(entry.timeout, entry: entry, reason: entry.invalidationReason)
             }
         }
     }

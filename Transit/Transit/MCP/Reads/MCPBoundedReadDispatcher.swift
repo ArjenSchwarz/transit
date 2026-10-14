@@ -59,7 +59,7 @@ nonisolated enum MCPBoundedReadDispatcher {
                     try encodeWithOperation?(tool, id, operation) ?? encode(tool, id)
                 }
                 return PreparedReadResult(encodedResponse: bytes, publications: tool.publications,
-                    publicationErrors: errors, diagnosticOutcome: tool.result.isError == true ? .failure : .success)
+                    publicationErrors: errors, diagnosticOutcome: diagnosticOutcome(for: tool))
             } catch {
                 if let prepared { discard(prepared.publications, in: coordinator.domain) }
                 return PreparedReadResult(encodedResponse: serialization, publications: [],
@@ -68,10 +68,23 @@ nonisolated enum MCPBoundedReadDispatcher {
         }
     }
 
+    /// Classify provider-owned typed read metadata, never error-message strings.
+    static func diagnosticOutcome(for tool: MCPPreparedToolRead) -> MCPReadDiagnosticOutcome {
+        if case .failure(let failure)? = tool.result.metadata?.read {
+            switch failure.category {
+            case .busy: return .busy
+            case .timeout: return .timeout
+            default: return .failure
+            }
+        }
+        return tool.result.isError == true ? .failure : .success
+    }
+
     /// Measures the actual complete RPC encoder outside the publication gate and on the original operation.
     static func encodeMeasured(_ tool: MCPPreparedToolRead, id: JSONRPCId, operation: MCPReadOperation,
                                encode: @Sendable (MCPPreparedToolRead, JSONRPCId, MCPReadOperation) throws -> Data)
         throws -> Data {
+        operation.beginPhase(.serialization)
         let started = ContinuousClock.now
         do {
             let bytes = try encode(tool, id, operation)
