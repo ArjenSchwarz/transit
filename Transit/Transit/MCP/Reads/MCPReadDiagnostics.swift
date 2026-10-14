@@ -110,6 +110,7 @@ nonisolated private enum MCPReadDiagnosticLogging {
             logger.notice("""
                 Read failure outcome=\(failure.outcome, privacy: .public) tool=\(failure.tool, privacy: .public) \
                 phase=\(failure.phase, privacy: .public) process_uptime_ms=\(failure.processUptimeMs ?? -1) \
+                admission_elapsed_ms=\(failure.admissionElapsedMs) cutoff_overrun_ms=\(failure.cutoffOverrunMs) \
                 phase_age_ms=\(failure.phaseAgeMs) oldest_worker_ms=\(failure.oldestWorkerAgeMs) \
                 physical=\(failure.physicalCount) dropped=\(failure.droppedEvents)
                 """)

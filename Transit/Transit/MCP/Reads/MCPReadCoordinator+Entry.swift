@@ -54,6 +54,8 @@ extension MCPReadCoordinator {
         -> MCPReadFailureSnapshot {
         MCPReadFailureSnapshot(tool: context.tool, phase: phase, outcome: outcome, generation: context.generation,
             reason: reason, processUptimeMs: MCPReadProcessClock.uptimeMilliseconds(),
+            admissionElapsedMs: MCPReadTiming.seconds(context.admittedAt.duration(to: now)) * 1_000,
+            cutoffOverrunMs: MCPReadTiming.seconds(context.internalCutoff.duration(to: now)) * 1_000,
             phaseAgeMs: MCPReadTiming.seconds(startedAt.duration(to: now)) * 1_000,
             oldestWorkerAgeMs: entries.values.map {
                 MCPReadTiming.seconds($0.diagnosticContext.admittedAt.duration(to: now)) * 1_000

@@ -33,6 +33,8 @@ nonisolated struct MCPReadFailureSnapshot: Codable, Sendable {
     let outcome: String
     let generation: UInt64
     let processUptimeMs: Double?
+    let admissionElapsedMs: Double
+    let cutoffOverrunMs: Double
     let phaseAgeMs: Double
     let oldestWorkerAgeMs: Double
     let physicalCount: Int
@@ -48,6 +50,8 @@ nonisolated struct MCPReadFailureSnapshot: Codable, Sendable {
                 "terminal", "physicalFinish", "discard"].contains(phase)
             && ["timeout", "busy"].contains(outcome)
             && MCPReadFailureReason(rawValue: reason) != nil
+            && admissionElapsedMs.isFinite && admissionElapsedMs >= 0
+            && cutoffOverrunMs.isFinite && cutoffOverrunMs >= 0
             && phaseAgeMs.isFinite && phaseAgeMs >= 0
             && oldestWorkerAgeMs.isFinite && oldestWorkerAgeMs >= 0
             && (0...8).contains(physicalCount)
@@ -55,7 +59,8 @@ nonisolated struct MCPReadFailureSnapshot: Codable, Sendable {
     }
 
     init(tool: String, phase: MCPReadDiagnosticPhase, outcome: MCPReadDiagnosticOutcome,
-         generation: UInt64, reason: MCPReadFailureReason = .deadline, processUptimeMs: Double?, phaseAgeMs: Double,
+         generation: UInt64, reason: MCPReadFailureReason = .deadline, processUptimeMs: Double?,
+         admissionElapsedMs: Double, cutoffOverrunMs: Double, phaseAgeMs: Double,
          oldestWorkerAgeMs: Double, physicalCount: Int) {
         self.observedAt = Date()
         self.reason = reason.rawValue
@@ -64,6 +69,8 @@ nonisolated struct MCPReadFailureSnapshot: Codable, Sendable {
         self.outcome = String(describing: outcome)
         self.generation = generation
         self.processUptimeMs = processUptimeMs
+        self.admissionElapsedMs = max(0, admissionElapsedMs)
+        self.cutoffOverrunMs = max(0, cutoffOverrunMs)
         self.phaseAgeMs = max(0, phaseAgeMs)
         self.oldestWorkerAgeMs = max(0, oldestWorkerAgeMs)
         self.physicalCount = physicalCount

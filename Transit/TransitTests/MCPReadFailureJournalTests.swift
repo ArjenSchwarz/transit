@@ -31,6 +31,8 @@ nonisolated struct MCPReadFailureJournalTests {
         while !recorder.events.contains(where: { $0.failure != nil }) && .now < deadline { await Task.yield() }
         let failure = try #require(recorder.events.compactMap(\.failure).first)
         #expect(failure.phase == "queue" && failure.reason == "deadline")
+        #expect(failure.admissionElapsedMs >= 40 && failure.cutoffOverrunMs >= 0)
+        #expect(abs(failure.admissionElapsedMs - 40 - failure.cutoffOverrunMs) < 0.001)
         #expect(failure.physicalCount == 1 && failure.oldestWorkerAgeMs >= 30)
         #expect(failure.processUptimeMs.map { $0 >= 0 } ?? true)
         let saved = try JSONDecoder().decode([MCPReadFailureSnapshot].self, from: Data(contentsOf: url))
@@ -65,7 +67,8 @@ nonisolated struct MCPReadFailureJournalTests {
         let failures = recorder.events.compactMap(\.failure)
         #expect(failures.contains { $0.phase == "capture" && $0.phaseAgeMs >= 30 })
         #expect(failures.contains { $0.outcome == "busy" && $0.reason == "admission"
-            && $0.oldestWorkerAgeMs >= 30 && $0.physicalCount == 1 })
+            && $0.oldestWorkerAgeMs >= 30 && $0.physicalCount == 1
+            && $0.admissionElapsedMs < $0.oldestWorkerAgeMs && $0.cutoffOverrunMs == 0 })
         release.signal()
         await drain(coordinator)
     }
@@ -164,6 +167,27 @@ nonisolated struct MCPReadFailureJournalTests {
         #expect(recorder.events.compactMap(\.failure).first?.reason == "lifecycle")
     }
 
+    @Test func elapsedAndCutoffOverrunUseTheOriginalRequestClock() {
+        let coordinator = MCPReadCoordinator()
+        let now = ContinuousClock.now
+        let start = now - .seconds(6)
+        let context = MCPReadDiagnosticContext(operationID: UUID(), tool: "query_tasks", generation: 7,
+            admittedAt: start, responseDeadline: start + .seconds(5), internalCutoff: start + .milliseconds(4_850))
+        let failure = coordinator.domain.withLock {
+            coordinator.failureSnapshot(context: context, phase: .capture, startedAt: now - .milliseconds(500),
+                                        outcome: .timeout, reason: .deadline, now: now)
+        }
+        #expect(failure.admissionElapsedMs == 6_000)
+        #expect(abs(failure.cutoffOverrunMs - 1_150) < 0.001)
+        #expect(failure.phaseAgeMs == 500 && failure.generation == 7)
+        #expect(failure.oldestWorkerAgeMs == 0)
+        let early = coordinator.domain.withLock {
+            coordinator.failureSnapshot(context: context, phase: .queue, startedAt: start,
+                                        outcome: .busy, reason: .admission, now: start + .milliseconds(10))
+        }
+        #expect(early.admissionElapsedMs == 10 && early.cutoffOverrunMs == 0)
+    }
+
     @Test func journalBoundsReloadAndRedaction() throws {
         let directory = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -176,7 +200,7 @@ nonisolated struct MCPReadFailureJournalTests {
         #expect(rows.count == 64 && rows.first?.generation == 6 && rows.last?.generation == 69)
         let text = try #require(String(data: data, encoding: .utf8))
         #expect(!text.contains("T-2455") && !text.contains("secret") && !text.contains("taskId"))
-        #expect(rows.allSatisfy { $0.tool == "unknown" })
+        #expect(rows.allSatisfy { $0.tool == "unknown" && $0.admissionElapsedMs == 50 && $0.cutoffOverrunMs == 10 })
         try MCPReadFailureJournal(url: url).append(snapshot(generation: 70))
         let reloaded = try JSONDecoder().decode([MCPReadFailureSnapshot].self, from: Data(contentsOf: url))
         #expect(reloaded.count == 64 && reloaded.first?.generation == 7)
@@ -193,7 +217,8 @@ nonisolated struct MCPReadFailureJournalTests {
 
     private func snapshot(generation: UInt64) -> MCPReadFailureSnapshot {
         MCPReadFailureSnapshot(tool: "T-2455 secret taskId", phase: .capture, outcome: .timeout,
-            generation: generation, processUptimeMs: 20, phaseAgeMs: 40, oldestWorkerAgeMs: 50, physicalCount: 1)
+            generation: generation, processUptimeMs: 20, admissionElapsedMs: 50, cutoffOverrunMs: 10,
+            phaseAgeMs: 40, oldestWorkerAgeMs: 50, physicalCount: 1)
     }
 
     @MainActor private static func blockMainActor(started: DispatchSemaphore, finished: DispatchSemaphore) {
