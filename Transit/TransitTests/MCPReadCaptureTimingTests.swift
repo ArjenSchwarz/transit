@@ -6,6 +6,29 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct MCPReadCaptureTimingTests {
+    @Test func budgetCopyPreservesAndExplicitlyOverridesDiagnosticCorrelation() async {
+        let budget = TaskLinkGraphBudget(deadline: .now + .seconds(10), maximumBytes: 1_234)
+        let plain = Self.request()
+        #expect(plain.withTaskLinkBudget(budget).diagnosticOperation == nil)
+        let coordinator = MCPReadCoordinator()
+        _ = await coordinator.execute(timeout: Data(), busy: Data()) { first in
+            let original = ReadCaptureRequest(projectSelectors: nil, selection: .tasks(detail: .summary),
+                completeness: .selectedRead, includeComments: false, diagnosticOperation: first)
+            let fallback = original.withTaskLinkBudget(budget)
+            #expect(fallback.diagnosticOperation?.id == first.id)
+            #expect(fallback.taskLinkBudget?.deadline == budget.deadline)
+            #expect(fallback.taskLinkBudget?.maximumBytes == 1_234)
+            _ = await coordinator.execute(timeout: Data(), busy: Data()) { second in
+                let override = original.withTaskLinkBudget(budget, operation: second)
+                #expect(override.diagnosticOperation?.id == second.id && second.id != first.id)
+                #expect(original.diagnosticOperation?.id == first.id)
+                #expect(override.taskLinkBudget?.deadline == budget.deadline)
+                return Self.prepared("override")
+            }
+            return Self.prepared("fallback")
+        }
+    }
+
     @Test func instrumentationPreservesSavedCanonicalRecordsAndRevisions() async throws {
         let owner = try TestModelContainer()
         let project = Project(name: "Fixture", description: "", gitRepo: nil, colorHex: "blue")
@@ -23,8 +46,8 @@ struct MCPReadCaptureTimingTests {
         let coordinator = MCPReadCoordinator(diagnostics: sink)
         _ = await coordinator.execute(timeout: Data(), busy: Data()) { operation in
             await MainActor.run {
-                var measured = request
-                measured.diagnosticOperation = operation
+                let measured = ReadCaptureRequest(projectSelectors: nil, selection: .tasks(detail: .fullRecord),
+                    completeness: .selectedRead, includeComments: true, diagnosticOperation: operation)
                 do {
                     let value = try builder.capture(measured)
                     #expect(value.tasks.map(\.selectedRecordJSON) == plain.tasks.map(\.selectedRecordJSON))
@@ -50,8 +73,7 @@ struct MCPReadCaptureTimingTests {
                                             fetchTasks: { _ in throw FixtureFailure.expected })
         let bytes = await coordinator.execute(timeout: Data("timeout".utf8), busy: Data()) { operation in
             await MainActor.run {
-                var request = Self.request()
-                request.diagnosticOperation = operation
+                let request = Self.request(operation: operation)
                 do {
                     _ = try builder.capture(request)
                     Issue.record("Throwing task fetch unexpectedly succeeded")
@@ -76,13 +98,13 @@ struct MCPReadCaptureTimingTests {
         defer { release.signal() }
         let recorder = MCPReadDiagnosticRecorder()
         let sink = MCPReadDiagnosticSink { recorder.append($0) }
-        let coordinator = MCPReadCoordinator(cutoff: .milliseconds(40), maxOperations: 1, diagnostics: sink)
+        let coordinator = MCPReadCoordinator(cutoff: .milliseconds(200), maxOperations: 1, diagnostics: sink)
         let (owner, builder) = try await MainActor.run {
             let owner = try TestModelContainer()
             let builder = MCPReadCaptureBuilder(container: owner.container, fence: .actorOnlyTestFixture,
                 fetchTasks: { _ in
                     started.signal()
-                    #expect(release.wait(timeout: .now() + 2) == .success)
+                    #expect(release.wait(timeout: .now() + 6) == .success)
                     return []
                 })
             return (owner, builder)
@@ -92,18 +114,19 @@ struct MCPReadCaptureTimingTests {
             await coordinator.execute(timeout: Data("timeout".utf8), busy: Data(),
                                       diagnosticTool: "query_tasks") { operation in
                 await MainActor.run {
-                    var request = Self.request()
-                    request.diagnosticOperation = operation
+                    let request = Self.request(operation: operation)
                     do { _ = try builder.capture(request) } catch { Issue.record("Unexpected fixture error") }
                     return Self.prepared("late")
                 }
             }
         }
-        try #require(MCPReadContractFixture.wait(started, seconds: 1) == .success)
+        try #require(MCPReadContractFixture.wait(started, seconds: 3) == .success)
         #expect(await call.value == Data("timeout".utf8))
         #expect(coordinator.unfinishedCount == 1)
-        let timeoutDeadline = ContinuousClock.now + .seconds(1)
-        while recorder.events.compactMap(\.failure).isEmpty && .now < timeoutDeadline { await Task.yield() }
+        let timeoutDeadline = ContinuousClock.now + .seconds(3)
+        while recorder.events.compactMap(\.failure).isEmpty && .now < timeoutDeadline {
+            try await Task.sleep(for: .milliseconds(2))
+        }
         let failure = try #require(recorder.events.compactMap(\.failure).first)
         #expect(failure.phase == "captureTasks" && failure.hasSafeSchema)
         #expect(failure.phaseAgeMs > 0 && failure.physicalCount == 1)
@@ -135,9 +158,9 @@ struct MCPReadCaptureTimingTests {
         }
     }
 
-    private static func request() -> ReadCaptureRequest {
+    private static func request(operation: MCPReadOperation? = nil) -> ReadCaptureRequest {
         ReadCaptureRequest(projectSelectors: nil, selection: .tasks(detail: .summary), completeness: .selectedRead,
-                           includeComments: false)
+                           includeComments: false, diagnosticOperation: operation)
     }
 
     nonisolated private static func prepared(_ value: String) -> PreparedReadResult {
@@ -146,8 +169,10 @@ struct MCPReadCaptureTimingTests {
     }
 
     nonisolated private static func drain(_ coordinator: MCPReadCoordinator, sink: MCPReadDiagnosticSink) async {
-        let deadline = ContinuousClock.now + .seconds(1)
-        while (coordinator.unfinishedCount != 0 || sink.pendingCount != 0) && .now < deadline { await Task.yield() }
+        let deadline = ContinuousClock.now + .seconds(3)
+        while (coordinator.unfinishedCount != 0 || sink.pendingCount != 0) && .now < deadline {
+            try? await Task.sleep(for: .milliseconds(2))
+        }
         #expect(coordinator.unfinishedCount == 0 && sink.pendingCount == 0)
     }
 

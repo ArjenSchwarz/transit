@@ -4,6 +4,8 @@ import Foundation
 extension ReadCaptureRequest {
     /// No suspension or logging on the capture actor. The existing bounded sink receives scalars only.
     /// Begin before entering synchronous work so the independent timeout can name a blocked stage.
+    /// A failure means this stage threw, including an expected budget/cancellation check; it is not
+    /// a request outcome or an additional failure-journal entry. The terminal event owns that decision.
     @MainActor func measureCapture<Value>(_ phase: MCPReadDiagnosticPhase,
                                           _ body: () throws -> Value) rethrows -> Value {
         guard let operation = diagnosticOperation, operation.diagnosticsEnabled else { return try body() }

@@ -2,6 +2,7 @@ import Foundation
 import Synchronization
 import OSLog
 
+/// Cases also form the persisted phase allow-list; use fixed, content-free stage names only.
 nonisolated enum MCPReadDiagnosticPhase: String, Sendable, Equatable {
     case queue, validation, refresh, capture, transform, serialization, aggregation, terminal, physicalFinish, discard
     case captureHistoryBefore, captureContext, captureProjects, captureMilestones, captureTasks

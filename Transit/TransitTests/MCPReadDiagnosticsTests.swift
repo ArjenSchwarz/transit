@@ -53,8 +53,8 @@ struct MCPReadDiagnosticsTests {
                         "captureTasks",
                         "captureGraph", "captureSelection", "captureCommentFetch", "captureCommentIndex",
                         "captureRecords", "captureConsolidation", "captureHistoryAfter", "captureValidation"]
-        let stages = events.filter { String(describing: $0.phase).hasPrefix("capture") && $0.phase != .capture }
-        #expect(stages.map { String(describing: $0.phase) } == expected)
+        let stages = events.filter { $0.phase.rawValue.hasPrefix("capture") && $0.phase != .capture }
+        #expect(stages.map { $0.phase.rawValue } == expected)
         for value in stages {
             #expect(value.context.operationID == id)
             #expect(value.finishedAt >= value.startedAt)
@@ -180,7 +180,9 @@ struct MCPReadDiagnosticsTests {
     private func waitForEvents(_ recorder: MCPReadDiagnosticRecorder,
                                phase: MCPReadDiagnosticPhase) async -> [MCPReadDiagnosticEvent] {
         let deadline = ContinuousClock.now + .seconds(1)
-        while !recorder.events.contains(where: { $0.phase == phase }) && .now < deadline { await Task.yield() }
+        while !recorder.events.contains(where: { $0.phase == phase }) && .now < deadline {
+            try? await Task.sleep(for: .milliseconds(2))
+        }
         return recorder.events
     }
 
