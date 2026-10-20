@@ -38,6 +38,30 @@ struct MCPReadDiagnosticsTests {
         #expect(!events.contains { $0.phase == .aggregation })
     }
 
+    @Test func savedCaptureReportsInternalStagesWithoutChangingRead() async throws {
+        let recorder = MCPReadDiagnosticRecorder()
+        let sink = MCPReadDiagnosticSink(writer: { recorder.append($0) })
+        let fixture = try MCPReadContractFixture(diagnostics: sink)
+        let id = UUID()
+        let bytes = try await fixture.execute(arguments: ["detailLevel": "full", "includeComments": false,
+                                                         "limit": 1], operationID: id)
+        let payload = try MCPReadContractFixture.payload(bytes)
+        #expect(payload["error"] == nil)
+        await fixture.drain()
+        let events = await waitForEvents(recorder, phase: .physicalFinish)
+        let expected = ["captureHistoryBefore", "captureProjects", "captureMilestones", "captureTasks",
+                        "captureGraph", "captureSelection", "captureCommentFetch", "captureCommentIndex",
+                        "captureRecords", "captureConsolidation", "captureHistoryAfter", "captureValidation"]
+        let stages = events.filter { String(describing: $0.phase).hasPrefix("capture") && $0.phase != .capture }
+        #expect(stages.map { String(describing: $0.phase) } == expected)
+        for value in stages {
+            #expect(value.context.operationID == id)
+            #expect(value.finishedAt >= value.startedAt)
+            #expect(value.outcome == .success)
+        }
+        #expect(sink.droppedCount == 0)
+    }
+
     @Test func blockedWriterKeepsQueueBoundedAndCannotDelayTimerOrHoldDomain() async {
         let entered = DispatchSemaphore(value: 0)
         let loggingRelease = DispatchSemaphore(value: 0)
