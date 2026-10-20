@@ -2,8 +2,12 @@ import Foundation
 import Synchronization
 import OSLog
 
-nonisolated enum MCPReadDiagnosticPhase: Sendable, Equatable {
+nonisolated enum MCPReadDiagnosticPhase: String, Sendable, Equatable {
     case queue, validation, refresh, capture, transform, serialization, aggregation, terminal, physicalFinish, discard
+    case captureHistoryBefore, captureContext, captureProjects, captureMilestones, captureTasks
+    case captureGraph, captureSelection
+    case captureCommentFetch, captureCommentIndex, captureRecords, captureConsolidation
+    case captureHistoryAfter, captureValidation
 }
 
 nonisolated enum MCPReadDiagnosticOutcome: Sendable, Equatable {

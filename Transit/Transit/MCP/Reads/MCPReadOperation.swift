@@ -18,6 +18,8 @@ nonisolated struct MCPReadOperation: Sendable {
         coordinator.recordDiagnostic(context: diagnosticContext, phase: phase, startedAt: startedAt, outcome: outcome)
     }
 
+    var diagnosticsEnabled: Bool { coordinator.diagnostics.capacity > 0 }
+
     func beginPhase(_ phase: MCPReadDiagnosticPhase) { coordinator.beginPhase(id: id, phase: phase) }
 
     func beginActorQueue() { coordinator.beginActorQueue(id: id) }

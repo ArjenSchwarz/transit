@@ -170,7 +170,7 @@ final class MCPReadService: MCPReadCapturedPreparing {
         let cutoff = try MCPPortfolioReadEncoding.publicationDeadline(operation)
         let coveredRequest = request.withTaskLinkBudget(TaskLinkGraphBudget(deadline: cutoff, checkpoint: {
             try MCPPortfolioReadEncoding.check(operation)
-        }))
+        }), operation: operation)
         do { view = try source.capture(coveredRequest) } catch {
             operation.recordDiagnostic(.capture, startedAt: captureStarted, outcome: .failure)
             throw error

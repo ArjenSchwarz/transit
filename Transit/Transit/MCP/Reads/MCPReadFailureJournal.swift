@@ -46,8 +46,7 @@ nonisolated struct MCPReadFailureSnapshot: Codable, Sendable {
 
     var hasSafeSchema: Bool {
         (Self.knownTools.contains(tool) || tool == "unknown")
-            && ["queue", "validation", "refresh", "capture", "transform", "serialization", "aggregation",
-                "terminal", "physicalFinish", "discard"].contains(phase)
+            && MCPReadDiagnosticPhase(rawValue: phase) != nil
             && ["timeout", "busy"].contains(outcome)
             && MCPReadFailureReason(rawValue: reason) != nil
             && admissionElapsedMs.isFinite && admissionElapsedMs >= 0

@@ -206,6 +206,8 @@ nonisolated struct ReadCaptureRequest: Sendable {
     /// Output preference only; fullRecord/portfolio still capture canonical comment coverage.
     let includeComments: Bool
     let taskLinkBudget: TaskLinkGraphBudget?
+    /// Scalar diagnostic correlation only; never retained by a captured view.
+    var diagnosticOperation: MCPReadOperation?
     let taskLinkOptions: TaskLinkQueryOptions?
     let consolidationTarget: ConsolidationCaptureTarget?
     /// Runs inside the fence before dependent entity fetches; no relationship values escape.
@@ -247,12 +249,17 @@ nonisolated struct ReadCaptureRequest: Sendable {
         })
     }
 
-    func withTaskLinkBudget(_ budget: TaskLinkGraphBudget) -> ReadCaptureRequest {
-        ReadCaptureRequest(projectSelectors: projectSelectors, selection: selection, completeness: completeness,
+    func withTaskLinkBudget(_ budget: TaskLinkGraphBudget,
+                            operation: MCPReadOperation? = nil) -> ReadCaptureRequest {
+        var request = ReadCaptureRequest(projectSelectors: projectSelectors, selection: selection,
+            completeness: completeness,
             includeComments: includeComments, validateProjects: validateProjects,
             validateMilestones: validateMilestones,
-            selectTaskBodies: selectTaskBodies, selectMilestoneBodies: selectMilestoneBodies, taskLinkBudget: budget,
+            selectTaskBodies: selectTaskBodies, selectMilestoneBodies: selectMilestoneBodies,
+            taskLinkBudget: budget,
             taskLinkOptions: taskLinkOptions, consolidationTarget: consolidationTarget)
+        request.diagnosticOperation = operation ?? diagnosticOperation
+        return request
     }
 }
 

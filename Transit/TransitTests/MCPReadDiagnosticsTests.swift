@@ -49,7 +49,8 @@ struct MCPReadDiagnosticsTests {
         #expect(payload["error"] == nil)
         await fixture.drain()
         let events = await waitForEvents(recorder, phase: .physicalFinish)
-        let expected = ["captureHistoryBefore", "captureProjects", "captureMilestones", "captureTasks",
+        let expected = ["captureHistoryBefore", "captureContext", "captureProjects", "captureMilestones",
+                        "captureTasks",
                         "captureGraph", "captureSelection", "captureCommentFetch", "captureCommentIndex",
                         "captureRecords", "captureConsolidation", "captureHistoryAfter", "captureValidation"]
         let stages = events.filter { String(describing: $0.phase).hasPrefix("capture") && $0.phase != .capture }

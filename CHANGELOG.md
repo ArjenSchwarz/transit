@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- T-2455: Add regression coverage for missing internal MCP capture-stage diagnostic attribution.
+- T-2455: Attribute MCP capture timings and active timeout phases to history fences, context creation, entity fetches, graph/selection, scoped comment fetch/indexing, record copying, consolidation and validation. Retain bounded content-free diagnostics, original read budgets and physical worker ownership.
 
 - T-2455: Persist bounded, content-free MCP timeout and busy diagnostics with process uptime, active phase, current-request elapsed/cutoff overrun, unfinished-worker age and drop accounting. Preserve original read budgets and physical admission; distinguish lifecycle/cancellation from deadline expiry. The reported uptime-related live cause remains unconfirmed.
 
