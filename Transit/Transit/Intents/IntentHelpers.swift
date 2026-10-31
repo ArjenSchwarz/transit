@@ -113,7 +113,7 @@ nonisolated enum IntentHelpers {
     @MainActor
     static func fallbackStorageErrorJSON(_ persistence: PersistenceAvailability) -> String? {
         guard persistence.areWritesUnavailable else { return nil }
-        return IntentError.internalError(hint: PersistenceAvailability.unavailableHint).json
+        return IntentError.internalError(hint: persistence.writeUnavailableHint).json
     }
 
     /// Translates ProjectLookupError to IntentError.

@@ -73,6 +73,12 @@ final class DatabaseBackupService {
     func replace(with archive: DatabaseArchive, recoveryURL: URL,
                  progress: (ImportStage) -> Void = { _ in }) async throws {
         try requireStorage()
+        let taskMax = archive.transitTaskRows.compactMap(\.permanentDisplayId).max() ?? 0
+        let milestoneMax = archive.milestoneRows.compactMap(\.permanentDisplayId).max() ?? 0
+        guard availability.permitsImportedDisplayIDs(taskMax: taskMax, milestoneMax: milestoneMax) else {
+            throw DatabaseBackupError.invalidArchive(
+                "The backup exceeds verified counter floors. Verify higher floors before importing.")
+        }
         progress(.verifyingBackup)
         _ = try await writer.preparedData(for: archive)
         progress(.creatingRecovery)

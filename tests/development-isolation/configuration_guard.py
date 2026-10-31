@@ -106,3 +106,10 @@ for target in objects.values():
         bundle = objects[identifier]["buildSettings"]["PRODUCT_BUNDLE_IDENTIFIER"]
         assert bundle.startswith("me.nore.ig.apps.Transit"), bundle
 print("New-team Release/development/test identities and explicit Release storage routing passed")
+
+# Custom destination fields must live in source plists: arbitrary INFOPLIST_KEY settings are not emitted.
+for relative in ["Transit/Transit/Info.plist", "Transit/Configuration/DevelopmentInfo.plist"]:
+    metadata = plistlib.loads((root / relative).read_bytes())
+    assert metadata["TransitSigningTeam"] == "$(DEVELOPMENT_TEAM)"
+    assert metadata["TransitCloudEnvironment"] == "Development"
+print("Migration source-plist destination metadata passed")

@@ -43,10 +43,11 @@ import SwiftData
         self.newTaskID = newTaskID
         self.preparationHook = preparationHook
         self.recoveryHook = recoveryHook
-        if persistence.areWritesUnavailable {
+        // Readiness gates requests below; initializing its local retry scope performs no domain writes.
+        if persistence.isFallbackStorageActive || persistence.replacementRequiresRestart {
             reservations = nil
             receipts = nil
-            startupFailure = .init("PERSISTENCE_UNAVAILABLE", PersistenceAvailability.unavailableHint)
+            startupFailure = .init("PERSISTENCE_UNAVAILABLE", persistence.writeUnavailableHint)
         } else {
             do {
                 let store = try MCPLocalReservationStore(directory: sidecarDirectory)
@@ -123,7 +124,7 @@ import SwiftData
         }
         if persistence.areWritesUnavailable {
             return transient(
-                command, .init("PERSISTENCE_UNAVAILABLE", PersistenceAvailability.unavailableHint),
+                command, .init("PERSISTENCE_UNAVAILABLE", persistence.writeUnavailableHint),
                 accepted: false, retry: "retry_same_request")
         }
         guard let reservations, let receipts else {

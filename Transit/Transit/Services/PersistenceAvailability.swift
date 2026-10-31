@@ -26,9 +26,27 @@ final class PersistenceAvailability {
 
     private(set) var replacementRequiresRestart = false
 
-    var areWritesUnavailable: Bool { isFallbackStorageActive || replacementRequiresRestart }
+    private(set) var migrationRequiresVerification = false
+    var migrationCounterFloors: (tasks: Int, milestones: Int)?
+
+    func setMigrationVerificationRequired(_ required: Bool) { migrationRequiresVerification = required }
+
+    var areWritesUnavailable: Bool {
+        isFallbackStorageActive || replacementRequiresRestart || migrationRequiresVerification
+    }
+
+    func permitsImportedDisplayIDs(taskMax: Int, milestoneMax: Int) -> Bool {
+        guard let floors = migrationCounterFloors else { return true }
+        return taskMax < floors.tasks && milestoneMax < floors.milestones
+    }
 
     func requireRestartAfterReplacement() { replacementRequiresRestart = true }
+
+    var writeUnavailableHint: String {
+        migrationRequiresVerification
+            ? "Migration counter readiness is pending. Complete the Release startup verification before writing."
+            : Self.unavailableHint
+    }
 
     /// Hint returned verbatim to automation callers whose mutation was rejected. Kept as a
     /// single stable string so scripted callers can match on it across both surfaces.

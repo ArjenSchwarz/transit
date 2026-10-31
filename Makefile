@@ -180,7 +180,7 @@ test-development-isolation: prepare-cache-dirs test-development-configuration
 		-o $(DERIVED_DATA)/isolated-migration-probe
 	xcrun swiftc -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
 		$(MCP_PROBE_MODELS) \
-		Transit/Transit/Services/{AppPersistencePolicy,AppDisplayIDAllocators,DisplayIDAllocator,CloudKitCounterStore,UsedDisplayIDs,DisplayIDRecordLookup,ModelFetching,PersistenceAvailability,ContainerFactory}.swift $(MCP_PROBE_BACKUP_GATE) \
+		Transit/Transit/Services/{AppPersistencePolicy,AppDisplayIDAllocators,DisplayIDAllocator,DisplayIDCounterStore,CloudKitCounterStore,UsedDisplayIDs,DisplayIDRecordLookup,ModelFetching,PersistenceAvailability,ContainerFactory}.swift $(MCP_PROBE_BACKUP_GATE) \
 		tests/development-isolation/BootstrapProbe.swift -o $(DERIVED_DATA)/isolated-bootstrap-probe
 	python3 tests/development-isolation/run.py $(DERIVED_DATA)/persistence-policy-probe \
 		$(DERIVED_DATA)/isolated-migration-probe $(DERIVED_DATA)/isolated-bootstrap-probe \
@@ -225,7 +225,7 @@ test-mcp-write-foundation: prepare-cache-dirs
 	$(DERIVED_DATA)/mcp-write-foundation-probe
 
 .PHONY: test-mcp-write-services
-MCP_PROBE_SERVICES = Transit/Transit/Services/{TaskService,TaskService+Error,MilestoneService,MilestoneService+Error,ProjectService,CommentInputValidation,CommentService,ModelFetching,UsedDisplayIDs,DisplayIDAllocator,DisplayIDRecordLookup,CloudKitCounterStore,CreationProjectValidator,TaskCreationMilestoneValidator,ProjectNameReconciler,MilestoneNameReconciler,StatusEngine,PersistenceAvailability,ContainerFactory}.swift $(MCP_PROBE_BACKUP_GATE)
+MCP_PROBE_SERVICES = Transit/Transit/Services/{TaskService,TaskService+Error,MilestoneService,MilestoneService+Error,ProjectService,CommentInputValidation,CommentService,ModelFetching,UsedDisplayIDs,DisplayIDAllocator,DisplayIDCounterStore,DisplayIDRecordLookup,CloudKitCounterStore,CreationProjectValidator,TaskCreationMilestoneValidator,ProjectNameReconciler,MilestoneNameReconciler,StatusEngine,PersistenceAvailability,ContainerFactory}.swift $(MCP_PROBE_BACKUP_GATE)
 MCP_PROBE_DEPENDENCIES ?= $(DERIVED_DATA)/Build/Products/Debug
 .PHONY: format-mcp-write
 format-mcp-write:
@@ -404,3 +404,12 @@ clean: prepare-cache-dirs
 		-scheme $(SCHEME) \
 		$(XCODEBUILD_CACHE_FLAGS)
 	rm -rf $(DERIVED_DATA) build
+
+.PHONY: test-migration-preflight
+test-migration-preflight: prepare-cache-dirs
+	xcrun swiftc -parse-as-library -swift-version 6 -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
+		tests/migration-preflight/CounterNamespace.swift Transit/Transit/Services/DisplayIDCounterStore.swift \
+		Transit/Transit/Services/Migration/{MigrationCounterPreflight,MigrationInventoryAccumulator}.swift \
+		Transit/Transit/Services/PersistenceAvailability.swift tests/migration-preflight/PreflightProbe.swift \
+		-o $(DERIVED_DATA)/migration-preflight-probe
+	$(DERIVED_DATA)/migration-preflight-probe
