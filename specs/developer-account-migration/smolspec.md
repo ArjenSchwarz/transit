@@ -44,3 +44,15 @@ Platform entitlement checks cover both phone and Mac inputs. Launch/install scri
 
 ## Escalation Note
 This change was scoped as a smolspec. If implementation reveals ambiguity only the user can resolve, an irreversible boundary (public API, persisted schema, auth path), or a contested architectural choice, stop and escalate to the full spec workflow rather than deciding it inline.
+
+
+## Counter readiness follow-up (specified before implementation)
+
+The owner requested all required setup changes; read-only follow-up found that supported import preserves display IDs but never advances cloud counters. This source-only follow-up adds a Release launch preflight, not permission to execute cutover.
+
+- Release MUST block ordinary UI, intent/MCP writes and startup maintenance until destination/account-bound counter readiness succeeds. Debug/test behavior is unchanged.
+- Preflight MUST expose read-only paginated Transit-zone inventory and counter values using the selected Release container/environment; no ModelContext content is changed by inspection. Unknown zones/types, incomplete inventory, account errors and nonempty user graph MUST block initial preparation.
+- Preparation MUST be explicitly requested with task/milestone floor inputs at least 2507/22, retaining higher current counter values. Existing CAS advance and read-back verification MUST succeed for both counters before readiness is saved or ordinary writes unblock. A partial advance remains safe/retryable and blocked; no counter rollback or ID reassignment.
+- Readiness MUST bind to the explicit team/container/Development environment and opaque iCloud account identity. On subsequent launches, counters MUST be read and verified against saved floors before writes unblock; malformed/missing/wrong-account receipts fail closed. Stored readiness is not evidence of backup import or cloud convergence.
+- A missing Transit zone may be created only during explicitly requested counter preparation, never during inspection. The read-only inventory covers Transit's custom zone, not unrelated default-zone data. SwiftData may create mirror infrastructure while opening its gated empty local store; inspection must report this limitation.
+- Tests MUST use fakes/disposable receipts, including conflicts, higher counters, readback failures, partial completion, invalid floors/identities, nonempty/unknown destinations, pagination and receipt/account mismatch. No live cloud/store invocation is authorised.

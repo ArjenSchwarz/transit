@@ -14,3 +14,6 @@
 ## Document validation
 
 The required clean-context explain-like review produced all three levels. Its four findings (exact path contract, configuration failure behavior, verification matrix, and auxiliary/defaults boundaries) were wording/completeness gaps resolved from existing bootstrap and isolation behavior. None requires a new owner behavior choice. Design critique checked legacy fallback, cross-container acceptance, auxiliary directories, platform push keys, and proof of registration; the settled plan specifies those boundaries and leaves remote acceptance to the manual gate. The owner's implementation request and existing branch name supply the scope/name authorization; no additional cutover approval is claimed.
+
+
+D9 (follow-up): add code for a destination/account-bound counter preflight under the owner's required-setup request, after confirming import has no counter handling. This supersedes D5 only for source/test implementation; cloud writes and restore remain unperformed and require later cutover approval. Historical floors 2507/22 are minimum inputs, not invented current old-cloud values. Preparation refuses a nonempty or unknown Transit graph; a saved readiness receipt permits later nonempty restored content only after account/counter re-verification. No model/archive schema change is required.
