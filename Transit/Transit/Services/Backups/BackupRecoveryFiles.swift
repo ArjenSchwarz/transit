@@ -3,7 +3,7 @@ import Foundation
 nonisolated enum BackupRecoveryFiles {
     static func directory(
         applicationSupportDirectory: URL = .applicationSupportDirectory,
-        mode: AppPersistencePolicy.Mode = .current
+        mode: AppPersistencePolicy.Mode = AppPersistencePolicy.current
     ) throws -> URL {
         PersistenceStoreLocation.recoveryDirectory(for: mode, applicationSupportDirectory: applicationSupportDirectory)
     }

@@ -18,20 +18,37 @@ Phone/Mac signing inputs use their platform-correct keys. The configuration guar
 - Project comparison against the saved owner-edit baseline proves every team setting remains `4PJS97G236` and all user project semantics remain unchanged apart from bundle-ID substitutions.
 - All nine model source files and the archive/capture/restore verification sources match base `0fc88910`; the verified backup is unchanged.
 
-## Blocked and not-run checks
+## Initial blocked checks (superseded where noted below)
 
 One unsigned macOS Release build was attempted with `CODE_SIGNING_ALLOWED=NO`, a worktree-local DerivedData/package-cache copy and no provisioning-update/device-registration flags. It stopped during package resolution, before application compilation:
 
 `cannot open file '/Users/arjen/Library/Caches/org.swift.swiftpm/manifests/ManifestLoading/hummingbird.dia' for diagnostics emission (Operation not permitted)`
 
-The protected cache write was not retried, permissions were not changed, and no sandbox-disabling workaround was used. The result is not a successful full app build. Logs are retained in the task folder as `transit-migration-mac-build.log`; passing checks are in `transit-migration-final-checks.log`.
+At that point the protected cache write was not retried, permissions were not changed, and no sandbox-disabling workaround was used. The result is not a successful full app build. Logs are retained in the task folder as `transit-migration-mac-build.log`; passing checks are in `transit-migration-final-checks.log`.
 
-The iOS build and full model/native/store suites were not run after this shared package-resolution blocker. Existing macro-based standalone probes also remain unrun under the earlier macro-helper sandbox denial. No signed artifact, installation, app/test-host launch, simulator run, portal registration, actual CloudKit acceptance or counter operation is claimed.
+At that point the iOS build and full model/native/store suites were not run after this shared package-resolution blocker. Existing macro-based standalone probes also remain unrun under the earlier macro-helper sandbox denial. That initial validation claimed no signed artifact, installation, app/test-host launch, simulator run, portal registration, actual CloudKit acceptance or counter operation.
 
 ## Remaining owner/cutover work
 
 Follow [docs/account-migration.md](../../docs/account-migration.md): confirm/register the exact new App IDs and private containers under team `4PJS97G236`, associate the matching container only, enable required capabilities and refresh platform profiles. Development cloud provisioning is optional while ordinary Debug remains local-only. If a configured name is unavailable, choose an available replacement and update all selectors together.
 
-A full platform build still needs completion in an environment permitted to use its required SwiftPM diagnostic cache, followed by actual signed-entitlement/account verification. No broader access was requested as part of this source setup.
+The follow-up below records the owner-approved build-cache retry and package verification. Runtime CloudKit acceptance remains a cutover check.
 
 Later cutover requires a fresh-change/device-edit check against the 07:22:35 UTC backup, genuinely new destination and local stores, verified counter high-water marks (known next-value lower bounds 2507/22), supported restore/retry protections, and independent server/follower verification. No live import, wipe, cloud writes or account switch is authorized by the implementation record.
+
+
+## Follow-up: actual phone build failure and approved validation
+
+The owner reported that the attempted phone build failed; installation is not assumed. The recent Xcode activity log `3C09F79E-7A36-4B60-B77A-2C6287DED8D4.xcactivitylog` (2026-10-31 13:42 UTC) identifies `BackupRecoveryFiles.swift:6:44`: `AppPersistencePolicy.Mode` has no member `current`. The migration introduced this invalid default argument. It now explicitly references `AppPersistencePolicy.current`. The focused SwiftData configuration target compiles the real recovery API and its dependencies and checks the Release recovery directory, so this compile boundary is covered.
+
+With the owner's explicit approval, the previously blocked normal SwiftPM manifest-cache write/build was retried once using ordinary Xcode build services. No sandbox workaround, provisioning-update flag, registration, keychain/trust modification, app installation or app launch was used.
+
+- Full unsigned macOS Release build passes (`transit-migration-mac-build-approved.log`).
+- Signed macOS Release build passes (`transit-migration-mac-signed-build.log`); strict deep signature verification exits 0 through normal security services. The initial restricted-shell signature/profile readers could not access those services reliably; repeating these read-only checks in the approved normal build environment succeeds. This is not a certificate repair.
+- Actual Mac signed entitlements select team `4PJS97G236`, application ID `4PJS97G236.me.nore.ig.apps.Transit`, only `iCloud.me.nore.ig.apps.Transit`, CloudKit `Development` and Mac APNs `development`. Embedded profile matches this App ID/team/container, permits Development/Production and expires 2027-10-31 13:37:55 UTC.
+- Signed iOS Release build also passes (`transit-migration-ios-signed-build.log`); strict deep signature verification exits 0. Actual phone entitlements match the same new team/App ID/container and Development environment, with phone `aps-environment=development` and no Mac-only keys. The embedded profile matches and expires 2027-10-31 13:37:51 UTC. These are development-signed Release artifacts, not App Store/Production validation.
+- Fresh lint passes with zero violations; policy, configuration guard and recovery-inclusive real SwiftData configuration probes pass. Temporary probe fixtures are removed and no app/cloud container is opened.
+- Read-only saved-state check of the old Studio store found no later retained domain history since the clean snapshot; physical counts remain 46 projects / 4,824 tasks / 22 milestones / 9,371 comments. This does not prove absence of unsaved/device/offline edits or remote-only work. Neither new Mac Release store path exists. No independent private CloudKit inventory was performed; container association and package verification do not prove an empty remote destination or successful synchronization.
+- The original clean backup hash is unchanged. The old checkout remains at `0fc88910` with its pre-existing untracked `.kiro/` content.
+
+The actual Debug phone target also builds successfully: scheme `TransitDevelopment`, configuration `Debug`, generic iOS device destination (`transit-migration-ios-debug-build.log`). Its strict signature verification exits 0; actual entitlements contain only the new development application/team identity and `get-task-allow`, with no CloudKit/APNs entitlement, as expected for ordinary local-only Debug. Full app-host/model tests, runtime CloudKit sync, counter updates, installation and data migration remain unperformed.

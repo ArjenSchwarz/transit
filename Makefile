@@ -164,6 +164,7 @@ test-development-policy: prepare-cache-dirs
 test-development-store-configuration: prepare-cache-dirs
 	xcrun swiftc -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
 		Transit/Transit/Services/{AppPersistencePolicy,PersistenceStoreLocation,IsolatedPersistenceConfiguration}.swift \
+		Transit/Transit/Services/Backups/{BackupFilename,BackupRecoveryFiles,DatabaseBackupError}.swift \
 		tests/development-isolation/ConfigurationProbe.swift -o $(DERIVED_DATA)/store-configuration-probe
 	$(DERIVED_DATA)/store-configuration-probe $(abspath $(WORKSPACE_TMP))
 

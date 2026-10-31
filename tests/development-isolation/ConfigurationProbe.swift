@@ -23,6 +23,10 @@ import SwiftData
         precondition(development.url == developmentURL)
         precondition(release.cloudKitContainerIdentifier == nil && development.cloudKitContainerIdentifier == nil)
         precondition(release.groupAppContainerIdentifier == nil && development.groupAppContainerIdentifier == nil)
+        let recovery = try BackupRecoveryFiles.directory(applicationSupportDirectory: root, mode: .production)
+        let expectedRecovery = release.url.deletingLastPathComponent()
+            .appendingPathComponent("Backups", isDirectory: true)
+        precondition(recovery == expectedRecovery)
         try verifyCloudSelectors(schema: schema, root: root, release: release, development: development)
         for mode in [AppPersistencePolicy.Mode.unitTest, .uiTest] {
             let unused = root.appendingPathComponent(UUID().uuidString)
