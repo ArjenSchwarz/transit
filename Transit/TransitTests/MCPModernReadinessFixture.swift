@@ -70,7 +70,7 @@ nonisolated enum MCPReadinessFixtureError: Error { case unsafeEndpoint, invalidT
         let descriptor: [String: Any] = ["formatVersion": 1, "endpoint": endpoint.absoluteString,
             "synthetic": true, "persistentStore": false, "allowedTools": ["query_tasks", "get_projects"],
             "catalog": "Actual full catalog; all other tool calls denied before dispatch",
-            "bundleID": "me.nore.ig.Transit.development", "holdSeconds": hold,
+            "bundleID": "me.nore.ig.apps.Transit.development", "holdSeconds": hold,
             "shutdown": "Graceful shutdown after ACK and bounded hold; fixture listener only"]
         let path = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + "-endpoint.json")
         try JSONSerialization.data(withJSONObject: descriptor, options: [.sortedKeys]).write(to: path)
@@ -113,7 +113,7 @@ nonisolated enum MCPReadinessFixtureError: Error { case unsafeEndpoint, invalidT
             "subscriptionRequest": ["id": "readiness-subscription", "notifications": ["toolsListChanged": true]],
             "subscriptionFrames": subscription.frames, "sessionHeader": subscription.sessionHeader ?? NSNull(),
             "eventIDs": subscription.eventIDs,
-            "provenance": ["producer": "actual-app-test", "bundleID": "me.nore.ig.Transit.development",
+            "provenance": ["producer": "actual-app-test", "bundleID": "me.nore.ig.apps.Transit.development",
                            "path": "Actual app router/validator/encoder over separate loopback URLSession"]]
     }
 

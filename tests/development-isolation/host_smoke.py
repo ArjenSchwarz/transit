@@ -8,7 +8,7 @@ import sys
 products = pathlib.Path(sys.argv[1]).resolve()
 host = products / "Debug/TransitDevelopment.app"
 info = plistlib.loads((host / "Contents/Info.plist").read_bytes())
-assert info["CFBundleIdentifier"] == "me.nore.ig.Transit.development"
+assert info["CFBundleIdentifier"] == "me.nore.ig.apps.Transit.development"
 assert info["CFBundleExecutable"] == "TransitDevelopment"
 subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(host)], check=True)
 signature = subprocess.run(["/usr/bin/codesign", "-d", "--entitlements", ":-", str(host)],

@@ -7,7 +7,7 @@ SCHEME = Transit
 PROJECT = Transit/Transit.xcodeproj
 CONFIG ?= Debug
 IS_DEVELOPMENT = $(if $(filter TransitDevelopment,$(SCHEME)),YES,$(if $(filter Debug,$(CONFIG)),YES,NO))
-BUNDLE_ID = $(if $(filter YES,$(IS_DEVELOPMENT)),me.nore.ig.Transit.development,me.nore.ig.Transit)
+BUNDLE_ID = $(if $(filter YES,$(IS_DEVELOPMENT)),me.nore.ig.apps.Transit.development,me.nore.ig.apps.Transit)
 APP_PRODUCT = $(if $(filter YES,$(IS_DEVELOPMENT)),TransitDevelopment,Transit)
 
 # Pipe through xcbeautify if available, otherwise raw output
@@ -153,14 +153,28 @@ MCP_PROBE_BACKUP_GATE = Transit/Transit/Services/Backups/{DatabaseBackupError,Da
 
 # These standalone executables never launch Transit. Runtime children use a
 # network-denying sandbox and synthetic stores confined to DerivedData/tmp.
+.PHONY: test-development-policy
+test-development-policy: prepare-cache-dirs
+	xcrun swiftc -parse-as-library -module-cache-path $(CLANG_MODULE_CACHE) \
+		Transit/Transit/Services/{AppPersistencePolicy,PersistenceStoreLocation}.swift \
+		tests/development-isolation/PolicyProbe.swift -o $(DERIVED_DATA)/persistence-policy-probe
+	$(DERIVED_DATA)/persistence-policy-probe
+
+.PHONY: test-development-store-configuration
+test-development-store-configuration: prepare-cache-dirs
+	xcrun swiftc -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
+		Transit/Transit/Services/{AppPersistencePolicy,PersistenceStoreLocation,IsolatedPersistenceConfiguration}.swift \
+		tests/development-isolation/ConfigurationProbe.swift -o $(DERIVED_DATA)/store-configuration-probe
+	$(DERIVED_DATA)/store-configuration-probe $(abspath $(WORKSPACE_TMP))
+
 .PHONY: test-development-isolation
 test-development-isolation: prepare-cache-dirs test-development-configuration
 	xcrun swiftc -parse-as-library -module-cache-path $(CLANG_MODULE_CACHE) \
-		Transit/Transit/Services/AppPersistencePolicy.swift tests/development-isolation/PolicyProbe.swift \
+		Transit/Transit/Services/{AppPersistencePolicy,PersistenceStoreLocation}.swift tests/development-isolation/PolicyProbe.swift \
 		-o $(DERIVED_DATA)/persistence-policy-probe
 	xcrun swiftc -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
 		$(MCP_PROBE_MODELS) Transit/Transit/MCP/Writes/{MCPCanonicalJSON,MCPRecordRevision}.swift \
-		Transit/Transit/Services/{AppPersistencePolicy,IsolatedPersistenceConfiguration}.swift \
+		Transit/Transit/Services/{AppPersistencePolicy,PersistenceStoreLocation,IsolatedPersistenceConfiguration}.swift \
 		tests/development-isolation/{DisposableStorePath,MigrationProbe}.swift \
 		-o $(DERIVED_DATA)/isolated-migration-probe
 	xcrun swiftc -parse-as-library -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \

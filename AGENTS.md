@@ -57,7 +57,7 @@ xcodebuild test -project Transit/Transit.xcodeproj -scheme Transit \
 - **Before pushing (pre-push-review)**: Use `make test` and `make test-ui` — runs the full test suite on iOS Simulator
 - **For commits**: No tests required — lint only (`make lint`)
 
-See [docs/environments.md](docs/environments.md) for isolated Debug/Release identities and the explicit dedicated Debug CloudKit signing setup. Routine Debug is local-only; Release retains its existing CloudKit Development backend.
+See [docs/environments.md](docs/environments.md) for isolated Debug/Release identities and the explicit dedicated Debug CloudKit signing setup. Routine Debug is local-only; Release selects its dedicated new-account CloudKit Development container; see `docs/account-migration.md` for portal and cutover prerequisites.
 
 ## Architecture Overview
 

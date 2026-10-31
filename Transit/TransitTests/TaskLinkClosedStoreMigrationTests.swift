@@ -53,7 +53,7 @@ struct TaskLinkClosedStoreMigrationTests {
     }
     private func guardedRoot(token: UUID, stage: String) throws -> URL {
         let home = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
-        let expectedSuffix = "/Library/Containers/me.nore.ig.Transit.development/Data"
+        let expectedSuffix = "/Library/Containers/me.nore.ig.apps.Transit.development/Data"
         _ = try #require(home.path.hasSuffix(expectedSuffix))
         let root = home.appendingPathComponent("tmp/T1734Closed-\(token.uuidString)", isDirectory: true)
         let manager = FileManager.default

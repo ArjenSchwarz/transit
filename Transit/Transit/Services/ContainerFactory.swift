@@ -14,7 +14,7 @@ enum ContainerFactory {
         let error: (any Error)?
     }
 
-    private static let logger = Logger(subsystem: "me.nore.ig.Transit", category: "ContainerFactory")
+    private static let logger = Logger(subsystem: "me.nore.ig.apps.Transit", category: "ContainerFactory")
 
     /// Attempts to create a `ModelContainer` with the given configuration.
     /// If that fails, creates an in-memory fallback so the app can still launch.

@@ -2,8 +2,8 @@ import Foundation
 
 /// Decides persistence before any store, sync service or background task is created.
 nonisolated enum AppPersistencePolicy {
-    static let productionBundleID = "me.nore.ig.Transit"
-    static let developmentBundleID = "me.nore.ig.Transit.development"
+    static let productionBundleID = "me.nore.ig.apps.Transit"
+    static let developmentBundleID = "me.nore.ig.apps.Transit.development"
 
     enum Mode: Equatable, Sendable {
         case production
@@ -25,9 +25,8 @@ nonisolated enum AppPersistencePolicy {
             case .uiTest: "Debug (UI test)"
             }
         }
-        var cloudKitContainerID: String {
-            self == .production ? "iCloud.me.nore.ig.Transit" : "iCloud.me.nore.ig.Transit.development"
-        }
+        var bundleID: String { self == .production ? productionBundleID : developmentBundleID }
+        var cloudKitContainerID: String { "iCloud.\(bundleID)" }
     }
 
     enum Failure: Error, Equatable {

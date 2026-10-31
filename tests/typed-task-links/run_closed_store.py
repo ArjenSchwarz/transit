@@ -67,7 +67,7 @@ def main():
                     str(products)], check=True)
     base = plistlib.loads((products / "T1734Migration.xctestrun").read_bytes())
     token = str(uuid.uuid4()).upper()
-    root = (pathlib.Path.home() / "Library/Containers/me.nore.ig.Transit.development/Data/tmp"
+    root = (pathlib.Path.home() / "Library/Containers/me.nore.ig.apps.Transit.development/Data/tmp"
             / ("T1734Closed-" + token))
     require(not root.exists(), f"Fresh synthetic fixture root required: {root}")
     runs = []

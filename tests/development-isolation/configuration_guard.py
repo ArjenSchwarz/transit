@@ -10,6 +10,9 @@ project = root / "Transit/Transit.xcodeproj/project.pbxproj"
 objects = json.loads(subprocess.check_output(
     ["/usr/bin/plutil", "-convert", "json", "-o", "-", str(project)]
 ))["objects"]
+for configuration in objects.values():
+    if configuration.get("isa") == "XCBuildConfiguration":
+        assert configuration["buildSettings"]["DEVELOPMENT_TEAM"] == "4PJS97G236"
 found = set()
 for target in objects.values():
     if target.get("isa") != "PBXNativeTarget" or target.get("productType") != "com.apple.product-type.application":
@@ -22,13 +25,13 @@ for target in objects.values():
         settings = configuration["buildSettings"]
         isolated = name == "TransitDevelopment" or configuration["name"] == "Debug"
         if isolated:
-            assert settings["PRODUCT_BUNDLE_IDENTIFIER"] == "me.nore.ig.Transit.development"
+            assert settings["PRODUCT_BUNDLE_IDENTIFIER"] == "me.nore.ig.apps.Transit.development"
             assert settings["TRANSIT_DEVELOPMENT_CLOUD_SYNC"] == "NO"
             assert settings["CODE_SIGN_ENTITLEMENTS"] == "$(TRANSIT_DEVELOPMENT_ENTITLEMENTS_$(TRANSIT_DEVELOPMENT_CLOUD_SYNC))"
             entitlements = plistlib.loads((root / "Transit" / settings["TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO"]).read_bytes())
             for suffix, push_key in [("", "aps-environment"), ("[sdk=macosx*]", "com.apple.developer.aps-environment")]:
                 cloud = plistlib.loads((root / "Transit" / settings["TRANSIT_DEVELOPMENT_ENTITLEMENTS_YES" + suffix]).read_bytes())
-                assert cloud["com.apple.developer.icloud-container-identifiers"] == ["iCloud.me.nore.ig.Transit.development"]
+                assert cloud["com.apple.developer.icloud-container-identifiers"] == ["iCloud.me.nore.ig.apps.Transit.development"]
                 assert cloud["com.apple.developer.icloud-container-environment"] == "Development"
                 assert cloud[push_key] == "development"
                 assert not cloud.get("com.apple.security.application-groups")
@@ -39,8 +42,15 @@ for target in objects.values():
             if name == "TransitDevelopment":
                 assert "TRANSIT_DEVELOPMENT" in settings["SWIFT_ACTIVE_COMPILATION_CONDITIONS"]
         else:
-            assert settings["PRODUCT_BUNDLE_IDENTIFIER"] == "me.nore.ig.Transit"
+            assert settings["PRODUCT_BUNDLE_IDENTIFIER"] == "me.nore.ig.apps.Transit"
             assert settings["CODE_SIGN_ENTITLEMENTS"] == "Transit/Transit.entitlements"
+            for path, push_key in [(settings["CODE_SIGN_ENTITLEMENTS"], "aps-environment"),
+                                   (settings["CODE_SIGN_ENTITLEMENTS[sdk=macosx*]"], "com.apple.developer.aps-environment")]:
+                release = plistlib.loads((root / "Transit" / path).read_bytes())
+                assert release["com.apple.developer.icloud-container-identifiers"] == ["iCloud.me.nore.ig.apps.Transit"]
+                assert release["com.apple.developer.icloud-container-environment"] == "Development"
+                assert release[push_key] == "development"
+                assert ("aps-environment" if push_key.startswith("com.apple.") else "com.apple.developer.aps-environment") not in release
         assert settings["ENABLE_USER_SELECTED_FILES"] == "readwrite"
         mac_path = (settings["TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO[sdk=macosx*]"] if isolated
                     else settings["CODE_SIGN_ENTITLEMENTS[sdk=macosx*]"])
@@ -56,6 +66,7 @@ for target in objects.values():
         phone_path = settings["TRANSIT_DEVELOPMENT_ENTITLEMENTS_NO"] if isolated else settings["CODE_SIGN_ENTITLEMENTS"]
         phone = plistlib.loads((root / "Transit" / phone_path).read_bytes())
         assert "com.apple.security.files.bookmarks.app-scope" not in phone
+        assert not any(key.startswith("com.apple.security.network.") for key in phone)
 assert {"Transit", "TransitDevelopment"}.issubset(found)
 scheme = ET.parse(root / "Transit/Transit.xcodeproj/xcshareddata/xcschemes/Transit.xcscheme")
 test_action = scheme.find("TestAction")
@@ -81,6 +92,17 @@ assert len(smoke["fileSystemSynchronizedGroups"]) == 1
 assert objects[smoke["fileSystemSynchronizedGroups"][0]]["path"] == "TransitIsolationSmokeTests"
 for identifier in objects[smoke["buildConfigurationList"]]["buildConfigurations"]:
     settings = objects[identifier]["buildSettings"]
-    assert settings["PRODUCT_BUNDLE_IDENTIFIER"] == "me.nore.ig.Transit.development.smoke-tests"
+    assert settings["PRODUCT_BUNDLE_IDENTIFIER"] == "me.nore.ig.apps.Transit.development.smoke-tests"
     assert "TransitDevelopment.app/" in settings["TEST_HOST"]
 print("Development identity, entitlements, test launch configuration and guarded allocator wiring passed")
+
+sync = (root / "Transit/Transit/Services/SyncManager.swift").read_text()
+assert "return try IsolatedPersistenceConfiguration.make(" in sync
+assert "return ModelConfiguration(" not in sync, "No implicit Release store selection"
+for target in objects.values():
+    if target.get("isa") != "PBXNativeTarget" or target.get("productType") == "com.apple.product-type.application":
+        continue
+    for identifier in objects[target["buildConfigurationList"]]["buildConfigurations"]:
+        bundle = objects[identifier]["buildSettings"]["PRODUCT_BUNDLE_IDENTIFIER"]
+        assert bundle.startswith("me.nore.ig.apps.Transit"), bundle
+print("New-team Release/development/test identities and explicit Release storage routing passed")

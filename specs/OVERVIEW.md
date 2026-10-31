@@ -43,7 +43,7 @@
 | [Portfolio Summaries](#portfolio-summaries) | 2026-10-04 | Done | Saved portfolio counts and reusable frozen task views; qualified native verification complete |
 | [Batch Task Mutations](#batch-task-mutations) | 2026-10-04 | Done | Saved-only previews and ordered per-item MCP task writes; fresh native verification complete, publication pending |
 | [Full Database Backups](#full-database-backups) | 2026-10-09 | Draft PR / retrospective audit | Complete database recovery, Mac daily scheduling and verified-backup Release wipe; no important scoped source gap found |
-| [Developer Account Migration](#developer-account-migration) | 2026-10-31 | Planned | New-team identities and fresh isolated storage; no live migration |
+| [Developer Account Migration](#developer-account-migration) | 2026-10-31 | Setup complete / validation limited | New-team identities and fresh isolated storage; full build blocked by SwiftPM cache permissions, no live migration |
 
 ---
 
@@ -516,3 +516,4 @@ Reversible configuration preparation for team `4PJS97G236`, with separate new ap
 - [smolspec.md](developer-account-migration/smolspec.md)
 - [tasks.md](developer-account-migration/tasks.md)
 - [decision_log.md](developer-account-migration/decision_log.md)
+- [implementation.md](developer-account-migration/implementation.md)

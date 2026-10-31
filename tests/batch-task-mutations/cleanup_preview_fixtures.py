@@ -121,7 +121,7 @@ def validated_cleanup(repo, evidence_path, drain_path, readiness_path):
     require(result == derived / (name + ".xcresult"), "Unowned result path")
     lines = subprocess.check_output(["ps", "-axo", "pid,command"], text=True).splitlines()
     exact_pid_absence(lines, set(pids), host, launch, result)
-    temp_root = Path.home() / "Library/Containers/me.nore.ig.Transit.development/Data/tmp"
+    temp_root = Path.home() / "Library/Containers/me.nore.ig.apps.Transit.development/Data/tmp"
     markers = marked_directories(text)
     paths = [fixture_path(marker, temp_root) for marker in markers]
     return paths

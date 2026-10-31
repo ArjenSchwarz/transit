@@ -14,11 +14,14 @@ def main():
     cache_root = output.parent
     temporary = cache_root / "tmp"
     temporary.mkdir(parents=True, exist_ok=True)
-    production = pathlib.Path.home() / "Library/Containers/me.nore.ig.Transit"
+    legacy = pathlib.Path.home() / "Library/Containers/me.nore.ig.Transit"
+    production = pathlib.Path.home() / "Library/Containers/me.nore.ig.apps.Transit"
+    legacy_support = pathlib.Path.home() / "Library/Application Support/TransitDevelopment"
+    production_support = pathlib.Path.home() / "Library/Application Support/me.nore.ig.apps.Transit"
     groups = pathlib.Path.home() / "Library/Group Containers"
     profile = '(version 1)(allow default)(deny network*)' + ''.join(
         '(deny file-read* file-write* (subpath ' + json.dumps(str(p)) + '))'
-        for p in (production, groups)
+        for p in (legacy, production, legacy_support, production_support, groups)
     )
     prefix = ["/usr/bin/sandbox-exec", "-p", profile]
     subprocess.run(prefix + ["/usr/bin/true"], check=True, timeout=5)

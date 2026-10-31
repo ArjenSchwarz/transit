@@ -18,7 +18,7 @@ final class DatabaseBackupService {
             }
         }
     }
-    private static let logger = Logger(subsystem: "me.nore.ig.Transit", category: "Backups")
+    private static let logger = Logger(subsystem: "me.nore.ig.apps.Transit", category: "Backups")
     let container: ModelContainer
     private let maintenance: DatabaseMaintenanceGate
     private let availability: PersistenceAvailability

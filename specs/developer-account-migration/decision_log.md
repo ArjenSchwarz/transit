@@ -9,6 +9,7 @@
 | D5 | Keep counter mutation and backup import outside this setup. | Fresh destination counters must preserve verified high-water marks; 2507/22 are known lower bounds, not permission to reset a live counter. |
 | D6 | Use smolspec for the local setup, not the live migration. | Behavior is established by the owner's fresh-destination choice and existing isolation architecture. No persisted schema, public protocol or remote authorization boundary is changed in this work; the local changes can be reverted. |
 | D7 | Namespaced app-owned backup recovery locations; fresh defaults/schedules. | New bundle identities intentionally do not inherit settings or bookmarks. Recovery enumeration must also avoid the old global `Backups` directory when Application Support is not sandbox-scoped. |
+| D8 | Keep Mac-only APNs/network keys out of all phone entitlements; retain them in the Mac files. | The new platform guard found both APNs spellings in the Release phone input and Mac network keys in the phone inputs. Platform-specific inputs already exist; this is necessary signing-input consistency, not removal of valid Mac capabilities. |
 
 ## Document validation
 

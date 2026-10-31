@@ -14,7 +14,7 @@ struct TaskConsolidationMigrationTests {
         let token = try #require(env["T2381_CLOSED_TOKEN"].flatMap(UUID.init(uuidString:)))
         _ = try #require(["seed", "legacy", "upgrade", "reopen"].contains(stage))
         let home = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
-        _ = try #require(home.path.hasSuffix("/Library/Containers/me.nore.ig.Transit.development/Data"))
+        _ = try #require(home.path.hasSuffix("/Library/Containers/me.nore.ig.apps.Transit.development/Data"))
         let root = home.appendingPathComponent("tmp/T2381Closed-\(token.uuidString)", isDirectory: true)
         _ = try #require(root.resolvingSymlinksInPath().path == root.path)
         let isSeed = stage == "seed"

@@ -26,7 +26,7 @@ final class SyncManager {
     private static let syncEnabledKey = "syncEnabled"
     let mode: AppPersistencePolicy.Mode
     private let defaults: UserDefaults
-    private static let logger = Logger(subsystem: "me.nore.ig.Transit", category: "SyncManager")
+    private static let logger = Logger(subsystem: "me.nore.ig.apps.Transit", category: "SyncManager")
 
     private(set) var isSyncEnabled: Bool
 
@@ -105,25 +105,14 @@ final class SyncManager {
 
     /// Creates a ModelConfiguration based on the current sync preference, and records
     /// that mode as the active one.
-    func makeModelConfiguration(schema: Schema) throws -> ModelConfiguration {
+    func makeModelConfiguration(
+        schema: Schema, applicationSupportDirectory: URL = .applicationSupportDirectory
+    ) throws -> ModelConfiguration {
         recordActiveCloudSync(isSyncEnabled)
-        if mode != .production {
-            return try IsolatedPersistenceConfiguration.make(
-                mode: mode, schema: schema,
-                cloudKitContainerID: isCloudSyncActive ? mode.cloudKitContainerID : nil
-            )
-        }
-        if isSyncEnabled {
-            return ModelConfiguration(
-                schema: schema,
-                cloudKitDatabase: .private(mode.cloudKitContainerID)
-            )
-        } else {
-            return ModelConfiguration(
-                schema: schema,
-                cloudKitDatabase: .none
-            )
-        }
+        return try IsolatedPersistenceConfiguration.make(
+            mode: mode, schema: schema, applicationSupportDirectory: applicationSupportDirectory,
+            cloudKitContainerID: isCloudSyncActive ? mode.cloudKitContainerID : nil
+        )
     }
 
     // MARK: - Heartbeat
