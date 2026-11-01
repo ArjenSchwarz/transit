@@ -259,7 +259,9 @@ struct SyncDisabledGatingTests {
                 Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
             ])
 
-            _ = try manager.makeModelConfiguration(schema: schema)
+            let support = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at: support) }
+            _ = try manager.makeModelConfiguration(schema: schema, applicationSupportDirectory: support)
 
             #expect(manager.isCloudSyncActive == false)
             #expect(manager.syncChangeRequiresRestart == false)
@@ -274,7 +276,9 @@ struct SyncDisabledGatingTests {
             let schema = Schema([
                 Project.self, TransitTask.self, Comment.self, Milestone.self, SyncHeartbeat.self, MCPWriteReceipt.self
             ])
-            _ = try manager.makeModelConfiguration(schema: schema)
+            let support = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at: support) }
+            _ = try manager.makeModelConfiguration(schema: schema, applicationSupportDirectory: support)
             #expect(manager.isCloudSyncActive == true)
 
             manager.setSyncEnabled(false)

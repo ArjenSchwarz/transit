@@ -4,16 +4,16 @@ Debug and Release may coexist. Build each into its own DerivedData directory and
 
 | Binding | Release | Debug / TransitDevelopment |
 | --- | --- | --- |
-| Bundle / standard defaults domain | `me.nore.ig.Transit` | `me.nore.ig.Transit.development` |
-| Local SwiftData storage | Existing default configuration and URL | Existing `Application Support/TransitDevelopment/development.store` |
-| CloudKit private database | `iCloud.me.nore.ig.Transit` | `iCloud.me.nore.ig.Transit.development` when opted in |
-| CloudKit environment | Existing recovered **Development** dataset | **Development** in the separate container |
+| Bundle / standard defaults domain | `me.nore.ig.apps.Transit` | `me.nore.ig.apps.Transit.development` |
+| Local SwiftData storage | `Application Support/me.nore.ig.apps.Transit/release.store` | `Application Support/me.nore.ig.apps.Transit.development/development.store` |
+| CloudKit private database | `iCloud.me.nore.ig.apps.Transit` | `iCloud.me.nore.ig.apps.Transit.development` when opted in |
+| CloudKit environment | **Development** in the new Release container | **Development** in the separate container |
 | Default MCP port | 3141 | 3142 |
 | MCP identity / client setup name | `transit` | `transit-debug` |
 
-Release identity, entitlements, default store selection and existing preferences are preserved. Release here names the application build, not CloudKit Production. Do not promote schemas, change its CloudKit environment, reset its container, or migrate data as part of enabling Debug. A future move of the live app to CloudKit Production requires a separately reviewed data transition.
+The new identities and explicit stores prepare a fresh destination under team `4PJS97G236`; they never open or copy legacy data automatically. Release is an app build label, not CloudKit Production. CloudKit Development stays explicit. See [account-migration.md](account-migration.md) for manual registration, signed-access and separate cutover prerequisites.
 
-Debug has no App Group entitlement, and its persistent configuration uses an explicit private store URL, bypassing automatic group-container selection. Standard UserDefaults (theme, name, sync preference, MCP settings) use its separate bundle domain. MCP receipts and reservation sidecars follow each selected store URL. Test modes retain in-memory storage, no cloud containers, disabled counters, disposable sidecars and no automatic MCP startup, even when a cloud-capable development binary is used.
+Debug has no App Group entitlement, and both app configurations use explicit private store URLs, bypassing automatic group-container selection. Standard UserDefaults (theme, name, sync preference, MCP settings and backup scheduling/bookmarks) start fresh in each new bundle domain. App-owned recovery backups are namespaced by that identity. MCP receipts and reservation sidecars follow each selected store URL. Test modes retain in-memory storage, no cloud containers, disabled counters, disposable sidecars and no automatic MCP startup, even when a cloud-capable development binary is used.
 
 ## Enable the dedicated Debug cloud backend
 
@@ -21,7 +21,7 @@ Ordinary Debug remains local-only until the new Apple capabilities are ready. Th
 
 Required developer setup (manual, once):
 
-1. In Apple Developer for team `V24684SCZN`, register/verify App ID `me.nore.ig.Transit.development` and iCloud container `iCloud.me.nore.ig.Transit.development`.
+1. In Apple Developer for team `4PJS97G236`, register/verify App ID `me.nore.ig.apps.Transit.development` and iCloud container `iCloud.me.nore.ig.apps.Transit.development`.
 2. Enable CloudKit and Push Notifications for that development App ID, associate **only** the new container, and refresh the development profiles for the platforms you use. Do not modify the Release App ID or its container association.
 3. Set `TRANSIT_DEVELOPMENT_CLOUD_SYNC=YES` for your development build, using the existing development signing identity. For example:
 

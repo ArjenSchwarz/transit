@@ -43,6 +43,7 @@
 | [Portfolio Summaries](#portfolio-summaries) | 2026-10-04 | Done | Saved portfolio counts and reusable frozen task views; qualified native verification complete |
 | [Batch Task Mutations](#batch-task-mutations) | 2026-10-04 | Done | Saved-only previews and ordered per-item MCP task writes; fresh native verification complete, publication pending |
 | [Full Database Backups](#full-database-backups) | 2026-10-09 | Draft PR / retrospective audit | Complete database recovery, Mac daily scheduling and verified-backup Release wipe; no important scoped source gap found |
+| [Developer Account Migration](#developer-account-migration) | 2026-10-31 | Ready for review | New-team isolated storage, guarded counter readiness, automatic follower adoption and quiet launches; signed iOS/macOS builds and focused checks pass |
 
 ---
 
@@ -506,3 +507,13 @@ T-2431 / draft PR #258. Retrospective requirements/design and source gap audit, 
 - [decision_log.md](full-database-backups/decision_log.md)
 - [implementation.md](full-database-backups/implementation.md)
 - [gap-assessment.md](full-database-backups/gap-assessment.md)
+
+
+## Developer Account Migration
+
+Reversible configuration preparation for team `4PJS97G236`, with separate new app/cloud identities and explicit fresh local stores. Apple registration and live cutover remain separate manual prerequisites.
+
+- [smolspec.md](developer-account-migration/smolspec.md)
+- [tasks.md](developer-account-migration/tasks.md)
+- [decision_log.md](developer-account-migration/decision_log.md)
+- [implementation.md](developer-account-migration/implementation.md)

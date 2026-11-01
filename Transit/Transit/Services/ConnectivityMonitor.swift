@@ -8,7 +8,7 @@ final class ConnectivityMonitor: @unchecked Sendable {
 
     private(set) var isConnected = true
     private let monitor = NWPathMonitor()
-    private let queue = DispatchQueue(label: "me.nore.ig.Transit.connectivity")
+    private let queue = DispatchQueue(label: "me.nore.ig.apps.Transit.connectivity")
     private var wasConnected = true
 
     /// Called on the main actor when connectivity is restored.

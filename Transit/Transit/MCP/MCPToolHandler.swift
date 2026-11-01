@@ -393,7 +393,7 @@ final class MCPToolHandler {
         // action that could act on a stale read is blocked by this same gate.
         if Self.mutatingToolNames.contains(name), persistence.areWritesUnavailable {
             return JSONRPCResponse.success(
-                id: id, result: errorResult(PersistenceAvailability.unavailableHint, category: .storageFailure)
+                id: id, result: errorResult(persistence.writeUnavailableHint, category: .storageFailure)
             )
         }
 

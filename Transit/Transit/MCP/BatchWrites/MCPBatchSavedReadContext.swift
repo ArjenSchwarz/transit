@@ -11,7 +11,7 @@ import SwiftData
         _ body: @MainActor (ModelContext) throws -> Result
     ) throws -> Result {
         guard !persistence.areWritesUnavailable else {
-            throw MCPWriteFailure("PERSISTENCE_UNAVAILABLE", PersistenceAvailability.unavailableHint)
+            throw MCPWriteFailure("PERSISTENCE_UNAVAILABLE", persistence.writeUnavailableHint)
         }
         let context = ModelContext(container)
         context.autosaveEnabled = false

@@ -38,7 +38,7 @@ def validated_unit_run(products):
     """Revalidate signed host and return the existing unit-only migration selection."""
     host = products / "Debug/TransitDevelopment.app"
     info = plistlib.loads((host / "Contents/Info.plist").read_bytes())
-    require(info["CFBundleIdentifier"] == "me.nore.ig.Transit.development", "Unexpected host identity")
+    require(info["CFBundleIdentifier"] == "me.nore.ig.apps.Transit.development", "Unexpected host identity")
     require(info["CFBundleExecutable"] == "TransitDevelopment", "Unexpected host executable")
     subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(host)], check=True)
     signature = subprocess.run(

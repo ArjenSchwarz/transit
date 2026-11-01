@@ -52,13 +52,13 @@ struct BootstrapProbe {
         let production = AppDisplayIDAllocators.make(mode: .production, syncActive: true,
                                                      cloudFactory: factory)
         precondition(production.tasks.isCloudSyncActive && production.milestones.isCloudSyncActive)
-        precondition(calls == ["iCloud.me.nore.ig.Transit:global-counter",
-                               "iCloud.me.nore.ig.Transit:milestone-counter"])
+        precondition(calls == ["iCloud.me.nore.ig.apps.Transit:global-counter",
+                               "iCloud.me.nore.ig.apps.Transit:milestone-counter"])
         calls.removeAll()
         let development = AppDisplayIDAllocators.make(mode: .development, syncActive: true, cloudFactory: factory)
         precondition(development.tasks.isCloudSyncActive && development.milestones.isCloudSyncActive)
-        precondition(calls == ["iCloud.me.nore.ig.Transit.development:global-counter",
-                               "iCloud.me.nore.ig.Transit.development:milestone-counter"])
+        precondition(calls == ["iCloud.me.nore.ig.apps.Transit.development:global-counter",
+                               "iCloud.me.nore.ig.apps.Transit.development:milestone-counter"])
         print("Bootstrap passed: isolated factory calls=0; active production counter names preserved")
     }
 }

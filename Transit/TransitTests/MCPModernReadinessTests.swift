@@ -89,12 +89,13 @@ struct MCPModernReadinessTests {
         let discoveryResult = try #require(discovery["result"] as? [String: Any])
         let meta = try #require(discoveryResult["_meta"] as? [String: Any])
         let identity = try #require(meta["io.modelcontextprotocol/serverInfo"] as? [String: Any])
-        #expect(identity["name"] as? String == "transit")
+        #expect(identity["name"] as? String == AppPersistencePolicy.serverName)
         #expect(discoveryResult["capabilities"] != nil)
     }
 
     @Test func fixtureRefusesProductionAndNonLoopbackEndpoints() throws {
-        for endpoint in ["http://127.0.0.1:3141/mcp", "http://example.com:9876/mcp",
+        for endpoint in ["http://127.0.0.1:3141/mcp", "http://127.0.0.1:3142/mcp",
+                         "http://example.com:9876/mcp",
                          "https://127.0.0.1:9876/mcp", "http://127.0.0.1:9876/other",
                          "http://user@127.0.0.1:9876/mcp", "http://127.0.0.1:9876/mcp?alias=1",
                          "http://127.0.0.1:9876/mcp#alias"] {

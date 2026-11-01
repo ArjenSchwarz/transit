@@ -1,9 +1,11 @@
 import Foundation
 
 nonisolated enum BackupRecoveryFiles {
-    static func directory() throws -> URL {
-        try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
-                                    appropriateFor: nil, create: true).appendingPathComponent("Backups")
+    static func directory(
+        applicationSupportDirectory: URL = .applicationSupportDirectory,
+        mode: AppPersistencePolicy.Mode = AppPersistencePolicy.current
+    ) throws -> URL {
+        PersistenceStoreLocation.recoveryDirectory(for: mode, applicationSupportDirectory: applicationSupportDirectory)
     }
 
     static func newURL() throws -> URL {

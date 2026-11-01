@@ -98,7 +98,7 @@ nonisolated final class MCPReadDiagnosticSink: Sendable {
 }
 
 nonisolated private enum MCPReadDiagnosticLogging {
-    private static let logger = Logger(subsystem: "me.nore.ig.Transit", category: "MCP.Read")
+    private static let logger = Logger(subsystem: "me.nore.ig.apps.Transit", category: "MCP.Read")
     private static let journal = MCPReadFailureJournal(url: URL.cachesDirectory
         .appendingPathComponent(Bundle.main.bundleIdentifier ?? "Transit", isDirectory: true)
         .appendingPathComponent("MCPReadFailures.json"))

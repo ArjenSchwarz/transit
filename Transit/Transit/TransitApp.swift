@@ -11,7 +11,9 @@ struct TransitApp: App {
     #if os(iOS)
     @UIApplicationDelegateAdaptor private var appDelegate: QuickActionAppDelegate
     #endif
-    private let container: ModelContainer
+    let migrationPreflight: MigrationCounterPreflight?
+    @State var migrationReady = false
+    let container: ModelContainer
     /// Non-nil when the primary ModelContainer failed and an in-memory fallback is in use.
     private let containerError: (any Error)?
     private let taskService: TaskService
@@ -24,26 +26,27 @@ struct TransitApp: App {
     #if os(macOS)
     private let backupScheduler: BackupScheduler
     #endif
-    private let syncManager: SyncManager
-    private let connectivityMonitor: ConnectivityMonitor
+    let syncManager: SyncManager
+    let connectivityMonitor: ConnectivityMonitor
     private let consolidationHistoryReader: TaskConsolidationNativeReader
     private let readCoordinator: MCPReadCoordinator
     #if os(macOS)
     private let mcpSettings: MCPSettings
     private let mcpServer: MCPServer
-    private let mcpWriteCoordinator: MCPWriteCoordinator
+    let mcpWriteCoordinator: MCPWriteCoordinator
     #endif
     #if os(iOS)
     private let quickActionService: QuickActionService
     #endif
     /// Resolve before constructing SyncManager, a container, or receipt sidecars.
-    private static let persistenceMode = AppPersistencePolicy.current
+    static let persistenceMode = AppPersistencePolicy.current
     private static var uiTestScenario: UITestScenario? {
         UITestScenario(rawValue: ProcessInfo.processInfo.environment["TRANSIT_UI_TEST_SCENARIO"] ?? "")
     }
     // swiftlint:disable:next function_body_length
     init() {
         let mode = Self.persistenceMode
+        PersistenceAvailability.shared.setMigrationVerificationRequired(mode == .production)
         let debugCloudEnabled = AppPersistencePolicy.developmentCloudSyncEnabled
         let cloudAllowed = mode.permitsCloudSync && (mode == .production || debugCloudEnabled)
         let syncManager = SyncManager(cloudSyncAllowed: cloudAllowed, mode: mode)
@@ -78,13 +81,17 @@ struct TransitApp: App {
         // that their writes would not survive a restart [T-1818, T-1836].
         let persistence = PersistenceAvailability.shared
         persistence.update(from: containerResult)
-        if mode.permitsCloudSync && containerResult.error == nil {
+        self.migrationPreflight = mode == .production ? MigrationCloudInspection.makePreflight(
+            configuration: config, container: container,
+            durable: containerResult.error == nil, syncActive: cloudSyncActive) : nil
+        if mode != .production && mode.permitsCloudSync && containerResult.error == nil {
             syncManager.initializeCloudKitSchemaIfNeeded(container: container)
         }
         #if os(macOS)
         self.backupScheduler = BackupScheduler(service: DatabaseBackupService(container: container))
         #endif
         let context = container.mainContext
+        if mode == .production { context.autosaveEnabled = false }
         TaskLinkEvidenceMaintenance.atStartup(container: container, mode: mode, persistence: persistence)
         let allocators = AppDisplayIDAllocators.make(mode: mode, syncActive: cloudSyncActive)
         let allocator = allocators.tasks
@@ -107,12 +114,13 @@ struct TransitApp: App {
             // connectivity must not start reaching for the CloudKit counter [T-1797].
             if cloudSyncActive {
                 connectivityMonitor.onRestore = { @Sendable in
+                    guard !PersistenceAvailability.shared.areWritesUnavailable else { return }
                     _ = try? projectService.reconcileDuplicateNames()
                     await allocator.promoteProvisionalTasks(in: context)
                     await milestoneService.promoteProvisionalMilestones()
                 }
             }
-            connectivityMonitor.start()
+            if mode != .production { connectivityMonitor.start() }
         }
         let commentService = CommentService(modelContext: context)
         self.commentService = commentService
@@ -153,7 +161,7 @@ struct TransitApp: App {
         let writeCoordinator = MCPWriteCoordinator(services: writeServices,
             sidecarDirectory: sidecar, persistence: persistence)
         self.mcpWriteCoordinator = writeCoordinator
-        try? writeCoordinator.cleanupExpiredOutcomes()
+        if mode != .production { try? writeCoordinator.cleanupExpiredOutcomes() }
 
         let reads = MCPReadAppDependencies.make(container: container, syncActive: cloudSyncActive, domain: readDomain)
         let consolidation = MCPConsolidationAppCapability(container: container, reads: reads,
@@ -188,6 +196,9 @@ struct TransitApp: App {
             Group {
                 if DatabaseMaintenanceGate.shared.requiresRestart {
                     BackupCompletionView(gate: .shared)
+                } else if let migrationPreflight, !migrationReady {
+                    MigrationPreflightView(preflight: migrationPreflight, onReady: finishMigrationVerification,
+                        enableSync: { syncManager.setSyncEnabled(true) })
                 } else {
                     primaryContent
                 }
@@ -307,6 +318,9 @@ extension TransitApp {
     @ViewBuilder private func withCoreEnvironments<V: View>(_ view: V) -> some View {
         if DatabaseMaintenanceGate.shared.requiresRestart {
             BackupCompletionView(gate: .shared)
+        } else if let migrationPreflight, !migrationReady {
+            MigrationPreflightView(preflight: migrationPreflight, onReady: finishMigrationVerification,
+                        enableSync: { syncManager.setSyncEnabled(true) })
         } else {
             view
                 .disabled(DatabaseMaintenanceGate.shared.requiresRestart)

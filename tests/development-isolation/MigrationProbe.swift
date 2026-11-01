@@ -97,7 +97,7 @@ struct MigrationProbe {
         schema: Schema, configuration: ModelConfiguration, url: URL
     ) throws {
         let expected = url.deletingLastPathComponent()
-            .appendingPathComponent("TransitDevelopment/development.store")
+            .appendingPathComponent("me.nore.ig.apps.Transit.development/development.store")
         precondition(configuration.url == expected && !configuration.isStoredInMemoryOnly)
         precondition(configuration.cloudKitContainerIdentifier == nil)
         precondition(configuration.groupAppContainerIdentifier == nil)
@@ -105,8 +105,31 @@ struct MigrationProbe {
             applicationSupportDirectory: url.deletingLastPathComponent(),
             cloudKitContainerID: AppPersistencePolicy.Mode.development.cloudKitContainerID)
         precondition(cloud.url == configuration.url && cloud.groupAppContainerIdentifier == nil)
-        precondition(cloud.cloudKitContainerIdentifier == "iCloud.me.nore.ig.Transit.development")
+        precondition(cloud.cloudKitContainerIdentifier == "iCloud.me.nore.ig.apps.Transit.development")
         // Inspect the configuration only; never construct a cloud-backed container.
+        let root = url.deletingLastPathComponent()
+        let release = try IsolatedPersistenceConfiguration.make(
+            mode: .production, schema: schema, applicationSupportDirectory: root)
+        precondition(release.url == root.appendingPathComponent("me.nore.ig.apps.Transit/release.store"))
+        precondition(release.url != configuration.url && release.groupAppContainerIdentifier == nil)
+        precondition(release.cloudKitContainerIdentifier == nil)
+        let releaseCloud = try IsolatedPersistenceConfiguration.make(
+            mode: .production, schema: schema, applicationSupportDirectory: root,
+            cloudKitContainerID: AppPersistencePolicy.Mode.production.cloudKitContainerID)
+        precondition(releaseCloud.url == release.url)
+        let releaseContainer = AppPersistencePolicy.Mode.production.cloudKitContainerID
+        let developmentContainer = AppPersistencePolicy.Mode.development.cloudKitContainerID
+        precondition(releaseCloud.cloudKitContainerIdentifier == releaseContainer)
+        for (mode, wrong) in [(AppPersistencePolicy.Mode.production, developmentContainer),
+                              (.development, releaseContainer), (.unitTest, developmentContainer)] {
+            do {
+                _ = try IsolatedPersistenceConfiguration.make(mode: mode, schema: schema,
+                    applicationSupportDirectory: root.appendingPathComponent("must-not-exist"),
+                    cloudKitContainerID: wrong)
+                fatalError("Cross-mode cloud selector accepted")
+            } catch IsolatedPersistenceConfiguration.Failure.invalidCloudContainer {}
+        }
+        precondition(!FileManager.default.fileExists(atPath: root.appendingPathComponent("must-not-exist").path))
 
         for mode in [AppPersistencePolicy.Mode.unitTest, .uiTest] {
             let memory = try IsolatedPersistenceConfiguration.make(mode: mode, schema: schema)

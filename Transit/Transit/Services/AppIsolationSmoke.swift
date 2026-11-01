@@ -27,6 +27,7 @@ enum AppIsolationSmoke {
         precondition(configuration.cloudKitContainerIdentifier == nil)
         precondition(configuration.groupAppContainerIdentifier == nil)
         precondition(!configuration.url.path.contains("me.nore.ig.Transit/"))
+        precondition(!configuration.url.path.contains(AppPersistencePolicy.productionBundleID + "/"))
     }
 
     static func record(

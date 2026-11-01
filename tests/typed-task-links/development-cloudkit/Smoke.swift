@@ -43,7 +43,7 @@ struct TaskLinkDevelopmentSmoke {
         let parent = directory.deletingLastPathComponent()
         let home = URL(fileURLWithPath: NSHomeDirectory())
         let privateTemp = home.appendingPathComponent("tmp")
-        try require(home.path.hasSuffix("/Library/Containers/me.nore.ig.Transit.development.cloudkit-smoke/Data"),
+        try require(home.path.hasSuffix("/Library/Containers/me.nore.ig.apps.Transit.development.cloudkit-smoke/Data"),
                     "Reserved smoke-host sandbox required")
         try require(parent == privateTemp && directory.lastPathComponent.hasPrefix("T1734Dev-"),
                     "Store must be in smoke-host private tmp")

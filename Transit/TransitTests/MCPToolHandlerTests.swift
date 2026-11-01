@@ -27,7 +27,7 @@ struct MCPToolHandlerTests {
 
         #expect(result["protocolVersion"] as? String == "2025-03-26")
         let serverInfo = try #require(result["serverInfo"] as? [String: Any])
-        #expect(serverInfo["name"] as? String == "transit")
+        #expect(serverInfo["name"] as? String == AppPersistencePolicy.serverName)
         let capabilities = try #require(result["capabilities"] as? [String: Any])
         #expect(capabilities["tools"] is [String: Any])
     }

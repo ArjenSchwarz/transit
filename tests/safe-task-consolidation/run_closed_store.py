@@ -66,7 +66,7 @@ def main():
     products = args.products.resolve()
     base, _, _, _, _, _ = validated_unit_run(products)
     token = str(uuid.uuid4()).upper()
-    root = (pathlib.Path.home() / "Library/Containers/me.nore.ig.Transit.development/Data/tmp"
+    root = (pathlib.Path.home() / "Library/Containers/me.nore.ig.apps.Transit.development/Data/tmp"
             / ("T2381Closed-" + token))
     require(not root.exists(), f"Fresh synthetic fixture root required: {root}")
     runs = []

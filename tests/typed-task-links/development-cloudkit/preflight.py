@@ -36,7 +36,7 @@ def main():
     contract = json.loads(raw)
     require(contract["reservedDevelopmentEnvironment"] is True, "Reserved development contract required")
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
-    identity = "me.nore.ig.Transit.development.cloudkit-smoke"
+    identity = "me.nore.ig.apps.Transit.development.cloudkit-smoke"
     require(info["CFBundleIdentifier"] == identity, "Dedicated smoke-host identity required")
     require(info["CFBundleExecutable"] == "TaskLinkDevelopmentSmoke", "Dedicated executable required")
     subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(app)], check=True)
