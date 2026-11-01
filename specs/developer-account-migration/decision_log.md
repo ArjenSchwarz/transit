@@ -17,3 +17,5 @@ The required clean-context explain-like review produced all three levels. Its fo
 
 
 D9 (follow-up): add code for a destination/account-bound counter preflight under the owner's required-setup request, after confirming import has no counter handling. This supersedes D5 only for source/test implementation; cloud writes and restore remain unperformed and require later cutover approval. Historical floors 2507/22 are minimum inputs, not invented current old-cloud values. Preparation refuses a nonempty or unknown Transit graph; a saved readiness receipt permits later nonempty restored content only after account/counter re-verification. No model/archive schema change is required.
+
+D10: the owner explicitly approved automatic read-only follower adoption ("Yes" to fixing verification without cloud counter/data changes). A missing device receipt now permits inspecting the already-prepared destination; it does not authorize cloud initialization or repair. Existing receipts keep their stricter account/destination checks. No deployment or live verification is part of this code-only follow-up.
