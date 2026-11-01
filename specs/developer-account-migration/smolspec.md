@@ -61,3 +61,8 @@ The owner requested all required setup changes; read-only follow-up found that s
 ## Approved automatic follower adoption follow-up
 
 The owner approved automatic verification for new devices after the manual follower workaround succeeded. When no local receipt exists, startup MUST use the existing read-only destination/account/inventory and sufficient-counter checks, saving only a local readiness receipt after success. Missing, partial or insufficient counters MUST leave the gate closed without any cloud write; explicit fresh preparation remains manual. An existing mismatched/invalid receipt MUST still fail closed, never fall through to adoption. This follow-up MUST NOT change offline verification policy, schemas, signing, installation, cloud counters or live data. Fake tests MUST prove sufficient fresh-follower adoption and zero zone/counter writes across success/failure cases.
+
+
+## Approved normal-launch presentation follow-up
+
+The owner requested removal of the saved-readiness setup-screen flash on ordinary launches/force-quit relaunches. While the existing verification is pending, the UI MUST show only a neutral normal-launch loading presentation, not migration/setup text or controls. Successful saved/follower verification MUST proceed directly to normal content. Actual verification errors and unprepared destinations MUST still show the actionable setup/error form. The existing write gate, counter/account/destination checks and online/offline policy MUST remain unchanged. Focused fake regression tests cover saved-ready success, pending presentation and real failure/unprepared presentation. No install, restart, device/live-data access or cloud mutation is authorised.
