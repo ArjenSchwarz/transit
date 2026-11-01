@@ -2,6 +2,9 @@
 import Foundation
 import SwiftData
 
+// Preserve the linear fenced capture and original helper layout; timing wrappers add lines only.
+// swiftlint:disable file_length
+
 nonisolated enum MCPReadCaptureError: Error, Equatable {
     case incoherentCapture
     case storageFailure
@@ -17,6 +20,7 @@ nonisolated enum MCPReadCaptureFence: Sendable {
 }
 
 @MainActor
+// swiftlint:disable:next type_body_length
 final class MCPReadCaptureBuilder: MCPReadCaptureSource {
     private var keyCache: [PersistentIdentifier: LocalRecordKey] = [:]
     private var isCapturing = false
@@ -24,8 +28,8 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
     private let fence: MCPReadCaptureFence
     private let generation: () -> UInt64
     private let metadata: (Date, MCPReadCaptureBoundary) -> ReadCaptureMetadata
-    private let fetchTasks: (ModelContext) throws -> [TransitTask]
-    private let fetchMilestones: (ModelContext) throws -> [Milestone]
+    let fetchTasks: (ModelContext) throws -> [TransitTask]
+    let fetchMilestones: (ModelContext) throws -> [Milestone]
     private let fetchComments: (ModelContext, FetchDescriptor<Comment>) throws -> [Comment]
     private let afterProjects: () throws -> Void
 
@@ -74,68 +78,90 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
         defer { isCapturing = false; keyCache.removeAll(keepingCapacity: false) }
         try request.taskLinkBudget?.check()
         let initialGeneration = generation()
-        let before = try watermark()
-        let context = ModelContext(container)
-        context.autosaveEnabled = false
+        let before = try request.measureCapture(.captureHistoryBefore) { try watermark() }
+        let context = request.measureCapture(.captureContext) {
+            let context = ModelContext(container)
+            context.autosaveEnabled = false
+            return context
+        }
         let instant = ContinuousClock.now
         let evaluationInstant = Date()
         let copied = try copy(request, in: context, evaluationInstant: evaluationInstant)
-        let after = try watermark()
-        guard initialGeneration == generation(), before?.token == after?.token,
-              before?.storeIdentifier == after?.storeIdentifier else {
-            throw MCPReadCaptureError.incoherentCapture
+        let after = try request.measureCapture(.captureHistoryAfter) { try watermark() }
+        return try request.measureCapture(.captureValidation) {
+            guard initialGeneration == generation(), before?.token == after?.token,
+                  before?.storeIdentifier == after?.storeIdentifier else {
+                throw MCPReadCaptureError.incoherentCapture
+            }
+            let view = CapturedReadView(
+                completeness: request.completeness, captureScope: copied.scope,
+                metadata: metadata(evaluationInstant, MCPReadCaptureBoundary(
+                    historyStoreIdentifier: after?.storeIdentifier, generation: initialGeneration,
+                    stablePersistentHistory: fence == .persistentHistory)), createdAt: instant,
+                retentionDeadline: instant + .seconds(300), projects: copied.projects,
+                tasks: copied.tasks, milestones: copied.milestones, comments: copied.comments,
+                taskLinkGraph: copied.taskLinkGraph, consolidationEvidence: copied.consolidationEvidence)
+            if view.completeness == .completePortfolio { try MCPReadCaptureValidation.validateReusableCapture(view) }
+            try request.taskLinkBudget?.check()
+            return view
         }
-        let view = CapturedReadView(
-            completeness: request.completeness, captureScope: copied.scope,
-            metadata: metadata(evaluationInstant, MCPReadCaptureBoundary(
-                historyStoreIdentifier: after?.storeIdentifier, generation: initialGeneration,
-                stablePersistentHistory: fence == .persistentHistory)), createdAt: instant,
-            retentionDeadline: instant + .seconds(300), projects: copied.projects,
-            tasks: copied.tasks, milestones: copied.milestones, comments: copied.comments,
-            taskLinkGraph: copied.taskLinkGraph, consolidationEvidence: copied.consolidationEvidence)
-        if view.completeness == .completePortfolio { try MCPReadCaptureValidation.validateReusableCapture(view) }
-        try request.taskLinkBudget?.check()
-        return view
     }
+
     private func watermark() throws -> DefaultHistoryTransaction? {
         guard fence == .persistentHistory else { return nil }
         do { return try SavedReadBoundary.watermark(container) } catch { throw MCPReadCaptureError.incoherentCapture }
     }
+
     private typealias Copied = MCPReadCopiedValues
+    // Keep the fenced capture order linear; wrappers only add diagnostic attribution.
+    // swiftlint:disable:next function_body_length
     private func copy(
         _ request: ReadCaptureRequest, in context: ModelContext, evaluationInstant: Date
     ) throws -> Copied {
         do {
-            let projects = try context.fetch(FetchDescriptor<Project>())
-            try request.validateProjects?(projects.map { ReadProjectIdentity(id: $0.id, name: $0.name) })
-            let selected = try resolve(request.projectSelectors, projects: projects)
-            let selectedKeys = try Set(selected.map(key))
-            try afterProjects()
+            let (projects, selectedKeys) = try request.measureCapture(.captureProjects) {
+                let projects = try context.fetch(FetchDescriptor<Project>())
+                try request.validateProjects?(projects.map { ReadProjectIdentity(id: $0.id, name: $0.name) })
+                let selected = try resolve(request.projectSelectors, projects: projects)
+                let keys = try Set(selected.map(key))
+                try afterProjects()
+                return (projects, keys)
+            }
             let entities = try fetchEntities(request, in: context)
             let (allTasks, allMilestones) = (entities.tasks, entities.milestones)
-            let graph = try TaskLinkCaptureIntegration.graph(request, in: context, entities, at: evaluationInstant)
-            let tasks = try allTasks.filter { task in
-                guard request.projectSelectors != nil else { return true }
-                return try task.project.map { selectedKeys.contains(try key($0)) } ?? false
+            let graph = try request.measureCapture(.captureGraph) {
+                try TaskLinkCaptureIntegration.graph(request, in: context, entities, at: evaluationInstant)
             }
-            let milestones = try scopedMilestones(allMilestones, request: request, keys: selectedKeys)
-            let consolidationSelection = try request.consolidationTarget?.resolve(in: context,
-                budget: request.taskLinkBudget ?? TaskLinkGraphBudget())
-            let bodyKeys = try bodyKeys(request, tasks: tasks, selection: consolidationSelection, graph: graph)
-            let milestoneBodyKeys = try milestoneBodyKeys(request, all: allMilestones, scoped: milestones)
-            let bodyTasks = try tasks.filter { bodyKeys.contains(try key($0)) }
-            let full = fullRecordSelection(request.selection)
-            guard request.completeness != .completePortfolio || full else {
-                throw MCPReadCaptureError.incoherentCapture
+            let (tasks, milestones, consolidationSelection, bodyTasks, milestoneBodyKeys, bodyKeys, full) =
+                try request.measureCapture(.captureSelection) {
+                    let tasks = try allTasks.filter { task in
+                        guard request.projectSelectors != nil else { return true }
+                        return try task.project.map { selectedKeys.contains(try key($0)) } ?? false
+                    }
+                    let milestones = try scopedMilestones(allMilestones, request: request, keys: selectedKeys)
+                    let consolidationSelection = try request.consolidationTarget?.resolve(in: context,
+                        budget: request.taskLinkBudget ?? TaskLinkGraphBudget())
+                    let bodyKeys = try bodyKeys(request, tasks: tasks, selection: consolidationSelection, graph: graph)
+                    let milestoneBodyKeys = try milestoneBodyKeys(request, all: allMilestones, scoped: milestones)
+                    let bodyTasks = try tasks.filter { bodyKeys.contains(try key($0)) }
+                    let full = fullRecordSelection(request.selection)
+                    guard request.completeness != .completePortfolio || full else {
+                        throw MCPReadCaptureError.incoherentCapture
+                    }
+                    return (tasks, milestones, consolidationSelection, bodyTasks, milestoneBodyKeys, bodyKeys, full)
+                }
+            let comments = try request.measureCapture(.captureCommentFetch) {
+                try commentEvidence(request, context: context, bodyTasks: bodyTasks,
+                                    needed: full || request.includeComments)
             }
-            let comments = try commentEvidence(request, context: context, bodyTasks: bodyTasks,
-                                               needed: full || request.includeComments)
-            let includedComments = commentsForScope(comments, request: request, tasks: bodyTasks)
-            let commentValues = try indexComments(includedComments)
+            let commentValues = try request.measureCapture(.captureCommentIndex) {
+                try indexComments(commentsForScope(comments, request: request, tasks: bodyTasks))
+            }
             // Freeze identity closure separately; it never changes the declared selected scope.
             let scope = request.captureScope(selectedKeys: selectedKeys)
             // Freeze borrowed ordinary records before supplementary context refetches.
-            let copied = try Copied(scope: scope, projects: projects.map(projectValue),
+            let copied = try request.measureCapture(.captureRecords) {
+                try Copied(scope: scope, projects: projects.map(projectValue),
                               tasks: copyTaskValues(request.completeness == .completePortfolio ? allTasks : tasks,
                                   selectedKeys: bodyKeys, comments: commentValues.index,
                                   full: full, includeComments: request.includeComments,
@@ -146,8 +172,11 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
                                   },
                               comments: commentValues.values, taskLinkGraph: graph,
                               consolidationEvidence: nil)
-            return copied.retaining(try consolidationEvidence(request, context: context, tasks: bodyTasks,
-                graph: graph, selection: consolidationSelection))
+            }
+            return try request.measureCapture(.captureConsolidation) {
+                copied.retaining(try consolidationEvidence(request, context: context, tasks: bodyTasks,
+                    graph: graph, selection: consolidationSelection))
+            }
         } catch let error as MCPTaskQueryError {
             throw error
         } catch let error where preservesCaptureFailure(error) {
@@ -158,6 +187,7 @@ final class MCPReadCaptureBuilder: MCPReadCaptureSource {
             throw MCPReadCaptureError.storageFailure
         }
     }
+
     private func preservesCaptureFailure(_ error: Error) -> Bool {
         error is TaskLinkGraphError || error is MCPReadCaptureError || error is ConsolidationSelectionFailure
             || error is ConsolidationPlanningError || error is TaskConsolidationHistoryError
@@ -332,23 +362,6 @@ private extension MCPReadCaptureBuilder {
             effectivePriority: task.priority.rawValue)
     }
 
-    private func milestoneIdentity(_ milestone: Milestone) -> ReadMilestoneIdentity {
-        ReadMilestoneIdentity(id: milestone.id, permanentDisplayId: milestone.permanentDisplayId, name: milestone.name,
-            storedProjectID: milestone.project?.id, rawStatus: milestone.statusRawValue,
-            milestoneDescription: milestone.milestoneDescription)
-    }
-
-    func fetchEntities(_ request: ReadCaptureRequest, in context: ModelContext)
-        throws -> ReadCaptureFetchedEntities {
-        let (needsTasks, needsMilestones) = request.selection.requiredEntities
-        let allMilestones = needsMilestones ? try fetchMilestones(context) : []
-        let needsTaskValues = try request.validateMilestones?(allMilestones.map {
-            milestoneIdentity($0)
-        }) ?? needsTasks
-        let allTasks = needsTasks && needsTaskValues ? try fetchTasks(context) : []
-        return ReadCaptureFetchedEntities(tasks: allTasks, milestones: allMilestones,
-                                          tasksCaptured: needsTasks && needsTaskValues)
-    }
     func commentsForScope(_ comments: [Comment], request: ReadCaptureRequest, tasks: [TransitTask]) -> [Comment] {
         if request.completeness == .completePortfolio && request.projectSelectors == nil { return comments }
         let ids = Set(tasks.map(\.id))

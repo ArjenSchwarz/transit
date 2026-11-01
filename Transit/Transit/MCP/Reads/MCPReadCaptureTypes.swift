@@ -206,6 +206,8 @@ nonisolated struct ReadCaptureRequest: Sendable {
     /// Output preference only; fullRecord/portfolio still capture canonical comment coverage.
     let includeComments: Bool
     let taskLinkBudget: TaskLinkGraphBudget?
+    /// Scalar diagnostic correlation only; never retained by a captured view.
+    let diagnosticOperation: MCPReadOperation?
     let taskLinkOptions: TaskLinkQueryOptions?
     let consolidationTarget: ConsolidationCaptureTarget?
     /// Runs inside the fence before dependent entity fetches; no relationship values escape.
@@ -225,7 +227,8 @@ nonisolated struct ReadCaptureRequest: Sendable {
          selectTaskBodies: ReadTaskBodySelection? = nil,
          selectMilestoneBodies: ReadMilestoneBodySelection? = nil,
          taskLinkBudget: TaskLinkGraphBudget? = nil, taskLinkOptions: TaskLinkQueryOptions? = nil,
-         consolidationTarget: ConsolidationCaptureTarget? = nil) {
+         consolidationTarget: ConsolidationCaptureTarget? = nil,
+         diagnosticOperation: MCPReadOperation? = nil) {
         self.projectSelectors = projectSelectors
         self.selection = selection
         self.completeness = completeness
@@ -233,6 +236,7 @@ nonisolated struct ReadCaptureRequest: Sendable {
         self.taskLinkBudget = taskLinkBudget
         self.taskLinkOptions = taskLinkOptions
         self.consolidationTarget = consolidationTarget
+        self.diagnosticOperation = diagnosticOperation
         self.validateProjects = validateProjects
         self.validateMilestones = validateMilestones
         self.selectTaskBodies = selectTaskBodies
@@ -247,12 +251,16 @@ nonisolated struct ReadCaptureRequest: Sendable {
         })
     }
 
-    func withTaskLinkBudget(_ budget: TaskLinkGraphBudget) -> ReadCaptureRequest {
-        ReadCaptureRequest(projectSelectors: projectSelectors, selection: selection, completeness: completeness,
+    func withTaskLinkBudget(_ budget: TaskLinkGraphBudget,
+                            operation: MCPReadOperation? = nil) -> ReadCaptureRequest {
+        ReadCaptureRequest(projectSelectors: projectSelectors, selection: selection,
+            completeness: completeness,
             includeComments: includeComments, validateProjects: validateProjects,
             validateMilestones: validateMilestones,
-            selectTaskBodies: selectTaskBodies, selectMilestoneBodies: selectMilestoneBodies, taskLinkBudget: budget,
-            taskLinkOptions: taskLinkOptions, consolidationTarget: consolidationTarget)
+            selectTaskBodies: selectTaskBodies, selectMilestoneBodies: selectMilestoneBodies,
+            taskLinkBudget: budget,
+            taskLinkOptions: taskLinkOptions, consolidationTarget: consolidationTarget,
+            diagnosticOperation: operation ?? diagnosticOperation)
     }
 }
 
