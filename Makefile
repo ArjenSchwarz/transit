@@ -124,7 +124,7 @@ build-ios: prepare-cache-dirs
 	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild build \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
-		-destination 'platform=iOS Simulator,name=iPhone 17' \
+		-destination '$(TEST_DESTINATION)' \
 		-configuration $(CONFIG) \
 		$(XCODEBUILD_CACHE_FLAGS) \
 		$(PIPE_PRETTY)
@@ -281,6 +281,8 @@ test-mcp-write-persistence: prepare-cache-dirs
 	python3 tests/mcp-write-probe/run.py $(DERIVED_DATA)/mcp-write-disk-probe
 
 TEST_TARGETS ?= TransitTests
+# Override with a disposable simulator ID to avoid named-device ambiguity or other sessions.
+TEST_DESTINATION ?= platform=iOS Simulator,name=iPhone 17
 
 .PHONY: test-quick
 test-quick: prepare-cache-dirs test-create-task-project-schema-guard
@@ -298,7 +300,7 @@ test: prepare-cache-dirs test-create-task-project-schema-guard
 	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
-		-destination 'platform=iOS Simulator,name=iPhone 17' \
+		-destination '$(TEST_DESTINATION)' \
 		-configuration Debug \
 		$(XCODEBUILD_CACHE_FLAGS) \
 		-parallel-testing-worker-count 1 \
@@ -310,7 +312,7 @@ test-ui: prepare-cache-dirs test-create-task-project-schema-guard
 	$(PIPEFAIL) $(XCODEBUILD_ENV) xcodebuild test \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
-		-destination 'platform=iOS Simulator,name=iPhone 17' \
+		-destination '$(TEST_DESTINATION)' \
 		-configuration Debug \
 		$(XCODEBUILD_CACHE_FLAGS) \
 		-only-testing:TransitUITests \

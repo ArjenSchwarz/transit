@@ -4,8 +4,8 @@
 - **Project**: `Transit/Transit.xcodeproj`
 - **Scheme**: `Transit`
 - **File System Sync**: Enabled — Xcode auto-discovers files from disk, no need to update pbxproj
-- **Bundle ID**: `me.nore.ig.Transit`
-- **CloudKit container**: `iCloud.me.nore.ig.Transit`
+- **Bundle ID**: `me.nore.ig.apps.Transit` (Release); `me.nore.ig.apps.Transit.development` (Debug)
+- **CloudKit container**: `iCloud.me.nore.ig.apps.Transit` (Release, Development environment); ordinary Debug stays local-only
 
 ## Targets
 1. **Transit** — main app (iOS 26 / macOS 26)

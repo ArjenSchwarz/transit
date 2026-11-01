@@ -161,8 +161,11 @@ import Foundation
     }
 
     private func verifyCounters(_ floors: Floors) async throws -> Floors {
-        let tasks = try await cloud.tasks.loadCounter()
-        let milestones = try await cloud.milestones.loadCounter()
+        let taskStore = cloud.tasks
+        let milestoneStore = cloud.milestones
+        async let taskRead = taskStore.loadCounter()
+        async let milestoneRead = milestoneStore.loadCounter()
+        let (tasks, milestones) = try await (taskRead, milestoneRead)
         guard tasks.nextDisplayID >= floors.tasks, milestones.nextDisplayID >= floors.milestones else {
             throw Failure.counterReadback
         }

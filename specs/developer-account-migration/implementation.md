@@ -84,3 +84,26 @@ The setup form previously rendered immediately, before its asynchronous verifica
 `MigrationLaunchPresentation` is a small value enum wrapping the existing verification result for presentation tests. It does not change account/counter/destination checks, readiness receipt storage, the shared write gate, deferred startup services or online/offline policy. Focused fake tests cover the initial checking state, actual saved-receipt success without re-adoption/writes, unprepared counters, account mismatch and counter-read failure, asserting setup visibility and the unchanged underlying verification result. No native UI/device/live-data execution is performed.
 
 Validation passes: `make test-migration-preflight` exercises all existing counter/follower tests plus presentation regression cases under Swift 6/MainActor; `make lint` reports 765 files, zero violations (`transit-quiet-launch-verified-checks.log`). Signed generic iOS and macOS Release builds pass (`transit-quiet-launch-ios-build.log`, `transit-quiet-launch-mac-build.log`) with existing profiles and normal build caches, no provisioning updates. The preflight service, persistence gate and app bootstrap are unchanged by this presentation fix. No installation, app/device restart, live-data access or cloud mutation occurred; actual device visual confirmation awaits the user's next install.
+
+
+## Pre-push review and completeness (2026-11-01)
+
+Four independent native Codex review passes covered the complete 65-file change: code reuse, quality/security, efficiency and spec/documentation. No major findings were raised. Minor findings were fixed: inventory now requests only `nextDisplayId` while counting physical identities/types, independent read-only counter loads run concurrently before the existing account fence, the overview no longer claims the resolved cache blocker, and the current architecture note uses new-account identities. A selectable `TEST_DESTINATION` keeps required simulator runs confined to a disposable device.
+
+### Beginner level
+
+Transit gets a separate data home for the new developer account, preserving the old one. Initial preparation protects task/milestone numbering; joining devices verify the prepared destination without changing cloud data. Normal launches verify quietly, and editing stays blocked only until verification succeeds.
+
+### Intermediate level
+
+One guarded persistence factory selects explicit Release/development store URLs and container IDs; Debug stays local-only and tests stay memory-only. Existing compare-and-swap counters are advanced only by explicit preparation. Account/destination-bound local receipts support read-only follower adoption and normal launch verification. UI presentation hides setup during pending/successful checks without opening the write gate early.
+
+### Expert level
+
+Metadata-only zone-change traversal preserves physical record counts/deletions, rejects unexpected zones/types, and is capped at 100,000 records/1,000 pages. Independent Sendable counter stores are read with structured concurrency, then checked against floors before the existing account/cancellation fence and local receipt publication. Partial CAS success is retryable, higher counters are never intentionally lowered, and import bounds/recovery/retry/restart safeguards remain intact. Inventory is point-in-time evidence, not a global cloud transaction; the default zone and independent follower convergence remain outside its proof. Offline fail-closed policy is unchanged.
+
+### Completeness assessment
+
+The source/configuration migration, counter gate, automatic follower adoption and quiet launch presentation are implemented. Focused fake tests and strict lint pass after the review fixes. Native CloudKit runtime and actual UI appearance are not covered by the fake suite. Required `make test` was attempted on disposable simulator `09BB20FC-4601-4CDA-A7B6-89CE9EC703F0`; compilation reached simulator instrumentation startup, but Xcode could not obtain its analysis task handle. The full run timed out after 600 seconds before tests executed. Normal security-service status reports Developer mode disabled. `make test-ui` was not started after this prerequisite failed. No security setting was changed, no failing check bypassed, and no tracked or untracked source files were changed by the test run. Full required verification and merge remain blocked pending appropriate Mac Developer Tools authorisation.
+
+Post-review focused migration tests and strict lint pass (765 files, zero violations), and signed macOS/iOS Release builds pass for the minor review fixes. The simulator verification blocker is unchanged; passing compilation does not replace the required executed suites.

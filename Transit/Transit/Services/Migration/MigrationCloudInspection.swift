@@ -43,7 +43,8 @@ import SwiftData
             var more = true
             while more {
                 try Task.checkCancellation()
-                let page = try await database.recordZoneChanges(inZoneWith: zoneID, since: token)
+                let page = try await database.recordZoneChanges(
+                    inZoneWith: zoneID, since: token, desiredKeys: ["nextDisplayId"])
                 for (id, result) in page.modificationResultsByID {
                     let record = try result.get().record
                     try inventory.record(id: id.recordName, type: record.recordType,
