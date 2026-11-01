@@ -12,7 +12,9 @@ nonisolated enum MCPReadinessFixtureError: Error { case unsafeEndpoint, invalidT
 @MainActor enum MCPModernReadinessFixture {
     static func validateEndpoint(_ endpoint: URL) throws {
         guard endpoint.scheme == "http", endpoint.host == "127.0.0.1", let port = endpoint.port,
-              port > 1024, port != MCPSettings.defaultPort, endpoint.path == "/mcp",
+              port > 1024,
+              port != AppPersistencePolicy.Mode.production.defaultMCPPort,
+              port != AppPersistencePolicy.Mode.development.defaultMCPPort, endpoint.path == "/mcp",
               endpoint.user == nil, endpoint.password == nil, endpoint.query == nil, endpoint.fragment == nil else {
             throw MCPReadinessFixtureError.unsafeEndpoint
         }
