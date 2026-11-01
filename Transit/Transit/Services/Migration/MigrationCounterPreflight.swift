@@ -85,11 +85,11 @@ import Foundation
         return try await cloud.inspect()
     }
 
-    /// Existing receipts never authorize offline access: re-read account and both counters every launch.
+    /// New followers adopt prepared counters read-only; existing receipts still require online re-verification.
     func verifySaved() async throws -> Bool {
         try begin()
         defer { busy = false }
-        guard let data = try readReceipt() else { return false }
+        guard let data = try readReceipt() else { return try await adoptPreparedDestination() }
         let receipt = try JSONDecoder().decode(Receipt.self, from: data)
         try receipt.floors.validate()
         guard receipt.version == 1, receipt.destination == destination,
@@ -120,9 +120,26 @@ import Foundation
             try await requireAccount(inventory.account)
             try await cloud.milestones.advanceCounter(toAtLeast: floors.milestones)
         }
+        try await saveVerifiedReadiness(floors: floors, account: inventory.account)
+    }
+
+    /// Called inside verifySaved's single-flight gate; never calls zone creation or counter advancement.
+    private func adoptPreparedDestination() async throws -> Bool {
+        let inventory = try await cloud.inspect()
+        guard inventory.unexpectedZones.isEmpty, inventory.unexpectedTypes.isEmpty else { throw Failure.notFresh }
+        let floors = Floors(tasks: 2507, milestones: 22)
+        guard inventory.taskCounter >= floors.tasks, inventory.milestoneCounter >= floors.milestones else {
+            return false
+        }
+        try await saveVerifiedReadiness(floors: floors, account: inventory.account)
+        return true
+    }
+
+    /// Shared with explicit adoption/preparation so publication keeps identical read-back/account safeguards.
+    private func saveVerifiedReadiness(floors: Floors, account: String) async throws {
         let verified = try await verifyCounters(floors)
-        guard try await cloud.account() == inventory.account else { throw Failure.invalidReceipt }
-        let receipt = Receipt(version: 1, destination: destination, account: inventory.account, floors: floors)
+        try await requireAccount(account)
+        let receipt = Receipt(version: 1, destination: destination, account: account, floors: floors)
         try Task.checkCancellation()
         try writeReceipt(JSONEncoder().encode(receipt))
         verifiedFloors = verified

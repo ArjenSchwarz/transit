@@ -14,3 +14,5 @@ references:
   - Blocked-by: wmi1men (All launch modes use isolated new-identity storage and reject legacy/cross-container launches; verify policy and disposable store location behavior)
 
 Counter-readiness follow-up: explicit destination/floor inputs, read-only paginated inspection, CAS/read-back gate, account-bound receipt and import-bound checks implemented. Fake-only core tests and signed platform compilation are recorded in implementation.md. No operational migration step has been executed.
+
+Approved automatic follower adoption complete: absent receipts trigger read-only verification of the already-prepared destination, followed by local receipt publication only. Fake success/failure zero-cloud-write checks, strict lint and signed iOS/macOS Release builds pass; no install/live-data action performed.

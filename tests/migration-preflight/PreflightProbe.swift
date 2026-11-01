@@ -27,8 +27,12 @@ actor FakeCounter: DisplayIDAllocator.CounterStore {
 }
 enum ProbeFailure: Error { case injected }
 @MainActor final class FakeCloud: MigrationCounterPreflight.Cloud {
-    let taskStore = FakeCounter()
-    let milestoneStore = FakeCounter()
+    let taskStore: FakeCounter
+    let milestoneStore: FakeCounter
+    init(taskCounter: Int = 1, milestoneCounter: Int = 1) {
+        taskStore = FakeCounter(taskCounter)
+        milestoneStore = FakeCounter(milestoneCounter)
+    }
     var tasks: any DisplayIDAllocator.CounterStore { taskStore }
     var milestones: any DisplayIDAllocator.CounterStore { milestoneStore }
     var identity = "account-A"
@@ -36,6 +40,8 @@ enum ProbeFailure: Error { case injected }
     var switchAccountAt: Int?
     var pause = false
     var continuation: CheckedContinuation<Void, Never>?
+    var failInspection = false
+    var inventoryFloorOverride: (tasks: Int, milestones: Int)?
     var reads = 0
     var zoneWrites = 0
     var counts: [String: Int] = [:]
@@ -48,18 +54,24 @@ enum ProbeFailure: Error { case injected }
     }
     func inspect() async throws -> MigrationCounterPreflight.Inventory {
         reads += 1
+        if failInspection { throw ProbeFailure.injected }
         if pause { await withCheckedContinuation { continuation = $0 }; pause = false }
+        let tasks = await taskStore.value
+        let milestones = await milestoneStore.value
         return .init(account: identity, counts: counts, unexpectedZones: zones, unexpectedTypes: types,
-                     taskCounter: 1, milestoneCounter: 1)
+                     taskCounter: inventoryFloorOverride?.tasks ?? tasks,
+                     milestoneCounter: inventoryFloorOverride?.milestones ?? milestones)
     }
     func ensureZone() async throws { zoneWrites += 1 }
 }
 @MainActor final class ReceiptBox {
     var data: Data?
+    var writes = 0
     var fail = false
     func save(_ data: Data) throws {
         if fail { throw ProbeFailure.injected }
         self.data = data
+        writes += 1
     }
 }
 @main struct PreflightProbe {
@@ -69,6 +81,8 @@ enum ProbeFailure: Error { case injected }
         try await testInputAndDestination()
         try await testSingleFlightAndLocalGraph()
         try testPaginationAndWriteGate()
+        try await testAutomaticFollowerAdoption()
+        try await testAutomaticFollowerFailures()
         print("Migration preflight fake checks passed: CAS, readback, partial failure, account and write gates")
     }
     @MainActor static func make(
