@@ -16,3 +16,5 @@ references:
 Counter-readiness follow-up: explicit destination/floor inputs, read-only paginated inspection, CAS/read-back gate, account-bound receipt and import-bound checks implemented. Fake-only core tests and signed platform compilation are recorded in implementation.md. No operational migration step has been executed.
 
 Approved automatic follower adoption complete: absent receipts trigger read-only verification of the already-prepared destination, followed by local receipt publication only. Fake success/failure zero-cloud-write checks, strict lint and signed iOS/macOS Release builds pass; no install/live-data action performed.
+
+Approved ordinary-launch presentation fix complete: routine verification renders neutral loading, then normal content; actual failures/unprepared destinations retain the actionable form. Write gate and offline policy unchanged. Presentation/preflight fake regressions, strict lint765/0 and signed iOS/macOS Release builds pass; no device installation/runtime verification performed.

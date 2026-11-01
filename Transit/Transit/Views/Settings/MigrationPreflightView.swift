@@ -8,11 +8,26 @@ struct MigrationPreflightView: View {
     @State private var taskFloor = ""
     @State private var milestoneFloor = ""
     @State private var confirmation = ""
-    @State private var report = "Checking saved readiness…"
+    @State private var report = ""
+    @State private var presentation = MigrationLaunchPresentation.checking
     @State private var busy = false
     @State private var confirmingPreparation = false
 
     var body: some View {
+        Group {
+            if presentation.showsSetup {
+                setupForm
+            } else {
+                ProgressView()
+                    .accessibilityLabel("Opening Transit")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(minWidth: 340, idealWidth: 640, minHeight: 500)
+        .task { run { await verifySaved() } }
+    }
+
+    private var setupForm: some View {
         Form {
             Text("Prepare Transit’s new iCloud destination").font(.headline)
             Text("\(preflight.destination.container) · \(preflight.destination.environment)")
@@ -20,7 +35,7 @@ struct MigrationPreflightView: View {
             Text("Editing and automation stay blocked until both display-ID counters are verified. "
                  + "Inspection reads the Transit data zone; it does not import your backup.")
             Text(report).textSelection(.enabled)
-            Button("Retry saved readiness") { run { try await verifySaved() } }
+            Button("Retry saved readiness") { run { await verifySaved() } }
             Button("Enable iCloud sync for next launch") {
                 enableSync()
                 report = "iCloud sync is enabled for the next launch. Quit and reopen Transit to retry readiness."
@@ -36,7 +51,6 @@ struct MigrationPreflightView: View {
             Button("Verify existing counters without cloud writes") { prepare(fresh: false) }
         }
         .formStyle(.grouped)
-        .frame(minWidth: 340, idealWidth: 640, minHeight: 500)
         .disabled(busy)
         .confirmationDialog("Advance only the two counters in this fresh destination?",
                             isPresented: $confirmingPreparation) {
@@ -45,13 +59,13 @@ struct MigrationPreflightView: View {
             Text("A missing Transit zone will be created. Counters only increase to the entered floors. "
                  + "Existing user records or unknown zones block preparation. No backup is restored.")
         }
-        .task { run { try await verifySaved() } }
     }
 
-    private func verifySaved() async throws {
-        if try await preflight.verifySaved() { onReady() } else {
-            report = "No saved readiness. Inspect the destination and choose verified next-ID floors."
-        }
+    private func verifySaved() async {
+        presentation = .checking
+        presentation = await MigrationLaunchPresentation.verify(preflight)
+        report = presentation.message
+        if presentation == .ready { onReady() }
     }
 
     private func inspect() async throws {

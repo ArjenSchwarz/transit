@@ -45,7 +45,7 @@ See `specs/developer-account-migration/implementation.md` for exact checks and t
 
 ## Release counter readiness gate
 
-Release checks readiness before task editing, automation or startup maintenance. Initial verification uses the chosen team/container/Development environment; a durable cloud-active Release store is required. Ordinary Debug and test modes retain their existing isolation.
+Release checks readiness before task editing, automation or startup maintenance. Routine verification uses only a neutral loading indicator, then opens normal content on success; migration/setup controls appear only for an actual verification error or unprepared destination. Initial verification uses the chosen team/container/Development environment; a durable cloud-active Release store is required. Ordinary Debug and test modes retain their existing isolation.
 
 1. **Inspect destination** reads all pages of Transit's `com.apple.coredata.cloudkit.zone`, applies later deletions and reports physical record counts, unknown zones/types and both next-ID counters. It does not query unrelated default-zone data. SwiftData may create mirror infrastructure while opening the gated store; inspection itself makes no cloud writes. A point-in-time inventory cannot exclude a concurrent writer, so keep other clients stopped during cutover.
 2. For an unprepared initial destination, enter explicit next-ID floors (minimum task **2507**, milestone **22**, or verified higher historical values), and confirm the exact displayed container identifier. These minimums do not claim knowledge of the old account's current remote counters.

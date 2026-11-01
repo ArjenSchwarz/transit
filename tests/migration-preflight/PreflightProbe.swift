@@ -83,6 +83,7 @@ enum ProbeFailure: Error { case injected }
         try testPaginationAndWriteGate()
         try await testAutomaticFollowerAdoption()
         try await testAutomaticFollowerFailures()
+        try await testLaunchPresentation()
         print("Migration preflight fake checks passed: CAS, readback, partial failure, account and write gates")
     }
     @MainActor static func make(

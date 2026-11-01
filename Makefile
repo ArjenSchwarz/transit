@@ -409,8 +409,8 @@ clean: prepare-cache-dirs
 test-migration-preflight: prepare-cache-dirs
 	xcrun swiftc -parse-as-library -swift-version 6 -default-isolation MainActor -module-cache-path $(CLANG_MODULE_CACHE) \
 		tests/migration-preflight/CounterNamespace.swift Transit/Transit/Services/DisplayIDCounterStore.swift \
-		Transit/Transit/Services/Migration/{MigrationCounterPreflight,MigrationInventoryAccumulator}.swift \
+		Transit/Transit/Services/Migration/{MigrationCounterPreflight,MigrationInventoryAccumulator,MigrationLaunchPresentation}.swift \
 		Transit/Transit/Services/PersistenceAvailability.swift \
-		tests/migration-preflight/{PreflightProbe,FollowerAdoptionProbe}.swift \
+		tests/migration-preflight/{PreflightProbe,FollowerAdoptionProbe,LaunchPresentationProbe}.swift \
 		-o $(DERIVED_DATA)/migration-preflight-probe
 	$(DERIVED_DATA)/migration-preflight-probe
