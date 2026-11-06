@@ -46,16 +46,21 @@ final class TransitUITests: XCTestCase {
 
     @MainActor
     func testTappingGearPushesSettingsView() throws {
+        #if os(iOS)
+        let originalOrientation = XCUIDevice.shared.orientation
+        XCUIDevice.shared.orientation = .portrait
+        defer { XCUIDevice.shared.orientation = originalOrientation == .unknown ? .portrait : originalOrientation }
+        #endif
         let app = launchApp()
 
         app.tapTransitToolbarButton(identifier: "dashboard.settingsButton", overflowLabel: "Settings")
 
         // [req 12.1] Settings view is pushed onto the navigation stack
+        let settingsTitle = app.navigationBars["Settings"]
+        XCTAssertTrue(settingsTitle.waitForExistence(timeout: 5))
         let environment = app.staticTexts["settings.environment"]
         XCTAssertTrue(environment.waitForExistence(timeout: 5))
         XCTAssertEqual(environment.label, "Debug (UI test)")
-        let settingsTitle = app.navigationBars["Settings"]
-        XCTAssertTrue(settingsTitle.waitForExistence(timeout: 5))
     }
 
     @MainActor

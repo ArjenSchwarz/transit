@@ -1,6 +1,6 @@
 # MCP result contract version 1
 
-Transit's macOS endpoint supports MCP `2026-07-28` only. A tool result keeps the original text and optional `isError` and adds an independent structured wrapper. Output schemas advertised by `tools/list` validate `structuredContent`, not the entire JSON-RPC response.
+Transit's macOS endpoint supports MCP `2026-07-28` and a stateless `2025-03-26` compatibility handshake. A tool result keeps the original text and optional `isError` and adds an independent structured wrapper. Output schemas advertised by `tools/list` validate `structuredContent`, not the entire JSON-RPC response.
 
 ```json
 {
@@ -72,9 +72,9 @@ A mutation's complete request-correlated fallback bytes must be prepared before 
 
 Task/project entries in `presentation.links` associate `entityType`, UUID `entityId` and RFC6901 `sourcePath` with frozen source evidence. Each currently has `availability:unavailable` and `reason:navigation_not_supported`. No guessed URI is emitted. T572 entity-opening navigation is a separate feature; unavailable links remain deterministic on replay.
 
-## Latest-only request contract
+## Request contract and client compatibility
 
-Use one JSON-RPC object per `POST /mcp`, with `Content-Type: application/json`. Requests require non-null string or signed 64-bit integral IDs, object `params` and:
+Use one JSON-RPC object per `POST /mcp`, with `Content-Type: application/json`. Requests require non-null string or signed 64-bit integral IDs. Modern clients send object `params` with:
 
 ```json
 {"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}
@@ -82,14 +82,18 @@ Use one JSON-RPC object per `POST /mcp`, with `Content-Type: application/json`. 
 
 Optional clientInfo, if supplied, must include string name/version. Send `MCP-Protocol-Version: 2026-07-28` and `Mcp-Method` matching the body method. `tools/call` additionally requires `Mcp-Name` matching the tool name. Ordinary responses require acceptable `application/json`; subscriptions require acceptable `text/event-stream`. Header name matching is case-insensitive, values remain validated. Request bodies are limited to 1 MiB.
 
-Methods are `server/discover`, `tools/list`, `tools/call` and `subscriptions/listen`. Discovery and sorted tool lists include `resultType:complete`, `ttlMs:0` and `cacheScope:public`. Maintenance availability changes are reflected in the next list. There is no initialization handshake, session ID, GET listener or wire-level JSON-RPC batch. An application batch is one `tools/call` under its owner's separate feature contract.
+For clients that omit either modern protocol field, including when `_meta` is absent, empty, or contains unrelated metadata, Transit defaults only the absent fields. Missing client capabilities become an empty object; missing protocol version comes from `MCP-Protocol-Version` when supplied, otherwise `2026-07-28`. No client identity or capability is inferred from earlier requests. Omitted `params` means an empty object. Supplied `_meta` must be an object, and every supplied protocol/capability/identity field and metadata key remains validated; null and wrong-type values never receive defaults. Supplied method/name/version headers must still be unique and match. Clients supplying both modern fields retain the required mirrored-header contract. This tolerance applies to `server/discover`, `tools/list` and `tools/call`.
+
+`initialize` and `ping` without complete modern protocol metadata are also accepted. Initialize negotiates `2025-03-26`; subsequent requests may use that version header. A metadata-free `notifications/initialized` receives an empty HTTP 202. Other notifications cannot dispatch tools. This compatibility mode does not advertise tool-list notifications and adds no sessions or GET stream. Both modes use the same protected writes, bounded read admission and result encoding.
+
+Modern methods are `server/discover`, `tools/list`, `tools/call` and `subscriptions/listen`. Discovery and sorted tool lists include `resultType:complete`, `ttlMs:0` and `cacheScope:public`. Maintenance availability changes are reflected in the next list. The modern mode has no initialization handshake, session ID, GET listener or wire-level JSON-RPC batch. An application batch is one `tools/call` under its owner's separate feature contract.
 
 | Rejected input | HTTP behavior |
 | --- | --- |
 | Disallowed Origin/Host | 403 before body capture/dispatch |
 | Non-POST method | 405, Allow POST |
 | Unsupported content type / response negotiation | 415 / 406 |
-| Malformed JSON, nesting/range/shape errors, missing/mismatched metadata/headers, unavailable tool, client notification | 400, no effects |
+| Malformed JSON, nesting/range/shape errors, malformed/mismatched supplied metadata/headers, unavailable tool, unsupported client notification | 400, no effects |
 | Unsupported protocol version | 400 with supported version list |
 | Unknown RPC method, including legacy initialize, after valid modern metadata/headers | 404, method-not-found; an invalid envelope rejects earlier |
 | Oversized body | 413 |
@@ -102,4 +106,4 @@ Loopback-only listening remains `127.0.0.1`; missing Origin is permitted, non-lo
 
 Covered reads retain the five-second deadline and eight unfinished physical-read admission slots across listener restarts. Cancellation suppresses late delivery/publication but does not free a physical slot until work completes. Ordinary/reusable retained data retains its own five-minute, eight-snapshot and 16-MiB contracts; structured/text/envelope duplication is charged. Capacity/deadline failure does not publish partial success or invalidate existing retained entries.
 
-Actual installed Codex surfaces, Claude Code and Claude Desktop compatibility remains **unverified**. The owner explicitly deferred AC6.3 to post-merge MacBook testing at Sentinel_c0dbfe3212888191bc01744c855f67bb. Synthetic loopback evidence proves local protocol behavior only. Later validation must record modern discovery/list/call and native parsed structured consumption per intended surface, and subscriptions for surfaces opting in. This deferral permits merge after required review/checks; it does not authorise client setup or deployment here.
+Codex compatibility was verified on 2026-11-06 through installed Codex 0.167.0 app-server discovery/list/read and a fresh durable task’s directly exposed `query_tasks` tool, consuming structured contract version 1. These checks used the installed compatibility build. Claude Code, Claude Desktop, and Codex subscription consumption remain **unverified**. The owner explicitly deferred AC6.3 to post-merge MacBook testing at Sentinel_c0dbfe3212888191bc01744c855f67bb. Synthetic loopback evidence proves local protocol behavior only. Remaining surface validation must record modern discovery/list/call and native parsed structured consumption, and subscriptions for surfaces opting in. This deferral permits merge after required review/checks; it does not authorise client setup or deployment here.

@@ -34,6 +34,7 @@ nonisolated struct MCPModernClientMetadata: Sendable {
 }
 
 nonisolated enum MCPModernMethod: Sendable {
+    case compatibilityHandshake
     case discover
     case listTools
     case callTool(name: String, execution: MCPModernToolExecution)

@@ -1,0 +1,57 @@
+# MCP client compatibility correction
+
+## Scope and decision (2026-11-06, before implementation)
+
+The user explicitly requested a quick backward-compatible correction for direct Codex requests rejected for missing per-request metadata. This is a bounded correction to the existing transport, not a new task workflow. No tickets, deployment, settings changes or bridge are authorized.
+
+Accept metadata-free discovery/list/call requests using empty client capabilities; retain strict validation when modern metadata is supplied. Accept older Streamable HTTP initialize/ping and initialized acknowledgement, negotiating the existing 2025-03-26 protocol. Reuse the modern immutable classification, read admission and protected write paths for every tool call. Preserve Origin/Host, content negotiation, resource limits, duplicate-key parsing, IDs, tool availability and write guards. Supplied headers must still agree with the request. No sessions or legacy GET stream are added.
+
+The existing latest-only contract is intentionally relaxed by the user's request. No separate spec approval or retrospective approval is claimed. Validate metadata-free modern discovery and legacy handshake through the production router plus negative security/protected-write cases and existing modern tests.
+
+## Implementation record
+
+Implemented in the shared validator and router. Missing `_meta` defaults to empty capabilities and no identity; present metadata and mirrored headers remain checked. The existing initialize handler negotiates 2025-03-26 without advertising unavailable legacy tool-list notifications. Tool calls retain the production classification, bounded reads, structured results and protected write coordinator. Modern subscriptions still require their full metadata contract.
+
+Validation:
+- `make lint`: passed, zero violations across 767 files (including source-literal/configuration guards).
+- `make test-quick TEST_TARGETS='TransitTests/MCPClientCompatibilityTests TransitTests/MCPClientCompatibilityLoopbackTests TransitTests/MCPModernProtocolTests TransitTests/MCPModernRouterIntegrationTests TransitTests/MCPInitializeHandshakeTests'`: passed.
+- The loopback test starts the production router on an OS-assigned 127.0.0.1 port with in-memory test storage, sends plain metadata-free HTTP discovery/list/read/initialize requests via URLSession, receives successful results and an empty 202 initialized acknowledgement, then shuts down that test listener. It uses no bridge.
+- Existing modern protocol and routing tests remain green; new negatives cover malformed supplied metadata, conflicting headers, unsupported versions, invalid IDs/params, duplicate keys, unknown tools, hostile origins, missing write keys and mutation notifications.
+- `git diff --check`: passed.
+
+The initial sandboxed Xcode invocation failed before compilation because SwiftPM could not write its manifest diagnostics cache. No configured Xcode MCP tools were available. The same focused Makefile invocation succeeded with approved build access; no build settings were changed.
+
+Activation remains outside this change: the running Release app/server was not restarted or deployed, Codex settings were not changed, and no ticket was created. Direct HTTP behavior is verified against the temporary server; the installed Codex client against an activated build remains unverified. Unrelated pre-existing `.kiro/` files were preserved.
+
+
+## Durable-session follow-up (2026-11-06)
+
+After activation, the installed Codex 0.167.0 app-server discovered all 17 tools and performed a direct read successfully, but the original durable session still reported `Invalid required per-request metadata`. Native discovery in this engineering task reproduced that exact failure. Source inspection identified the remaining branch: any supplied `_meta` required both modern fields, even when it was an otherwise valid object with one or both fields absent.
+
+A diagnostic-only commit added fixed Boolean field-presence/type labels to that rejection, without client values or traffic logging. The diagnostic build was activated with a recoverable prior bundle. The current task continued to return the old error text, so that result does not establish a fresh request to the diagnostic build. Exact durable request field shapes and a fresh original-session retry remain pending; an absent field is not assumed to have the same meaning as a malformed supplied value.
+
+The follow-up correction defaults absent modern fields even inside an existing metadata object. It preserves validation for every supplied field and metadata key, uses only an explicit version header or the server version for an absent protocol version, and defaults absent capabilities to empty. Complete modern metadata still requires matching mirrored headers. Subscriptions still require both modern metadata fields, valid shapes, and matching headers. Tests cover empty/unrelated/partial objects, wrong types and nulls, malformed nested capabilities, invalid identity/keys, conflicting headers, unsupported versions, and strict subscription admission.
+
+Verification: `make lint` passed with zero violations across 768 files. `make test-quick TEST_TARGETS='TransitTests/MCPPartialMetadataCompatibilityTests TransitTests/MCPClientCompatibilityTests TransitTests/MCPClientCompatibilityLoopbackTests TransitTests/MCPModernProtocolTests TransitTests/MCPModernRouterIntegrationTests TransitTests/MCPInitializeHandshakeTests'` passed all six suites, including isolated HTTP discovery/list/read with partial metadata. `git diff --check` passed. Release activation and fresh durable-session confirmation are reported separately after installation; the installed CLI result alone does not establish original durable-session compatibility.
+
+
+## Native task-session confirmation (2026-11-06)
+
+On the fresh PR Pilot turn, all 17 Transit tools were exposed directly in this same durable engineering task. A native `mcp__transit__query_tasks` call with `displayId:2519`, `detailLevel:summary`, `includeComments:false`, and `limit:1` succeeded against the installed e7a6d9a2 build, returning the existing task and structured contract version 1 with established evidence. This call used the task's exposed MCP tool directly, not a Node controller, separate CLI client, bridge, or manual HTTP request. No ticket was created or changed. The exact rejected request from the earlier cached startup remains unavailable; this fresh-turn result establishes the previously missing native task-session interoperability evidence.
+
+## PR Pilot UI gate repair (2026-11-06)
+
+The required simulator run and separate UI run both failed the existing Settings test while waiting for `settings.environment`. The failed-test screen recording and accessibility hierarchy showed Settings open in landscape, with the General section below the visible List rows. The preceding portrait-layout test restores landscape when its original orientation is unknown; the Settings test assumed the label was initially materialised.
+
+A clean detached worktree at current main `78433fed034b3e59c3721fdb26d1c890dd8ee79c`, separate derived data and a disposable iPhone 17 / iOS 27.2 simulator established the baseline: the unchanged Settings test passed alone, but failed after the unchanged portrait-layout test. No baseline source changes were made. This confirms the order-dependent pre-existing test issue rather than inferring it from unchanged files.
+
+The first bounded-scroll attempt passed alone but failed in the full suite; its failure hierarchy still showed zero scroll offset. The final test-only repair explicitly sets portrait for this navigation test and restores the prior orientation afterward (portrait when it was unknown). It retains the Settings navigation, label-existence and exact `Debug (UI test)` assertions. The same two-test sequence that failed on unchanged main now passes with this setup. No production UI behavior changes. Full simulator/UI reruns and final independent PR review are recorded on PR #263 before merge. The installed Release app remains unchanged.
+
+
+## Independent-review numeric ID correction (2026-11-06)
+
+The post-rebase independent review found that the compatibility dispatcher decoded a previously validated request ID again through JSONDecoder. Integral decimal IDs at the signed 64-bit limits passed lossless validation but failed that second conversion, producing HTTP 500. The dispatcher now decodes only the handshake method/parameters and retains the validator's exact ID. Production-router regressions exercise initialize and ping with decimal and exponent encodings at both limits, asserting successful results and exact correlated IDs.
+
+All six focused macOS MCP suites passed with the correction, including the new boundary cases, using isolated derived data. The initial test compile needed a correction to inspect public JSON members instead of a fileprivate helper; the subsequent run passed. Lint and full simulator/UI results are reported on PR #263. The running e7a6d9a2 Release app has not been redeployed with this boundary-ID correction.
+
+A subsequent independent review reproduced unsupported extra handshake numbers (for example `1e309`) escaping the Foundation parameter conversion as an empty HTTP 500. Conversion failures now become HTTP 400 JSON-RPC invalid-params responses retaining the validated request ID. Router regressions cover initialize and ping with that unsupported representation. All six focused macOS suites and lint passed with this correction; client values are not included in its error message.
