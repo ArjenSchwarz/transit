@@ -76,7 +76,7 @@ extension MCPServer {
         let admittedAt = snapshot.admittedAt, admissionOwner = snapshot.owner
         switch modern.method {
         case .compatibilityHandshake:
-            let request = try JSONDecoder().decode(JSONRPCRequest.self, from: modern.document.originalUTF8)
+            let request = try MCPModernWire.compatibilityRequest(modern)
             guard let response = await handler.handle(request) else { return Response(status: .accepted) }
             return jsonResponse(response)
         case .discover:

@@ -3,6 +3,18 @@ import Foundation
 
 /// Pure transport values. Logical result sources never pass through this request bridge.
 nonisolated enum MCPModernWire {
+    private struct HandshakePayload: Decodable {
+        let method: String
+        let params: AnyCodable?
+    }
+
+    static func compatibilityRequest(_ modern: MCPModernRequest) throws -> JSONRPCRequest {
+        // Keep the exact ID already accepted by the lossless validator. JSONDecoder's
+        // Int decoding rejects some valid integral decimal spellings at the boundaries.
+        let payload = try JSONDecoder().decode(HandshakePayload.self, from: modern.document.originalUTF8)
+        return JSONRPCRequest(jsonrpc: "2.0", id: modern.id, method: payload.method, params: payload.params)
+    }
+
     static func request(_ modern: MCPModernRequest, tool: String) -> JSONRPCRequest {
         var params: [String: Any] = ["name": tool]
         if case .object(let members) = modern.params,

@@ -46,6 +46,11 @@ final class TransitUITests: XCTestCase {
 
     @MainActor
     func testTappingGearPushesSettingsView() throws {
+        #if os(iOS)
+        let originalOrientation = XCUIDevice.shared.orientation
+        XCUIDevice.shared.orientation = .portrait
+        defer { XCUIDevice.shared.orientation = originalOrientation == .unknown ? .portrait : originalOrientation }
+        #endif
         let app = launchApp()
 
         app.tapTransitToolbarButton(identifier: "dashboard.settingsButton", overflowLabel: "Settings")
@@ -54,12 +59,6 @@ final class TransitUITests: XCTestCase {
         let settingsTitle = app.navigationBars["Settings"]
         XCTAssertTrue(settingsTitle.waitForExistence(timeout: 5))
         let environment = app.staticTexts["settings.environment"]
-        #if os(iOS)
-        // In landscape, the General section starts below the visible List rows.
-        for _ in 0..<4 where !environment.isHittable {
-            app.swipeUp()
-        }
-        #endif
         XCTAssertTrue(environment.waitForExistence(timeout: 5))
         XCTAssertEqual(environment.label, "Debug (UI test)")
     }

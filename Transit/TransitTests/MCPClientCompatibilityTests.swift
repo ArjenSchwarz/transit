@@ -96,6 +96,29 @@ struct MCPClientCompatibilityTests {
         #expect(try env.context.fetchCount(FetchDescriptor<MCPWriteReceipt>()) == 0)
     }
 
+    @Test(arguments: [
+        ("9223372036854775807.0", Int.max), ("9.223372036854775807e18", Int.max),
+        ("-9223372036854775808.0", Int.min), ("-9.223372036854775808e18", Int.min)
+    ])
+    func handshakePreservesExactBoundaryIDs(lexeme: String, expected: Int) async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        defer { try? FileManager.default.removeItem(at: env.sidecarDirectory) }
+        for method in ["initialize", "ping"] {
+            let response = try await request(env, body: """
+            {"jsonrpc":"2.0","id":\(lexeme),"method":"\(method)","params":{
+            "protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"fixture","version":"1"}}}
+            """)
+            #expect(response.status == .ok)
+            guard case .object(let fields) = try MCPJSONDocument.parse(response.body).value,
+                  case .number(let id) = fields.first(where: { $0.name == "id" })?.value else {
+                Issue.record("Missing numeric ID"); return
+            }
+            #expect(id.lexeme == String(expected))
+            #expect(fields.contains { $0.name == "result" })
+            #expect(!fields.contains { $0.name == "error" })
+        }
+    }
+
     @Test func malformedCompatibilityRequestsStillReject() async throws {
         let env = try MCPTestHelpers.makeEnv()
         defer { try? FileManager.default.removeItem(at: env.sidecarDirectory) }
