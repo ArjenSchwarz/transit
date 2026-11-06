@@ -21,27 +21,22 @@ nonisolated enum MCPModernValidator {
         let method = envelope.method
         let params = envelope.params
         let suppliedMetadata = params.field("_meta")
-        if method == "subscriptions/listen" && suppliedMetadata == nil {
+        let compatibility = !hasProtocolMetadata(suppliedMetadata)
+        if method == "subscriptions/listen" && compatibility {
             throw reject(400, -32602, "Subscriptions require per-request metadata", id: id)
         }
-        let metadata: MCPModernClientMetadata
-        if let suppliedMetadata {
-            metadata = try clientMetadata(suppliedMetadata, id: id)
-        } else {
-            let version = headers("MCP-Protocol-Version", input: input).first ?? protocolVersion
-            metadata = MCPModernClientMetadata(protocolVersion: version,
-                clientCapabilities: .object([]), clientInfo: nil)
-        }
+        let metadata = try clientMetadata(suppliedMetadata ?? .object([]), id: id,
+            fallbackVersion: headers("MCP-Protocol-Version", input: input).first ?? protocolVersion)
         try validateHeaders(input, method: method, params: params, metadata: metadata, id: id)
         guard metadata.protocolVersion == protocolVersion
-            || (suppliedMetadata == nil && metadata.protocolVersion == "2025-03-26") else {
+            || (compatibility && metadata.protocolVersion == "2025-03-26") else {
             throw reject(400, -32022, "Unsupported protocol version", id: id, data: .object([
                 MCPJSONMember(name: "requested", value: .string(metadata.protocolVersion)),
                 MCPJSONMember(name: "supported", value: .array([.string(protocolVersion)]))
             ]))
         }
         let classification: MCPModernMethod
-        if suppliedMetadata == nil && ["initialize", "ping"].contains(method) {
+        if compatibility && ["initialize", "ping"].contains(method) {
             classification = .compatibilityHandshake
         } else {
             classification = try classify(method, params: params, availability: availability, id: id)
@@ -154,11 +149,13 @@ nonisolated enum MCPModernValidator {
         }
     }
 
-    private static func clientMetadata(_ meta: MCPJSONValue, id: JSONRPCId) throws -> MCPModernClientMetadata {
+    private static func clientMetadata(
+        _ meta: MCPJSONValue, id: JSONRPCId, fallbackVersion: String
+    ) throws -> MCPModernClientMetadata {
         let versionField = meta.field("io.modelcontextprotocol/protocolVersion")
         let capabilitiesField = meta.field("io.modelcontextprotocol/clientCapabilities")
-        guard let version = versionField?.text,
-              let capabilities = capabilitiesField, capabilities.isObject else {
+        guard meta.isObject, versionField == nil || versionField?.text != nil,
+              capabilitiesField == nil || capabilitiesField?.isObject == true else {
             throw reject(400, -32602, "Invalid required per-request metadata "
                 + "(metaObject=\(meta.isObject), versionPresent=\(versionField != nil), "
                 + "versionString=\(versionField?.text != nil), capabilitiesPresent=\(capabilitiesField != nil), "
@@ -167,6 +164,8 @@ nonisolated enum MCPModernValidator {
         if case .object(let fields) = meta, fields.contains(where: { !validMetaKey($0.name) }) {
             throw reject(400, -32602, "Invalid metadata key", id: id)
         }
+        let version = versionField?.text ?? fallbackVersion
+        let capabilities = capabilitiesField ?? .object([])
         try validateCapabilities(capabilities, id: id)
         let info = meta.field("io.modelcontextprotocol/clientInfo")
         if let info {
@@ -218,7 +217,7 @@ nonisolated enum MCPModernValidator {
         _ input: MCPModernRequestInput, method: String, params: MCPJSONValue,
         metadata: MCPModernClientMetadata, id: JSONRPCId
     ) throws {
-        let required = params.field("_meta") != nil
+        let required = hasProtocolMetadata(params.field("_meta"))
         let version = try checkedHeader("MCP-Protocol-Version", input: input, id: id,
                                        required: required) ?? metadata.protocolVersion
         let mirroredMethod = try checkedHeader("Mcp-Method", input: input, id: id,
@@ -273,6 +272,11 @@ nonisolated enum MCPModernValidator {
 }
 
 nonisolated extension MCPModernValidator {
+    private static func hasProtocolMetadata(_ meta: MCPJSONValue?) -> Bool {
+        meta?.field("io.modelcontextprotocol/protocolVersion") != nil
+            && meta?.field("io.modelcontextprotocol/clientCapabilities") != nil
+    }
+
     /// Only the legacy lifecycle acknowledgement is accepted without a request ID.
     /// It has no response ID and never enters tool dispatch.
     static func isCompatibilityAcknowledgement(_ input: MCPModernRequestInput) throws -> Bool {

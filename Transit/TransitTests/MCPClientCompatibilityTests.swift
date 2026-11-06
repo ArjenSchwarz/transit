@@ -77,7 +77,8 @@ struct MCPClientCompatibilityTests {
             let response = try await request(env, body: list, headers: headers)
             #expect(response.status == .badRequest)
         }
-        for metadata in ["null", "[]", "{}", #"{"io.modelcontextprotocol/protocolVersion":"2026-07-28"}"#] {
+        for metadata in ["null", "[]", #"{"io.modelcontextprotocol/protocolVersion":null}"#,
+                         #"{"io.modelcontextprotocol/clientCapabilities":null}"#] {
             let response = try await request(env, body:
                 "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"_meta\":\(metadata)}}")
             #expect(response.status == .badRequest)

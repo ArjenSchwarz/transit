@@ -50,6 +50,17 @@ struct MCPClientCompatibilityLoopbackTests {
             {"jsonrpc":"2.0","id":4,"method":"initialize","params":{"protocolVersion":"2025-03-26",
             "capabilities":{},"clientInfo":{"name":"compatibility-fixture","version":"1"}}}
             """#,
+            #"""
+            {"jsonrpc":"2.0","id":5,"method":"server/discover","params":{"_meta":{"progressToken":1}}}
+            """#,
+            #"""
+            {"jsonrpc":"2.0","id":6,"method":"tools/list",
+            "params":{"_meta":{"io.modelcontextprotocol/clientCapabilities":{}}}}
+            """#,
+            #"""
+            {"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"get_projects","arguments":{},
+            "_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28"}}}
+            """#,
             #"{"jsonrpc":"2.0","method":"notifications/initialized"}"#
         ]
         for (index, body) in bodies.enumerated() {
@@ -61,8 +72,8 @@ struct MCPClientCompatibilityLoopbackTests {
             request.httpBody = Data(body.utf8)
             let (bytes, response) = try await session.data(for: request)
             let http = try #require(response as? HTTPURLResponse)
-            #expect(http.statusCode == (index == 4 ? 202 : 200))
-            if index == 4 {
+            #expect(http.statusCode == (index == bodies.count - 1 ? 202 : 200))
+            if index == bodies.count - 1 {
                 #expect(bytes.isEmpty)
             } else {
                 let object = try #require(try JSONSerialization.jsonObject(with: bytes) as? [String: Any])

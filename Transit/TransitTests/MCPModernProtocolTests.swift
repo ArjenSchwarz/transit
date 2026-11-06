@@ -85,16 +85,16 @@ struct MCPModernProtocolTests {
     }
 
     @Test(arguments: ["protocolVersion", "clientCapabilities"])
-    func missingMetadataHasStandardError(field: String) throws {
+    func absentMetadataFieldsUseConservativeDefaults(field: String) throws {
         var body = envelope()
         var params = try #require(body["params"] as? [String: Any])
         var meta = try #require(params["_meta"] as? [String: Any])
         meta.removeValue(forKey: "io.modelcontextprotocol/" + field)
         params["_meta"] = meta; body["params"] = params
-        let error = try rejection(input(body))
-        #expect(error.httpStatus == 400)
-        #expect(error.rpcCode == -32602)
-        #expect(error.id == .string("request-1"))
+        let request = try MCPModernValidator.validate(input(body), availability: availability)
+        #expect(request.id == .string("request-1"))
+        #expect(request.metadata.protocolVersion == version)
+        #expect(request.metadata.clientCapabilities == .object([]))
     }
 
     @Test func metadataShapePrecedesHeaderComparison() throws {

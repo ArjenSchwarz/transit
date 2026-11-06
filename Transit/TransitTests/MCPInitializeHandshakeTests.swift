@@ -30,11 +30,15 @@ struct MCPInitializeHandshakeTests {
         }
     }
 
-    @Test func suppliedMetadataMustContainEveryRequiredField() throws {
+    @Test func absentMetadataFieldsDefaultWithoutGrantingCapabilities() throws {
         for field in ["io.modelcontextprotocol/protocolVersion", "io.modelcontextprotocol/clientCapabilities"] {
             var meta = validMetadata()
             meta.removeValue(forKey: field)
-            #expect(try reject(params: ["_meta": meta]).rpcCode == -32602)
+            let request = try MCPModernValidator.validate(
+                input(method: "server/discover", params: ["_meta": meta]),
+                availability: MCPModernAvailability(tools: []))
+            #expect(request.metadata.protocolVersion == "2026-07-28")
+            #expect(request.metadata.clientCapabilities == .object([]))
         }
         let request = try MCPModernValidator.validate(
             input(method: "server/discover", params: [:] as [String: Any]),
