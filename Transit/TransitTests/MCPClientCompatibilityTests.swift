@@ -141,6 +141,24 @@ struct MCPClientCompatibilityTests {
         #expect(version.status == .badRequest)
     }
 
+    @Test func unsupportedHandshakeNumbersReturnCorrelatedParameterErrors() async throws {
+        let env = try MCPTestHelpers.makeEnv()
+        defer { try? FileManager.default.removeItem(at: env.sidecarDirectory) }
+        for method in ["initialize", "ping"] {
+            let response = try await request(env, body: """
+            {"jsonrpc":"2.0","id":42,"method":"\(method)","params":{
+            "protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"fixture","version":"1"},
+            "_meta":{"example.test/value":1e309}}}
+            """)
+            #expect(response.status == .badRequest)
+            let object = try #require(response.json as? [String: Any])
+            #expect(object["id"] as? Int == 42)
+            let error = try #require(object["error"] as? [String: Any])
+            #expect(error["code"] as? Int == -32602)
+            #expect(object["result"] == nil)
+        }
+    }
+
     @Test func omittedMetadataGrantsNoClientCapabilities() throws {
         let input = MCPModernRequestInput(httpMethod: "POST", headers: [
             MCPModernHeader(name: "Host", value: "localhost:3141"),
