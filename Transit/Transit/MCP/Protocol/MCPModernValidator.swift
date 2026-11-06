@@ -155,9 +155,14 @@ nonisolated enum MCPModernValidator {
     }
 
     private static func clientMetadata(_ meta: MCPJSONValue, id: JSONRPCId) throws -> MCPModernClientMetadata {
-        guard let version = meta.field("io.modelcontextprotocol/protocolVersion")?.text,
-              let capabilities = meta.field("io.modelcontextprotocol/clientCapabilities"), capabilities.isObject else {
-            throw reject(400, -32602, "Invalid required per-request metadata", id: id)
+        let versionField = meta.field("io.modelcontextprotocol/protocolVersion")
+        let capabilitiesField = meta.field("io.modelcontextprotocol/clientCapabilities")
+        guard let version = versionField?.text,
+              let capabilities = capabilitiesField, capabilities.isObject else {
+            throw reject(400, -32602, "Invalid required per-request metadata "
+                + "(metaObject=\(meta.isObject), versionPresent=\(versionField != nil), "
+                + "versionString=\(versionField?.text != nil), capabilitiesPresent=\(capabilitiesField != nil), "
+                + "capabilitiesObject=\(capabilitiesField?.isObject == true))", id: id)
         }
         if case .object(let fields) = meta, fields.contains(where: { !validMetaKey($0.name) }) {
             throw reject(400, -32602, "Invalid metadata key", id: id)
