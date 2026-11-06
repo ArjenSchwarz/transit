@@ -51,11 +51,17 @@ final class TransitUITests: XCTestCase {
         app.tapTransitToolbarButton(identifier: "dashboard.settingsButton", overflowLabel: "Settings")
 
         // [req 12.1] Settings view is pushed onto the navigation stack
-        let environment = app.staticTexts["settings.environment"]
-        XCTAssertTrue(environment.waitForExistence(timeout: 5))
-        XCTAssertEqual(environment.label, "Debug (UI test)")
         let settingsTitle = app.navigationBars["Settings"]
         XCTAssertTrue(settingsTitle.waitForExistence(timeout: 5))
+        let environment = app.staticTexts["settings.environment"]
+        #if os(iOS)
+        // In landscape, the General section starts below the visible List rows.
+        for _ in 0..<4 where !environment.isHittable {
+            app.swipeUp()
+        }
+        #endif
+        XCTAssertTrue(environment.waitForExistence(timeout: 5))
+        XCTAssertEqual(environment.label, "Debug (UI test)")
     }
 
     @MainActor

@@ -38,3 +38,11 @@ Verification: `make lint` passed with zero violations across 768 files. `make te
 ## Native task-session confirmation (2026-11-06)
 
 On the fresh PR Pilot turn, all 17 Transit tools were exposed directly in this same durable engineering task. A native `mcp__transit__query_tasks` call with `displayId:2519`, `detailLevel:summary`, `includeComments:false`, and `limit:1` succeeded against the installed e7a6d9a2 build, returning the existing task and structured contract version 1 with established evidence. This call used the task's exposed MCP tool directly, not a Node controller, separate CLI client, bridge, or manual HTTP request. No ticket was created or changed. The exact rejected request from the earlier cached startup remains unavailable; this fresh-turn result establishes the previously missing native task-session interoperability evidence.
+
+## PR Pilot UI gate repair (2026-11-06)
+
+The required simulator run and separate UI run both failed the existing Settings test while waiting for `settings.environment`. The failed-test screen recording and accessibility hierarchy showed Settings open in landscape, with the General section below the visible List rows. The preceding portrait-layout test restores landscape when its original orientation is unknown; the Settings test assumed the label was initially materialised.
+
+A clean detached worktree at current main `78433fed034b3e59c3721fdb26d1c890dd8ee79c`, separate derived data and a disposable iPhone 17 / iOS 27.2 simulator established the baseline: the unchanged Settings test passed alone, but failed after the unchanged portrait-layout test. No baseline source changes were made. This confirms the order-dependent pre-existing test issue rather than inferring it from unchanged files.
+
+The narrow test-only repair first verifies the Settings navigation bar, scrolls at most four times to reveal the environment label on iOS, and retains the original existence and exact `Debug (UI test)` label assertions. No production UI behavior changes. The repaired focused Settings test passed on the previously failing simulator; lint passed with zero violations. Full simulator/UI reruns and final independent PR review are recorded on PR #263 before merge. The installed Release app remains unchanged.
