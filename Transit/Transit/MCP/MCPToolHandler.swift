@@ -273,7 +273,7 @@ final class MCPToolHandler {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         let result = MCPInitializeResult(
             protocolVersion: protocolVersion,
-            capabilities: MCPServerCapabilities(tools: MCPToolsCapability(listChanged: true)),
+            capabilities: MCPServerCapabilities(tools: MCPToolsCapability(listChanged: false)),
             serverInfo: MCPServerInfo(
                 name: AppPersistencePolicy.serverName, version: version)
         )

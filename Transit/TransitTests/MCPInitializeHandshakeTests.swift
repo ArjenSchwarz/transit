@@ -4,7 +4,7 @@ import Testing
 @testable import Transit
 
 /// Legacy handshake regressions now apply to each modern request's metadata.
-/// Initialize is unavailable; an absent optional clientInfo is valid.
+/// Explicit modern metadata remains strict; metadata-free clients can initialize.
 @MainActor @Suite(.serialized)
 struct MCPInitializeHandshakeTests {
     @Test func initializeIsUnavailableInsteadOfNegotiatingSession() throws {
@@ -13,9 +13,10 @@ struct MCPInitializeHandshakeTests {
         #expect(rejection.rpcCode == -32601)
     }
 
-    @Test func discoverWithoutParamsReturnsInvalidParams() throws {
-        let rejection = try reject(params: nil)
-        #expect(rejection.rpcCode == -32602)
+    @Test func discoverWithoutParamsUsesEmptyClientCapabilities() throws {
+        let request = try MCPModernValidator.validate(input(method: "server/discover", params: nil),
+            availability: MCPModernAvailability(tools: []))
+        #expect(request.metadata.clientCapabilities == .object([]))
     }
 
     @Test func discoverWithNonObjectParamsReturnsInvalidParams() throws {
@@ -29,13 +30,16 @@ struct MCPInitializeHandshakeTests {
         }
     }
 
-    @Test func everyRequiredMetadataFieldRemainsRequired() throws {
+    @Test func suppliedMetadataMustContainEveryRequiredField() throws {
         for field in ["io.modelcontextprotocol/protocolVersion", "io.modelcontextprotocol/clientCapabilities"] {
             var meta = validMetadata()
             meta.removeValue(forKey: field)
             #expect(try reject(params: ["_meta": meta]).rpcCode == -32602)
         }
-        #expect(try reject(params: [:] as [String: Any]).rpcCode == -32602)
+        let request = try MCPModernValidator.validate(
+            input(method: "server/discover", params: [:] as [String: Any]),
+            availability: MCPModernAvailability(tools: []))
+        #expect(request.metadata.clientCapabilities == .object([]))
     }
 
     @Test func wrongRequiredFieldTypesRemainRejected() throws {

@@ -80,7 +80,7 @@ struct MCPModernProtocolTests {
         case .discover: #expect(method == "server/discover")
         case .listTools: #expect(method == "tools/list")
         case .listenSubscriptions: #expect(method == "subscriptions/listen")
-        case .callTool: Issue.record("Unexpected tool call")
+        case .callTool, .compatibilityHandshake: Issue.record("Unexpected tool call or handshake")
         }
     }
 

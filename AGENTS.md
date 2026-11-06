@@ -157,7 +157,7 @@ Key implementation files:
 - `MCP/MCPServer.swift` — Hummingbird router, lifecycle management
 - `MCP/MCPToolHandler.swift` — dispatches `tools/call` to service layer
 - `MCP/MCPToolDefinitions.swift` — tool schemas with input validation
-- `MCP/MCPTypes.swift` — shared JSON-RPC types; exposed transport is latest-only `2026-07-28` via `MCP/Protocol` and `MCPServer+Routing.swift`
+- `MCP/MCPTypes.swift` — shared JSON-RPC types; exposed transport supports `2026-07-28` plus metadata-free requests and a stateless `2025-03-26` compatibility handshake via `MCP/Protocol` and `MCPServer+Routing.swift`
 - `MCP/BatchWrites/` — saved-only mutation previews and ordered per-item protected writes; no whole-batch receipt or transaction
 - `MCP/Links/` — typed relationship query options and saved graph result projection; protected standalone wire/owned-apply adapters live in `MCP/Writes/TaskLink*`.
 - `MCP/Consolidation/` — strict preview/apply/undo contracts, retained review authority, bounded result encoding and app-owned capability adapters.

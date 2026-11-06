@@ -1,6 +1,6 @@
 # MCP result contract version 1
 
-Transit's macOS endpoint supports MCP `2026-07-28` only. A tool result keeps the original text and optional `isError` and adds an independent structured wrapper. Output schemas advertised by `tools/list` validate `structuredContent`, not the entire JSON-RPC response.
+Transit's macOS endpoint supports MCP `2026-07-28` and a stateless `2025-03-26` compatibility handshake. A tool result keeps the original text and optional `isError` and adds an independent structured wrapper. Output schemas advertised by `tools/list` validate `structuredContent`, not the entire JSON-RPC response.
 
 ```json
 {
@@ -72,9 +72,9 @@ A mutation's complete request-correlated fallback bytes must be prepared before 
 
 Task/project entries in `presentation.links` associate `entityType`, UUID `entityId` and RFC6901 `sourcePath` with frozen source evidence. Each currently has `availability:unavailable` and `reason:navigation_not_supported`. No guessed URI is emitted. T572 entity-opening navigation is a separate feature; unavailable links remain deterministic on replay.
 
-## Latest-only request contract
+## Request contract and client compatibility
 
-Use one JSON-RPC object per `POST /mcp`, with `Content-Type: application/json`. Requests require non-null string or signed 64-bit integral IDs, object `params` and:
+Use one JSON-RPC object per `POST /mcp`, with `Content-Type: application/json`. Requests require non-null string or signed 64-bit integral IDs. Modern clients send object `params` with:
 
 ```json
 {"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}
@@ -82,14 +82,18 @@ Use one JSON-RPC object per `POST /mcp`, with `Content-Type: application/json`. 
 
 Optional clientInfo, if supplied, must include string name/version. Send `MCP-Protocol-Version: 2026-07-28` and `Mcp-Method` matching the body method. `tools/call` additionally requires `Mcp-Name` matching the tool name. Ordinary responses require acceptable `application/json`; subscriptions require acceptable `text/event-stream`. Header name matching is case-insensitive, values remain validated. Request bodies are limited to 1 MiB.
 
-Methods are `server/discover`, `tools/list`, `tools/call` and `subscriptions/listen`. Discovery and sorted tool lists include `resultType:complete`, `ttlMs:0` and `cacheScope:public`. Maintenance availability changes are reflected in the next list. There is no initialization handshake, session ID, GET listener or wire-level JSON-RPC batch. An application batch is one `tools/call` under its owner's separate feature contract.
+For clients that omit `_meta`, Transit uses empty client capabilities and no client identity, without retaining information from earlier requests. The protocol version comes from `MCP-Protocol-Version` when supplied, otherwise defaults to `2026-07-28`. Omitted `params` means an empty object. Supplied metadata remains strictly validated; supplied method/name/version headers must still be unique and match. This tolerance applies to `server/discover`, `tools/list` and `tools/call`.
+
+Metadata-free `initialize` and `ping` are also accepted. Initialize negotiates `2025-03-26`; subsequent requests may use that version header. A metadata-free `notifications/initialized` receives an empty HTTP 202. Other notifications cannot dispatch tools. This compatibility mode does not advertise tool-list notifications and adds no sessions or GET stream. Both modes use the same protected writes, bounded read admission and result encoding.
+
+Modern methods are `server/discover`, `tools/list`, `tools/call` and `subscriptions/listen`. Discovery and sorted tool lists include `resultType:complete`, `ttlMs:0` and `cacheScope:public`. Maintenance availability changes are reflected in the next list. The modern mode has no initialization handshake, session ID, GET listener or wire-level JSON-RPC batch. An application batch is one `tools/call` under its owner's separate feature contract.
 
 | Rejected input | HTTP behavior |
 | --- | --- |
 | Disallowed Origin/Host | 403 before body capture/dispatch |
 | Non-POST method | 405, Allow POST |
 | Unsupported content type / response negotiation | 415 / 406 |
-| Malformed JSON, nesting/range/shape errors, missing/mismatched metadata/headers, unavailable tool, client notification | 400, no effects |
+| Malformed JSON, nesting/range/shape errors, malformed/mismatched supplied metadata/headers, unavailable tool, unsupported client notification | 400, no effects |
 | Unsupported protocol version | 400 with supported version list |
 | Unknown RPC method, including legacy initialize, after valid modern metadata/headers | 404, method-not-found; an invalid envelope rejects earlier |
 | Oversized body | 413 |

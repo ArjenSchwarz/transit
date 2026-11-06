@@ -47,9 +47,12 @@ extension MCPServer {
             try MCPModernValidator.validateTransport(MCPModernRequestInput(httpMethod: "POST",
                 headers: headers, body: Data()))
             let body = try await request.body.collect(upTo: 1_048_576)
+            let input = MCPModernRequestInput(httpMethod: "POST", headers: headers, body: Data(buffer: body))
+            if try MCPModernValidator.isCompatibilityAcknowledgement(input) {
+                return Response(status: .accepted)
+            }
             let maintenanceEnabled = handler.modernMaintenanceEnabled
-            let modern = try MCPModernValidator.validate(MCPModernRequestInput(httpMethod: "POST",
-                headers: headers, body: Data(buffer: body)),
+            let modern = try MCPModernValidator.validate(input,
                 availability: MCPModernProviderBinding.availability(maintenanceEnabled: maintenanceEnabled,
                     consolidationEnabled: handler.consolidationCapabilityInstalled))
             let admittedAt = ContinuousClock.now
@@ -72,6 +75,10 @@ extension MCPServer {
         let maintenanceEnabled = snapshot.maintenanceEnabled
         let admittedAt = snapshot.admittedAt, admissionOwner = snapshot.owner
         switch modern.method {
+        case .compatibilityHandshake:
+            let request = try JSONDecoder().decode(JSONRPCRequest.self, from: modern.document.originalUTF8)
+            guard let response = await handler.handle(request) else { return Response(status: .accepted) }
+            return jsonResponse(response)
         case .discover:
             let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
             return encodedResponse(try MCPModernDiscovery.encodeDiscovery(id: modern.id,
